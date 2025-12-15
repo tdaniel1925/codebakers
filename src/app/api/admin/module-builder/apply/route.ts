@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/auth';
 import { ContentManagementService } from '@/services/content-management-service';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();

@@ -5,6 +5,8 @@ import { TeamService } from '@/services/team-service';
 import { handleApiError } from '@/lib/api-utils';
 import { checkoutSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession();

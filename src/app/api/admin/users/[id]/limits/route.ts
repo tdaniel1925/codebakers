@@ -4,6 +4,8 @@ import { AdminService } from '@/services/admin-service';
 import { handleApiError, successResponse } from '@/lib/api-utils';
 import { updateLimitsSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

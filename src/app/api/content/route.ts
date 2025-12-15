@@ -4,6 +4,8 @@ import { ContentService } from '@/services/content-service';
 import { TeamService } from '@/services/team-service';
 import { handleApiError } from '@/lib/api-utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization');

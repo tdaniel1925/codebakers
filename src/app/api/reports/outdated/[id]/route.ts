@@ -4,6 +4,8 @@ import { db, moduleReports } from '@/db';
 import { eq } from 'drizzle-orm';
 import { handleApiError, successResponse } from '@/lib/api-utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

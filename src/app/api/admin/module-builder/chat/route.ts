@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/auth';
 import { ContentManagementService } from '@/services/content-management-service';
 
+export const dynamic = 'force-dynamic';
+
 const SYSTEM_PROMPT = `You are an AI assistant that helps build and update code pattern modules for the CodeBakers CLI system.
 
 The system has 3 main files:

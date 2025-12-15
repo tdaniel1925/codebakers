@@ -4,6 +4,8 @@ import { stripe } from '@/lib/stripe';
 import { TeamService } from '@/services/team-service';
 import { handleApiError } from '@/lib/api-utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST() {
   try {
     const session = await getServerSession();

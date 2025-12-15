@@ -3,6 +3,8 @@ import { requireAdmin } from '@/lib/auth';
 import { ContentManagementService } from '@/services/content-management-service';
 import { handleApiError, successResponse } from '@/lib/api-utils';
 
+export const dynamic = 'force-dynamic';
+
 // POST - Publish a version (make it active)
 export async function POST(
   req: NextRequest,

@@ -4,6 +4,8 @@ import { AdminService } from '@/services/admin-service';
 import { handleApiError, successResponse } from '@/lib/api-utils';
 import { suspendSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -5,6 +5,8 @@ import { TeamService } from '@/services/team-service';
 import { handleApiError, successResponse } from '@/lib/api-utils';
 import { createApiKeySchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await getServerSession();

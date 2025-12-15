@@ -5,6 +5,8 @@ import { ContentManagementService } from '@/services/content-management-service'
 import { db, moduleReports } from '@/db';
 import { eq } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 const SYSTEM_PROMPT = `You are an AI assistant that fixes outdated code pattern modules for the CodeBakers CLI system.
 
 You will receive:

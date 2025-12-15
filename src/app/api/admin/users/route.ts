@@ -3,6 +3,8 @@ import { requireAdmin } from '@/lib/auth';
 import { AdminService } from '@/services/admin-service';
 import { handleApiError, successResponse } from '@/lib/api-utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     await requireAdmin();

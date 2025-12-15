@@ -3,6 +3,8 @@ import { requireAdmin } from '@/lib/auth';
 import { ContentManagementService } from '@/services/content-management-service';
 import { handleApiError, successResponse } from '@/lib/api-utils';
 
+export const dynamic = 'force-dynamic';
+
 // GET - Get a specific version
 export async function GET(
   req: NextRequest,

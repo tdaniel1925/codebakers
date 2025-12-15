@@ -2,7 +2,9 @@ import { requireAdmin } from '@/lib/auth';
 import { AdminService } from '@/services/admin-service';
 import { handleApiError, successResponse } from '@/lib/api-utils';
 import { db, moduleReports } from '@/db';
-import { eq, gte, and } from 'drizzle-orm';
+import { gte } from 'drizzle-orm';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
