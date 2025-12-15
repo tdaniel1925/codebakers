@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new version
-    const newVersion = await ContentManagementService.createVersion({
+    const newVersion = await ContentManagementService.createVersion(user.id, {
       version: newVersionNumber,
       claudeMdContent: newClaudeMd,
       cursorRulesContent: newCursorRules,
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Auto-publish the new version
-    await ContentManagementService.publishVersion(newVersion.id, user.id);
+    await ContentManagementService.publishVersion(newVersion.id);
 
     return NextResponse.json({
       success: true,
