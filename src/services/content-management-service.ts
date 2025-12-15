@@ -185,7 +185,7 @@ export class ContentManagementService {
         ...Object.values(modules),
       ]
         .filter(Boolean)
-        .reduce((acc, content) => acc + (content as string).split('\n').length, 0),
+        .reduce((acc: number, content) => acc + (content as string).split('\n').length, 0),
     };
   }
 }
