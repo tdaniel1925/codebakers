@@ -1,0 +1,1663 @@
+# CodeBakers CLI Server
+## Complete Product Requirements Document
+
+**Version:** 4.1
+**Date:** December 2024 (Updated December 14, 2024)
+**Stack:** Next.js 14, Supabase, Drizzle, Stripe, shadcn/ui
+**Hosting:** Vercel
+
+---
+
+# TABLE OF CONTENTS
+
+1. [Overview](#1-overview)
+2. [What's New in v4](#2-whats-new-in-v4)
+3. [Tech Stack](#3-tech-stack)
+4. [Project Structure](#4-project-structure)
+5. [Database Schema](#5-database-schema)
+6. [API Endpoints](#6-api-endpoints)
+7. [CLI Tool](#7-cli-tool)
+8. [Background Daemon](#8-background-daemon)
+9. [Content Protection](#9-content-protection)
+10. [Modular System](#10-modular-system)
+11. [Router Intelligence](#11-router-intelligence)
+12. [Expert Team System](#12-expert-team-system)
+13. [Project Types](#13-project-types)
+14. [Business Deliverables](#14-business-deliverables)
+15. [Marketing Prompt Generator](#15-marketing-prompt-generator)
+16. [Audit System](#16-audit-system)
+17. [Dashboard Pages](#17-dashboard-pages)
+18. [Admin Backend](#18-admin-backend)
+19. [Authentication](#19-authentication)
+20. [Stripe Billing](#20-stripe-billing)
+21. [Marketing Website](#21-marketing-website)
+22. [Environment Variables](#22-environment-variables)
+23. [Deployment](#23-deployment)
+
+---
+
+# CHANGELOG (v4.0 → v4.1)
+
+## Module Expansion (December 14, 2024)
+
+All 25 modules have been expanded from skeleton outlines to **production-ready patterns** totaling **37,481 lines**.
+
+### Expanded Code Modules
+| Module | Before | After | Key Additions |
+|--------|--------|-------|---------------|
+| 05-payments | ~200 | 1,571 | Usage billing, metered subscriptions, invoice generation, customer portal |
+| 12-saas | ~150 | 1,265 | Multi-tenant patterns (schema + row), feature flags, GDPR data export |
+| 13-mobile | ~100 | 1,057 | React Native patterns, PWA service workers, offline sync, push notifications |
+
+### New Business Modules
+| Module | Lines | Content |
+|--------|-------|---------|
+| 15-research | 517 | Competitive analysis, persona templates, market sizing, interview scripts |
+| 16-planning | 565 | MVP scoping, architecture decisions, roadmap templates, risk assessment |
+| 17-marketing | 791 | Campaign templates, 20+ AI prompts for content, launch strategy |
+| 18-launch | 691 | Pre-launch checklist, go-live playbook, rollback procedures |
+| 19-audit | 450 | 100-point inspection (security, performance, accessibility, SEO, legal) |
+| 20-operations | 1,327 | Sentry integration, incident response (SEV1-4), support tickets, feature flags |
+
+### New Expert Modules
+| Module | Lines | Expert Perspectives |
+|--------|-------|-------------------|
+| 21-experts-core | 879 | Backend (scalability checklists), Frontend (state management), Security (OWASP), QA (testing pyramid), DevOps (CI/CD), PM (requirements), Mobile (native UX) |
+| 22-experts-health | 778 | HIPAA compliance (18 identifiers), PHI audit logging with checksums, BAA vendor requirements, WCAG 2.1 AA accessibility |
+| 23-experts-finance | 1,090 | PCI-DSS SAQ-A (Stripe Elements), KYC tiers (0-3), AML screening rules, fraud detection (risk scoring 0-100), 1099-K generation |
+| 24-experts-legal | 2,508 | Terms of Service generator, Privacy Policy (GDPR/CCPA), cookie consent banners, data retention policies, contract templates |
+| 25-experts-industry | 3,529 | E-commerce (cart, inventory, shipping), Education (LMS, gamification), Voice/VAPI (conversation design), B2B (SSO, contracts), Kids (COPPA, age gates) |
+
+### Summary
+- **Total lines:** 37,481 (was ~5,000 skeleton)
+- **Estimated tokens:** ~93,700
+- **All modules:** Production-ready with copy-paste code patterns
+
+---
+
+# 1. OVERVIEW
+
+## 1.1 What This Is
+
+CodeBakers is an autonomous product development system delivered via CLI. It transforms AI coding assistants (Cursor, Claude Code) into full product teams with 30+ expert perspectives.
+
+**Not just coding patterns — a complete business-in-a-box.**
+
+## 1.2 What Users Get
+
+| Feature | Description |
+|---------|-------------|
+| 25 modules | Code, business, marketing, legal patterns |
+| 30+ experts | Backend, frontend, security, marketing, compliance, etc. |
+| Smart router | Loads only needed modules (90% token savings) |
+| Project types | Personal, Client, or Business workflows |
+| Auto-testing | Every feature includes tests |
+| Business docs | Market research, roadmaps, marketing plans |
+| Marketing prompts | Ready-to-use prompts for content generation |
+| Pre-flight audit | 100-point inspection before launch |
+
+## 1.3 User Flow
+
+```
+User signs up → pays $49/mo → gets API key
+         ↓
+npm install -g @codebakers/cli
+         ↓
+codebakers login
+         ↓
+codebakers install (in project folder)
+         ↓
+CLI downloads ENCODED patterns from server
+         ↓
+Daemon starts, decodes with valid license
+         ↓
+User opens Cursor/Claude Code
+         ↓
+AI asks: "Personal, Client, or Business project?"
+         ↓
+AI becomes full product team
+```
+
+## 1.4 Revenue Model
+
+| Tier | Price | Seats | Features |
+|------|-------|-------|----------|
+| Beta | Free | 1 | Admin-assigned only |
+| Pro | $49/mo | 1 | Full access |
+| Team | $149/mo | 5 | Team management |
+| Agency | $349/mo | Unlimited | White-label |
+
+---
+
+# 2. WHAT'S NEW IN V4
+
+## 2.1 Project Types
+
+Users choose how AI behaves:
+
+| Type | Behavior |
+|------|----------|
+| 🏠 **Personal** | Just build it. Code + tests only. |
+| 👤 **Client** | Build + handoff docs. No marketing. |
+| 🏢 **Business** | Full product team. All phases. |
+
+## 2.2 Expanded Modules (14 → 25)
+
+**Code Modules (00-13):**
+- Core, Database, Auth, API, Frontend, Payments
+- Integrations, Performance, Testing, Design
+- Generators, Realtime, SaaS, Mobile
+
+**Business Modules (15-20):**
+- Research, Planning, Marketing, Launch, Audit, Operations
+
+**Expert Modules (21-25):**
+- Core Team, Health/HIPAA, Finance/Compliance, Legal/GDPR, Industry-specific
+
+## 2.3 Router Enhancements
+
+| Feature | Description |
+|---------|-------------|
+| Project state tracking | Resume projects across sessions |
+| Smart preloading | Predicts next needed module |
+| Dependency graph | Prevents building features out of order |
+| Quality gates | Enforces standards between phases |
+| Blocker detection | Surfaces problems early |
+| Risk scoring | Flags dangerous code patterns |
+| Time/cost estimation | Estimates before building |
+| Style adaptation | Learns user preferences |
+| Parallel work detection | Suggests independent tasks when blocked |
+| Handoff support | Generates team documentation |
+| Auto health checks | Runs audits at key points |
+
+## 2.4 Marketing Prompt Generator
+
+For BUSINESS projects, generates ready-to-use prompts for:
+- Social media campaigns (30 days)
+- Email sequences (7-10 emails)
+- Blog content (10 articles)
+- Video scripts (5 videos)
+- Ad campaigns (3 campaigns)
+- Press releases
+
+## 2.5 Pre-Flight Audit
+
+100-point inspection across:
+- Security (20 points)
+- Performance (15 points)
+- Error handling (15 points)
+- Testing (15 points)
+- Code quality (10 points)
+- UX (10 points)
+- Accessibility (10 points)
+- Infrastructure (5 points)
+
+---
+
+# 3. TECH STACK
+
+## 3.1 Website
+
+| Tech | Purpose |
+|------|---------|
+| Next.js 14 | Framework (App Router) |
+| Supabase | Auth + Database |
+| Drizzle ORM | Type-safe queries |
+| Stripe | Payments |
+| shadcn/ui | UI components |
+| Tailwind CSS | Styling |
+
+## 3.2 CLI
+
+| Tech | Purpose |
+|------|---------|
+| Commander.js | CLI framework |
+| Ora | Spinners |
+| Chalk | Colors |
+| Conf | Local config storage |
+| node-fetch | API calls |
+
+## 3.3 Daemon
+
+| Tech | Purpose |
+|------|---------|
+| Node.js | Runtime |
+| chokidar | File watching |
+| node-schedule | Periodic checks |
+| crypto | Decryption |
+
+## 3.4 Install Commands
+
+```bash
+# Website
+npx create-next-app@latest codebakers-server --typescript --tailwind --app --src-dir
+npm install @supabase/supabase-js @supabase/ssr drizzle-orm postgres zod stripe
+npm install lucide-react
+npx shadcn@latest init
+npx shadcn@latest add button card input dialog table badge toast tabs
+
+# CLI
+npm init -y
+npm install commander ora chalk conf node-fetch
+npm install -D typescript @types/node
+```
+
+---
+
+# 4. PROJECT STRUCTURE
+
+```
+codebakers-server/
+├── src/
+│   ├── app/
+│   │   ├── (auth)/
+│   │   │   ├── login/page.tsx
+│   │   │   └── signup/page.tsx
+│   │   ├── (dashboard)/
+│   │   │   ├── dashboard/page.tsx
+│   │   │   ├── setup/page.tsx
+│   │   │   ├── billing/page.tsx
+│   │   │   └── team/page.tsx
+│   │   ├── (admin)/
+│   │   │   ├── admin/page.tsx
+│   │   │   └── admin/users/page.tsx
+│   │   ├── (marketing)/
+│   │   │   ├── page.tsx
+│   │   │   ├── pricing/page.tsx
+│   │   │   ├── features/page.tsx
+│   │   │   └── compare/page.tsx
+│   │   └── api/
+│   │       ├── content/route.ts
+│   │       ├── content/modules/[name]/route.ts
+│   │       ├── keys/route.ts
+│   │       ├── billing/checkout/route.ts
+│   │       ├── admin/users/[id]/beta/route.ts
+│   │       └── webhooks/stripe/route.ts
+│   │
+│   ├── components/
+│   ├── lib/
+│   ├── db/
+│   ├── services/
+│   │
+│   └── content/
+│       ├── router.md                 # Smart router (836 lines)
+│       └── modules/                  # 25 modules
+│           ├── 00-core.md
+│           ├── 01-database.md
+│           ├── ...
+│           └── 25-experts-industry.md
+│
+├── cli/
+│   └── src/
+│       ├── index.ts
+│       ├── commands/
+│       │   ├── login.ts
+│       │   ├── install.ts
+│       │   ├── status.ts
+│       │   ├── update.ts
+│       │   └── uninstall.ts
+│       ├── daemon/
+│       │   ├── index.ts
+│       │   ├── daemon-process.ts
+│       │   └── decoder.ts
+│       └── lib/
+│           ├── api.ts
+│           └── config.ts
+│
+└── encoder/
+    └── src/
+        ├── encode.ts
+        └── decode.ts
+```
+
+---
+
+# 5. DATABASE SCHEMA
+
+```typescript
+// src/db/schema.ts
+
+import { pgTable, uuid, text, timestamp, boolean, integer, jsonb, pgEnum } from 'drizzle-orm/pg-core';
+
+// Enums
+export const subscriptionPlanEnum = pgEnum('subscription_plan', ['beta', 'pro', 'team', 'agency']);
+
+// Profiles
+export const profiles = pgTable('profiles', {
+  id: uuid('id').primaryKey(),
+  email: text('email').notNull(),
+  fullName: text('full_name'),
+  isAdmin: boolean('is_admin').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Teams
+export const teams = pgTable('teams', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
+  ownerId: uuid('owner_id').references(() => profiles.id),
+  
+  // Stripe
+  stripeCustomerId: text('stripe_customer_id'),
+  stripeSubscriptionId: text('stripe_subscription_id'),
+  subscriptionStatus: text('subscription_status').default('inactive'),
+  subscriptionPlan: subscriptionPlanEnum('subscription_plan'),
+  subscriptionCurrentPeriodEnd: timestamp('subscription_current_period_end'),
+  
+  // Beta
+  betaGrantedAt: timestamp('beta_granted_at'),
+  betaGrantedReason: text('beta_granted_reason'),
+  
+  seatLimit: integer('seat_limit').default(1),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Team Members
+export const teamMembers = pgTable('team_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id),
+  userId: uuid('user_id').references(() => profiles.id),
+  role: text('role').default('member'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// API Keys
+export const apiKeys = pgTable('api_keys', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id),
+  userId: uuid('user_id').references(() => profiles.id),
+  keyHash: text('key_hash').notNull().unique(),
+  keyPrefix: text('key_prefix').notNull(),
+  name: text('name').default('Default'),
+  isActive: boolean('is_active').default(true),
+  lastUsedAt: timestamp('last_used_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// API Logs
+export const apiLogs = pgTable('api_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  apiKeyId: uuid('api_key_id').references(() => apiKeys.id),
+  teamId: uuid('team_id').references(() => teams.id),
+  endpoint: text('endpoint').notNull(),
+  method: text('method').notNull(),
+  statusCode: integer('status_code'),
+  modulesLoaded: jsonb('modules_loaded'), // Track which modules were requested
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Content Versions
+export const contentVersions = pgTable('content_versions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  version: text('version').notNull().unique(),
+  routerChecksum: text('router_checksum').notNull(),
+  modulesChecksum: text('modules_checksum').notNull(),
+  releaseNotes: text('release_notes'),
+  isActive: boolean('is_active').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Admin Audit Log
+export const adminAuditLog = pgTable('admin_audit_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  adminId: uuid('admin_id').references(() => profiles.id),
+  action: text('action').notNull(),
+  targetUserId: uuid('target_user_id').references(() => profiles.id),
+  details: jsonb('details'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+```
+
+---
+
+# 6. API ENDPOINTS
+
+## 6.1 Content Endpoint (Router)
+
+```typescript
+// src/app/api/content/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { validateApiKey } from '@/services/api-key-service';
+import { getEncodedRouter } from '@/services/content-service';
+
+export async function GET(req: NextRequest) {
+  const apiKey = req.headers.get('authorization')?.slice(7);
+  
+  const validation = await validateApiKey(apiKey);
+  if (!validation.valid) {
+    return NextResponse.json({ error: 'Invalid key' }, { status: 401 });
+  }
+  
+  if (!validation.team.subscriptionPlan && !validation.team.betaGrantedAt) {
+    return NextResponse.json({ error: 'No subscription' }, { status: 403 });
+  }
+  
+  const router = await getEncodedRouter();
+  
+  await logApiCall({
+    apiKeyId: validation.apiKey.id,
+    teamId: validation.team.id,
+    endpoint: '/api/content',
+    method: 'GET',
+  });
+  
+  return NextResponse.json({
+    version: '4.0',
+    router: router.content,
+    checksum: router.checksum,
+    modules: router.moduleList, // List of available modules
+  });
+}
+```
+
+## 6.2 Module Endpoint
+
+```typescript
+// src/app/api/content/modules/[name]/route.ts
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { name: string } }
+) {
+  const apiKey = req.headers.get('authorization')?.slice(7);
+  
+  const validation = await validateApiKey(apiKey);
+  if (!validation.valid) {
+    return NextResponse.json({ error: 'Invalid key' }, { status: 401 });
+  }
+  
+  const module = await getEncodedModule(params.name);
+  
+  if (!module) {
+    return NextResponse.json({ error: 'Module not found' }, { status: 404 });
+  }
+  
+  await logApiCall({
+    apiKeyId: validation.apiKey.id,
+    teamId: validation.team.id,
+    endpoint: `/api/content/modules/${params.name}`,
+    method: 'GET',
+    modulesLoaded: [params.name],
+  });
+  
+  return NextResponse.json({
+    name: params.name,
+    content: module.content,
+    checksum: module.checksum,
+  });
+}
+```
+
+## 6.3 API Key Endpoints
+
+```typescript
+// src/app/api/keys/route.ts
+
+// GET - List keys
+export async function GET() {
+  const session = await getServerSession();
+  if (!session) return unauthorized();
+  
+  const keys = await ApiKeyService.listKeys(session.user.id);
+  return NextResponse.json({ keys });
+}
+
+// POST - Create key
+export async function POST(req: NextRequest) {
+  const session = await getServerSession();
+  if (!session) return unauthorized();
+  
+  const { name } = await req.json();
+  const result = await ApiKeyService.createKey({ userId: session.user.id, name });
+  
+  // Return raw key only once
+  return NextResponse.json({ key: result.rawKey, id: result.id });
+}
+```
+
+## 6.4 Stripe Webhook
+
+```typescript
+// src/app/api/webhooks/stripe/route.ts
+
+export async function POST(req: NextRequest) {
+  const body = await req.text();
+  const signature = req.headers.get('stripe-signature')!;
+  
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!);
+  } catch {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  }
+  
+  switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object;
+      await db.update(teams).set({
+        stripeCustomerId: session.customer,
+        stripeSubscriptionId: session.subscription,
+        subscriptionStatus: 'active',
+        subscriptionPlan: session.metadata.plan,
+      }).where(eq(teams.id, session.metadata.teamId));
+      break;
+    }
+    
+    case 'customer.subscription.deleted': {
+      const sub = event.data.object;
+      await db.update(teams).set({
+        subscriptionStatus: 'canceled',
+        subscriptionPlan: null,
+      }).where(eq(teams.stripeSubscriptionId, sub.id));
+      break;
+    }
+  }
+  
+  return NextResponse.json({ received: true });
+}
+```
+
+---
+
+# 7. CLI TOOL
+
+## 7.1 Package.json
+
+```json
+{
+  "name": "@codebakers/cli",
+  "version": "4.0.0",
+  "bin": {
+    "codebakers": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "commander": "^11.0.0",
+    "ora": "^7.0.0",
+    "chalk": "^5.0.0",
+    "conf": "^12.0.0",
+    "node-fetch": "^3.0.0"
+  }
+}
+```
+
+## 7.2 Main Entry
+
+```typescript
+// cli/src/index.ts
+#!/usr/bin/env node
+
+import { Command } from 'commander';
+import { login } from './commands/login';
+import { install } from './commands/install';
+import { status } from './commands/status';
+import { update } from './commands/update';
+import { uninstall } from './commands/uninstall';
+
+const program = new Command();
+
+program
+  .name('codebakers')
+  .description('CodeBakers - Autonomous Product Development System')
+  .version('4.0.0');
+
+program.command('login').description('Login with API key').action(login);
+program.command('install').description('Install in current project').action(install);
+program.command('status').description('Check license and daemon status').action(status);
+program.command('update').description('Update to latest version').action(update);
+program.command('uninstall').description('Remove from project').action(uninstall);
+
+program.parse();
+```
+
+## 7.3 Login Command
+
+```typescript
+// cli/src/commands/login.ts
+
+import ora from 'ora';
+import chalk from 'chalk';
+import Conf from 'conf';
+import { createInterface } from 'readline';
+import { validateKey } from '../lib/api';
+
+const config = new Conf({ projectName: 'codebakers' });
+
+export async function login() {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  
+  const apiKey = await new Promise<string>((resolve) => {
+    rl.question(chalk.cyan('Enter your API key: '), resolve);
+  });
+  rl.close();
+  
+  const spinner = ora('Validating...').start();
+  
+  try {
+    const result = await validateKey(apiKey);
+    
+    if (!result.valid) {
+      spinner.fail(chalk.red(result.error));
+      process.exit(1);
+    }
+    
+    config.set('apiKey', apiKey);
+    spinner.succeed(chalk.green(`Logged in as ${result.email}`));
+    console.log(chalk.gray(`\nRun ${chalk.cyan('codebakers install')} to add to your project.`));
+  } catch {
+    spinner.fail(chalk.red('Failed to validate'));
+    process.exit(1);
+  }
+}
+```
+
+## 7.4 Install Command
+
+```typescript
+// cli/src/commands/install.ts
+
+import ora from 'ora';
+import chalk from 'chalk';
+import Conf from 'conf';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { fetchContent, fetchModule } from '../lib/api';
+import { startDaemon } from '../daemon';
+
+const config = new Conf({ projectName: 'codebakers' });
+
+export async function install() {
+  const apiKey = config.get('apiKey') as string;
+  
+  if (!apiKey) {
+    console.log(chalk.red('Not logged in. Run `codebakers login` first.'));
+    process.exit(1);
+  }
+  
+  const spinner = ora('Downloading router...').start();
+  
+  try {
+    // Fetch router
+    const content = await fetchContent(apiKey);
+    
+    spinner.text = 'Downloading modules...';
+    
+    // Fetch all modules
+    const modules: Record<string, string> = {};
+    for (const moduleName of content.modules) {
+      const module = await fetchModule(apiKey, moduleName);
+      modules[moduleName] = module.content;
+    }
+    
+    spinner.text = 'Installing...';
+    
+    // Detect IDE
+    const isCursor = existsSync('.cursor') || existsSync('.cursorrules');
+    
+    if (isCursor) {
+      // Cursor: .cursorrules + .cursorrules-modules/
+      writeFileSync('.cursorrules', content.router);
+      
+      if (!existsSync('.cursorrules-modules')) {
+        mkdirSync('.cursorrules-modules');
+      }
+      
+      for (const [name, encoded] of Object.entries(modules)) {
+        writeFileSync(`.cursorrules-modules/${name}`, encoded);
+      }
+    } else {
+      // Claude Code: CLAUDE.md + .claude/
+      writeFileSync('CLAUDE.md', content.router);
+      
+      if (!existsSync('.claude')) {
+        mkdirSync('.claude');
+      }
+      
+      for (const [name, encoded] of Object.entries(modules)) {
+        writeFileSync(`.claude/${name}`, encoded);
+      }
+    }
+    
+    spinner.text = 'Starting daemon...';
+    await startDaemon();
+    
+    spinner.succeed(chalk.green('CodeBakers v4.0 installed!'));
+    
+    console.log(`
+${chalk.bold('What\'s included:')}
+  • 25 modules (code, business, marketing, legal)
+  • 30+ expert perspectives
+  • Smart loading (90% token savings)
+  
+${chalk.bold('Project types:')}
+  • 🏠 Personal - Just build it
+  • 👤 Client - Build + handoff docs
+  • 🏢 Business - Full product team
+
+${chalk.gray('Open Cursor or Claude Code and start building!')}
+`);
+  } catch (error) {
+    spinner.fail(chalk.red('Failed to install'));
+    console.error(error);
+    process.exit(1);
+  }
+}
+```
+
+## 7.5 Status Command
+
+```typescript
+// cli/src/commands/status.ts
+
+import chalk from 'chalk';
+import Conf from 'conf';
+import { checkLicense, getLatestVersion } from '../lib/api';
+import { isDaemonRunning } from '../daemon';
+import { existsSync, readFileSync } from 'fs';
+
+const config = new Conf({ projectName: 'codebakers' });
+
+export async function status() {
+  console.log(chalk.bold('\nCodeBakers Status\n'));
+  
+  // Login status
+  const apiKey = config.get('apiKey') as string;
+  if (apiKey) {
+    console.log(chalk.green('✓ Logged in'));
+  } else {
+    console.log(chalk.red('✗ Not logged in'));
+    return;
+  }
+  
+  // License status
+  try {
+    const license = await checkLicense(apiKey);
+    if (license.valid) {
+      console.log(chalk.green(`✓ License valid (${license.plan})`));
+    } else {
+      console.log(chalk.red(`✗ License invalid: ${license.error}`));
+    }
+  } catch {
+    console.log(chalk.red('✗ Could not check license'));
+  }
+  
+  // Daemon status
+  if (await isDaemonRunning()) {
+    console.log(chalk.green('✓ Daemon running'));
+  } else {
+    console.log(chalk.yellow('○ Daemon not running'));
+  }
+  
+  // Installation status
+  const hasCursor = existsSync('.cursorrules');
+  const hasClaude = existsSync('CLAUDE.md');
+  
+  if (hasCursor || hasClaude) {
+    console.log(chalk.green(`✓ Installed (${hasCursor ? 'Cursor' : 'Claude Code'})`));
+    
+    // Check version
+    const latest = await getLatestVersion(apiKey);
+    // Compare with local version
+    console.log(chalk.gray(`  Version: 4.0 (latest: ${latest})`));
+  } else {
+    console.log(chalk.yellow('○ Not installed in this project'));
+  }
+  
+  // Module count
+  const modulesDir = hasCursor ? '.cursorrules-modules' : '.claude';
+  if (existsSync(modulesDir)) {
+    const files = require('fs').readdirSync(modulesDir);
+    console.log(chalk.gray(`  Modules: ${files.length}`));
+  }
+  
+  console.log('');
+}
+```
+
+## 7.6 Update Command
+
+```typescript
+// cli/src/commands/update.ts
+
+import ora from 'ora';
+import chalk from 'chalk';
+import Conf from 'conf';
+import { fetchContent, fetchModule, getLatestVersion } from '../lib/api';
+import { existsSync, writeFileSync } from 'fs';
+
+const config = new Conf({ projectName: 'codebakers' });
+
+export async function update() {
+  const apiKey = config.get('apiKey') as string;
+  
+  if (!apiKey) {
+    console.log(chalk.red('Not logged in.'));
+    process.exit(1);
+  }
+  
+  const spinner = ora('Checking for updates...').start();
+  
+  try {
+    const content = await fetchContent(apiKey);
+    
+    spinner.text = 'Updating modules...';
+    
+    const isCursor = existsSync('.cursorrules');
+    const routerFile = isCursor ? '.cursorrules' : 'CLAUDE.md';
+    const modulesDir = isCursor ? '.cursorrules-modules' : '.claude';
+    
+    // Update router
+    writeFileSync(routerFile, content.router);
+    
+    // Update all modules
+    for (const moduleName of content.modules) {
+      const module = await fetchModule(apiKey, moduleName);
+      writeFileSync(`${modulesDir}/${moduleName}`, module.content);
+    }
+    
+    spinner.succeed(chalk.green(`Updated to v${content.version}`));
+  } catch {
+    spinner.fail(chalk.red('Update failed'));
+  }
+}
+```
+
+---
+
+# 8. BACKGROUND DAEMON
+
+## 8.1 Daemon Manager
+
+```typescript
+// cli/src/daemon/index.ts
+
+import { spawn } from 'child_process';
+import { existsSync, writeFileSync, readFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
+import Conf from 'conf';
+
+const config = new Conf({ projectName: 'codebakers' });
+const PID_FILE = join(config.path, '..', 'daemon.pid');
+
+export async function startDaemon(): Promise<void> {
+  if (await isDaemonRunning()) return;
+  
+  const daemon = spawn(process.execPath, [join(__dirname, 'daemon-process.js')], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  
+  daemon.unref();
+  writeFileSync(PID_FILE, String(daemon.pid));
+}
+
+export async function stopDaemon(): Promise<void> {
+  if (!existsSync(PID_FILE)) return;
+  
+  const pid = parseInt(readFileSync(PID_FILE, 'utf8'));
+  
+  try {
+    process.kill(pid);
+  } catch {}
+  
+  unlinkSync(PID_FILE);
+}
+
+export async function isDaemonRunning(): Promise<boolean> {
+  if (!existsSync(PID_FILE)) return false;
+  
+  const pid = parseInt(readFileSync(PID_FILE, 'utf8'));
+  
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+```
+
+## 8.2 Daemon Process
+
+```typescript
+// cli/src/daemon/daemon-process.ts
+
+import Conf from 'conf';
+import { checkLicense } from '../lib/api';
+import { decodeFile } from './decoder';
+
+const config = new Conf({ projectName: 'codebakers' });
+const CHECK_INTERVAL = 60 * 60 * 1000; // 1 hour
+
+let lastLicenseCheck = 0;
+let isLicenseValid = false;
+
+async function validateLicense(): Promise<boolean> {
+  const apiKey = config.get('apiKey') as string;
+  if (!apiKey) return false;
+  
+  try {
+    const result = await checkLicense(apiKey);
+    return result.valid;
+  } catch {
+    return false;
+  }
+}
+
+async function checkAndValidate() {
+  if (Date.now() - lastLicenseCheck > CHECK_INTERVAL) {
+    isLicenseValid = await validateLicense();
+    lastLicenseCheck = Date.now();
+    
+    if (!isLicenseValid) {
+      console.error('License invalid - stopping daemon');
+      process.exit(1);
+    }
+  }
+}
+
+// Initial check
+validateLicense().then((valid) => {
+  isLicenseValid = valid;
+  lastLicenseCheck = Date.now();
+  
+  if (!valid) {
+    console.error('Invalid license');
+    process.exit(1);
+  }
+});
+
+// Periodic check
+setInterval(checkAndValidate, CHECK_INTERVAL);
+
+// Keep alive
+setInterval(() => {}, 1000);
+```
+
+---
+
+# 9. CONTENT PROTECTION
+
+## 9.1 Encoder
+
+```typescript
+// encoder/src/encode.ts
+
+import { createCipheriv, randomBytes } from 'crypto';
+import { readFileSync, writeFileSync, readdirSync } from 'fs';
+import { join } from 'path';
+
+const ALGORITHM = 'aes-256-gcm';
+const KEY = process.env.ENCODER_KEY!;
+
+export function encodeFile(content: string): string {
+  const iv = randomBytes(16);
+  const cipher = createCipheriv(ALGORITHM, Buffer.from(KEY, 'hex'), iv);
+  
+  let encrypted = cipher.update(content, 'utf8', 'base64');
+  encrypted += cipher.final('base64');
+  
+  const authTag = cipher.getAuthTag();
+  
+  return `${iv.toString('base64')}:${authTag.toString('base64')}:${encrypted}`;
+}
+
+export function encodeAllModules(inputDir: string, outputDir: string) {
+  const files = readdirSync(inputDir).filter(f => f.endsWith('.md'));
+  
+  for (const file of files) {
+    const content = readFileSync(join(inputDir, file), 'utf8');
+    const encoded = encodeFile(content);
+    writeFileSync(join(outputDir, file), encoded);
+  }
+  
+  console.log(`Encoded ${files.length} files`);
+}
+```
+
+## 9.2 Decoder
+
+```typescript
+// cli/src/daemon/decoder.ts
+
+import { createDecipheriv } from 'crypto';
+
+const ALGORITHM = 'aes-256-gcm';
+
+export function decodeFile(encoded: string, key: string): string {
+  const [ivB64, authTagB64, encryptedB64] = encoded.split(':');
+  
+  const iv = Buffer.from(ivB64, 'base64');
+  const authTag = Buffer.from(authTagB64, 'base64');
+  const encrypted = Buffer.from(encryptedB64, 'base64');
+  
+  const decipher = createDecipheriv(ALGORITHM, Buffer.from(key, 'hex'), iv);
+  decipher.setAuthTag(authTag);
+  
+  let decrypted = decipher.update(encrypted);
+  decrypted = Buffer.concat([decrypted, decipher.final()]);
+  
+  return decrypted.toString('utf8');
+}
+```
+
+---
+
+# 10. MODULAR SYSTEM
+
+## 10.1 Module Structure
+
+**Total: 37,481 lines of production-ready patterns across 25 modules**
+
+```
+content/
+├── router.md                  # Smart router (836 lines)
+└── modules/
+    │
+    ├── # CODE MODULES (00-13) - 18,329 lines total
+    ├── 00-core.md             # 2,131 lines - Standards, types, error handling (always loaded)
+    ├── 01-database.md         # 651 lines - Drizzle ORM, queries, migrations, soft deletes
+    ├── 02-auth.md             # 1,239 lines - Supabase Auth, OAuth, 2FA, RBAC, session management
+    ├── 03-api.md              # 1,641 lines - Routes, webhooks, rate limiting, validation
+    ├── 04-frontend.md         # 1,772 lines - React Hook Form, React Query, Zustand, optimistic UI
+    ├── 05-payments.md         # 1,571 lines - Stripe checkout, subscriptions, usage billing, invoices
+    ├── 06-integrations.md     # 3,439 lines - Email (Resend), SMS (Twilio), VAPI, file uploads, cron
+    ├── 07-performance.md      # 709 lines - Caching (Redis), optimization, lazy loading
+    ├── 08-testing.md          # 818 lines - Playwright, Vitest, CI/CD, coverage
+    ├── 09-design.md           # 3,205 lines - Dark mode, accessibility, 50+ shadcn components
+    ├── 10-generators.md       # 2,920 lines - CRUD scaffolding, admin generators
+    ├── 11-realtime.md         # 1,938 lines - WebSockets, Supabase Realtime, notifications
+    ├── 12-saas.md             # 1,265 lines - Multi-tenant, feature flags, GDPR, onboarding
+    ├── 13-mobile.md           # 1,057 lines - React Native, PWA, offline-first, push notifications
+    │
+    ├── # BUSINESS MODULES (15-20) - 4,341 lines total
+    ├── 15-research.md         # 517 lines - Market research, competitive analysis, personas
+    ├── 16-planning.md         # 565 lines - MVP scope, roadmap, architecture decisions
+    ├── 17-marketing.md        # 791 lines - Campaigns, AI prompts for content, launch strategy
+    ├── 18-launch.md           # 691 lines - Pre-launch checklist, go-live playbook, rollback
+    ├── 19-audit.md            # 450 lines - 100-point pre-flight inspection
+    ├── 20-operations.md       # 1,327 lines - Monitoring (Sentry), incident response, support tickets
+    │
+    └── # EXPERT MODULES (21-25) - 8,784 lines total
+    ├── 21-experts-core.md     # 879 lines - Backend, Frontend, Security, QA, DevOps, PM, Mobile
+    ├── 22-experts-health.md   # 778 lines - HIPAA compliance, PHI handling, accessibility (WCAG 2.1)
+    ├── 23-experts-finance.md  # 1,090 lines - PCI-DSS, KYC/AML, fraud detection, 1099-K
+    ├── 24-experts-legal.md    # 2,508 lines - Terms, Privacy Policy, GDPR, CCPA, contracts
+    └── 25-experts-industry.md # 3,529 lines - E-commerce, Education, Voice/VAPI, B2B, Kids (COPPA)
+```
+
+## 10.2 Module Loading
+
+| Scenario | Modules Loaded | Est. Lines | Est. Tokens |
+|----------|---------------|-----------|-------------|
+| Simple feature | 00-core + 01-database | ~2,800 | ~7,000 |
+| Complex feature | 00-core + 02-auth + 03-api | ~5,000 | ~12,500 |
+| Frontend work | 00-core + 04-frontend + 09-design | ~7,100 | ~17,750 |
+| Discovery phase | 00-core + 15-research | ~2,650 | ~6,600 |
+| Marketing | 00-core + 17-marketing | ~2,900 | ~7,250 |
+| Audit | 00-core + 19-audit | ~2,600 | ~6,500 |
+| Health app | 00-core + 22-experts-health | ~2,900 | ~7,250 |
+| Finance app | 00-core + 23-experts-finance | ~3,200 | ~8,000 |
+| Legal review | 00-core + 24-experts-legal | ~4,600 | ~11,500 |
+| **Max per prompt** | 4 modules | ~8,000 | ~20,000 |
+
+**Full system: 37,481 lines (~93,700 tokens)**
+**Token savings: 75-90%** compared to loading everything.
+
+## 10.3 Module Content Summary
+
+### Code Modules (00-13)
+
+| Module | Key Patterns |
+|--------|-------------|
+| **00-core** | TypeScript config, ESLint, error handling, API responses, env validation, logging |
+| **01-database** | Drizzle schema, migrations, soft deletes, audit columns, query patterns |
+| **02-auth** | Supabase Auth, OAuth providers, 2FA/MFA, RBAC, session management, password policies |
+| **03-api** | Route handlers, middleware, rate limiting, webhook verification, file uploads |
+| **04-frontend** | React Hook Form + Zod, React Query, Zustand, optimistic updates, infinite scroll |
+| **05-payments** | Stripe Checkout, subscriptions, usage billing, invoices, customer portal, metered billing |
+| **06-integrations** | Resend email, Twilio SMS, VAPI voice agents, S3 uploads, cron jobs, webhooks |
+| **07-performance** | Redis caching, query optimization, lazy loading, bundle analysis, CDN |
+| **08-testing** | Vitest unit tests, Playwright E2E, MSW mocking, CI/CD pipelines, coverage |
+| **09-design** | Dark mode, 50+ shadcn components, WCAG accessibility, responsive patterns |
+| **10-generators** | CRUD generators, admin scaffolding, form generators, API generators |
+| **11-realtime** | Supabase Realtime, WebSocket patterns, presence, notifications, live cursors |
+| **12-saas** | Multi-tenant (schema/row), feature flags, onboarding flows, GDPR compliance |
+| **13-mobile** | React Native patterns, PWA setup, offline-first, push notifications, deep links |
+
+### Business Modules (15-20)
+
+| Module | Key Deliverables |
+|--------|-----------------|
+| **15-research** | Competitive analysis template, persona creation, market sizing, user interviews |
+| **16-planning** | MVP scope definition, technical architecture, roadmap template, risk assessment |
+| **17-marketing** | Campaign templates, AI prompts for content, social media strategy, SEO checklist |
+| **18-launch** | Pre-launch checklist, go-live playbook, rollback procedures, launch day timeline |
+| **19-audit** | 100-point inspection across security, performance, accessibility, SEO, legal |
+| **20-operations** | Sentry integration, incident response runbook, support ticket system, feature flags |
+
+### Expert Modules (21-25)
+
+| Module | Expert Perspectives |
+|--------|-------------------|
+| **21-experts-core** | Backend (scalability), Frontend (a11y), Security (OWASP), QA (testing pyramid), DevOps (CI/CD), PM (requirements), Mobile (native UX) |
+| **22-experts-health** | HIPAA compliance (18 identifiers), PHI audit logging, BAA requirements, WCAG 2.1 AA accessibility |
+| **23-experts-finance** | PCI-DSS (SAQ-A with Stripe), KYC tiers, AML screening, fraud detection (risk scoring), 1099-K generation |
+| **24-experts-legal** | Terms of Service generator, Privacy Policy (GDPR/CCPA), cookie consent, data retention, contract templates |
+| **25-experts-industry** | E-commerce (cart, inventory), Education (LMS, progress), Voice/VAPI (conversation design), B2B (SSO, contracts), Kids (COPPA, age gates) |
+
+---
+
+# 11. ROUTER INTELLIGENCE
+
+## 11.1 Core Features
+
+The router (836 lines) acts as the conductor:
+
+```markdown
+# CODEBAKERS AUTONOMOUS PRODUCT DEVELOPMENT SYSTEM
+
+## STEP 1: CHECK PROJECT STATE
+Load PROJECT-STATE.md if exists, resume where left off.
+
+## STEP 2: DETECT PROJECT TYPE
+Ask: Personal / Client / Business
+
+## STEP 3: DETECT BUILD MODE
+Quick / Standard / Thorough
+
+## STEP 4: DETECT PROJECT PHASE
+Discovery → Planning → Design → Build → Quality → Marketing → Launch → Operations
+
+## STEP 5: ASSEMBLE EXPERT TEAM
+Core team always, contextual experts by domain.
+
+## STEP 6: LOAD MODULES (MAX 4)
+Based on phase and keywords.
+
+## STEP 7: EXECUTE WITH EXPERT INPUT
+Gather input, synthesize, implement.
+
+## STEP 8: MANDATORY QUALITY CHECKS
+Run tests, verify before saying done.
+
+## STEP 9: UPDATE PROJECT STATE
+Track progress, decisions, blockers.
+```
+
+## 11.2 Router Enhancements
+
+| Feature | Implementation |
+|---------|----------------|
+| **Project State** | Saves to PROJECT-STATE.md, resumes across sessions |
+| **Dependency Graph** | Checks prerequisites before building features |
+| **Quality Gates** | Enforces checklist between phases |
+| **Blocker Detection** | Surfaces missing env vars, services, decisions |
+| **Risk Scoring** | Flags high/medium/low risk patterns |
+| **Time Estimation** | Estimates hours and monthly cost |
+| **Style Adaptation** | Learns verbose/concise preference |
+| **Parallel Work** | Suggests independent tasks when blocked |
+| **Handoff Docs** | Generates documentation for team transfer |
+| **Auto Health Checks** | Triggers audits at milestones |
+
+---
+
+# 12. EXPERT TEAM SYSTEM
+
+## 12.1 Core Team (Always Active)
+
+| Expert | Focus |
+|--------|-------|
+| Backend Developer | API, database, error handling |
+| Frontend Developer | UI, UX, state management |
+| Security Engineer | Auth, validation, vulnerabilities |
+| QA Engineer | Tests, edge cases |
+| DevOps Engineer | Deployment, monitoring |
+| Product Manager | Requirements, scope |
+| Mobile Specialist | Mobile-first, offline |
+
+## 12.2 Contextual Experts (By Domain)
+
+| Domain | Experts Added |
+|--------|---------------|
+| Health/Fitness | Health Advisor, HIPAA Compliance, Accessibility |
+| Finance/Payments | Financial Advisor, Compliance Officer, Fraud Prevention |
+| E-commerce | Conversion Specialist, Inventory, Shipping |
+| Education | Learning Designer, Engagement Expert |
+| Kids/Family | Child Safety, COPPA Compliance |
+| Legal | Legal Advisor, Privacy Expert |
+| Voice/AI | Conversation Designer, Telephony Expert |
+| B2B | Enterprise Sales, Integration Specialist |
+
+## 12.3 Marketing Team (BUSINESS Only)
+
+| Expert | Focus |
+|--------|-------|
+| Marketing Director | Strategy, acquisition, retention |
+| Copywriter | In-app copy, error messages |
+| Growth Hacker | Viral loops, referrals |
+| SEO Specialist | Keywords, content |
+
+---
+
+# 13. PROJECT TYPES
+
+## 13.1 Personal Projects
+
+**For:** Side projects, learning, personal tools
+
+**What AI does:**
+- Jump straight to building
+- Core team only
+- Code + tests
+- No business documents
+- No marketing
+
+**Output:**
+```
+/src       ← Code
+/tests     ← Tests
+README.md  ← Basic setup
+```
+
+## 13.2 Client Projects
+
+**For:** Freelance work, agency projects
+
+**What AI does:**
+- Light requirements gathering
+- Core team + domain experts
+- Code + tests + handoff docs
+- No marketing
+
+**Output:**
+```
+/src
+/tests
+/docs
+├── SETUP-GUIDE.md
+├── TECHNICAL-OVERVIEW.md
+├── ENV-TEMPLATE.md
+└── HANDOFF-NOTES.md
+```
+
+## 13.3 Business Projects
+
+**For:** Startups, SaaS, products
+
+**What AI does:**
+- Full discovery phase
+- All experts activated
+- All documents generated
+- Marketing materials + prompts
+- Launch planning
+
+**Output:**
+```
+/src
+/tests
+/docs
+├── MARKET-RESEARCH.md
+├── COMPETITIVE-ANALYSIS.md
+├── USER-PERSONAS.md
+├── PRODUCT-REQUIREMENTS.md
+├── TECHNICAL-SPEC.md
+├── ROADMAP.md
+├── LAUNCH-CHECKLIST.md
+└── METRICS-DASHBOARD.md
+/marketing
+├── AI-PROMPTS.md
+├── MARKETING-PLAN.md
+├── EMAIL-SEQUENCES.md
+├── SOCIAL-CALENDAR.md
+└── AD-CAMPAIGNS.md
+/legal
+├── TERMS-OF-SERVICE.md
+├── PRIVACY-POLICY.md
+└── COMPLIANCE-CHECKLIST.md
+```
+
+---
+
+# 14. BUSINESS DELIVERABLES
+
+## 14.1 Discovery Phase
+
+| Document | Contents |
+|----------|----------|
+| MARKET-RESEARCH.md | Market size, trends, opportunities |
+| COMPETITIVE-ANALYSIS.md | Competitor breakdown, gaps |
+| USER-PERSONAS.md | 2-3 detailed personas |
+
+## 14.2 Planning Phase
+
+| Document | Contents |
+|----------|----------|
+| PRODUCT-REQUIREMENTS.md | MVP scope, user stories |
+| TECHNICAL-SPEC.md | Architecture, stack decisions |
+| ROADMAP.md | Sprint plan, milestones |
+
+## 14.3 Marketing Phase
+
+| Document | Contents |
+|----------|----------|
+| MARKETING-PLAN.md | Go-to-market strategy |
+| EMAIL-SEQUENCES.md | Launch email drafts |
+| SOCIAL-CALENDAR.md | 30-day content plan |
+| AI-PROMPTS.md | Ready-to-use prompts |
+
+## 14.4 Launch Phase
+
+| Document | Contents |
+|----------|----------|
+| LAUNCH-CHECKLIST.md | Pre-launch requirements |
+| PRESS-RELEASE.md | Announcement draft |
+
+---
+
+# 15. MARKETING PROMPT GENERATOR
+
+For BUSINESS projects, generates ready-to-paste prompts:
+
+## 15.1 Social Media Prompt
+
+```markdown
+You are a social media manager for [APP NAME].
+
+Target audience: [persona]
+Brand voice: [tone]
+
+Create a 30-day launch campaign:
+- Week 1: Teaser posts
+- Week 2: Product reveal
+- Week 3: Social proof
+- Week 4: Launch push
+
+For each post include:
+- Platform
+- Copy
+- Image description
+- Hashtags
+```
+
+## 15.2 Email Sequence Prompt
+
+```markdown
+Write a 7-email launch sequence:
+
+Email 1: Problem awareness
+Email 2: Solution introduction
+Email 3: Product reveal
+Email 4: Anticipation
+Email 5: LAUNCH
+Email 6: Social proof
+Email 7: Last chance
+
+For each: subject (5 options), preview, body, CTA
+```
+
+## 15.3 Additional Prompts
+
+- Blog content (10 articles)
+- Video scripts (5 videos)
+- Ad campaigns (3 campaigns)
+- Press release
+- Podcast episodes
+
+---
+
+# 16. AUDIT SYSTEM
+
+## 16.1 Trigger
+
+When user says "audit", "pre-flight", or "check":
+
+## 16.2 Output Format
+
+```
+═══════════════════════════════════════════════════════
+🔍 CODEBAKERS AUDIT REPORT
+═══════════════════════════════════════════════════════
+
+OVERALL SCORE: 87/100
+
+✅ PASSED (45)
+• Auth on protected routes
+• Input validation present
+• ...
+
+❌ FAILED (3)
+• Missing rate limiting on /api/contact
+  → Fix: Add rate limiter
+  → File: src/app/api/contact/route.ts
+
+⚠️ WARNINGS (7)
+• No error boundary in dashboard
+  → Add error boundary component
+
+PRIORITY FIXES:
+1. Add rate limiting
+2. Add error boundary
+3. Add missing tests
+═══════════════════════════════════════════════════════
+```
+
+## 16.3 Categories
+
+| Category | Points | Checks |
+|----------|--------|--------|
+| Security | 20 | Auth, validation, XSS, CSRF, rate limiting |
+| Performance | 15 | N+1 queries, pagination, caching |
+| Error Handling | 15 | Try-catch, user messages, logging |
+| Testing | 15 | Coverage, critical paths |
+| Code Quality | 10 | TypeScript, no `any`, no console.log |
+| UX | 10 | Loading, empty, error states |
+| Accessibility | 10 | Alt text, ARIA, keyboard |
+| Infrastructure | 5 | Env vars, monitoring |
+
+---
+
+# 17. DASHBOARD PAGES
+
+## 17.1 Main Dashboard
+
+```typescript
+// Shows:
+// - API key (copy button)
+// - Usage stats
+// - Quick start guide
+// - Module list
+// - Version info
+```
+
+## 17.2 Setup Page
+
+```typescript
+// Step-by-step:
+// 1. Install CLI
+// 2. Login
+// 3. Install in project
+// 4. Choose project type
+// 5. Start building
+```
+
+## 17.3 Billing Page
+
+```typescript
+// - Current plan
+// - Usage this month
+// - Upgrade/downgrade
+// - Manage subscription (Stripe portal)
+```
+
+---
+
+# 18. ADMIN BACKEND
+
+## 18.1 User Management
+
+```typescript
+// List all users with:
+// - Email, name, created date
+// - Plan (beta/pro/team/agency)
+// - Usage stats
+// - Actions: Set beta, revoke
+```
+
+## 18.2 Beta Tier
+
+```typescript
+// POST /api/admin/users/[id]/beta
+// - Grant free access
+// - Record reason (influencer, tester)
+// - Audit logged
+```
+
+## 18.3 Analytics
+
+```typescript
+// - Total users
+// - Active subscriptions
+// - API calls per day
+// - Popular modules
+// - Revenue (MRR)
+```
+
+---
+
+# 19. AUTHENTICATION
+
+Standard Supabase Auth setup (see v3 PRD for full code).
+
+---
+
+# 20. STRIPE BILLING
+
+Standard Stripe setup with:
+- Checkout sessions
+- Customer portal
+- Webhook handling
+- Plan management
+
+---
+
+# 21. MARKETING WEBSITE
+
+## 21.1 Pages
+
+| Page | Purpose |
+|------|---------|
+| Landing | Hero, features, social proof |
+| Pricing | Plans comparison |
+| Features | Detailed feature list |
+| Compare | Before/after code examples |
+| Docs | Setup guide, FAQ |
+
+## 21.2 Key Messages
+
+- "One person + CodeBakers = full product team"
+- "90% token savings with smart loading"
+- "Not just code — business docs, marketing, launch"
+- "Personal, Client, or Business — you choose"
+
+---
+
+# 22. ENVIRONMENT VARIABLES
+
+```bash
+# App
+NEXT_PUBLIC_APP_URL=https://codebakers.dev
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=xxx
+NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
+DATABASE_URL=xxx
+
+# Stripe
+STRIPE_SECRET_KEY=sk_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+STRIPE_PRO_PRICE_ID=price_xxx
+STRIPE_TEAM_PRICE_ID=price_xxx
+STRIPE_AGENCY_PRICE_ID=price_xxx
+
+# Content
+ENCODER_KEY=xxx  # 32-byte hex
+```
+
+---
+
+# 23. DEPLOYMENT
+
+## 23.1 Website (Vercel)
+
+```bash
+vercel
+vercel env add STRIPE_SECRET_KEY
+# ... add all env vars
+```
+
+## 23.2 CLI (npm)
+
+```bash
+cd cli
+npm publish --access public
+```
+
+## 23.3 Content Updates
+
+```bash
+# Encode new content
+cd encoder
+npm run encode
+
+# Upload to server
+# Update version in database
+```
+
+---
+
+# SUMMARY
+
+## What v4 Delivers
+
+| Component | Description |
+|-----------|-------------|
+| **Router** | 836-line conductor with 15 intelligence features |
+| **25 Modules** | Code, business, marketing, legal, experts |
+| **3 Project Types** | Personal, Client, Business |
+| **30+ Experts** | Dynamic team assembly |
+| **Smart Loading** | 90% token savings |
+| **Marketing Prompts** | Ready-to-use AI prompts |
+| **Audit System** | 100-point pre-flight check |
+| **Business Docs** | Auto-generated deliverables |
+
+## User Journey
+
+```
+Sign up → Pay → Install CLI → Choose project type → Build with full team
+```
+
+## Value Proposition
+
+**Without CodeBakers:**
+- You + AI = code with gaps
+- Revision loops
+- Missing security, tests, edge cases
+- No business docs
+
+**With CodeBakers:**
+- You + AI = full product team
+- Production-ready first try
+- 30+ experts reviewing every feature
+- Complete business package
+
+---
+
+**Version 4.0 — December 2024**
+**25 Modules | 30+ Experts | 3 Project Types | Smart Loading**
