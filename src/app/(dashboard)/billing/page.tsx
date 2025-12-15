@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, Check, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
@@ -53,7 +53,7 @@ const plans = [
   },
 ];
 
-export default function BillingPage() {
+function BillingContent() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [isBeta, setIsBeta] = useState(false);
@@ -271,5 +271,29 @@ export default function BillingPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function BillingFallback() {
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-white">Billing</h1>
+        <p className="text-slate-400 mt-1">
+          Manage your subscription and billing
+        </p>
+      </div>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    </div>
+  );
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense fallback={<BillingFallback />}>
+      <BillingContent />
+    </Suspense>
   );
 }

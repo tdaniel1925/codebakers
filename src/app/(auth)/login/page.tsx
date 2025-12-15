@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
@@ -28,7 +28,7 @@ const loginSchema = z.object({
 
 type LoginInput = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -138,5 +138,29 @@ export default function LoginPage() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function LoginFormFallback() {
+  return (
+    <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
+      <CardHeader className="text-center">
+        <CardTitle className="text-2xl text-white">Welcome back</CardTitle>
+        <CardDescription>Sign in to your CodeBakers account</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFormFallback />}>
+      <LoginForm />
+    </Suspense>
   );
 }
