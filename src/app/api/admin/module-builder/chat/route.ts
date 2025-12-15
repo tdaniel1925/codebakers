@@ -4,7 +4,7 @@ import { isAdmin } from '@/lib/auth';
 import Anthropic from '@anthropic-ai/sdk';
 import { ContentManagementService } from '@/services/content-management-service';
 
-const anthropic = new Anthropic();
+const getAnthropic = () => new Anthropic();
 
 const SYSTEM_PROMPT = `You are an AI assistant that helps build and update code pattern modules for the CodeBakers CLI system.
 
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const response = await anthropic.messages.create({
+    const response = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8192,
       system: SYSTEM_PROMPT + contextMessage,

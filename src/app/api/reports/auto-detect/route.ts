@@ -7,7 +7,7 @@ import { Resend } from 'resend';
 import { handleApiError, successResponse } from '@/lib/api-utils';
 import { ContentManagementService } from '@/services/content-management-service';
 
-const anthropic = new Anthropic();
+const getAnthropic = () => new Anthropic();
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'daniel@botmakers.ai';
 
@@ -116,7 +116,7 @@ ${moduleContent ? moduleContent.substring(0, 3000) + '...' : 'Module not found'}
 
 Is this an outdated pattern issue or a user error?`;
 
-    const response = await anthropic.messages.create({
+    const response = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
       system: ANALYSIS_PROMPT,

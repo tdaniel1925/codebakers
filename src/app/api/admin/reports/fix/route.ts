@@ -6,7 +6,7 @@ import { ContentManagementService } from '@/services/content-management-service'
 import { db, moduleReports } from '@/db';
 import { eq } from 'drizzle-orm';
 
-const anthropic = new Anthropic();
+const getAnthropic = () => new Anthropic();
 
 const SYSTEM_PROMPT = `You are an AI assistant that fixes outdated code pattern modules for the CodeBakers CLI system.
 
@@ -121,7 +121,7 @@ ${report.sourceUrl ? `**Reference URL:** ${report.sourceUrl}` : ''}
 
 Please analyze this report and generate the necessary fixes to update the relevant files.`;
 
-    const response = await anthropic.messages.create({
+    const response = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8192,
       system: SYSTEM_PROMPT + contextMessage,
