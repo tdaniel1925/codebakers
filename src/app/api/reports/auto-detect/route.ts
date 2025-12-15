@@ -116,9 +116,8 @@ ${moduleContent ? moduleContent.substring(0, 3000) + '...' : 'Module not found'}
 
 Is this an outdated pattern issue or a user error?`;
 
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const anthropic = new Anthropic();
-    const response = await anthropic.messages.create({
+    const { createMessage } = await import('@/lib/anthropic');
+    const response = await createMessage({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
       system: ANALYSIS_PROMPT,

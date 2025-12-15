@@ -120,9 +120,8 @@ ${report.sourceUrl ? `**Reference URL:** ${report.sourceUrl}` : ''}
 
 Please analyze this report and generate the necessary fixes to update the relevant files.`;
 
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const anthropic = new Anthropic();
-    const response = await anthropic.messages.create({
+    const { createMessage } = await import('@/lib/anthropic');
+    const response = await createMessage({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8192,
       system: SYSTEM_PROMPT + contextMessage,

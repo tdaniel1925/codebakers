@@ -87,9 +87,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const anthropic = new Anthropic();
-    const response = await anthropic.messages.create({
+    const { createMessage } = await import('@/lib/anthropic');
+    const response = await createMessage({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8192,
       system: SYSTEM_PROMPT + contextMessage,
