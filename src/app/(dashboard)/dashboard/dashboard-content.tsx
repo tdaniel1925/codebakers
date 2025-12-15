@@ -20,7 +20,7 @@ interface DashboardContentProps {
     } | null;
     apiKeyCount: number;
     lastApiCall: Date | null;
-    seatLimit?: number;
+    seatLimit?: number | null;
   };
   apiKey: {
     keyPrefix: string;
