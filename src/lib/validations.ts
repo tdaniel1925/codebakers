@@ -25,7 +25,7 @@ export const createApiKeySchema = z.object({
 // Billing schemas
 export const checkoutSchema = z.object({
   plan: z.enum(['pro', 'team', 'agency'], {
-    errorMap: () => ({ message: 'Invalid plan selected' }),
+    message: 'Invalid plan selected',
   }),
 });
 
