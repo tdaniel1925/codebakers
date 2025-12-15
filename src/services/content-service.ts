@@ -54,7 +54,7 @@ export class ContentService {
 
       // Encode modules from database
       if (dbVersion.modulesContent) {
-        for (const [filename, content] of Object.entries(dbVersion.modulesContent)) {
+        for (const [filename, content] of Object.entries(dbVersion.modulesContent as Record<string, string>)) {
           if (content) {
             modules[filename] = encodeContent(content);
           }
