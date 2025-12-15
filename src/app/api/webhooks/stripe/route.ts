@@ -80,8 +80,8 @@ export async function POST(req: NextRequest) {
         if (team) {
           await TeamService.updateStripeInfo(team.id, {
             subscriptionStatus: 'canceled',
-            subscriptionPlan: null,
-            stripeSubscriptionId: null,
+            subscriptionPlan: undefined,
+            stripeSubscriptionId: undefined,
           });
         }
         break;
