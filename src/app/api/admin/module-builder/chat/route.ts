@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/auth';
-import Anthropic from '@anthropic-ai/sdk';
 import { ContentManagementService } from '@/services/content-management-service';
-
-const getAnthropic = () => new Anthropic();
 
 const SYSTEM_PROMPT = `You are an AI assistant that helps build and update code pattern modules for the CodeBakers CLI system.
 
@@ -88,7 +85,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const response = await getAnthropic().messages.create({
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const anthropic = new Anthropic();
+    const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8192,
       system: SYSTEM_PROMPT + contextMessage,
