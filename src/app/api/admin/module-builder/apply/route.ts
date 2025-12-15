@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       version: newVersionNumber,
       claudeMdContent: newClaudeMd,
       cursorRulesContent: newCursorRules,
-      modulesContent: Object.keys(newModules).length > 0 ? newModules : null,
+      modulesContent: Object.keys(newModules).length > 0 ? newModules : undefined,
       changelog: `AI-generated update: ${changes.summary}`,
     });
 
