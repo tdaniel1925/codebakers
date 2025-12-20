@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { ContentManagementService } from '@/services/content-management-service';
-import { handleApiError, successResponse } from '@/lib/api-utils';
+import { handleApiError, successResponse, autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    autoRateLimit(req);
     await requireAdmin();
 
     const { id } = await params;

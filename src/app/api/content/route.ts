@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiKeyService } from '@/services/api-key-service';
 import { ContentService } from '@/services/content-service';
 import { TeamService } from '@/services/team-service';
-import { handleApiError } from '@/lib/api-utils';
+import { handleApiError, autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    autoRateLimit(req);
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(

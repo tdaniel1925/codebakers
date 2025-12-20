@@ -3,7 +3,7 @@ import { ApiKeyService } from '@/services/api-key-service';
 import { db, moduleReports } from '@/db';
 import { eq, and, gte } from 'drizzle-orm';
 import { Resend } from 'resend';
-import { handleApiError, successResponse } from '@/lib/api-utils';
+import { handleApiError, successResponse, autoRateLimit } from '@/lib/api-utils';
 import { ContentManagementService } from '@/services/content-management-service';
 
 export const dynamic = 'force-dynamic';
@@ -49,6 +49,7 @@ Respond with JSON only:
 
 export async function POST(req: NextRequest) {
   try {
+    autoRateLimit(req);
     // Validate API key
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

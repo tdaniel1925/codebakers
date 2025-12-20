@@ -6,14 +6,24 @@ import {
   getRateLimitKey,
   getClientIp,
   rateLimitConfigs,
+  autoRateLimit,
   type RateLimitConfig,
 } from './rate-limit';
+import { logger, getRequestId } from './logger';
 
 // Re-export for convenience
-export { rateLimitConfigs } from './rate-limit';
+export { rateLimitConfigs, autoRateLimit } from './rate-limit';
+export { logger, getRequestId } from './logger';
 
-export function handleApiError(error: unknown): NextResponse {
-  console.error('API Error:', error);
+export function handleApiError(error: unknown, requestId?: string): NextResponse {
+  const reqId = requestId || 'unknown';
+
+  // Log with structured logging
+  if (error instanceof Error) {
+    logger.apiError('API Error', reqId, error);
+  } else {
+    logger.error('API Error', { requestId: reqId, error: String(error) });
+  }
 
   // Handle Zod validation errors
   if (error instanceof ZodError) {
@@ -86,6 +96,7 @@ export function handleApiError(error: unknown): NextResponse {
     {
       error: message,
       code: 'INTERNAL_ERROR',
+      requestId: reqId,
     },
     { status: 500 }
   );

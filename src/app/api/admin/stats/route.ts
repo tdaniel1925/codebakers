@@ -1,13 +1,15 @@
+import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { AdminService } from '@/services/admin-service';
-import { handleApiError, successResponse } from '@/lib/api-utils';
+import { handleApiError, successResponse, autoRateLimit } from '@/lib/api-utils';
 import { db, moduleReports } from '@/db';
 import { gte } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    autoRateLimit(req);
     await requireAdmin();
 
     const userStats = await AdminService.getUserStats();

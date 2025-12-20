@@ -4,7 +4,7 @@ import { getServerSession } from '@/lib/auth';
 import { createPayPalSubscription } from '@/lib/paypal';
 import { TeamService } from '@/services/team-service';
 import { PricingService } from '@/services/pricing-service';
-import { handleApiError } from '@/lib/api-utils';
+import { handleApiError, autoRateLimit } from '@/lib/api-utils';
 import {
   AuthenticationError,
   NotFoundError,
@@ -20,6 +20,7 @@ const checkoutSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    autoRateLimit(req);
     // Auth check
     const session = await getServerSession();
     if (!session) {

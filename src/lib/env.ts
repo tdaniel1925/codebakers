@@ -7,6 +7,7 @@ import { z } from 'zod';
 const serverEnvSchema = z.object({
   // App
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 
   // Supabase (required)
   NEXT_PUBLIC_SUPABASE_URL: z.string().url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL'),

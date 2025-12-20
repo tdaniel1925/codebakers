@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { AdminService } from '@/services/admin-service';
-import { handleApiError, successResponse } from '@/lib/api-utils';
+import { handleApiError, successResponse, autoRateLimit } from '@/lib/api-utils';
 import { updateLimitsSchema } from '@/lib/validations';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +11,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    autoRateLimit(req);
     await requireAdmin();
 
     const { id } = await params;

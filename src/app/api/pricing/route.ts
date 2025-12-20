@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { PricingService } from '@/services/pricing-service';
-import { handleApiError } from '@/lib/api-utils';
+import { handleApiError, autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
 // GET - Get public pricing info (no auth required)
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    autoRateLimit(req);
     const plans = await PricingService.getAllPlans();
 
     // Return only public-facing info (no provider-specific IDs)

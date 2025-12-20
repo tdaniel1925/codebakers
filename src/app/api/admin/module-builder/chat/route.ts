@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/auth';
 import { ContentManagementService } from '@/services/content-management-service';
+import { autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,6 +99,7 @@ Example CLAUDE.md routing section format:
 
 export async function POST(request: NextRequest) {
   try {
+    autoRateLimit(request);
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 

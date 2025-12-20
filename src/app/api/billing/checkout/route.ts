@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
 import { stripe, PRICES } from '@/lib/stripe';
 import { TeamService } from '@/services/team-service';
-import { handleApiError } from '@/lib/api-utils';
+import { handleApiError, autoRateLimit } from '@/lib/api-utils';
 import { checkoutSchema } from '@/lib/validations';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    autoRateLimit(req);
+
     const session = await getServerSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

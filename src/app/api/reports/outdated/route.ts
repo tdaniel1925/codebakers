@@ -3,7 +3,7 @@ import { ApiKeyService } from '@/services/api-key-service';
 import { db, moduleReports } from '@/db';
 import { eq, and, gte, desc } from 'drizzle-orm';
 import { Resend } from 'resend';
-import { handleApiError, successResponse } from '@/lib/api-utils';
+import { handleApiError, successResponse, autoRateLimit } from '@/lib/api-utils';
 import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +15,7 @@ const NOTIFY_THRESHOLD = 3;
 // POST - Submit a new report (CLI users)
 export async function POST(req: NextRequest) {
   try {
+    autoRateLimit(req);
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -99,6 +100,7 @@ export async function POST(req: NextRequest) {
 // GET - List reports (for admin dashboard)
 export async function GET(req: NextRequest) {
   try {
+    autoRateLimit(req);
     await requireAdmin();
 
     const url = new URL(req.url);

@@ -4,6 +4,7 @@ import { isAdmin } from '@/lib/auth';
 import { ContentManagementService } from '@/services/content-management-service';
 import { db, moduleReports } from '@/db';
 import { eq } from 'drizzle-orm';
+import { autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,7 @@ Only include files that actually need to change. Generate complete, production-r
 
 export async function POST(request: NextRequest) {
   try {
+    autoRateLimit(request);
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 

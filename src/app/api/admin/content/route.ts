@@ -1,13 +1,14 @@
 import { NextRequest } from 'next/server';
 import { requireAdmin, getServerSession } from '@/lib/auth';
 import { ContentManagementService } from '@/services/content-management-service';
-import { handleApiError, successResponse } from '@/lib/api-utils';
+import { handleApiError, successResponse, autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
 // GET - List all content versions
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    autoRateLimit(req);
     await requireAdmin();
 
     const versions = await ContentManagementService.listVersions();
@@ -21,6 +22,7 @@ export async function GET() {
 // POST - Create a new content version
 export async function POST(req: NextRequest) {
   try {
+    autoRateLimit(req);
     const session = await requireAdmin();
 
     const body = await req.json();

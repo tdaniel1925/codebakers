@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPayPalSubscription } from '@/lib/paypal';
 import { TeamService } from '@/services/team-service';
 import { PricingService } from '@/services/pricing-service';
+import { autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    autoRateLimit(req);
     const { searchParams } = new URL(req.url);
     const teamId = searchParams.get('teamId');
     const plan = searchParams.get('plan') as 'pro' | 'team' | 'agency';

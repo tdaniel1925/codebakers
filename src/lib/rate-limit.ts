@@ -104,3 +104,37 @@ export function getClientIp(headers: Headers): string | null {
     null
   );
 }
+
+/**
+ * Automatically apply rate limiting based on route path
+ * Call this at the start of any route handler
+ */
+export function autoRateLimit(
+  req: { headers: Headers; url: string },
+  userId?: string | null
+): void {
+  const url = new URL(req.url);
+  const path = url.pathname;
+  const ip = getClientIp(req.headers);
+
+  // Determine config based on path
+  let config: RateLimitConfig;
+  let prefix: string;
+
+  if (path.includes('/webhooks/')) {
+    config = rateLimitConfigs.webhook;
+    prefix = 'webhook';
+  } else if (path.includes('/admin/')) {
+    config = rateLimitConfigs.admin;
+    prefix = 'admin';
+  } else if (path.includes('/billing/') || path.includes('/checkout')) {
+    config = rateLimitConfigs.apiWrite;
+    prefix = 'billing';
+  } else {
+    config = rateLimitConfigs.api;
+    prefix = 'api';
+  }
+
+  const key = getRateLimitKey(prefix, userId ?? null, ip);
+  checkRateLimit(key, config);
+}

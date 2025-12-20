@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { PricingService } from '@/services/pricing-service';
-import { handleApiError, successResponse } from '@/lib/api-utils';
+import { handleApiError, successResponse, autoRateLimit } from '@/lib/api-utils';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
 // GET - List all pricing plans
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    autoRateLimit(req);
     await requireAdmin();
 
     const plans = await PricingService.getAllPlans();
@@ -38,6 +39,7 @@ const upsertPlanSchema = z.object({
 // POST - Create or update a pricing plan
 export async function POST(req: NextRequest) {
   try {
+    autoRateLimit(req);
     await requireAdmin();
 
     const body = await req.json();
