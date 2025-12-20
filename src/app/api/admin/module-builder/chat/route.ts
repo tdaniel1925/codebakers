@@ -29,6 +29,21 @@ The system has 3 main files:
    - 13-mobile.md - React Native, Expo, mobile apps
    - 14-ai.md - OpenAI, Anthropic, RAG, embeddings
 
+   **Business & Planning Modules:**
+   - 15-research.md - Market research, competitive analysis, user personas
+   - 16-planning.md - PRD, roadmap, feature prioritization
+   - 17-marketing.md - Growth, campaigns, messaging, content
+   - 18-launch.md - Launch playbook, pre/post-launch checklists
+   - 19-audit.md - Pre-flight audit, 100-point inspection
+   - 20-operations.md - Monitoring, runbooks, incident response
+
+   **Expert Modules:**
+   - 21-experts-core.md - Backend/frontend/security/devops experts
+   - 22-experts-health.md - Healthcare, HIPAA compliance
+   - 23-experts-finance.md - Fintech, PCI, banking
+   - 24-experts-legal.md - Legal tech, contracts, privacy
+   - 25-experts-industry.md - Ecommerce, edtech, proptech, etc.
+
    **Extended Modules:**
    - 26-analytics.md - PostHog, Mixpanel, funnels, metrics
    - 27-search.md - Full-text search, Algolia, autocomplete
