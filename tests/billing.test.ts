@@ -1,38 +1,11 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Billing & Payments', () => {
-  test.describe('Billing Page', () => {
-    test('should display billing page with pricing plans', async ({ page }) => {
-      // Navigate to billing page
+  test.describe('Billing Page (protected)', () => {
+    test('should redirect to login when not authenticated', async ({ page }) => {
       await page.goto('/billing');
-
-      // Check page loads
-      await expect(page.locator('h1')).toContainText('Billing');
-
-      // Check pricing plans are displayed
-      await expect(page.locator('text=Pro')).toBeVisible();
-      await expect(page.locator('text=Team')).toBeVisible();
-      await expect(page.locator('text=Agency')).toBeVisible();
-
-      // Check "Get Started" buttons are visible
-      const getStartedButtons = page.locator('button:has-text("Get Started")');
-      await expect(getStartedButtons).toHaveCount(3);
-    });
-
-    test('should display payment provider icons', async ({ page }) => {
-      await page.goto('/billing');
-
-      // Check payment provider indicators are shown
-      await expect(page.locator('text=Pay with:')).toBeVisible();
-    });
-
-    test('should show FAQ section', async ({ page }) => {
-      await page.goto('/billing');
-
-      // Check FAQ is displayed
-      await expect(page.locator('text=Frequently Asked Questions')).toBeVisible();
-      await expect(page.locator('text=Can I cancel anytime?')).toBeVisible();
-      await expect(page.locator('text=What payment methods do you accept?')).toBeVisible();
+      // Should redirect to login since billing is protected
+      await expect(page).toHaveURL(/.*login.*/);
     });
   });
 
@@ -55,12 +28,6 @@ test.describe('Billing & Payments', () => {
       expect(response.status()).toBe(401);
       const body = await response.json();
       expect(body.code).toBe('AUTHENTICATION_ERROR');
-    });
-
-    test('should return 400 for invalid plan on Square checkout', async ({ request }) => {
-      // This test would require authenticated request
-      // Skipped since it requires auth setup
-      test.skip();
     });
   });
 

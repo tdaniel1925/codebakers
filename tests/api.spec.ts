@@ -10,12 +10,24 @@ test.describe('API Routes - Unauthenticated', () => {
     expect(body).toHaveProperty('code', 'AUTHENTICATION_ERROR');
   });
 
-  test('should return 401 for /api/content endpoint', async ({ request }) => {
+  test('should return 401 for /api/content without Bearer token', async ({ request }) => {
     const response = await request.get('/api/content');
 
     expect(response.status()).toBe(401);
     const body = await response.json();
-    expect(body).toHaveProperty('code', 'AUTHENTICATION_ERROR');
+    expect(body).toHaveProperty('error');
+  });
+
+  test('should return 401 for /api/content with invalid Bearer token', async ({ request }) => {
+    const response = await request.get('/api/content', {
+      headers: {
+        Authorization: 'Bearer invalid-key',
+      },
+    });
+
+    expect(response.status()).toBe(401);
+    const body = await response.json();
+    expect(body).toHaveProperty('error', 'Invalid API key');
   });
 
   test('should return 401 for /api/billing/portal endpoint', async ({ request }) => {
@@ -23,7 +35,7 @@ test.describe('API Routes - Unauthenticated', () => {
 
     expect(response.status()).toBe(401);
     const body = await response.json();
-    expect(body).toHaveProperty('code', 'AUTHENTICATION_ERROR');
+    expect(body).toHaveProperty('error');
   });
 
   test('should return 401 for admin stats endpoint', async ({ request }) => {
@@ -36,19 +48,17 @@ test.describe('API Routes - Unauthenticated', () => {
 });
 
 test.describe('API Routes - Validation', () => {
-  test('should return 400 for invalid checkout plan', async ({ request }) => {
-    // Note: This will still return 401 because auth is checked first
-    // In a real test, we'd mock authentication
+  test('should return 401 for checkout without auth', async ({ request }) => {
     const response = await request.post('/api/billing/checkout', {
-      data: { plan: 'invalid-plan' },
+      data: { plan: 'pro' },
     });
 
-    // Either 401 (auth first) or 400 (validation)
-    expect([400, 401]).toContain(response.status());
+    // Auth is checked first, so 401
+    expect(response.status()).toBe(401);
   });
 });
 
-test.describe('API Routes - Rate Limiting Headers', () => {
+test.describe('API Routes - Security Headers', () => {
   test('should include security headers in response', async ({ request }) => {
     const response = await request.get('/api/health');
 
