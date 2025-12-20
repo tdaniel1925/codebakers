@@ -2,17 +2,44 @@
 
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Loader2, Check, CreditCard } from 'lucide-react';
+import { Loader2, Check, CreditCard, Square, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
-const plans = [
+interface PlanData {
+  plan: string;
+  name: string;
+  description: string | null;
+  features: string[];
+  seats: number;
+  priceMonthly: number;
+  priceYearly: number | null;
+  providers: {
+    stripe: boolean;
+    square: boolean;
+    paypal: boolean;
+  };
+}
+
+type PaymentProvider = 'stripe' | 'square' | 'paypal';
+
+// Fallback plans if API doesn't return data
+const fallbackPlans: PlanData[] = [
   {
-    id: 'pro',
+    plan: 'pro',
     name: 'Pro',
-    price: 49,
+    description: null,
+    priceMonthly: 4900,
+    priceYearly: null,
     seats: 1,
     features: [
       '114 production patterns',
@@ -21,12 +48,14 @@ const plans = [
       'Auth, API, DB, payments',
       '1 seat',
     ],
-    popular: true,
+    providers: { stripe: true, square: true, paypal: true },
   },
   {
-    id: 'team',
+    plan: 'team',
     name: 'Team',
-    price: 149,
+    description: null,
+    priceMonthly: 14900,
+    priceYearly: null,
     seats: 5,
     features: [
       'Everything in Pro',
@@ -35,13 +64,15 @@ const plans = [
       'Shared API keys',
       'Priority support',
     ],
-    popular: false,
+    providers: { stripe: true, square: true, paypal: true },
   },
   {
-    id: 'agency',
+    plan: 'agency',
     name: 'Agency',
-    price: 349,
-    seats: -1,
+    description: null,
+    priceMonthly: 34900,
+    priceYearly: null,
+    seats: 999,
     features: [
       'Everything in Team',
       'Unlimited seats',
@@ -49,7 +80,7 @@ const plans = [
       'Custom patterns',
       'Dedicated support',
     ],
-    popular: false,
+    providers: { stripe: true, square: true, paypal: true },
   },
 ];
 
@@ -57,19 +88,40 @@ function BillingContent() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [isBeta, setIsBeta] = useState(false);
+  const [plans, setPlans] = useState<PlanData[]>(fallbackPlans);
+  const [showProviderDialog, setShowProviderDialog] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
   useEffect(() => {
     // Check for success/canceled query params
+    const provider = searchParams.get('provider');
     if (searchParams.get('success') === 'true') {
-      toast.success('Subscription activated successfully!');
+      toast.success(`Subscription activated successfully${provider ? ` via ${provider}` : ''}!`);
     } else if (searchParams.get('canceled') === 'true') {
       toast.info('Checkout was canceled');
+    } else if (searchParams.get('error')) {
+      toast.error(`Payment error: ${searchParams.get('error')}`);
     }
 
-    // Fetch current subscription status
+    // Fetch pricing from API
+    fetchPricing();
     fetchSubscription();
   }, [searchParams]);
+
+  const fetchPricing = async () => {
+    try {
+      const response = await fetch('/api/pricing');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.plans?.length > 0) {
+          setPlans(data.plans);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch pricing');
+    }
+  };
 
   const fetchSubscription = async () => {
     try {
@@ -83,10 +135,44 @@ function BillingContent() {
     }
   };
 
-  const handleCheckout = async (planId: string) => {
+  const handleSelectPlan = (planId: string) => {
+    const plan = plans.find(p => p.plan === planId);
+    if (!plan) return;
+
+    // Check which providers are available
+    const availableProviders = Object.entries(plan.providers)
+      .filter(([, available]) => available)
+      .map(([provider]) => provider);
+
+    if (availableProviders.length === 0) {
+      toast.error('No payment providers configured for this plan');
+      return;
+    }
+
+    if (availableProviders.length === 1) {
+      // Only one provider, go directly to checkout
+      handleCheckout(planId, availableProviders[0] as PaymentProvider);
+    } else {
+      // Multiple providers, show selection dialog
+      setSelectedPlan(planId);
+      setShowProviderDialog(true);
+    }
+  };
+
+  const handleCheckout = async (planId: string, provider: PaymentProvider) => {
     setIsLoading(planId);
+    setShowProviderDialog(false);
+
     try {
-      const response = await fetch('/api/billing/checkout', {
+      let endpoint = '/api/billing/checkout'; // Default Stripe
+
+      if (provider === 'square') {
+        endpoint = '/api/billing/square/checkout';
+      } else if (provider === 'paypal') {
+        endpoint = '/api/billing/paypal/checkout';
+      }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: planId }),
@@ -97,8 +183,17 @@ function BillingContent() {
         throw new Error(error.error || 'Failed to create checkout');
       }
 
-      const { url } = await response.json();
-      window.location.href = url;
+      const data = await response.json();
+
+      // Square might return success directly (subscription created)
+      if (data.success && data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+      } else if (data.url) {
+        // Stripe/PayPal redirect to hosted checkout
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to start checkout';
       toast.error(message);
@@ -127,6 +222,13 @@ function BillingContent() {
     } finally {
       setIsLoading(null);
     }
+  };
+
+  const formatPrice = (cents: number) => `$${(cents / 100).toFixed(0)}`;
+
+  const getPopularPlan = () => {
+    const proPlan = plans.find(p => p.plan === 'pro');
+    return proPlan?.plan || 'pro';
   };
 
   return (
@@ -179,63 +281,140 @@ function BillingContent() {
 
       {/* Plans */}
       <div className="grid gap-6 md:grid-cols-3">
-        {plans.map((plan) => (
-          <Card
-            key={plan.id}
-            className={`bg-slate-800/50 border-slate-700 relative ${
-              plan.popular ? 'ring-2 ring-blue-500' : ''
-            }`}
-          >
-            {plan.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-blue-600">Most Popular</Badge>
-              </div>
-            )}
-            <CardHeader>
-              <CardTitle className="text-white">{plan.name}</CardTitle>
-              <CardDescription>
-                <span className="text-3xl font-bold text-white">
-                  ${plan.price}
-                </span>
-                <span className="text-slate-400">/month</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-2">
-                {plan.features.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-center gap-2 text-sm text-slate-300"
-                  >
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Button
-                onClick={() => handleCheckout(plan.id)}
-                disabled={isLoading === plan.id || currentPlan === plan.id}
-                className={`w-full ${
-                  plan.popular
-                    ? 'bg-blue-600 hover:bg-blue-700'
-                    : 'bg-slate-700 hover:bg-slate-600'
-                }`}
-              >
-                {isLoading === plan.id ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                ) : currentPlan === plan.id ? (
-                  'Current Plan'
-                ) : (
-                  'Get Started'
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+        {plans.map((plan) => {
+          const isPopular = plan.plan === getPopularPlan();
+          return (
+            <Card
+              key={plan.plan}
+              className={`bg-slate-800/50 border-slate-700 relative ${
+                isPopular ? 'ring-2 ring-blue-500' : ''
+              }`}
+            >
+              {isPopular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-blue-600">Most Popular</Badge>
+                </div>
+              )}
+              <CardHeader>
+                <CardTitle className="text-white">{plan.name}</CardTitle>
+                <CardDescription>
+                  <span className="text-3xl font-bold text-white">
+                    {formatPrice(plan.priceMonthly)}
+                  </span>
+                  <span className="text-slate-400">/month</span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ul className="space-y-2">
+                  {plan.features.map((feature) => (
+                    <li
+                      key={feature}
+                      className="flex items-center gap-2 text-sm text-slate-300"
+                    >
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Payment providers indicator */}
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-700">
+                  <span className="text-xs text-slate-500">Pay with:</span>
+                  {plan.providers.stripe && (
+                    <span title="Credit Card (Stripe)">
+                      <CreditCard className="h-4 w-4 text-slate-400" />
+                    </span>
+                  )}
+                  {plan.providers.square && (
+                    <span title="Square">
+                      <Square className="h-4 w-4 text-slate-400" />
+                    </span>
+                  )}
+                  {plan.providers.paypal && (
+                    <span title="PayPal">
+                      <Wallet className="h-4 w-4 text-slate-400" />
+                    </span>
+                  )}
+                </div>
+
+                <Button
+                  onClick={() => handleSelectPlan(plan.plan)}
+                  disabled={isLoading === plan.plan || currentPlan === plan.plan}
+                  className={`w-full ${
+                    isPopular
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-slate-700 hover:bg-slate-600'
+                  }`}
+                >
+                  {isLoading === plan.plan ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : currentPlan === plan.plan ? (
+                    'Current Plan'
+                  ) : (
+                    'Get Started'
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
+
+      {/* Payment Provider Selection Dialog */}
+      <Dialog open={showProviderDialog} onOpenChange={setShowProviderDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Choose Payment Method</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Select how you'd like to pay for your subscription
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            {selectedPlan && plans.find(p => p.plan === selectedPlan)?.providers.stripe && (
+              <Button
+                onClick={() => handleCheckout(selectedPlan, 'stripe')}
+                className="w-full bg-slate-700 hover:bg-slate-600 justify-start"
+                disabled={isLoading !== null}
+              >
+                <CreditCard className="h-5 w-5 mr-3" />
+                <div className="text-left">
+                  <div className="font-medium">Credit / Debit Card</div>
+                  <div className="text-xs text-slate-400">Pay with Stripe</div>
+                </div>
+              </Button>
+            )}
+            {selectedPlan && plans.find(p => p.plan === selectedPlan)?.providers.square && (
+              <Button
+                onClick={() => handleCheckout(selectedPlan, 'square')}
+                className="w-full bg-slate-700 hover:bg-slate-600 justify-start"
+                disabled={isLoading !== null}
+              >
+                <Square className="h-5 w-5 mr-3" />
+                <div className="text-left">
+                  <div className="font-medium">Square</div>
+                  <div className="text-xs text-slate-400">Pay with Square</div>
+                </div>
+              </Button>
+            )}
+            {selectedPlan && plans.find(p => p.plan === selectedPlan)?.providers.paypal && (
+              <Button
+                onClick={() => handleCheckout(selectedPlan, 'paypal')}
+                className="w-full bg-[#0070ba] hover:bg-[#005ea6] justify-start"
+                disabled={isLoading !== null}
+              >
+                <Wallet className="h-5 w-5 mr-3" />
+                <div className="text-left">
+                  <div className="font-medium">PayPal</div>
+                  <div className="text-xs text-blue-200">Pay with PayPal</div>
+                </div>
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* FAQ */}
       <Card className="bg-slate-800/50 border-slate-700">
@@ -255,8 +434,8 @@ function BillingContent() {
               What payment methods do you accept?
             </h4>
             <p className="text-sm text-slate-400">
-              We accept all major credit cards through Stripe's secure payment
-              processing.
+              We accept credit/debit cards (via Stripe), Square, and PayPal for
+              secure payment processing.
             </p>
           </div>
           <div>

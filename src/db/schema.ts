@@ -2,6 +2,7 @@ import { pgTable, uuid, text, timestamp, boolean, integer, pgEnum } from 'drizzl
 import { relations } from 'drizzle-orm';
 
 export const subscriptionPlanEnum = pgEnum('subscription_plan', ['beta', 'pro', 'team', 'agency']);
+export const paymentProviderEnum = pgEnum('payment_provider', ['stripe', 'square', 'paypal']);
 
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey(),
@@ -18,9 +19,21 @@ export const teams = pgTable('teams', {
   slug: text('slug').notNull().unique(),
   ownerId: uuid('owner_id').references(() => profiles.id, { onDelete: 'cascade' }),
 
+  // Payment provider used for this subscription
+  paymentProvider: paymentProviderEnum('payment_provider'),
+
   // Stripe
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
+
+  // Square
+  squareCustomerId: text('square_customer_id'),
+  squareSubscriptionId: text('square_subscription_id'),
+
+  // PayPal
+  paypalSubscriptionId: text('paypal_subscription_id'),
+
+  // Subscription details (provider-agnostic)
   subscriptionStatus: text('subscription_status').default('inactive'),
   subscriptionPlan: subscriptionPlanEnum('subscription_plan'),
 
@@ -72,7 +85,8 @@ export const contentVersions = pgTable('content_versions', {
   claudeMdContent: text('claude_md_content'),
 
   // Module files stored as JSON { "00-core.md": "content", ... }
-  modulesContent: text('modules_content'),
+  modulesContent: text('modules_content'), // .claude/ folder for Claude Code
+  cursorModulesContent: text('cursor_modules_content'), // .cursorrules-modules/ folder for Cursor
 
   // Metadata
   changelog: text('changelog'),
@@ -81,6 +95,37 @@ export const contentVersions = pgTable('content_versions', {
 
   createdAt: timestamp('created_at').defaultNow(),
   publishedAt: timestamp('published_at'),
+});
+
+// Subscription Pricing - admin-configurable pricing for each plan/provider
+export const subscriptionPricing = pgTable('subscription_pricing', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  plan: subscriptionPlanEnum('plan').notNull(),
+
+  // Display info
+  name: text('name').notNull(),
+  description: text('description'),
+  features: text('features'), // JSON array of feature strings
+  seats: integer('seats').notNull().default(1),
+
+  // Pricing in cents (e.g., 4900 = $49.00)
+  priceMonthly: integer('price_monthly').notNull(),
+  priceYearly: integer('price_yearly'), // Optional yearly price
+
+  // Provider-specific price/plan IDs
+  stripePriceId: text('stripe_price_id'),
+  stripeYearlyPriceId: text('stripe_yearly_price_id'),
+  squarePlanId: text('square_plan_id'),
+  squareYearlyPlanId: text('square_yearly_plan_id'),
+  paypalPlanId: text('paypal_plan_id'),
+  paypalYearlyPlanId: text('paypal_yearly_plan_id'),
+
+  // Status
+  isActive: boolean('is_active').default(true),
+  displayOrder: integer('display_order').default(0),
+
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // Module Reports - track outdated module reports from users
@@ -154,3 +199,6 @@ export type ModuleReport = typeof moduleReports.$inferSelect;
 export type NewModuleReport = typeof moduleReports.$inferInsert;
 export type ContentVersion = typeof contentVersions.$inferSelect;
 export type NewContentVersion = typeof contentVersions.$inferInsert;
+export type SubscriptionPricing = typeof subscriptionPricing.$inferSelect;
+export type NewSubscriptionPricing = typeof subscriptionPricing.$inferInsert;
+export type PaymentProvider = 'stripe' | 'square' | 'paypal';

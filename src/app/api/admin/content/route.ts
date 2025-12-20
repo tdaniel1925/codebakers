@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const session = await requireAdmin();
 
     const body = await req.json();
-    const { version, routerContent, cursorRulesContent, claudeMdContent, modulesContent, changelog } = body;
+    const { version, routerContent, cursorRulesContent, claudeMdContent, modulesContent, cursorModulesContent, changelog } = body;
 
     if (!version) {
       return successResponse({ error: 'Version is required' }, 400);
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       cursorRulesContent,
       claudeMdContent,
       modulesContent,
+      cursorModulesContent,
       changelog,
     });
 

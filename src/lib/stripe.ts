@@ -32,7 +32,7 @@ export const PLANS = {
   agency: {
     name: 'Agency',
     price: 349,
-    seats: -1, // Unlimited
+    seats: 999, // Effectively unlimited
     features: ['Everything in Team', 'Unlimited seats', 'White-label support'],
   },
 } as const;

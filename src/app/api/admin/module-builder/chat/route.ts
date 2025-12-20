@@ -10,12 +10,14 @@ const SYSTEM_PROMPT = `You are an AI assistant that helps build and update code 
 The system has 3 main files:
 1. CLAUDE.md - The main router file that detects keywords and loads relevant modules
 2. .cursorrules - Rules file for Cursor IDE (similar patterns to CLAUDE.md)
-3. .claude/ folder - Contains module files like:
+3. .claude/ folder - Contains module files:
+
+   **Core Modules:**
    - 00-core.md - Core standards, error handling, quality checks
    - 01-database.md - Drizzle ORM, queries, migrations
    - 02-auth.md - Authentication, 2FA, OAuth, security
    - 03-api.md - API routes, validation, rate limits
-   - 04-frontend.md - React, forms, states
+   - 04-frontend.md - React, forms, states, i18n
    - 05-payments.md - Stripe, subscriptions
    - 06-integrations.md - Email, VAPI, files, background jobs
    - 07-performance.md - Caching, optimization
@@ -24,6 +26,17 @@ The system has 3 main files:
    - 10-generators.md - Scaffolding, templates
    - 11-realtime.md - WebSockets, notifications
    - 12-saas.md - Multi-tenant, feature flags
+   - 13-mobile.md - React Native, Expo, mobile apps
+   - 14-ai.md - OpenAI, Anthropic, RAG, embeddings
+
+   **Extended Modules:**
+   - 26-analytics.md - PostHog, Mixpanel, funnels, metrics
+   - 27-search.md - Full-text search, Algolia, autocomplete
+   - 28-email-design.md - HTML emails, MJML, React Email
+   - 29-data-viz.md - Charts, Recharts, D3, dashboards
+   - 30-motion.md - Framer Motion, GSAP, animations
+   - 31-iconography.md - Lucide, Heroicons, SVG icons
+   - 32-print.md - PDF generation, React-PDF, print stylesheets
 
 When the user asks to create or update modules:
 1. First discuss and understand what they want
@@ -46,15 +59,27 @@ Only include files that need to change. Generate complete, production-ready cont
 
 When creating new modules:
 - Follow the existing naming convention (XX-name.md)
-- Include proper markdown formatting
-- Add code examples with TypeScript
-- Include error handling patterns
-- Be comprehensive but focused
+- Use the next available number (currently 33+)
+- Include proper markdown formatting with ## headers
+- Add TypeScript code examples with proper error handling
+- Include common patterns, anti-patterns, and best practices
+- Be comprehensive but focused on the topic
 
 When updating CLAUDE.md router:
-- Add keywords for the new module
-- Add the module to the quick reference table
-- Update common combinations if relevant`;
+- Add a new section under "## STEP 2: DETECT & LOAD RELEVANT MODULES"
+- Include relevant keywords that would trigger loading this module
+- Add the module to the "MODULE QUICK REFERENCE" table with line count
+- Add to "COMMON COMBINATIONS" section if it pairs well with other modules
+
+IMPORTANT: The CLAUDE.md file has a "MODULE FORMAT" section that explains modules are base64 encoded.
+Keep this section intact - it tells AI how to decode the .claude/ files.
+
+Example CLAUDE.md routing section format:
+\`\`\`markdown
+### Module Name
+**Keywords:** keyword1, keyword2, keyword3
+**Load:** \`.claude/XX-modulename.md\`
+\`\`\``;
 
 export async function POST(request: NextRequest) {
   try {

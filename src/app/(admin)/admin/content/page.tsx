@@ -51,6 +51,7 @@ interface VersionDetail {
   cursorRulesContent: string | null;
   claudeMdContent: string | null;
   modulesContent: Record<string, string>;
+  cursorModulesContent: Record<string, string>;
   changelog: string | null;
   isActive: boolean;
 }
@@ -71,11 +72,14 @@ export default function AdminContentPage() {
   const [cursorRulesContent, setCursorRulesContent] = useState('');
   const [claudeMdContent, setClaudeMdContent] = useState('');
   const [modulesContent, setModulesContent] = useState<Record<string, string>>({});
+  const [cursorModulesContent, setCursorModulesContent] = useState<Record<string, string>>({});
+  const [expandedCursorModules, setExpandedCursorModules] = useState(false);
 
   // File input refs
   const cursorInputRef = useRef<HTMLInputElement>(null);
   const claudeInputRef = useRef<HTMLInputElement>(null);
   const modulesInputRef = useRef<HTMLInputElement>(null);
+  const cursorModulesInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchVersions();
@@ -96,7 +100,7 @@ export default function AdminContentPage() {
 
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: 'cursor' | 'claude' | 'modules'
+    type: 'cursor' | 'claude' | 'modules' | 'cursorModules'
   ) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -115,6 +119,24 @@ export default function AdminContentPage() {
       setModulesContent(newModules);
       if (loadedCount > 0) {
         toast.success(`Loaded ${loadedCount} module file(s)`);
+      } else {
+        toast.error('No .md files found');
+      }
+      e.target.value = '';
+    } else if (type === 'cursorModules') {
+      // Handle .cursorrules-modules folder - get all .md files
+      const newModules: Record<string, string> = { ...cursorModulesContent };
+      let loadedCount = 0;
+      for (const file of Array.from(files)) {
+        if (!file.name.endsWith('.md')) continue;
+        const content = await file.text();
+        const fileName = file.name.split('/').pop() || file.name;
+        newModules[fileName] = content;
+        loadedCount++;
+      }
+      setCursorModulesContent(newModules);
+      if (loadedCount > 0) {
+        toast.success(`Loaded ${loadedCount} cursor module file(s)`);
       } else {
         toast.error('No .md files found');
       }
@@ -148,6 +170,7 @@ export default function AdminContentPage() {
           cursorRulesContent: cursorRulesContent || null,
           claudeMdContent: claudeMdContent || null,
           modulesContent: Object.keys(modulesContent).length > 0 ? modulesContent : null,
+          cursorModulesContent: Object.keys(cursorModulesContent).length > 0 ? cursorModulesContent : null,
         }),
       });
 
@@ -220,6 +243,7 @@ export default function AdminContentPage() {
     setCursorRulesContent('');
     setClaudeMdContent('');
     setModulesContent({});
+    setCursorModulesContent({});
   };
 
   const activeVersion = versions.find((v) => v.isActive);
@@ -548,6 +572,69 @@ export default function AdminContentPage() {
                   </div>
                 )}
               </div>
+
+              {/* 4. .cursorrules-modules folder */}
+              <div className="bg-slate-900/50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white font-medium">4. .cursorrules-modules/ folder</p>
+                    <p className="text-slate-400 text-xs">Folder with Cursor module files (00-core.md, 01-database.md, etc.)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      ref={cursorModulesInputRef}
+                      onChange={(e) => handleFileUpload(e, 'cursorModules')}
+                      accept=".md"
+                      // @ts-expect-error - webkitdirectory is not in React types
+                      webkitdirectory=""
+                      directory=""
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={Object.keys(cursorModulesContent).length > 0 ? 'default' : 'outline'}
+                      onClick={() => cursorModulesInputRef.current?.click()}
+                      className={Object.keys(cursorModulesContent).length > 0 ? 'bg-green-600 hover:bg-green-700' : 'border-slate-600'}
+                    >
+                      {Object.keys(cursorModulesContent).length > 0 ? (
+                        <>
+                          <Check className="h-4 w-4 mr-1" />
+                          {Object.keys(cursorModulesContent).length} files
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-1" />
+                          Select Folder
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                {Object.keys(cursorModulesContent).length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedCursorModules(!expandedCursorModules)}
+                      className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-300"
+                    >
+                      {expandedCursorModules ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      {expandedCursorModules ? 'Hide' : 'Show'} files
+                    </button>
+                    {expandedCursorModules && (
+                      <div className="mt-2 space-y-1">
+                        {Object.keys(cursorModulesContent).sort().map((name) => (
+                          <div key={name} className="text-xs text-slate-500 flex items-center gap-1">
+                            <FileCode className="h-3 w-3" />
+                            {name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -643,6 +730,29 @@ export default function AdminContentPage() {
                   {Object.keys(selectedVersion.modulesContent || {}).length > 0 && (
                     <div className="mt-2 pt-2 border-t border-slate-700 space-y-1">
                       {Object.keys(selectedVersion.modulesContent).sort().map((name) => (
+                        <div key={name} className="text-xs text-slate-500 flex items-center gap-1">
+                          <FileCode className="h-3 w-3" />
+                          {name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* .cursorrules-modules folder */}
+                <div className="bg-slate-900/50 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileCode className="h-4 w-4 text-slate-400" />
+                      <span className="text-white">.cursorrules-modules/ folder</span>
+                    </div>
+                    <span className={Object.keys(selectedVersion.cursorModulesContent || {}).length > 0 ? 'text-green-400' : 'text-slate-500'}>
+                      {Object.keys(selectedVersion.cursorModulesContent || {}).length} files
+                    </span>
+                  </div>
+                  {Object.keys(selectedVersion.cursorModulesContent || {}).length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-700 space-y-1">
+                      {Object.keys(selectedVersion.cursorModulesContent).sort().map((name) => (
                         <div key={name} className="text-xs text-slate-500 flex items-center gap-1">
                           <FileCode className="h-3 w-3" />
                           {name}

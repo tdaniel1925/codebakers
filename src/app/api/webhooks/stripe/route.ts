@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
             stripeSubscriptionId: session.subscription as string,
             subscriptionStatus: 'active',
             subscriptionPlan: plan,
-            seatLimit: seatLimit === -1 ? 999 : seatLimit,
+            seatLimit,
           });
         }
         break;

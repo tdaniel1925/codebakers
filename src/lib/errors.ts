@@ -84,3 +84,19 @@ export class RateLimitError extends AppError {
     this.retryAfter = retryAfter;
   }
 }
+
+/**
+ * External service error (502)
+ */
+export class ExternalServiceError extends AppError {
+  public readonly service: string;
+
+  constructor(service: string, message?: string) {
+    super(
+      message || `External service error: ${service}`,
+      'EXTERNAL_SERVICE_ERROR',
+      502
+    );
+    this.service = service;
+  }
+}

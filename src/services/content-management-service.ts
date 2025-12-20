@@ -6,7 +6,8 @@ interface ContentUpload {
   routerContent?: string;
   cursorRulesContent?: string;
   claudeMdContent?: string;
-  modulesContent?: Record<string, string>;
+  modulesContent?: Record<string, string>; // .claude/ folder
+  cursorModulesContent?: Record<string, string>; // .cursorrules-modules/ folder
   changelog?: string;
 }
 
@@ -23,6 +24,7 @@ export class ContentManagementService {
         cursorRulesContent: data.cursorRulesContent || null,
         claudeMdContent: data.claudeMdContent || null,
         modulesContent: data.modulesContent ? JSON.stringify(data.modulesContent) : null,
+        cursorModulesContent: data.cursorModulesContent ? JSON.stringify(data.cursorModulesContent) : null,
         changelog: data.changelog || null,
         publishedBy: userId,
         isActive: false,
@@ -43,6 +45,7 @@ export class ContentManagementService {
     if (data.cursorRulesContent !== undefined) updates.cursorRulesContent = data.cursorRulesContent;
     if (data.claudeMdContent !== undefined) updates.claudeMdContent = data.claudeMdContent;
     if (data.modulesContent !== undefined) updates.modulesContent = JSON.stringify(data.modulesContent);
+    if (data.cursorModulesContent !== undefined) updates.cursorModulesContent = JSON.stringify(data.cursorModulesContent);
     if (data.changelog !== undefined) updates.changelog = data.changelog;
 
     const [version] = await db
@@ -91,6 +94,7 @@ export class ContentManagementService {
     return {
       ...version,
       modulesContent: version.modulesContent ? JSON.parse(version.modulesContent) : {},
+      cursorModulesContent: version.cursorModulesContent ? JSON.parse(version.cursorModulesContent) : {},
     };
   }
 
@@ -132,6 +136,7 @@ export class ContentManagementService {
     return {
       ...version,
       modulesContent: version.modulesContent ? JSON.parse(version.modulesContent) : {},
+      cursorModulesContent: version.cursorModulesContent ? JSON.parse(version.cursorModulesContent) : {},
     };
   }
 
@@ -168,21 +173,28 @@ export class ContentManagementService {
     cursorRulesContent?: string | null;
     claudeMdContent?: string | null;
     modulesContent?: Record<string, string> | string | null;
+    cursorModulesContent?: Record<string, string> | string | null;
   }) {
     const modules = typeof version.modulesContent === 'string'
       ? JSON.parse(version.modulesContent)
       : version.modulesContent || {};
+
+    const cursorModules = typeof version.cursorModulesContent === 'string'
+      ? JSON.parse(version.cursorModulesContent)
+      : version.cursorModulesContent || {};
 
     return {
       hasRouter: !!version.routerContent,
       hasCursorRules: !!version.cursorRulesContent,
       hasClaudeMd: !!version.claudeMdContent,
       moduleCount: Object.keys(modules).length,
+      cursorModuleCount: Object.keys(cursorModules).length,
       totalLines: [
         version.routerContent,
         version.cursorRulesContent,
         version.claudeMdContent,
         ...Object.values(modules),
+        ...Object.values(cursorModules),
       ]
         .filter(Boolean)
         .reduce((acc: number, content) => acc + (content as string).split('\n').length, 0),

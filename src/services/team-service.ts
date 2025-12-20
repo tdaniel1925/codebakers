@@ -1,4 +1,4 @@
-import { db, teams, teamMembers, profiles } from '@/db';
+import { db, teams, teamMembers, profiles, PaymentProvider } from '@/db';
 import { eq, sql } from 'drizzle-orm';
 import { ApiKeyService } from './api-key-service';
 
@@ -100,10 +100,150 @@ export class TeamService {
       .update(teams)
       .set({
         ...data,
+        paymentProvider: 'stripe',
         updatedAt: new Date(),
       })
       .where(eq(teams.id, teamId))
       .returning();
+
+    return team;
+  }
+
+  /**
+   * Update Square subscription info
+   */
+  static async updateSquareInfo(
+    teamId: string,
+    data: {
+      squareCustomerId?: string;
+      squareSubscriptionId?: string;
+      subscriptionStatus?: string;
+      subscriptionPlan?: 'beta' | 'pro' | 'team' | 'agency' | null;
+      seatLimit?: number;
+    }
+  ) {
+    const [team] = await db
+      .update(teams)
+      .set({
+        ...data,
+        paymentProvider: 'square',
+        updatedAt: new Date(),
+      })
+      .where(eq(teams.id, teamId))
+      .returning();
+
+    return team;
+  }
+
+  /**
+   * Update PayPal subscription info
+   */
+  static async updatePayPalInfo(
+    teamId: string,
+    data: {
+      paypalSubscriptionId?: string;
+      subscriptionStatus?: string;
+      subscriptionPlan?: 'beta' | 'pro' | 'team' | 'agency' | null;
+      seatLimit?: number;
+    }
+  ) {
+    const [team] = await db
+      .update(teams)
+      .set({
+        ...data,
+        paymentProvider: 'paypal',
+        updatedAt: new Date(),
+      })
+      .where(eq(teams.id, teamId))
+      .returning();
+
+    return team;
+  }
+
+  /**
+   * Generic subscription update (provider-agnostic)
+   */
+  static async updateSubscription(
+    teamId: string,
+    provider: PaymentProvider,
+    data: {
+      subscriptionId: string;
+      customerId?: string;
+      subscriptionStatus: string;
+      subscriptionPlan: 'pro' | 'team' | 'agency';
+      seatLimit: number;
+    }
+  ) {
+    const updateData: Record<string, unknown> = {
+      paymentProvider: provider,
+      subscriptionStatus: data.subscriptionStatus,
+      subscriptionPlan: data.subscriptionPlan,
+      seatLimit: data.seatLimit,
+      updatedAt: new Date(),
+    };
+
+    switch (provider) {
+      case 'stripe':
+        updateData.stripeSubscriptionId = data.subscriptionId;
+        if (data.customerId) updateData.stripeCustomerId = data.customerId;
+        break;
+      case 'square':
+        updateData.squareSubscriptionId = data.subscriptionId;
+        if (data.customerId) updateData.squareCustomerId = data.customerId;
+        break;
+      case 'paypal':
+        updateData.paypalSubscriptionId = data.subscriptionId;
+        break;
+    }
+
+    const [team] = await db
+      .update(teams)
+      .set(updateData)
+      .where(eq(teams.id, teamId))
+      .returning();
+
+    return team;
+  }
+
+  /**
+   * Cancel subscription (clear provider-specific fields)
+   */
+  static async cancelSubscription(teamId: string) {
+    const [team] = await db
+      .update(teams)
+      .set({
+        subscriptionStatus: 'canceled',
+        subscriptionPlan: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(teams.id, teamId))
+      .returning();
+
+    return team;
+  }
+
+  /**
+   * Get team by Square customer ID
+   */
+  static async getBySquareCustomerId(customerId: string) {
+    const [team] = await db
+      .select()
+      .from(teams)
+      .where(eq(teams.squareCustomerId, customerId))
+      .limit(1);
+
+    return team;
+  }
+
+  /**
+   * Get team by PayPal subscription ID
+   */
+  static async getByPayPalSubscriptionId(subscriptionId: string) {
+    const [team] = await db
+      .select()
+      .from(teams)
+      .where(eq(teams.paypalSubscriptionId, subscriptionId))
+      .limit(1);
 
     return team;
   }
