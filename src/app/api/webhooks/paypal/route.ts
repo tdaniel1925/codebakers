@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyPayPalWebhook } from '@/lib/paypal';
 import { TeamService } from '@/services/team-service';
 import { PricingService } from '@/services/pricing-service';
+import { subscriptionPlanSchema } from '@/lib/validations';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,8 +93,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('[PayPal Webhook] Processing error:', error);
-    // Always return 200 to prevent retries for processing errors
-    return NextResponse.json({ received: true, error: 'Processing failed' });
+    // Return 500 to allow PayPal to retry - silent failures mask subscription state issues
+    return NextResponse.json(
+      { error: 'Webhook processing failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -109,10 +113,17 @@ async function handleSubscriptionActivated(resource: PayPalResource) {
   const plans = await PricingService.getAllPlans();
   const matchingPlan = plans.find(p => p.paypalPlanId === resource.plan_id);
 
+  // Validate plan using Zod schema
+  const planResult = subscriptionPlanSchema.safeParse(matchingPlan?.plan);
+  if (!planResult.success) {
+    console.error('[PayPal Webhook] Invalid or missing plan for PayPal plan_id:', resource.plan_id);
+    throw new Error(`Invalid plan mapping for PayPal plan_id: ${resource.plan_id}`);
+  }
+
   await TeamService.updatePayPalInfo(teamId, {
     paypalSubscriptionId: resource.id,
     subscriptionStatus: 'active',
-    subscriptionPlan: matchingPlan?.plan as 'pro' | 'team' | 'agency' || 'pro',
+    subscriptionPlan: planResult.data,
     seatLimit: matchingPlan?.seats || 1,
   });
 

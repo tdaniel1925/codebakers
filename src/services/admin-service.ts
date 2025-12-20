@@ -1,5 +1,5 @@
 import { db, profiles, teams } from '@/db';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql, isNotNull } from 'drizzle-orm';
 import { stripe } from '@/lib/stripe';
 
 export class AdminService {
@@ -16,12 +16,18 @@ export class AdminService {
     }
 
     if (enabled) {
-      // Cancel Stripe subscription if exists
+      // Cancel Stripe subscription if exists - must succeed before granting beta
       if (team.stripeSubscriptionId) {
         try {
-          await stripe.subscriptions.cancel(team.stripeSubscriptionId);
+          const canceledSub = await stripe.subscriptions.cancel(team.stripeSubscriptionId);
+          if (canceledSub.status !== 'canceled') {
+            throw new Error(`Subscription status is ${canceledSub.status}, expected canceled`);
+          }
         } catch (error) {
           console.error('Failed to cancel subscription:', error);
+          throw new Error(
+            `Cannot grant beta: failed to cancel existing Stripe subscription. ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
         }
       }
 
@@ -73,21 +79,40 @@ export class AdminService {
   }
 
   static async getUserStats() {
-    const users = await db.select().from(profiles);
-    const allTeams = await db.select().from(teams);
+    // Use aggregated queries instead of loading all records into memory
+    const [{ count: totalUsers }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(profiles);
 
-    const activeSubscriptions = allTeams.filter(
-      (t) => t.subscriptionStatus === 'active'
-    ).length;
+    const [{ count: activeSubscriptions }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(teams)
+      .where(eq(teams.subscriptionStatus, 'active'));
 
-    const betaUsers = allTeams.filter((t) => t.betaGrantedAt !== null).length;
+    const [{ count: betaUsers }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(teams)
+      .where(isNotNull(teams.betaGrantedAt));
 
-    const suspendedUsers = allTeams.filter((t) => t.suspendedAt !== null).length;
+    const [{ count: suspendedUsers }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(teams)
+      .where(isNotNull(teams.suspendedAt));
 
-    const planCounts = allTeams.reduce(
-      (acc, t) => {
-        if (t.subscriptionPlan) {
-          acc[t.subscriptionPlan] = (acc[t.subscriptionPlan] || 0) + 1;
+    // Get plan counts with GROUP BY
+    const planCountsResult = await db
+      .select({
+        plan: teams.subscriptionPlan,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(teams)
+      .where(isNotNull(teams.subscriptionPlan))
+      .groupBy(teams.subscriptionPlan);
+
+    const planCounts = planCountsResult.reduce(
+      (acc, { plan, count }) => {
+        if (plan) {
+          acc[plan] = count;
         }
         return acc;
       },
@@ -95,7 +120,7 @@ export class AdminService {
     );
 
     return {
-      totalUsers: users.length,
+      totalUsers,
       activeSubscriptions,
       betaUsers,
       suspendedUsers,

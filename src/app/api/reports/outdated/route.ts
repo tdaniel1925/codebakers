@@ -9,7 +9,7 @@ import { requireAdmin } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'daniel@botmakers.ai';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const NOTIFY_THRESHOLD = 3;
 
 // POST - Submit a new report (CLI users)
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         )
       );
 
-    if (recentReports.length === NOTIFY_THRESHOLD && resend) {
+    if (recentReports.length === NOTIFY_THRESHOLD && resend && ADMIN_EMAIL) {
       try {
         await resend.emails.send({
           from: 'CodeBakers <alerts@codebakers.dev>',
@@ -101,10 +101,31 @@ export async function GET(req: NextRequest) {
   try {
     await requireAdmin();
 
-    const reports = await db
-      .select()
-      .from(moduleReports)
-      .orderBy(desc(moduleReports.createdAt));
+    const url = new URL(req.url);
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
+    const offset = parseInt(url.searchParams.get('offset') || '0');
+    const status = url.searchParams.get('status'); // Optional filter: pending, acknowledged, fixed, dismissed
+
+    // Build query with optional status filter
+    const validStatuses = ['pending', 'acknowledged', 'fixed', 'dismissed'];
+    const statusFilter = status && validStatuses.includes(status)
+      ? eq(moduleReports.status, status)
+      : undefined;
+
+    const reports = statusFilter
+      ? await db
+          .select()
+          .from(moduleReports)
+          .where(statusFilter)
+          .orderBy(desc(moduleReports.createdAt))
+          .limit(limit)
+          .offset(offset)
+      : await db
+          .select()
+          .from(moduleReports)
+          .orderBy(desc(moduleReports.createdAt))
+          .limit(limit)
+          .offset(offset);
 
     // Group by module
     const grouped = reports.reduce(
@@ -129,6 +150,7 @@ export async function GET(req: NextRequest) {
 
     return successResponse({
       modules: Object.values(grouped).sort((a, b) => b.pendingCount - a.pendingCount),
+      pagination: { limit, offset, count: reports.length },
     });
   } catch (error) {
     return handleApiError(error);

@@ -121,9 +121,9 @@ const timeSavings = [
   { task: 'Multi-tenant Team System', without: '4-6 hours', with: '45 min', savings: '88%' },
 ];
 
-// Module breakdown data - v4.1 (25 modules, 37,481 lines)
+// Module breakdown data - v5.0 (33 modules, 44,654 lines)
 const modules = [
-  // Code Modules (00-13) - 18,329 lines
+  // Code Modules (00-14) - 22,356 lines
   { name: '00-core', lines: 2131, description: 'Standards, types, error handling, logging', icon: CodeFolderIcon, required: true, category: 'code' },
   { name: '01-database', lines: 651, description: 'Drizzle ORM, migrations, soft deletes', icon: Database02Icon, category: 'code' },
   { name: '02-auth', lines: 1239, description: 'Supabase Auth, OAuth, 2FA, RBAC', icon: LockIcon, category: 'code' },
@@ -138,6 +138,7 @@ const modules = [
   { name: '11-realtime', lines: 1938, description: 'WebSockets, presence, live cursors', icon: FlashIcon, category: 'code' },
   { name: '12-saas', lines: 1265, description: 'Multi-tenant, feature flags, GDPR', icon: Building03Icon, category: 'code' },
   { name: '13-mobile', lines: 1057, description: 'React Native, PWA, offline-first', icon: SmartPhone01Icon, category: 'code' },
+  { name: '14-ai', lines: 888, description: 'OpenAI, Anthropic, RAG, embeddings', icon: AiBrain02Icon, category: 'code' },
   // Business Modules (15-20) - 4,341 lines
   { name: '15-research', lines: 517, description: 'Market research, personas, interviews', icon: Search01Icon, category: 'business' },
   { name: '16-planning', lines: 565, description: 'MVP scope, roadmap, architecture', icon: Target02Icon, category: 'business' },
@@ -151,6 +152,14 @@ const modules = [
   { name: '23-experts-finance', lines: 1090, description: 'PCI-DSS, KYC/AML, fraud detection', icon: Wallet02Icon, category: 'expert' },
   { name: '24-experts-legal', lines: 2508, description: 'ToS, Privacy Policy, GDPR, CCPA', icon: JusticeScale01Icon, category: 'expert' },
   { name: '25-experts-industry', lines: 3529, description: 'E-commerce, Education, B2B, COPPA', icon: Store02Icon, category: 'expert' },
+  // Extended Modules (26-32) - 6,285 lines
+  { name: '26-analytics', lines: 918, description: 'PostHog, Mixpanel, funnels, cohorts', icon: DashboardSpeed01Icon, category: 'extended' },
+  { name: '27-search', lines: 1130, description: 'Full-text, Algolia, autocomplete', icon: Search01Icon, category: 'extended' },
+  { name: '28-email-design', lines: 796, description: 'HTML emails, MJML, React Email', icon: Mail01Icon, category: 'extended' },
+  { name: '29-data-viz', lines: 948, description: 'Charts, Recharts, D3, dashboards', icon: DashboardSpeed01Icon, category: 'extended' },
+  { name: '30-motion', lines: 877, description: 'Framer Motion, GSAP, animations', icon: PlayCircleIcon, category: 'extended' },
+  { name: '31-iconography', lines: 628, description: 'Lucide, Heroicons, SVG systems', icon: AiMagicIcon, category: 'extended' },
+  { name: '32-print', lines: 988, description: 'PDF generation, print stylesheets', icon: ClipboardIcon, category: 'extended' },
 ];
 
 // The Problem - why vanilla AI coding sucks
@@ -183,7 +192,7 @@ const features = [
   {
     icon: DashboardSpeed01Icon,
     title: '90% Token Savings',
-    description: 'Smart router loads only relevant modules (max 4). Ask for "login form" and it loads ~5K lines, not all 37K. Better responses, lower costs.',
+    description: 'Smart router loads only relevant modules (max 4). Ask for "login form" and it loads ~5K lines, not all 44K. Better responses, lower costs.',
     stats: '90% context savings',
   },
   {
@@ -217,7 +226,7 @@ const features = [
 const vsCompetitors = [
   {
     feature: 'Total lines of patterns',
-    codebakers: '37,481 lines',
+    codebakers: '44,654 lines',
     others: '~500 lines per rule',
   },
   {
@@ -262,11 +271,11 @@ const vsCompetitors = [
   },
 ];
 
-// What's covered comprehensively - v4.1
+// What's covered comprehensively - v5.0
 const coverageAreas = [
   {
-    category: 'Code Modules (14)',
-    items: ['Auth & 2FA/OAuth', 'Database & Migrations', 'API & Webhooks', 'Forms & Validation', 'Stripe Billing', 'Email/SMS/VAPI', 'Caching & Performance', 'Testing & CI/CD', 'Design & Accessibility'],
+    category: 'Code Modules (15)',
+    items: ['Auth & 2FA/OAuth', 'Database & Migrations', 'API & Webhooks', 'Forms & Validation', 'Stripe Billing', 'Email/SMS/VAPI', 'Caching & Performance', 'Testing & CI/CD', 'Design & Accessibility', 'AI/LLM Integration'],
   },
   {
     category: 'Business Modules (6)',
@@ -285,12 +294,16 @@ const coverageAreas = [
     items: ['30-day Social Calendar', '7-10 Email Sequences', '10 Blog Articles', '5 Video Scripts', '3 Ad Campaigns', 'Press Releases', 'Launch Strategy', 'SEO Checklist', 'Conversion Copy'],
   },
   {
+    category: 'Extended Modules (7)',
+    items: ['Analytics & Tracking', 'Search & Autocomplete', 'Email Templates', 'Data Visualization', 'Motion & Animation', 'Iconography', 'PDF & Print'],
+  },
+  {
     category: 'Project Deliverables',
     items: ['Technical Specs', 'Architecture Docs', 'Handoff Guides', 'API Documentation', 'Roadmap Templates', 'Risk Assessments', 'Go-live Playbooks', 'Rollback Procedures', '100-point Audits'],
   },
 ];
 
-// FAQ data - v4.1
+// FAQ data - v5.0
 const faqs = [
   {
     question: 'What AI tools does CodeBakers work with?',
@@ -298,7 +311,7 @@ const faqs = [
   },
   {
     question: 'How is this different from other Cursor rules?',
-    answer: 'Other tools give you basic snippets. CodeBakers provides 37,481 lines of production patterns with smart module loading (90% token savings), 30+ expert perspectives, business modules, compliance patterns, and auto-generated tests. It\'s a complete system, not just prompts.',
+    answer: 'Other tools give you basic snippets. CodeBakers provides 44,654 lines of production patterns across 33 modules with smart module loading (90% token savings), 30+ expert perspectives, business modules, compliance patterns, and auto-generated tests. It\'s a complete system, not just prompts.',
   },
   {
     question: 'What do you mean by "production-ready first prompt"?',
@@ -306,7 +319,7 @@ const faqs = [
   },
   {
     question: 'How does smart module loading save tokens?',
-    answer: 'The router loads only relevant modules (max 4 at a time). Ask for "login form" and it loads core + auth + frontend (~5K lines) instead of all 37K. This saves 90% context usage and produces better, more focused responses.',
+    answer: 'The router loads only relevant modules (max 4 at a time). Ask for "login form" and it loads core + auth + frontend (~5K lines) instead of all 44K. This saves 90% context usage and produces better, more focused responses.',
   },
   {
     question: 'What are the 3 project types?',
@@ -326,13 +339,13 @@ const faqs = [
   },
 ];
 
-// Pricing tiers - v4.1
+// Pricing tiers - v5.0
 const pricingTiers = [
   {
     name: 'Pro',
     price: 49,
     description: 'For individual developers',
-    features: ['1 developer seat', 'All 25 modules', '37,481 lines of patterns', '30+ expert perspectives', 'CLI access', 'Discord community'],
+    features: ['1 developer seat', 'All 33 modules', '44,654 lines of patterns', '30+ expert perspectives', 'CLI access', 'Discord community'],
     cta: 'Start Building',
     popular: true,
   },
@@ -520,7 +533,7 @@ export default function HomePage() {
                 </p>
                 <p className="text-blue-400">↓ Installing CodeBakers...</p>
                 <p className="text-green-400">✓ Detected: Cursor IDE</p>
-                <p className="text-green-400">✓ 25 modules ready ({totalLines.toLocaleString()} lines)</p>
+                <p className="text-green-400">✓ 33 modules ready ({totalLines.toLocaleString()} lines)</p>
                 <p className="text-slate-400 mt-4">
                   <span className="text-cyan-400">?</span> Project type: <span className="text-white">Business</span>
                 </p>
@@ -605,7 +618,7 @@ export default function HomePage() {
         <div className="container mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8 text-center">
             <div>
-              <div className="text-3xl font-bold text-foreground">25</div>
+              <div className="text-3xl font-bold text-foreground">33</div>
               <div className="text-muted-foreground text-sm">Modules</div>
             </div>
             <div>
@@ -933,7 +946,7 @@ export default function HomePage() {
 
         <div className="container mx-auto relative z-10">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700">25 Modules</Badge>
+            <Badge className="mb-4 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700">33 Modules</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
               {totalLines.toLocaleString()} lines of production patterns
             </h2>

@@ -4,6 +4,7 @@ import { TeamService } from '@/services/team-service';
 import { db, teams } from '@/db';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
+import { subscriptionPlanSchema } from '@/lib/validations';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,18 +37,27 @@ export async function POST(req: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const teamId = session.metadata?.teamId;
-        const plan = session.metadata?.plan as 'pro' | 'team' | 'agency';
+        const planResult = subscriptionPlanSchema.safeParse(session.metadata?.plan);
 
-        if (teamId && plan) {
-          const seatLimit = PLANS[plan].seats;
-
-          await TeamService.updateStripeInfo(teamId, {
-            stripeSubscriptionId: session.subscription as string,
-            subscriptionStatus: 'active',
-            subscriptionPlan: plan,
-            seatLimit,
-          });
+        if (!teamId) {
+          console.error('[Stripe Webhook] Missing teamId in session metadata');
+          break;
         }
+
+        if (!planResult.success) {
+          console.error('[Stripe Webhook] Invalid plan in session metadata:', session.metadata?.plan);
+          break;
+        }
+
+        const plan = planResult.data;
+        const seatLimit = PLANS[plan].seats;
+
+        await TeamService.updateStripeInfo(teamId, {
+          stripeSubscriptionId: session.subscription as string,
+          subscriptionStatus: 'active',
+          subscriptionPlan: plan,
+          seatLimit,
+        });
         break;
       }
 

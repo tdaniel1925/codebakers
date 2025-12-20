@@ -10,7 +10,7 @@ const plans = [
     description: 'Perfect for solo developers',
     features: [
       '33 production modules',
-      '44,000+ lines of code',
+      '44,654 lines of patterns',
       'Auto-testing included',
       'Full stack coverage',
       '1 seat',

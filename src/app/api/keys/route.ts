@@ -1,22 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/auth';
+import { NextRequest } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { ApiKeyService } from '@/services/api-key-service';
 import { TeamService } from '@/services/team-service';
 import { handleApiError, successResponse } from '@/lib/api-utils';
 import { createApiKeySchema } from '@/lib/validations';
+import { NotFoundError, ValidationError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const session = await getServerSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const session = await requireAuth();
 
     const team = await TeamService.getByOwnerId(session.user.id);
     if (!team) {
-      return NextResponse.json({ error: 'No team found' }, { status: 404 });
+      throw new NotFoundError('Team');
     }
 
     const keys = await ApiKeyService.listByTeam(team.id);
@@ -28,17 +26,14 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const session = await requireAuth();
 
     const body = await req.json();
     const { name } = createApiKeySchema.parse(body);
 
     const team = await TeamService.getByOwnerId(session.user.id);
     if (!team) {
-      return NextResponse.json({ error: 'No team found' }, { status: 404 });
+      throw new NotFoundError('Team');
     }
 
     const apiKey = await ApiKeyService.create(team.id, name);
@@ -50,21 +45,18 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const session = await requireAuth();
 
     const { searchParams } = new URL(req.url);
     const keyId = searchParams.get('id');
 
     if (!keyId) {
-      return NextResponse.json({ error: 'Key ID required' }, { status: 400 });
+      throw new ValidationError('Key ID is required');
     }
 
     const team = await TeamService.getByOwnerId(session.user.id);
     if (!team) {
-      return NextResponse.json({ error: 'No team found' }, { status: 404 });
+      throw new NotFoundError('Team');
     }
 
     await ApiKeyService.delete(keyId, team.id);

@@ -313,7 +313,7 @@ const pricingPlans = [
     period: '/month',
     description: 'For individual developers',
     features: [
-      'All 33 modules (44,000+ lines)',
+      'All 33 modules (44,654 lines)',
       '1 API key',
       'Unlimited projects',
       'Pattern updates',

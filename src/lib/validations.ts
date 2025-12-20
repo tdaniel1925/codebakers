@@ -29,6 +29,10 @@ export const checkoutSchema = z.object({
   }),
 });
 
+// Subscription plan schema for webhook validation
+export const subscriptionPlanSchema = z.enum(['pro', 'team', 'agency']);
+export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>;
+
 // Admin schemas
 export const setBetaSchema = z.object({
   enabled: z.boolean(),

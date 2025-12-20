@@ -47,9 +47,20 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Admin routes
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    // TODO: Check if user is admin from database
+  // Admin routes - check isAdmin flag via Supabase RPC or redirect to dashboard
+  if (request.nextUrl.pathname.startsWith('/admin') && user) {
+    // Query the profile to check admin status
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.is_admin) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { db, profiles } from '@/db';
 import { eq } from 'drizzle-orm';
+import { AuthenticationError, AuthorizationError } from '@/lib/errors';
 
 export async function getServerSession() {
   const supabase = await createClient();
@@ -22,7 +23,7 @@ export async function isAdmin(userId: string): Promise<boolean> {
 export async function requireAuth() {
   const session = await getServerSession();
   if (!session) {
-    throw new Error('Authentication required');
+    throw new AuthenticationError('Authentication required');
   }
   return session;
 }
@@ -31,7 +32,7 @@ export async function requireAdmin() {
   const session = await requireAuth();
   const admin = await isAdmin(session.user.id);
   if (!admin) {
-    throw new Error('Admin access required');
+    throw new AuthorizationError('Admin access required');
   }
   return session;
 }
