@@ -2,15 +2,16 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { ApiKeyService } from '@/services/api-key-service';
 import { TeamService } from '@/services/team-service';
-import { handleApiError, successResponse } from '@/lib/api-utils';
+import { handleApiError, successResponse, applyRateLimit, rateLimitConfigs } from '@/lib/api-utils';
 import { createApiKeySchema } from '@/lib/validations';
 import { NotFoundError, ValidationError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await requireAuth();
+    applyRateLimit(req, 'api:keys:read', session.user.id);
 
     const team = await TeamService.getByOwnerId(session.user.id);
     if (!team) {
@@ -27,6 +28,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await requireAuth();
+    applyRateLimit(req, 'api:keys:write', session.user.id, rateLimitConfigs.apiWrite);
 
     const body = await req.json();
     const { name } = createApiKeySchema.parse(body);
@@ -46,6 +48,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await requireAuth();
+    applyRateLimit(req, 'api:keys:write', session.user.id, rateLimitConfigs.apiWrite);
 
     const { searchParams } = new URL(req.url);
     const keyId = searchParams.get('id');

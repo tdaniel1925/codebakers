@@ -1,6 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { ZodError } from 'zod';
 import { AppError, ValidationError, RateLimitError } from './errors';
+import {
+  checkRateLimit,
+  getRateLimitKey,
+  getClientIp,
+  rateLimitConfigs,
+  type RateLimitConfig,
+} from './rate-limit';
+
+// Re-export for convenience
+export { rateLimitConfigs } from './rate-limit';
 
 export function handleApiError(error: unknown): NextResponse {
   console.error('API Error:', error);
@@ -83,4 +93,22 @@ export function handleApiError(error: unknown): NextResponse {
 
 export function successResponse<T>(data: T, status: number = 200): NextResponse {
   return NextResponse.json({ data }, { status });
+}
+
+/**
+ * Apply rate limiting to a request
+ * @param req - The incoming request
+ * @param prefix - A prefix for the rate limit key (e.g., 'api:keys')
+ * @param userId - Optional user ID (falls back to IP if not provided)
+ * @param config - Rate limit config (defaults to api config)
+ */
+export function applyRateLimit(
+  req: NextRequest,
+  prefix: string,
+  userId?: string | null,
+  config: RateLimitConfig = rateLimitConfigs.api
+): void {
+  const ip = getClientIp(req.headers);
+  const key = getRateLimitKey(prefix, userId ?? null, ip);
+  checkRateLimit(key, config);
 }
