@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "projectType": "existing",
+  "createdAt": "2024-12-21T00:00:00Z",
+  "lastUpdated": "2024-12-21T00:00:00Z",
+  "decisions": {
+    "authLayout": "centered",
+    "navigation": "top",
+    "theme": "light"
+  },
+  "stack": {
+    "framework": "nextjs",
+    "database": "drizzle",
+    "auth": "custom",
+    "ui": "shadcn",
+    "payments": ["stripe"]
+  },
+  "currentWork": {
+    "lastUpdated": "2024-12-21T00:00:00Z",
+    "activeFeature": "Marketing site and Prompt Optimizer demo",
+    "status": "completed",
+    "summary": "Built marketing homepage with Smart Prompts section and Interactive Demo. Added context-aware prompt optimization API. Fixed Interactive Demo to show different optimized prompts based on feature keywords. Removed copy button and made output non-selectable.",
+    "pendingTasks": [],
+    "completedThisSession": [
+      "Made hero grid more visible with smaller 80px squares",
+      "Added gradient fade at bottom of hero grid",
+      "Added 15 feature types to Interactive Demo (ai, notification, table, modal, settings, comment, auth, crud, landing, etc.)",
+      "Removed copy button and added select-none to prevent copying",
+      "Updated suggestion chips to include AI chatbot",
+      "Added session continuity instructions to CLAUDE.md"
+    ],
+    "keyFiles": [
+      "src/app/page.tsx",
+      "src/components/interactive-demo.tsx",
+      "src/app/api/optimize-prompt/route.ts",
+      "cli/src/mcp/server.ts"
+    ],
+    "notes": "User prefers minimal UI - no copy buttons on demo outputs. All changes deployed to Vercel (codebakers project)."
+  }
+}
