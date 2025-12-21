@@ -42,3 +42,5 @@ next-env.d.ts
 nul
 cli/node_modules/
 cli/dist/
+
+.vercel

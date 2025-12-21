@@ -47,6 +47,8 @@ import {
   PlayCircleIcon,
   Cancel01Icon,
   Tick02Icon,
+  SparklesIcon,
+  MagicWand02Icon,
 } from 'hugeicons-react';
 
 // Supported AI IDEs
@@ -389,6 +391,9 @@ export default function HomePage() {
             <span className="text-xl font-bold text-foreground">CodeBakers</span>
           </Link>
           <div className="hidden md:flex items-center gap-6">
+            <Link href="#smart-prompts" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+              Smart Prompts
+            </Link>
             <Link href="#features" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
               Features
             </Link>
@@ -727,6 +732,99 @@ export default function HomePage() {
       {/* Interactive Demo Section */}
       <section className="py-16 px-4" style={{ background: 'var(--section-features)' }} id="demo-comparison">
         <InteractiveDemo />
+      </section>
+
+      {/* Smart Prompts Section */}
+      <section id="smart-prompts" className="py-20 px-4" style={{ background: 'var(--section-compare)' }}>
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800">
+              <MagicWand02Icon className="h-3 w-3 mr-1" />
+              Smart Prompts
+            </Badge>
+            <h2 className="text-4xl font-bold text-foreground mb-4">
+              AI-powered prompt&nbsp;optimization
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Type a simple request. CodeBakers automatically expands it into a production-ready prompt with all requirements&nbsp;included.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            {/* Before/After comparison */}
+            <div className="grid md:grid-cols-2 gap-6 mb-12">
+              {/* Before */}
+              <div className="rounded-2xl bg-card border border-border p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">What you type</span>
+                </div>
+                <p className="text-lg text-foreground font-mono">&ldquo;Add login form&rdquo;</p>
+              </div>
+
+              {/* After */}
+              <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800 p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <MagicWand02Icon className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm font-medium text-amber-600 dark:text-amber-400">What AI receives</span>
+                </div>
+                <p className="text-sm text-foreground leading-relaxed">
+                  Build a complete login form with <strong>React Hook Form + Zod validation</strong>, loading state on submit, inline error messages, toast notifications for failures, forgot password link, <strong>accessibility with ARIA labels</strong>, keyboard navigation, and <strong>Playwright tests</strong> for happy path and error states...
+                </p>
+              </div>
+            </div>
+
+            {/* How it works steps */}
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-muted-foreground">
+                    1
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">You type</div>
+                    <div className="text-sm font-medium text-muted-foreground">&quot;Add login form&quot;</div>
+                  </div>
+                </div>
+                <ArrowRight02Icon className="hidden md:block h-5 w-5 text-muted-foreground/50" />
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-amber-500">
+                    2
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">AI optimizes</div>
+                    <div className="text-sm font-medium text-amber-600 dark:text-amber-400">Adds 15+ production requirements</div>
+                  </div>
+                </div>
+                <ArrowRight02Icon className="hidden md:block h-5 w-5 text-muted-foreground/50" />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-green-500">
+                  3
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">You get</div>
+                  <div className="text-sm font-medium text-green-600 dark:text-green-400">Complete auth with tests, a11y</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Context-aware callout */}
+            <div className="mt-10 rounded-xl bg-foreground p-6 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <SparklesIcon className="h-5 w-5 text-amber-400" />
+                <span className="text-background font-semibold">Context-Aware</span>
+              </div>
+              <p className="text-muted text-sm max-w-xl mx-auto">
+                The optimizer knows your project structure—existing components, services, API routes, and database schema. Prompts are tailored to <em>your</em> codebase.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Who This Is For Section */}
