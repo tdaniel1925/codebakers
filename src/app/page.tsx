@@ -1121,6 +1121,17 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Free Trial Banner */}
+          <div className="max-w-2xl mx-auto mb-12 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/30 text-center">
+            <Badge className="bg-green-600 text-white border-green-500 mb-2">Try Free</Badge>
+            <p className="text-foreground font-medium">
+              Start with 1 free project — no credit card required
+            </p>
+            <p className="text-muted-foreground text-sm mt-1">
+              Upgrade anytime to unlock unlimited projects
+            </p>
+          </div>
+
           <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
             {pricingTiers.map((tier) => (
               <div
