@@ -16,6 +16,8 @@ import {
   SecurityCheckIcon,
   TestTube01Icon,
   CodeIcon,
+  Copy01Icon,
+  Tick01Icon,
 } from 'hugeicons-react';
 
 // Quick suggestion chips for common use cases
@@ -31,6 +33,7 @@ const suggestions = [
 type FeatureMetrics = {
   keywords: string[];
   featureName: string;
+  optimizedPrompt: string;
   without: {
     prompts: string;
     errors: string;
@@ -49,6 +52,7 @@ const featureMetrics: Record<string, FeatureMetrics> = {
   form: {
     keywords: ['form', 'input', 'login', 'signup', 'register', 'contact', 'submit'],
     featureName: 'Login Form',
+    optimizedPrompt: 'Build a login form with email and password fields using React Hook Form and Zod validation. Include: loading state on submit button, inline error messages for invalid input, toast notification for failed login attempts, forgot password link, optional "remember me" checkbox, redirect to dashboard on success. Use shadcn/ui Input and Button components. Make it fully accessible with ARIA labels and keyboard navigation. Add Playwright tests for happy path and error states.',
     without: {
       prompts: '8-12',
       errors: '5-7',
@@ -77,6 +81,7 @@ const featureMetrics: Record<string, FeatureMetrics> = {
   payment: {
     keywords: ['stripe', 'payment', 'checkout', 'billing', 'subscription', 'pay'],
     featureName: 'Stripe Checkout',
+    optimizedPrompt: 'Implement Stripe checkout with subscription support. Include: create checkout session API route with proper error handling, webhook endpoint for payment events (checkout.session.completed, invoice.paid, customer.subscription.updated), signature verification, idempotency keys for all Stripe calls, sync subscription status to database, handle failed payments gracefully, customer portal redirect for subscription management. Use server actions where appropriate. Add comprehensive error logging and Playwright tests.',
     without: {
       prompts: '15-20',
       errors: '8-12',
@@ -105,6 +110,7 @@ const featureMetrics: Record<string, FeatureMetrics> = {
   api: {
     keywords: ['api', 'endpoint', 'rest', 'crud', 'backend', 'route', 'server'],
     featureName: 'REST API Endpoint',
+    optimizedPrompt: 'Create a REST API endpoint with full CRUD operations. Include: Zod schema validation for request body and query params, authentication middleware check, rate limiting (10 req/min for unauthenticated, 100 for authenticated), proper HTTP status codes (200, 201, 400, 401, 403, 404, 429, 500), consistent error response format with error codes, request ID for tracing, audit logging for mutations. Use Drizzle ORM with parameterized queries. Add OpenAPI documentation comments and integration tests.',
     without: {
       prompts: '6-10',
       errors: '4-6',
@@ -133,6 +139,7 @@ const featureMetrics: Record<string, FeatureMetrics> = {
   upload: {
     keywords: ['upload', 'file', 'image', 'photo', 's3', 'storage', 'media'],
     featureName: 'File Upload',
+    optimizedPrompt: 'Build a file upload component with drag-and-drop support. Include: file type validation (images: jpg, png, webp; documents: pdf, docx), max file size limit (10MB), upload progress indicator, S3 presigned URL generation for secure direct uploads, image preview before upload, multiple file selection, cancel upload functionality, error handling with user-friendly messages, cleanup on component unmount. Use React Hook Form for form integration. Add tests for validation and upload flow.',
     without: {
       prompts: '10-15',
       errors: '6-8',
@@ -161,6 +168,7 @@ const featureMetrics: Record<string, FeatureMetrics> = {
   dashboard: {
     keywords: ['dashboard', 'admin', 'panel', 'analytics', 'stats', 'overview'],
     featureName: 'Dashboard',
+    optimizedPrompt: 'Build an analytics dashboard with real-time data. Include: React Query for data fetching with 30-second auto-refresh, skeleton loaders during initial load, error boundaries with retry button, responsive grid layout (1 col mobile, 2 col tablet, 3 col desktop), stat cards with trend indicators, date range picker for filtering, export to CSV functionality. Use Recharts for visualizations. Implement optimistic updates where applicable. Add loading and error state tests.',
     without: {
       prompts: '8-12',
       errors: '5-7',
@@ -189,6 +197,7 @@ const featureMetrics: Record<string, FeatureMetrics> = {
   search: {
     keywords: ['search', 'filter', 'find', 'query', 'autocomplete'],
     featureName: 'Search Bar',
+    optimizedPrompt: 'Build a search component with autocomplete. Include: 300ms debounced input to prevent API flooding, loading spinner during search, empty state with helpful message, keyboard navigation (arrow keys, enter to select, escape to close), highlight matching text in results, recent searches stored in localStorage, clear button when input has value, responsive dropdown positioning. Use ARIA combobox pattern for accessibility. Add Playwright tests for keyboard navigation and search flow.',
     without: {
       prompts: '6-10',
       errors: '4-5',
@@ -220,6 +229,7 @@ const featureMetrics: Record<string, FeatureMetrics> = {
 const defaultMetrics: FeatureMetrics = {
   keywords: [],
   featureName: 'Feature',
+  optimizedPrompt: 'Build this feature with production-ready patterns. Include: comprehensive error handling with user-friendly messages, loading and skeleton states, Zod validation for all inputs, TypeScript types throughout, proper authentication checks, audit logging for important actions, responsive design, accessibility (ARIA labels, keyboard navigation), and Playwright tests for critical paths. Follow the established codebase conventions and use existing UI components.',
   without: {
     prompts: '8-15',
     errors: '5-10',
@@ -262,6 +272,15 @@ export function InteractiveDemo() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [currentMetrics, setCurrentMetrics] = useState<FeatureMetrics | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyPrompt = async () => {
+    if (currentMetrics) {
+      await navigator.clipboard.writeText(currentMetrics.optimizedPrompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!userInput.trim()) return;
@@ -379,12 +398,75 @@ export function InteractiveDemo() {
       {/* Results - Simple metrics comparison */}
       {showResult && currentMetrics && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Prompt display */}
+          {/* Prompt Optimization Section */}
+          <div className="mb-10 max-w-3xl mx-auto">
+            <div className="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 overflow-hidden">
+              <div className="px-5 py-3 bg-amber-100/50 border-b border-amber-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AiMagicIcon className="h-5 w-5 text-amber-600" />
+                  <span className="font-semibold text-amber-800">Prompt Optimizer</span>
+                </div>
+                <Badge className="bg-amber-200 text-amber-800 border-amber-300">Auto-Enhanced</Badge>
+              </div>
+              <div className="p-5">
+                {/* Before */}
+                <div className="mb-4">
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">You typed:</div>
+                  <div className="px-4 py-3 rounded-lg bg-white border border-gray-200 text-gray-600 italic">
+                    &quot;{displayedInput}&quot;
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div className="flex justify-center my-3">
+                  <div className="flex items-center gap-2 text-amber-600">
+                    <div className="h-px w-8 bg-amber-300" />
+                    <AiMagicIcon className="h-5 w-5" />
+                    <div className="h-px w-8 bg-amber-300" />
+                  </div>
+                </div>
+
+                {/* After */}
+                <div>
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Optimized prompt:</div>
+                  <div className="px-4 py-3 rounded-lg bg-white border-2 border-green-200 text-gray-800 text-sm leading-relaxed">
+                    {currentMetrics.optimizedPrompt}
+                  </div>
+                </div>
+
+                {/* Copy button */}
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-xs text-amber-700">
+                    This prompt triggers all relevant patterns for maximum output quality.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyPrompt}
+                    className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                  >
+                    {copied ? (
+                      <>
+                        <Tick01Icon className="h-4 w-4 mr-1" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy01Icon className="h-4 w-4 mr-1" />
+                        Copy Prompt
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature name badge */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 border border-gray-200">
               <span className="text-gray-500 text-sm">Building:</span>
               <span className="text-gray-900 font-semibold">{currentMetrics.featureName}</span>
-              <span className="text-gray-500 text-sm">from &quot;{displayedInput}&quot;</span>
             </div>
           </div>
 
