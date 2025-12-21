@@ -8,7 +8,6 @@ import {
   Cancel01Icon,
   Tick02Icon,
   ArrowRight02Icon,
-  AiBrain02Icon,
   AiMagicIcon,
   Loading03Icon,
   Clock01Icon,
@@ -26,7 +25,6 @@ const suggestions = [
   'REST API',
   'file upload',
   'dashboard',
-  'contact form',
 ];
 
 // Simple metrics comparison for each feature type
@@ -309,13 +307,13 @@ export function InteractiveDemo() {
       {/* Header */}
       <div className="text-center mb-8">
         <Badge className="mb-4 bg-amber-50 text-amber-600 border-amber-200 px-4 py-1">
-          <AiBrain02Icon className="h-3 w-3 mr-2" />
+          <AiMagicIcon className="h-3 w-3 mr-2" />
           Try It Yourself
         </Badge>
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-          What do you want to build?
+        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+          What do you want to&nbsp;build?
         </h2>
-        <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           Type any feature and see exactly how much time and frustration you&apos;ll save.
         </p>
       </div>
@@ -372,9 +370,9 @@ export function InteractiveDemo() {
         <div className="flex flex-col items-center justify-center py-16">
           <div className="relative">
             <div className="w-16 h-16 rounded-full border-4 border-red-100 animate-pulse" />
-            <AiBrain02Icon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-red-500 animate-pulse" />
+            <Loading03Icon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-red-500 animate-spin" />
           </div>
-          <p className="mt-4 text-gray-500 animate-pulse">Analyzing your request...</p>
+          <p className="mt-4 text-muted-foreground animate-pulse">Analyzing your request...</p>
         </div>
       )}
 
@@ -535,8 +533,8 @@ export function InteractiveDemo() {
 
       {/* Initial state - before any generation */}
       {!showResult && !isGenerating && (
-        <div className="text-center py-12 text-gray-400">
-          <AiBrain02Icon className="h-16 w-16 mx-auto mb-4 opacity-20" />
+        <div className="text-center py-12 text-muted-foreground">
+          <AiMagicIcon className="h-16 w-16 mx-auto mb-4 opacity-20" />
           <p>Type a feature above and click Compare to see the difference</p>
         </div>
       )}
