@@ -431,8 +431,8 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero Section - Bold & Impactful */}
-      <section className="pt-28 pb-24 px-4 relative overflow-hidden" style={{ background: 'var(--section-hero)' }}>
+      {/* Hero Section - Viewport Optimized */}
+      <section className="pt-24 pb-8 px-4 min-h-[calc(100vh-4rem)] flex items-center relative overflow-hidden" style={{ background: 'var(--section-hero)' }}>
         {/* Grid Background Pattern */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div
@@ -446,7 +446,7 @@ export default function HomePage() {
 
         <div className="container mx-auto text-center relative z-10">
           {/* Top badge - IDE focus */}
-          <div className="inline-flex items-center gap-3 mb-8 px-5 py-2.5 rounded-full bg-red-500/10 border border-red-500/20">
+          <div className="inline-flex items-center gap-3 mb-6 px-5 py-2 rounded-full bg-red-500/10 border border-red-500/20">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-sm font-medium text-foreground">Works with</span>
@@ -454,16 +454,16 @@ export default function HomePage() {
             <div className="flex items-center gap-2 text-sm">
               <span className="font-semibold text-red-600 dark:text-red-400">Cursor</span>
               <span className="text-muted-foreground">•</span>
-              <span className="font-semibold text-white">Claude Code</span>
+              <span className="font-semibold text-foreground">Claude Code</span>
               <span className="text-muted-foreground">•</span>
               <span className="font-semibold text-red-600 dark:text-red-400">Windsurf</span>
               <span className="text-muted-foreground">•</span>
-              <span className="font-semibold text-white">Aider</span>
+              <span className="font-semibold text-foreground">Aider</span>
             </div>
           </div>
 
           {/* MAIN HEADLINE - Big & Bold */}
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-[0.95] tracking-tight">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 leading-[0.95] tracking-tight">
             <span className="text-foreground">Production-Ready Code</span>
             <br />
             <span className="text-red-600 dark:text-red-500">
@@ -472,73 +472,77 @@ export default function HomePage() {
           </h1>
 
           {/* Value prop - clear & direct */}
-          <p className="text-xl md:text-2xl lg:text-3xl text-muted-foreground mb-8 max-w-4xl mx-auto font-medium">
+          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-6 max-w-3xl mx-auto font-medium">
             Make your AI write code like a <span className="text-foreground font-bold">senior developer</span>.
             <br className="hidden md:block" />
             <span className="text-foreground">No more revision loops. No more demo garbage.</span>
           </p>
 
           {/* Bold Stats Row */}
-          <div className="flex flex-wrap justify-center gap-6 md:gap-10 mb-10">
+          <div className="flex flex-wrap justify-center gap-4 md:gap-8 mb-6">
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-foreground">34</div>
-              <div className="text-sm text-muted-foreground font-medium">Modules</div>
+              <div className="text-3xl md:text-4xl font-black text-foreground">34</div>
+              <div className="text-xs text-muted-foreground font-medium">Modules</div>
             </div>
-            <div className="hidden sm:block w-px h-16 bg-border" />
+            <div className="hidden sm:block w-px h-12 bg-border" />
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-foreground">{(totalLines / 1000).toFixed(0)}K+</div>
-              <div className="text-sm text-muted-foreground font-medium">Lines of Code</div>
+              <div className="text-3xl md:text-4xl font-black text-foreground">{(totalLines / 1000).toFixed(0)}K+</div>
+              <div className="text-xs text-muted-foreground font-medium">Lines of Code</div>
             </div>
-            <div className="hidden sm:block w-px h-16 bg-border" />
+            <div className="hidden sm:block w-px h-12 bg-border" />
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-green-600 dark:text-green-500">90%</div>
-              <div className="text-sm text-muted-foreground font-medium">Less Revision</div>
+              <div className="text-3xl md:text-4xl font-black text-green-600 dark:text-green-500">90%</div>
+              <div className="text-xs text-muted-foreground font-medium">Less Revision</div>
             </div>
-            <div className="hidden sm:block w-px h-16 bg-border" />
+            <div className="hidden sm:block w-px h-12 bg-border" />
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-red-600 dark:text-red-500">1st</div>
-              <div className="text-sm text-muted-foreground font-medium">Prompt Success</div>
+              <div className="text-3xl md:text-4xl font-black text-red-600 dark:text-red-500">1st</div>
+              <div className="text-xs text-muted-foreground font-medium">Prompt Success</div>
             </div>
           </div>
 
           {/* CTA Buttons - Prominent */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 mb-6">
             <Link href="/signup">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-16 px-10 text-xl font-semibold w-full sm:w-auto shadow-xl shadow-red-500/30 transition-all hover:shadow-2xl hover:shadow-red-500/40 hover:-translate-y-1 rounded-xl">
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-14 px-8 text-lg font-semibold w-full sm:w-auto shadow-xl shadow-red-500/30 transition-all hover:shadow-2xl hover:shadow-red-500/40 hover:-translate-y-1 rounded-xl">
                 Upgrade Your AI Now
-                <ArrowRight02Icon className="ml-2 h-6 w-6" />
+                <ArrowRight02Icon className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link href="#demo-comparison">
               <Button
                 size="lg"
                 variant="outline"
-                className="border-2 border-border hover:bg-accent h-16 px-10 text-xl font-semibold w-full sm:w-auto group rounded-xl"
+                className="border-2 border-border hover:bg-accent h-14 px-8 text-lg font-semibold w-full sm:w-auto group rounded-xl"
               >
-                <PlayIcon className="mr-2 h-6 w-6 group-hover:text-red-500 transition-colors" />
+                <PlayIcon className="mr-2 h-5 w-5 group-hover:text-red-500 transition-colors" />
                 See The Difference
               </Button>
             </Link>
           </div>
 
           {/* Trust indicators */}
-          <div className="flex flex-wrap justify-center items-center gap-6 mb-12 text-sm text-muted-foreground">
+          <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <SecurityCheckIcon className="h-5 w-5 text-green-500" />
+              <SecurityCheckIcon className="h-4 w-4 text-green-500" />
               <span>1 free project forever</span>
             </div>
             <div className="flex items-center gap-2">
-              <FlashIcon className="h-5 w-5 text-yellow-500" />
+              <FlashIcon className="h-4 w-4 text-yellow-500" />
               <span>2-minute setup</span>
             </div>
             <div className="flex items-center gap-2">
-              <Tick02Icon className="h-5 w-5 text-blue-500" />
+              <Tick02Icon className="h-4 w-4 text-blue-500" />
               <span>No credit card required</span>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Before/After Visual - The Core Promise */}
-          <div className="max-w-4xl mx-auto" id="demo">
+      {/* Before/After Comparison - Below the fold */}
+      <section className="py-16 px-4" style={{ background: 'var(--section-hero)' }} id="demo">
+        <div className="container mx-auto">
+          <div className="max-w-4xl mx-auto">
             <div className="grid md:grid-cols-2 gap-4 md:gap-6">
               {/* BEFORE - Without CodeBakers */}
               <div className="rounded-xl bg-red-950/20 dark:bg-red-950/40 border-2 border-red-500/30 p-6 text-left relative overflow-hidden">
