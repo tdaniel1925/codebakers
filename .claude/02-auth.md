@@ -392,6 +392,267 @@ export function LoginForm({ redirectTo = '/dashboard' }: LoginFormProps) {
 }
 ```
 
+---
+
+## 🎨 AUTH PAGE LAYOUTS
+
+Choose your auth page layout based on your product type and brand goals.
+
+### Decision Guide
+
+| Layout | Best For | Characteristics |
+|--------|----------|-----------------|
+| **Full Page (Centered)** | MVPs, simple apps, mobile-first | Fast to implement, clean, minimal distraction |
+| **2-Panel (Split Screen)** | SaaS, B2B, enterprise | Brand storytelling, social proof, premium feel |
+
+### Option A: Full Page (Centered Form)
+
+Best for: Quick launches, mobile-first apps, simple products
+
+```typescript
+// app/(auth)/login/page.tsx
+import Link from 'next/link';
+import { LoginForm } from '@/components/auth/login-form';
+
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-background">
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo */}
+        <div className="text-center">
+          <Link href="/" className="inline-block">
+            <h1 className="text-2xl font-bold">YourApp</h1>
+          </Link>
+        </div>
+
+        {/* Card */}
+        <div className="bg-card rounded-xl border p-8 shadow-sm">
+          <div className="mb-6 text-center">
+            <h2 className="text-2xl font-semibold">Welcome back</h2>
+            <p className="text-muted-foreground mt-1">
+              Sign in to your account
+            </p>
+          </div>
+
+          <LoginForm />
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Don't have an account?{' '}
+            <Link href="/signup" className="text-primary hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-muted-foreground">
+          By signing in, you agree to our{' '}
+          <Link href="/terms" className="underline">Terms</Link> and{' '}
+          <Link href="/privacy" className="underline">Privacy Policy</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
+### Option B: 2-Panel (Split Screen)
+
+Best for: SaaS products, B2B apps, premium positioning
+
+```typescript
+// app/(auth)/login/page.tsx
+import Link from 'next/link';
+import Image from 'next/image';
+import { LoginForm } from '@/components/auth/login-form';
+import { Quote } from 'lucide-react';
+
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen grid lg:grid-cols-2">
+      {/* Left Panel - Branding */}
+      <div className="hidden lg:flex flex-col justify-between bg-primary p-10 text-primary-foreground">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-primary-foreground/20" />
+          <span className="text-xl font-bold">YourApp</span>
+        </Link>
+
+        {/* Hero Content */}
+        <div className="space-y-6">
+          <h1 className="text-4xl font-bold leading-tight">
+            Ship faster with production-ready patterns
+          </h1>
+          <p className="text-lg text-primary-foreground/80">
+            Join 1,000+ developers building better products.
+          </p>
+
+          {/* Social Proof */}
+          <div className="flex items-center gap-4">
+            <div className="flex -space-x-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="h-8 w-8 rounded-full bg-primary-foreground/20 border-2 border-primary"
+                />
+              ))}
+            </div>
+            <span className="text-sm text-primary-foreground/80">
+              +1,247 developers this week
+            </span>
+          </div>
+        </div>
+
+        {/* Testimonial */}
+        <blockquote className="space-y-4">
+          <Quote className="h-8 w-8 text-primary-foreground/40" />
+          <p className="text-lg italic">
+            "This saved us 3 months of development time. The patterns are
+            production-ready and well-documented."
+          </p>
+          <footer className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary-foreground/20" />
+            <div>
+              <p className="font-medium">Sarah Chen</p>
+              <p className="text-sm text-primary-foreground/60">CTO, TechStartup</p>
+            </div>
+          </footer>
+        </blockquote>
+      </div>
+
+      {/* Right Panel - Form */}
+      <div className="flex items-center justify-center p-8">
+        <div className="w-full max-w-md space-y-8">
+          {/* Mobile Logo */}
+          <div className="lg:hidden text-center">
+            <Link href="/" className="inline-block">
+              <h1 className="text-2xl font-bold">YourApp</h1>
+            </Link>
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-semibold">Welcome back</h2>
+            <p className="text-muted-foreground mt-1">
+              Sign in to your account to continue
+            </p>
+          </div>
+
+          <LoginForm />
+
+          <p className="text-sm text-muted-foreground">
+            Don't have an account?{' '}
+            <Link href="/signup" className="text-primary hover:underline">
+              Create one for free
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### 2-Panel Variations
+
+**With Background Image:**
+```typescript
+{/* Left Panel with Image */}
+<div className="hidden lg:block relative">
+  <Image
+    src="/auth-bg.jpg"
+    alt=""
+    fill
+    className="object-cover"
+  />
+  <div className="absolute inset-0 bg-black/60" />
+  <div className="relative z-10 flex flex-col justify-between h-full p-10 text-white">
+    {/* Content */}
+  </div>
+</div>
+```
+
+**With Feature List:**
+```typescript
+{/* Left Panel with Features */}
+<div className="hidden lg:flex flex-col justify-center bg-slate-900 p-10 text-white">
+  <h2 className="text-3xl font-bold mb-8">Everything you need</h2>
+  <ul className="space-y-4">
+    {[
+      '33 production-ready modules',
+      'Full TypeScript support',
+      'Automated testing included',
+      'Regular updates',
+    ].map((feature) => (
+      <li key={feature} className="flex items-center gap-3">
+        <Check className="h-5 w-5 text-green-400" />
+        <span>{feature}</span>
+      </li>
+    ))}
+  </ul>
+</div>
+```
+
+**With Stats:**
+```typescript
+{/* Left Panel with Stats */}
+<div className="hidden lg:flex flex-col justify-center bg-gradient-to-br from-blue-600 to-purple-700 p-10 text-white">
+  <div className="grid grid-cols-2 gap-8">
+    <div>
+      <p className="text-4xl font-bold">10K+</p>
+      <p className="text-white/70">Active users</p>
+    </div>
+    <div>
+      <p className="text-4xl font-bold">99.9%</p>
+      <p className="text-white/70">Uptime</p>
+    </div>
+    <div>
+      <p className="text-4xl font-bold">50M+</p>
+      <p className="text-white/70">API calls/day</p>
+    </div>
+    <div>
+      <p className="text-4xl font-bold">4.9/5</p>
+      <p className="text-white/70">User rating</p>
+    </div>
+  </div>
+</div>
+```
+
+### Auth Layout Wrapper (Reusable)
+
+```typescript
+// components/auth/auth-layout.tsx
+interface AuthLayoutProps {
+  children: React.ReactNode;
+  variant?: 'centered' | 'split';
+  leftPanel?: React.ReactNode;
+}
+
+export function AuthLayout({
+  children,
+  variant = 'centered',
+  leftPanel
+}: AuthLayoutProps) {
+  if (variant === 'centered') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">{children}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen grid lg:grid-cols-2">
+      <div className="hidden lg:flex">{leftPanel}</div>
+      <div className="flex items-center justify-center p-8">
+        <div className="w-full max-w-md">{children}</div>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
 ### Auth Callback Route
 
 ```typescript

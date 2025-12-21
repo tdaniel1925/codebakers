@@ -68,7 +68,7 @@ Scan the user's request for these keywords and load matching modules:
 **Load:** `.claude/01-database.md`
 
 ### Authentication & Security
-**Keywords:** login, logout, signup, register, auth, session, password, hash, 2FA, two-factor, OAuth, Google login, GitHub login, JWT, token, permission, role, security, protect, middleware
+**Keywords:** login, logout, signup, register, auth, session, password, hash, 2FA, two-factor, OAuth, Google login, GitHub login, JWT, token, permission, role, security, protect, middleware, auth page, login page, signup page, split screen, 2-panel, two panel, full page, centered form, auth layout
 **Load:** `.claude/02-auth.md`
 
 ### API Development
