@@ -470,7 +470,7 @@ export default function HomePage() {
               AI coding is&nbsp;broken
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              You spend more time fixing AI output than writing code yourself.
+              You spend more time fixing AI output than writing code&nbsp;yourself.
             </p>
           </motion.div>
 
@@ -509,7 +509,7 @@ export default function HomePage() {
               Production patterns for every&nbsp;feature
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              CodeBakers gives your AI the context it needs to write real code the first time.
+              CodeBakers gives your AI the context it needs to write real code the first&nbsp;time.
             </p>
           </motion.div>
 
@@ -569,7 +569,7 @@ export default function HomePage() {
               See what CodeBakers&nbsp;generates
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              One prompt. Complete, production-ready code.
+              One prompt. Complete, production-ready&nbsp;code.
             </p>
           </motion.div>
 
@@ -628,7 +628,7 @@ export default function HomePage() {
               Get started in 60&nbsp;seconds
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              Three commands. That&apos;s all it takes.
+              Three commands. That&apos;s all it&nbsp;takes.
             </p>
           </motion.div>
 
@@ -669,7 +669,7 @@ export default function HomePage() {
               34 Production&nbsp;Modules
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              Everything you need to build modern SaaS applications.
+              Everything you need to build modern SaaS&nbsp;applications.
             </p>
           </motion.div>
 
@@ -719,7 +719,7 @@ export default function HomePage() {
               Works with any AI coding&nbsp;assistant
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              CodeBakers patterns work with all major AI tools.
+              CodeBakers patterns work with all major AI&nbsp;tools.
             </p>
           </motion.div>
 
@@ -758,7 +758,7 @@ export default function HomePage() {
               Domain expertise&nbsp;built-in
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              Specialized patterns for regulated industries and compliance requirements.
+              Specialized patterns for regulated industries and compliance&nbsp;requirements.
             </p>
           </motion.div>
 
@@ -795,7 +795,7 @@ export default function HomePage() {
               Loved by&nbsp;developers
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              Join thousands of developers shipping faster with CodeBakers.
+              Join thousands of developers shipping faster with&nbsp;CodeBakers.
             </p>
           </motion.div>
 
@@ -843,7 +843,7 @@ export default function HomePage() {
               Simple, transparent&nbsp;pricing
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              One free project, forever. No credit card required.
+              One free project, forever. No credit card&nbsp;required.
             </p>
           </motion.div>
 
@@ -954,8 +954,8 @@ export default function HomePage() {
               Ready to ship 5x&nbsp;faster?
             </h2>
             <p className="text-gray-300 mb-8 max-w-xl mx-auto text-lg">
-              Join developers building production apps in days, not weeks.
-              Start with one free project, forever.
+              Join developers building production apps in days, not&nbsp;weeks.
+              Start with one free project,&nbsp;forever.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link href="/signup">

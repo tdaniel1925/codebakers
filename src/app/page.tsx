@@ -734,7 +734,7 @@ export default function HomePage() {
               Whether you&apos;re solo or&nbsp;scaling
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              CodeBakers adapts to how you build. Choose your project type and get exactly what you need.
+              CodeBakers adapts to how you build. Choose your project type and get exactly what you&nbsp;need.
             </p>
           </div>
 
@@ -772,7 +772,7 @@ export default function HomePage() {
               Sound&nbsp;familiar?
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              You love AI coding tools. But you&apos;re stuck in an endless loop of &quot;almost right.&quot;
+              You love AI coding tools. But you&apos;re stuck in an endless loop of &quot;almost&nbsp;right.&quot;
             </p>
           </div>
 
@@ -813,7 +813,7 @@ export default function HomePage() {
               CodeBakers makes your AI write like a senior&nbsp;dev
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              {totalLines.toLocaleString()} lines of production patterns. Your AI finally knows best practices.
+              {totalLines.toLocaleString()} lines of production patterns. Your AI finally knows best&nbsp;practices.
             </p>
           </div>
 
@@ -856,7 +856,7 @@ export default function HomePage() {
               Real developers. Real&nbsp;results.
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              See what happens when your AI actually knows what it&apos;s doing.
+              See what happens when your AI actually knows what it&apos;s&nbsp;doing.
             </p>
           </div>
 
@@ -910,7 +910,7 @@ export default function HomePage() {
               Stop guessing. See the&nbsp;numbers.
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Real time savings measured across common development tasks.
+              Real time savings measured across common development&nbsp;tasks.
             </p>
           </div>
 
@@ -962,7 +962,7 @@ export default function HomePage() {
               Why not free Cursor&nbsp;rules?
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              cursor.directory, awesome-cursorrules, and awesome-claude-code are great starting points. But they&apos;re just snippets you have to assemble yourself.
+              cursor.directory, awesome-cursorrules, and awesome-claude-code are great starting points. But they&apos;re just snippets you have to assemble&nbsp;yourself.
             </p>
           </div>
 
@@ -1025,7 +1025,7 @@ export default function HomePage() {
               {totalLines.toLocaleString()} lines of production&nbsp;patterns
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Smart module loading means AI only loads what&apos;s relevant. Ask for a login form and it loads auth + frontend patterns, not all {totalLines.toLocaleString()} lines.
+              Smart module loading means AI only loads what&apos;s relevant. Ask for a login form and it loads auth + frontend patterns, not all {totalLines.toLocaleString()}&nbsp;lines.
             </p>
           </div>
 
@@ -1068,7 +1068,7 @@ export default function HomePage() {
               Complete product&nbsp;development
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Code, business, marketing, compliance — everything you need from discovery to launch.
+              Code, business, marketing, compliance — everything you need from discovery to&nbsp;launch.
             </p>
           </div>
 
@@ -1104,7 +1104,7 @@ export default function HomePage() {
               Less than a coffee a&nbsp;day
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Save 10+ hours per project. Pay less than your AI subscription.
+              Save 10+ hours per project. Pay less than your AI&nbsp;subscription.
             </p>
             <div className="flex flex-wrap justify-center items-center gap-4 mt-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
@@ -1224,7 +1224,7 @@ export default function HomePage() {
             Your next project deserves better&nbsp;AI
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join 1,200+ developers who stopped fighting their tools and started shipping.
+            Join 1,200+ developers who stopped fighting their tools and started&nbsp;shipping.
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
