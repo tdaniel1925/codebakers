@@ -418,129 +418,199 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 relative overflow-hidden" style={{ background: 'var(--section-hero)' }}>
+      {/* Hero Section - Bold & Impactful */}
+      <section className="pt-28 pb-24 px-4 relative overflow-hidden" style={{ background: 'var(--section-hero)' }}>
         {/* Decorative elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl" />
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/15 dark:bg-blue-500/25 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500/15 dark:bg-purple-500/25 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl" />
         </div>
 
         <div className="container mx-auto text-center relative z-10">
-          {/* Social proof badge */}
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <div className="flex -space-x-2">
-              {['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-orange-500'].map((bg, i) => (
-                <div key={i} className={`w-8 h-8 rounded-full ${bg} border-2 border-background flex items-center justify-center text-white text-xs font-bold`}>
-                  {['S', 'M', 'A', 'J'][i]}
-                </div>
-              ))}
+          {/* Top badge - IDE focus */}
+          <div className="inline-flex items-center gap-3 mb-8 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 border border-blue-500/20 dark:border-blue-500/30">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-sm font-medium text-foreground">Works with</span>
             </div>
-            <span className="text-muted-foreground text-sm">
-              Join <span className="text-foreground font-semibold">1,200+</span> developers shipping faster
-            </span>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-semibold text-blue-600 dark:text-blue-400">Cursor</span>
+              <span className="text-muted-foreground">•</span>
+              <span className="font-semibold text-purple-600 dark:text-purple-400">Claude Code</span>
+              <span className="text-muted-foreground">•</span>
+              <span className="font-semibold text-cyan-600 dark:text-cyan-400">Windsurf</span>
+              <span className="text-muted-foreground">•</span>
+              <span className="font-semibold text-orange-600 dark:text-orange-400">Aider</span>
+            </div>
           </div>
 
-          <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 px-4 py-1">
-            <AiMagicIcon className="h-3 w-3 mr-2" />
-            The Ultimate Upgrade for Cursor & Claude Code
-          </Badge>
-
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            <span className="text-foreground">Stop prompting.</span>
+          {/* MAIN HEADLINE - Big & Bold */}
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-[0.95] tracking-tight">
+            <span className="text-foreground">Production-Ready Code</span>
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-cyan-500 dark:from-blue-400 dark:via-purple-400 dark:to-cyan-400">
-              Start shipping.
+              On The First Prompt
             </span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-muted-foreground mb-4 max-w-3xl mx-auto">
-            Your AI writes <span className="text-foreground font-semibold">production-ready code</span> from the first prompt.
-            No more revision loops. No more demo garbage.
+          {/* Value prop - clear & direct */}
+          <p className="text-xl md:text-2xl lg:text-3xl text-muted-foreground mb-8 max-w-4xl mx-auto font-medium">
+            Make your AI write code like a <span className="text-foreground font-bold">senior developer</span>.
+            <br className="hidden md:block" />
+            <span className="text-foreground">No more revision loops. No more demo garbage.</span>
           </p>
 
-          <p className="text-lg text-muted-foreground/70 mb-6 max-w-2xl mx-auto">
-            {totalLines.toLocaleString()} lines of battle-tested patterns for <span className="text-foreground font-medium">Cursor</span>, <span className="text-foreground font-medium">Claude Code</span>, <span className="text-foreground font-medium">Windsurf</span> & <span className="text-foreground font-medium">Aider</span>.
-          </p>
-
-          {/* Trust indicators */}
-          <div className="flex flex-wrap justify-center items-center gap-4 mb-8 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <SecurityCheckIcon className="h-4 w-4 text-green-500" />
-              <span>30-day money back</span>
+          {/* Bold Stats Row */}
+          <div className="flex flex-wrap justify-center gap-6 md:gap-10 mb-10">
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-foreground">34</div>
+              <div className="text-sm text-muted-foreground font-medium">Modules</div>
             </div>
-            <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-            <div className="flex items-center gap-1">
-              <FlashIcon className="h-4 w-4 text-yellow-500" />
-              <span>Setup in 2 minutes</span>
+            <div className="hidden sm:block w-px h-16 bg-border" />
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-foreground">{(totalLines / 1000).toFixed(0)}K+</div>
+              <div className="text-sm text-muted-foreground font-medium">Lines of Code</div>
             </div>
-            <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-            <div className="flex items-center gap-1">
-              <CustomerService01Icon className="h-4 w-4 text-blue-500" />
-              <span>Discord support</span>
+            <div className="hidden sm:block w-px h-16 bg-border" />
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-500">90%</div>
+              <div className="text-sm text-muted-foreground font-medium">Less Revision</div>
+            </div>
+            <div className="hidden sm:block w-px h-16 bg-border" />
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-500">1st</div>
+              <div className="text-sm text-muted-foreground font-medium">Prompt Success</div>
             </div>
           </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
+          {/* CTA Buttons - Prominent */}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             <Link href="/signup">
-              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white h-14 px-8 text-lg w-full sm:w-auto shadow-lg shadow-blue-500/30 transition-all hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5">
-                Start Building Now
-                <ArrowRight02Icon className="ml-2 h-5 w-5" />
+              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white h-16 px-10 text-xl font-semibold w-full sm:w-auto shadow-xl shadow-blue-500/30 transition-all hover:shadow-2xl hover:shadow-blue-500/40 hover:-translate-y-1 rounded-xl">
+                Upgrade Your AI Now
+                <ArrowRight02Icon className="ml-2 h-6 w-6" />
               </Button>
             </Link>
-            <Link href="#demo">
+            <Link href="#demo-comparison">
               <Button
                 size="lg"
                 variant="outline"
-                className="border-border hover:bg-accent h-14 px-8 text-lg w-full sm:w-auto group"
+                className="border-2 border-border hover:bg-accent h-16 px-10 text-xl font-semibold w-full sm:w-auto group rounded-xl"
               >
-                <PlayIcon className="mr-2 h-5 w-5 group-hover:text-blue-500 transition-colors" />
-                Watch 60s Demo
+                <PlayIcon className="mr-2 h-6 w-6 group-hover:text-blue-500 transition-colors" />
+                See The Difference
               </Button>
             </Link>
           </div>
 
-          <p className="text-sm text-muted-foreground/60 mb-12">
-            3 free downloads to try • No credit card required
-          </p>
-
-          {/* Featured testimonial */}
-          <div className="max-w-xl mx-auto mb-12 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-                AR
-              </div>
-              <div className="text-left">
-                <p className="text-foreground italic">&quot;We shipped our MVP in 2 weeks instead of 2 months. The compliance patterns alone saved us $10K in legal fees.&quot;</p>
-                <p className="text-muted-foreground text-sm mt-1">Alex Rivera, <span className="text-foreground/70">Startup Founder</span></p>
-              </div>
+          {/* Trust indicators */}
+          <div className="flex flex-wrap justify-center items-center gap-6 mb-12 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <SecurityCheckIcon className="h-5 w-5 text-green-500" />
+              <span>30-day money back guarantee</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FlashIcon className="h-5 w-5 text-yellow-500" />
+              <span>2-minute setup</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Tick02Icon className="h-5 w-5 text-blue-500" />
+              <span>3 free downloads to try</span>
             </div>
           </div>
 
-          {/* CLI Preview */}
-          <div className="max-w-2xl mx-auto" id="demo">
-            <div className="rounded-xl bg-slate-900 dark:bg-slate-900/80 border border-slate-700 dark:border-slate-800 p-6 font-mono text-sm text-left shadow-2xl">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="ml-2 text-slate-500 text-xs">Terminal</span>
+          {/* Before/After Visual - The Core Promise */}
+          <div className="max-w-4xl mx-auto" id="demo">
+            <div className="grid md:grid-cols-2 gap-4 md:gap-6">
+              {/* BEFORE - Without CodeBakers */}
+              <div className="rounded-xl bg-red-950/20 dark:bg-red-950/40 border-2 border-red-500/30 p-6 text-left relative overflow-hidden">
+                <div className="absolute top-3 right-3">
+                  <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 font-bold">WITHOUT</Badge>
+                </div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Cancel01Icon className="h-6 w-6 text-red-500" />
+                  <span className="font-bold text-red-600 dark:text-red-400">Vanilla AI Output</span>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-2 text-muted-foreground">
+                    <Cancel01Icon className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                    <span>Missing error handling</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-muted-foreground">
+                    <Cancel01Icon className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                    <span>No loading states</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-muted-foreground">
+                    <Cancel01Icon className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                    <span>Security vulnerabilities</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-muted-foreground">
+                    <Cancel01Icon className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                    <span>No tests included</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-muted-foreground">
+                    <Cancel01Icon className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                    <span>5-10 revision prompts needed</span>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-red-500/20">
+                  <span className="text-2xl font-bold text-red-500">4-6 hours</span>
+                  <span className="text-muted-foreground text-sm ml-2">per feature</span>
+                </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-slate-400">
-                  <span className="text-green-400">$</span> npx codebakers init
-                </p>
-                <p className="text-blue-400">↓ Installing CodeBakers...</p>
-                <p className="text-green-400">✓ Detected: Cursor IDE</p>
-                <p className="text-green-400">✓ 34 modules ready ({totalLines.toLocaleString()} lines)</p>
-                <p className="text-slate-400 mt-4">
-                  <span className="text-cyan-400">?</span> Project type: <span className="text-white">Business</span>
-                </p>
-                <p className="text-white mt-2 text-green-400">
-                  ✓ Your AI is now a senior developer. Start prompting!
-                </p>
+
+              {/* AFTER - With CodeBakers */}
+              <div className="rounded-xl bg-green-950/20 dark:bg-green-950/40 border-2 border-green-500/30 p-6 text-left relative overflow-hidden">
+                <div className="absolute top-3 right-3">
+                  <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30 font-bold">WITH CODEBAKERS</Badge>
+                </div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Tick02Icon className="h-6 w-6 text-green-500" />
+                  <span className="font-bold text-green-600 dark:text-green-400">Production-Ready Output</span>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-2 text-foreground">
+                    <Tick02Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Complete error handling</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-foreground">
+                    <Tick02Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Loading, empty, error states</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-foreground">
+                    <Tick02Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Security best practices</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-foreground">
+                    <Tick02Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Tests auto-generated</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-foreground">
+                    <Tick02Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="font-semibold">Works on first prompt</span>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-green-500/20">
+                  <span className="text-2xl font-bold text-green-500">30 minutes</span>
+                  <span className="text-muted-foreground text-sm ml-2">per feature</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom quote */}
+            <div className="mt-8 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border">
+              <div className="flex items-center justify-center gap-3">
+                <div className="flex -space-x-2">
+                  {['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-orange-500'].map((bg, i) => (
+                    <div key={i} className={`w-8 h-8 rounded-full ${bg} border-2 border-background flex items-center justify-center text-white text-xs font-bold`}>
+                      {['S', 'M', 'A', 'J'][i]}
+                    </div>
+                  ))}
+                </div>
+                <span className="text-muted-foreground text-sm">
+                  Join <span className="text-foreground font-bold">1,200+</span> developers who upgraded their AI
+                </span>
               </div>
             </div>
           </div>
