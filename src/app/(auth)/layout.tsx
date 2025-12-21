@@ -7,7 +7,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Free Project CTA */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-black via-neutral-950 to-red-950/30 p-12 flex-col justify-center relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-black p-12 flex-col justify-center relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
@@ -22,7 +22,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="relative z-10 max-w-lg mx-auto text-center">
           {/* Logo */}
           <Link href="/" className="inline-flex items-center gap-3 mb-12 group">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center shadow-lg shadow-red-600/25">
+            <div className="w-12 h-12 rounded-xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/25">
               <Code2 className="w-7 h-7 text-white" />
             </div>
             <span className="text-2xl font-bold text-white group-hover:text-red-400 transition-colors">
@@ -39,7 +39,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {/* Main Headline */}
           <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-6">
             Build Your First Project
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-600 mt-2">
+            <span className="block text-red-500 mt-2">
               Completely Free
             </span>
           </h1>
@@ -101,12 +101,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       {/* Right Panel - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-gradient-to-br from-neutral-950 via-neutral-900 to-black p-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center bg-neutral-900 p-8">
         <div className="w-full max-w-md">
           {/* Mobile Logo & CTA */}
           <div className="lg:hidden mb-8 text-center">
             <Link href="/" className="inline-flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-red-600 flex items-center justify-center">
                 <Code2 className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold text-white">

@@ -81,18 +81,18 @@
   --sidebar-border: #e2e8f0;
   --sidebar-ring: #3b82f6;
 
-  /* Section backgrounds - Light Mode */
-  --section-hero: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #dbeafe 100%);
-  --section-stats: #f1f5f9;
+  /* Section backgrounds - Light Mode (neutral grays only) */
+  --section-hero: #ffffff;
+  --section-stats: #f9fafb;
   --section-features: #ffffff;
-  --section-compare: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  --section-compare: #f9fafb;
   --section-examples: #ffffff;
-  --section-modules: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #c7d2fe 100%);
+  --section-modules: #f3f4f6;
   --section-coverage: #ffffff;
-  --section-pricing: linear-gradient(180deg, #f1f5f9 0%, #e0f2fe 100%);
+  --section-pricing: #f9fafb;
   --section-faq: #ffffff;
-  --section-cta: linear-gradient(135deg, #dbeafe 0%, #c7d2fe 50%, #e0e7ff 100%);
-  --section-footer: #f8fafc;
+  --section-cta: #111827;
+  --section-footer: #f9fafb;
 }
 
 .dark {
@@ -129,18 +129,18 @@
   --sidebar-border: rgba(148, 163, 184, 0.1);
   --sidebar-ring: #3b82f6;
 
-  /* Section backgrounds - Dark Mode */
-  --section-hero: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e1b4b 100%);
-  --section-stats: #0f172a;
-  --section-features: #020617;
-  --section-compare: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-  --section-examples: #020617;
-  --section-modules: linear-gradient(135deg, #0c1929 0%, #1e1b4b 50%, #172554 100%);
-  --section-coverage: #020617;
-  --section-pricing: linear-gradient(180deg, #0f172a 0%, #0c4a6e 30%, #0f172a 100%);
-  --section-faq: #020617;
-  --section-cta: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e3a8a 100%);
-  --section-footer: #020617;
+  /* Section backgrounds - Dark Mode (neutral blacks only) */
+  --section-hero: #000000;
+  --section-stats: #0a0a0a;
+  --section-features: #000000;
+  --section-compare: #0a0a0a;
+  --section-examples: #000000;
+  --section-modules: #111111;
+  --section-coverage: #000000;
+  --section-pricing: #0a0a0a;
+  --section-faq: #000000;
+  --section-cta: #171717;
+  --section-footer: #000000;
 }
 
 @layer base {

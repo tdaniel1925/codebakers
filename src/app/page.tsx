@@ -375,7 +375,7 @@ export default function HomePage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center">
               <span className="text-white font-bold text-sm">CB</span>
             </div>
             <span className="text-xl font-bold text-foreground">CodeBakers</span>
@@ -420,16 +420,20 @@ export default function HomePage() {
 
       {/* Hero Section - Bold & Impactful */}
       <section className="pt-28 pb-24 px-4 relative overflow-hidden" style={{ background: 'var(--section-hero)' }}>
-        {/* Decorative elements */}
+        {/* Grid Background Pattern */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/15 dark:bg-blue-500/25 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500/15 dark:bg-purple-500/25 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl" />
+          <div
+            className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+            style={{
+              backgroundImage: `linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)`,
+              backgroundSize: '80px 80px'
+            }}
+          />
         </div>
 
         <div className="container mx-auto text-center relative z-10">
           {/* Top badge - IDE focus */}
-          <div className="inline-flex items-center gap-3 mb-8 px-5 py-2.5 rounded-full bg-gradient-to-r from-red-500/10 to-red-900/10 dark:from-red-500/20 dark:to-red-900/20 border border-red-500/20 dark:border-red-500/30">
+          <div className="inline-flex items-center gap-3 mb-8 px-5 py-2.5 rounded-full bg-red-500/10 border border-red-500/20">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-sm font-medium text-foreground">Works with</span>
@@ -449,7 +453,7 @@ export default function HomePage() {
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-[0.95] tracking-tight">
             <span className="text-foreground">Production-Ready Code</span>
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-red-600 to-red-400 dark:from-red-400 dark:via-red-500 dark:to-red-300">
+            <span className="text-red-600 dark:text-red-500">
               On The First Prompt
             </span>
           </h1>
@@ -474,12 +478,12 @@ export default function HomePage() {
             </div>
             <div className="hidden sm:block w-px h-16 bg-border" />
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-500">90%</div>
+              <div className="text-4xl md:text-5xl font-black text-green-600 dark:text-green-500">90%</div>
               <div className="text-sm text-muted-foreground font-medium">Less Revision</div>
             </div>
             <div className="hidden sm:block w-px h-16 bg-border" />
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-600">1st</div>
+              <div className="text-4xl md:text-5xl font-black text-red-600 dark:text-red-500">1st</div>
               <div className="text-sm text-muted-foreground font-medium">Prompt Success</div>
             </div>
           </div>
@@ -602,7 +606,7 @@ export default function HomePage() {
             <div className="mt-8 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border">
               <div className="flex items-center justify-center gap-3">
                 <div className="flex -space-x-2">
-                  {['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-orange-500'].map((bg, i) => (
+                  {['bg-red-600', 'bg-neutral-700', 'bg-red-500', 'bg-neutral-600'].map((bg, i) => (
                     <div key={i} className={`w-8 h-8 rounded-full ${bg} border-2 border-background flex items-center justify-center text-white text-xs font-bold`}>
                       {['S', 'M', 'A', 'J'][i]}
                     </div>
@@ -865,7 +869,7 @@ export default function HomePage() {
                 </div>
                 <p className="text-foreground mb-4 italic">&quot;{testimonial.quote}&quot;</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                  <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-sm">
                     {testimonial.avatar}
                   </div>
                   <div>
@@ -878,7 +882,7 @@ export default function HomePage() {
           </div>
 
           {/* Mid-page CTA */}
-          <div className="mt-16 text-center p-8 rounded-2xl bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 border border-red-200 dark:border-red-800">
+          <div className="mt-16 text-center p-8 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
             <h3 className="text-2xl font-bold text-foreground mb-2">Ready to ship faster?</h3>
             <p className="text-muted-foreground mb-6">Join 1,200+ developers who&apos;ve upgraded their AI.</p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -949,7 +953,7 @@ export default function HomePage() {
       <section className="py-20 px-4" style={{ background: 'var(--section-coverage)' }}>
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800">vs Alternatives</Badge>
+            <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">vs Alternatives</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
               Why not free Cursor rules?
             </h2>
@@ -1009,11 +1013,6 @@ export default function HomePage() {
 
       {/* Modules Section */}
       <section id="modules" className="py-20 px-4 relative" style={{ background: 'var(--section-modules)' }}>
-        {/* Decorative gradient orbs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 right-20 w-64 h-64 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 left-20 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl" />
-        </div>
 
         <div className="container mx-auto relative z-10">
           <div className="text-center mb-16">
@@ -1122,7 +1121,7 @@ export default function HomePage() {
           </div>
 
           {/* Free Trial Banner */}
-          <div className="max-w-2xl mx-auto mb-12 p-4 rounded-xl bg-gradient-to-r from-red-500/10 to-red-600/10 dark:from-red-500/20 dark:to-red-600/20 border border-red-500/30 text-center">
+          <div className="max-w-2xl mx-auto mb-12 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-center">
             <Badge className="bg-red-600 text-white border-red-500 mb-2">Try Free</Badge>
             <p className="text-foreground font-medium">
               Start with 1 free project — no credit card required
@@ -1207,12 +1206,6 @@ export default function HomePage() {
 
       {/* Final CTA */}
       <section className="py-24 px-4 relative overflow-hidden" style={{ background: 'var(--section-cta)' }}>
-        {/* Decorative elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-20 -left-20 w-64 h-64 bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl" />
-        </div>
 
         <div className="container mx-auto text-center relative z-10">
           {/* Featured quote */}

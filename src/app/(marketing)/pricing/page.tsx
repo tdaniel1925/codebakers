@@ -69,7 +69,7 @@ export default async function PricingPage() {
         </div>
 
         {/* Free Project Banner */}
-        <div className="max-w-2xl mx-auto mb-12 p-4 rounded-lg bg-gradient-to-r from-red-600/20 to-red-900/20 border border-red-500/30 text-center">
+        <div className="max-w-2xl mx-auto mb-12 p-4 rounded-lg bg-red-600/10 border border-red-500/30 text-center">
           <Badge className="bg-red-600 mb-2">Try Free</Badge>
           <p className="text-white font-medium">
             Start with 1 free project - no credit card required

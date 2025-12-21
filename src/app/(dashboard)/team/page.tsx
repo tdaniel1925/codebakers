@@ -201,7 +201,7 @@ export default function TeamPage() {
       </Card>
 
       {/* Upgrade Prompt */}
-      <Card className="bg-gradient-to-r from-red-900/50 to-neutral-900/50 border-red-700">
+      <Card className="bg-red-900/30 border-red-700">
         <CardContent className="flex items-center justify-between py-6">
           <div>
             <h3 className="text-lg font-semibold text-white">

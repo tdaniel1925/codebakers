@@ -370,6 +370,16 @@ export default function HomePage() {
     <div className="overflow-hidden">
       {/* Hero Section */}
       <section className="relative pt-20 pb-24 px-4">
+        {/* Grid Background Pattern */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: `linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)`,
+              backgroundSize: '80px 80px'
+            }}
+          />
+        </div>
         <motion.div
           className="container mx-auto text-center relative z-10"
           initial="initial"

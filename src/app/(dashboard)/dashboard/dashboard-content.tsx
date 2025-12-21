@@ -94,7 +94,7 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
       </div>
 
       {/* Status Card */}
-      <Card className="bg-gradient-to-br from-neutral-900/80 to-neutral-900/40 border-neutral-800">
+      <Card className="bg-neutral-900/80 border-neutral-800">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
