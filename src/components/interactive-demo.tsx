@@ -16,16 +16,14 @@ import {
   SecurityCheckIcon,
   TestTube01Icon,
   CodeIcon,
-  Copy01Icon,
-  Tick01Icon,
 } from 'hugeicons-react';
 
 // Quick suggestion chips for common use cases
 const suggestions = [
   'login form',
+  'AI chatbot',
   'Stripe checkout',
   'REST API',
-  'file upload',
   'dashboard',
 ];
 
@@ -217,18 +215,296 @@ const featureMetrics: Record<string, FeatureMetrics> = {
       includes: [
         'Debounced input',
         'Loading indicator',
-        'Empty state UI',
+        'Keyboard navigation',
+        'Recent searches',
+        'ARIA accessible',
+      ],
+    },
+  },
+  ai: {
+    keywords: ['ai', 'chatbot', 'chat', 'gpt', 'llm', 'assistant', 'bot', 'openai', 'claude', 'gemini', 'conversation'],
+    featureName: 'AI Chatbot',
+    optimizedPrompt: 'Build an AI chatbot with streaming responses. Include: OpenAI/Anthropic SDK integration with streaming, message history stored in state, auto-scroll to latest message, typing indicator during generation, retry button on failed responses, token counting and cost estimation, rate limiting per user, markdown rendering for responses, code block syntax highlighting, copy button for code blocks. Handle API errors gracefully with user-friendly messages. Add loading states and Playwright tests.',
+    without: {
+      prompts: '10-15',
+      errors: '6-8',
+      time: '2-3 hours',
+      issues: [
+        'No streaming support',
+        'No error handling',
+        'Missing rate limits',
+        'No message history',
+        'Poor UX on errors',
+      ],
+    },
+    with: {
+      prompts: '1',
+      errors: '0',
+      time: '15 min',
+      includes: [
+        'Streaming responses',
+        'Token tracking',
+        'Rate limiting',
+        'Error recovery',
+        'Message persistence',
+      ],
+    },
+  },
+  notification: {
+    keywords: ['notification', 'notify', 'alert', 'toast', 'push', 'email', 'sms'],
+    featureName: 'Notifications',
+    optimizedPrompt: 'Build a notification system with multiple channels. Include: in-app toast notifications with auto-dismiss, email notifications via Resend with HTML templates, notification preferences per user stored in database, unread count badge, mark as read functionality, notification center dropdown with infinite scroll, real-time updates via WebSocket, quiet hours setting. Use React Query for fetching and optimistic updates. Add tests for all notification types.',
+    without: {
+      prompts: '8-12',
+      errors: '5-7',
+      time: '1-2 hours',
+      issues: [
+        'No user preferences',
+        'Missing email templates',
+        'No real-time updates',
+        'No read/unread tracking',
+        'Poor mobile UX',
+      ],
+    },
+    with: {
+      prompts: '1',
+      errors: '0',
+      time: '10 min',
+      includes: [
+        'Multi-channel support',
+        'User preferences',
+        'Real-time updates',
+        'Email templates',
+        'Quiet hours',
+      ],
+    },
+  },
+  table: {
+    keywords: ['table', 'data table', 'grid', 'list', 'datatable', 'tanstack'],
+    featureName: 'Data Table',
+    optimizedPrompt: 'Build a data table with sorting, filtering, and pagination. Include: TanStack Table with column sorting (multi-column support), global search filter, column-specific filters, pagination with page size selector, row selection with bulk actions, column visibility toggle, sticky header on scroll, loading skeleton during fetch, empty state with helpful message, responsive design that stacks on mobile. Use React Query for server-side pagination. Add Playwright tests.',
+    without: {
+      prompts: '10-15',
+      errors: '6-8',
+      time: '1-2 hours',
+      issues: [
+        'No server pagination',
+        'Missing sort/filter',
+        'No loading states',
+        'Poor mobile layout',
+        'No bulk actions',
+      ],
+    },
+    with: {
+      prompts: '1',
+      errors: '0',
+      time: '10 min',
+      includes: [
+        'Server pagination',
+        'Multi-column sort',
+        'Column filters',
+        'Bulk actions',
+        'Mobile responsive',
+      ],
+    },
+  },
+  modal: {
+    keywords: ['modal', 'dialog', 'popup', 'drawer', 'sheet', 'overlay'],
+    featureName: 'Modal Dialog',
+    optimizedPrompt: 'Build a modal dialog component. Include: Radix Dialog primitive for accessibility, focus trap within modal, close on escape key, close on backdrop click (configurable), smooth enter/exit animations, prevent body scroll when open, nested modal support, confirmation dialog variant with loading state on confirm, form modal variant with validation. Use Tailwind for styling with dark mode support. Add tests for keyboard navigation and focus management.',
+    without: {
+      prompts: '5-8',
+      errors: '3-5',
+      time: '30-45 min',
+      issues: [
+        'No focus trapping',
+        'Missing keyboard nav',
+        'Body scroll issues',
+        'No animations',
+        'Not accessible',
+      ],
+    },
+    with: {
+      prompts: '1',
+      errors: '0',
+      time: '5 min',
+      includes: [
+        'Focus trapping',
         'Keyboard navigation',
         'ARIA accessible',
+        'Smooth animations',
+        'Dark mode support',
+      ],
+    },
+  },
+  settings: {
+    keywords: ['settings', 'preferences', 'profile', 'account', 'config'],
+    featureName: 'Settings Page',
+    optimizedPrompt: 'Build a settings page with multiple sections. Include: tabbed navigation for sections (Profile, Security, Notifications, Billing), form validation with Zod, auto-save with debounce and success toast, avatar upload with preview, password change with current password verification, two-factor authentication toggle, notification preferences matrix, danger zone for account deletion with confirmation. Use React Hook Form for all forms. Add tests for form submission and validation.',
+    without: {
+      prompts: '12-18',
+      errors: '7-10',
+      time: '2-3 hours',
+      issues: [
+        'No auto-save',
+        'Missing validation',
+        'No confirmation flows',
+        'Poor organization',
+        'No loading states',
+      ],
+    },
+    with: {
+      prompts: '1',
+      errors: '0',
+      time: '15 min',
+      includes: [
+        'Auto-save',
+        'Full validation',
+        'Confirmation dialogs',
+        'Avatar upload',
+        '2FA support',
+      ],
+    },
+  },
+  comment: {
+    keywords: ['comment', 'comments', 'reply', 'thread', 'discussion', 'feedback'],
+    featureName: 'Comments System',
+    optimizedPrompt: 'Build a threaded comments system. Include: nested replies with configurable depth limit, rich text editor with markdown support, @mention autocomplete for users, edit and delete with soft delete, like/reaction buttons with optimistic updates, load more pagination for long threads, real-time updates for new comments, spam detection placeholder, report comment functionality. Use React Query for caching and optimistic updates. Add tests for CRUD operations.',
+    without: {
+      prompts: '10-15',
+      errors: '6-8',
+      time: '2-3 hours',
+      issues: [
+        'No threading',
+        'Missing edit/delete',
+        'No optimistic updates',
+        'No @mentions',
+        'No real-time',
+      ],
+    },
+    with: {
+      prompts: '1',
+      errors: '0',
+      time: '15 min',
+      includes: [
+        'Nested threading',
+        'Rich text editor',
+        '@mention support',
+        'Optimistic updates',
+        'Real-time sync',
+      ],
+    },
+  },
+  auth: {
+    keywords: ['auth', 'authentication', 'oauth', 'sso', 'magic link', 'passwordless'],
+    featureName: 'Authentication',
+    optimizedPrompt: 'Build a complete authentication system. Include: email/password login with bcrypt hashing, OAuth providers (Google, GitHub) via Supabase Auth, magic link passwordless option, session management with secure cookies, password reset flow with email, email verification for new accounts, rate limiting on auth endpoints, audit logging for security events, remember me functionality. Use Supabase Auth SDK. Add comprehensive tests for all auth flows.',
+    without: {
+      prompts: '15-25',
+      errors: '10-15',
+      time: '4-6 hours',
+      issues: [
+        'Security vulnerabilities',
+        'No rate limiting',
+        'Missing OAuth',
+        'No session management',
+        'Poor error handling',
+      ],
+    },
+    with: {
+      prompts: '1',
+      errors: '0',
+      time: '20 min',
+      includes: [
+        'OAuth providers',
+        'Magic links',
+        'Rate limiting',
+        'Audit logging',
+        'Secure sessions',
+      ],
+    },
+  },
+  crud: {
+    keywords: ['create', 'read', 'update', 'delete', 'resource', 'entity', 'record'],
+    featureName: 'CRUD Operations',
+    optimizedPrompt: 'Build complete CRUD operations for a resource. Include: create form with Zod validation, list view with pagination and sorting, detail view with edit capability, soft delete with restore option, bulk delete with confirmation, audit trail for all changes, optimistic updates for better UX, proper loading and error states, TypeScript types generated from schema. Use Drizzle ORM with transactions. Add integration tests for all operations.',
+    without: {
+      prompts: '8-12',
+      errors: '5-7',
+      time: '1-2 hours',
+      issues: [
+        'No soft delete',
+        'Missing audit trail',
+        'No optimistic updates',
+        'Poor error handling',
+        'No bulk operations',
+      ],
+    },
+    with: {
+      prompts: '1',
+      errors: '0',
+      time: '10 min',
+      includes: [
+        'Soft delete',
+        'Audit logging',
+        'Optimistic updates',
+        'Bulk operations',
+        'Full type safety',
+      ],
+    },
+  },
+  landing: {
+    keywords: ['landing', 'homepage', 'hero', 'marketing', 'page', 'website'],
+    featureName: 'Landing Page',
+    optimizedPrompt: 'Build a marketing landing page. Include: hero section with CTA buttons, feature grid with icons, testimonials carousel, pricing table with toggle (monthly/yearly), FAQ accordion, newsletter signup with email validation, social proof logos, mobile-responsive design, smooth scroll navigation, SEO meta tags and Open Graph. Use Framer Motion for scroll animations. Optimize images with next/image. Add visual regression tests.',
+    without: {
+      prompts: '8-12',
+      errors: '4-6',
+      time: '2-3 hours',
+      issues: [
+        'No animations',
+        'Missing SEO tags',
+        'Not mobile optimized',
+        'Poor performance',
+        'No social proof',
+      ],
+    },
+    with: {
+      prompts: '1',
+      errors: '0',
+      time: '20 min',
+      includes: [
+        'Scroll animations',
+        'SEO optimized',
+        'Mobile responsive',
+        'Image optimization',
+        'Newsletter signup',
       ],
     },
   },
 };
 
+// Keep track of all feature types for better matching
+const allFeatures = Object.values(featureMetrics);
+
+function detectFeatureFromInput(input: string): FeatureMetrics {
+  const lowerInput = input.toLowerCase();
+
+  for (const feature of allFeatures) {
+    for (const keyword of feature.keywords) {
+      if (lowerInput.includes(keyword)) {
+        return feature;
+      }
+    }
+  }
+
+  return defaultMetrics;
+}
+
 // Default metrics for unrecognized features
 const defaultMetrics: FeatureMetrics = {
   keywords: [],
-  featureName: 'Feature',
+  featureName: 'Custom Feature',
   optimizedPrompt: 'Build this feature with production-ready patterns. Include: comprehensive error handling with user-friendly messages, loading and skeleton states, Zod validation for all inputs, TypeScript types throughout, proper authentication checks, audit logging for important actions, responsive design, accessibility (ARIA labels, keyboard navigation), and Playwright tests for critical paths. Follow the established codebase conventions and use existing UI components.',
   without: {
     prompts: '8-15',
@@ -238,33 +514,23 @@ const defaultMetrics: FeatureMetrics = {
       'Missing error handling',
       'No loading states',
       'No validation',
-      'Poor UX patterns',
-      'Security gaps',
+      'Not accessible',
+      'No tests',
     ],
   },
   with: {
     prompts: '1',
     errors: '0',
-    time: '5-10 min',
+    time: '10 min',
     includes: [
-      'Full error handling',
+      'Error handling',
       'Loading states',
-      'Type safety',
-      'Production patterns',
-      'Security built-in',
+      'Zod validation',
+      'Accessibility',
+      'Playwright tests',
     ],
   },
 };
-
-function findMetrics(input: string): FeatureMetrics {
-  const lowerInput = input.toLowerCase();
-  for (const [, metrics] of Object.entries(featureMetrics)) {
-    if (metrics.keywords.some(keyword => lowerInput.includes(keyword))) {
-      return metrics;
-    }
-  }
-  return defaultMetrics;
-}
 
 export function InteractiveDemo() {
   const [userInput, setUserInput] = useState('');
@@ -272,15 +538,6 @@ export function InteractiveDemo() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [currentMetrics, setCurrentMetrics] = useState<FeatureMetrics | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyPrompt = async () => {
-    if (currentMetrics) {
-      await navigator.clipboard.writeText(currentMetrics.optimizedPrompt);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
 
   const handleGenerate = async () => {
     if (!userInput.trim()) return;
@@ -291,7 +548,7 @@ export function InteractiveDemo() {
     // Simulate AI "thinking" time
     await new Promise(resolve => setTimeout(resolve, 800));
 
-    const metrics = findMetrics(userInput);
+    const metrics = detectFeatureFromInput(userInput);
     setCurrentMetrics(metrics);
     setDisplayedInput(userInput);
     setIsGenerating(false);
@@ -305,7 +562,7 @@ export function InteractiveDemo() {
       setIsGenerating(true);
       setShowResult(false);
       setTimeout(() => {
-        const metrics = findMetrics(suggestion);
+        const metrics = detectFeatureFromInput(suggestion);
         setCurrentMetrics(metrics);
         setDisplayedInput(suggestion);
         setIsGenerating(false);
@@ -429,35 +686,14 @@ export function InteractiveDemo() {
                 {/* After */}
                 <div>
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Optimized prompt:</div>
-                  <div className="px-4 py-3 rounded-lg bg-white border-2 border-green-200 text-gray-800 text-sm leading-relaxed">
+                  <div className="px-4 py-3 rounded-lg bg-white border-2 border-green-200 text-gray-800 text-sm leading-relaxed select-none">
                     {currentMetrics.optimizedPrompt}
                   </div>
                 </div>
 
-                {/* Copy button */}
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="text-xs text-amber-700">
-                    This prompt triggers all relevant patterns for maximum output quality.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyPrompt}
-                    className="border-amber-300 text-amber-700 hover:bg-amber-100"
-                  >
-                    {copied ? (
-                      <>
-                        <Tick01Icon className="h-4 w-4 mr-1" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy01Icon className="h-4 w-4 mr-1" />
-                        Copy Prompt
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <p className="mt-4 text-xs text-amber-700 text-center">
+                  This prompt triggers all relevant patterns for maximum output quality.
+                </p>
               </div>
             </div>
           </div>
