@@ -48,7 +48,7 @@ export function DashboardNav({ user }: { user: User }) {
   const initials = user.email?.slice(0, 2).toUpperCase() || 'CB';
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/80 backdrop-blur-sm">
+    <nav className="sticky top-0 z-50 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-sm">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -67,8 +67,8 @@ export function DashboardNav({ user }: { user: User }) {
                   href={item.href}
                   className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-slate-800 text-white'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                      ? 'bg-neutral-800 text-white'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
                   }`}
                 >
                   <Icon className="h-4 w-4 mr-2" />
@@ -84,10 +84,10 @@ export function DashboardNav({ user }: { user: User }) {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="flex items-center space-x-2 text-slate-300 hover:text-white"
+                  className="flex items-center space-x-2 text-neutral-300 hover:text-white"
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-blue-600 text-white text-xs">
+                    <AvatarFallback className="bg-red-600 text-white text-xs">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
@@ -96,18 +96,18 @@ export function DashboardNav({ user }: { user: User }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-56 bg-slate-800 border-slate-700"
+                className="w-56 bg-neutral-800 border-neutral-700"
               >
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-medium text-white">
                     {user.user_metadata?.full_name || 'User'}
                   </p>
-                  <p className="text-xs text-slate-400">{user.email}</p>
+                  <p className="text-xs text-neutral-400">{user.email}</p>
                 </div>
-                <DropdownMenuSeparator className="bg-slate-700" />
+                <DropdownMenuSeparator className="bg-neutral-700" />
                 <DropdownMenuItem
                   onClick={handleSignOut}
-                  className="text-red-400 focus:text-red-400 focus:bg-slate-700 cursor-pointer"
+                  className="text-red-400 focus:text-red-400 focus:bg-neutral-700 cursor-pointer"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign out
@@ -118,13 +118,13 @@ export function DashboardNav({ user }: { user: User }) {
             {/* Mobile Menu */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon" className="text-slate-300">
+                <Button variant="ghost" size="icon" className="text-neutral-300">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
               <SheetContent
                 side="right"
-                className="w-64 bg-slate-900 border-slate-800"
+                className="w-64 bg-neutral-900 border-neutral-800"
               >
                 <div className="flex flex-col space-y-4 mt-8">
                   {navItems.map((item) => {
@@ -137,8 +137,8 @@ export function DashboardNav({ user }: { user: User }) {
                         onClick={() => setMobileOpen(false)}
                         className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
                           isActive
-                            ? 'bg-slate-800 text-white'
-                            : 'text-slate-400 hover:text-white'
+                            ? 'bg-neutral-800 text-white'
+                            : 'text-neutral-400 hover:text-white'
                         }`}
                       >
                         <Icon className="h-4 w-4 mr-2" />

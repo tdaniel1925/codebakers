@@ -72,10 +72,10 @@ export default function SignupPage() {
   };
 
   return (
-    <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
+    <Card className="border-neutral-800 bg-neutral-900/80 backdrop-blur">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl text-white">Create your account</CardTitle>
-        <CardDescription>Start building production-ready apps faster</CardDescription>
+        <CardDescription className="text-neutral-400">Start building production-ready apps faster</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -85,11 +85,11 @@ export default function SignupPage() {
               name="fullName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-200">Full Name</FormLabel>
+                  <FormLabel className="text-neutral-200">Full Name</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="John Doe"
-                      className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
+                      className="bg-neutral-800/50 border-neutral-700 text-white placeholder:text-neutral-500 focus:border-red-500 focus:ring-red-500/20"
                       {...field}
                     />
                   </FormControl>
@@ -103,12 +103,12 @@ export default function SignupPage() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-200">Email</FormLabel>
+                  <FormLabel className="text-neutral-200">Email</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
                       placeholder="you@example.com"
-                      className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
+                      className="bg-neutral-800/50 border-neutral-700 text-white placeholder:text-neutral-500 focus:border-red-500 focus:ring-red-500/20"
                       {...field}
                     />
                   </FormControl>
@@ -122,12 +122,12 @@ export default function SignupPage() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-200">Password</FormLabel>
+                  <FormLabel className="text-neutral-200">Password</FormLabel>
                   <FormControl>
                     <Input
                       type="password"
                       placeholder="Min 8 characters"
-                      className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
+                      className="bg-neutral-800/50 border-neutral-700 text-white placeholder:text-neutral-500 focus:border-red-500 focus:ring-red-500/20"
                       {...field}
                     />
                   </FormControl>
@@ -139,7 +139,7 @@ export default function SignupPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
             >
               {isLoading ? (
                 <>
@@ -153,9 +153,9 @@ export default function SignupPage() {
           </form>
         </Form>
 
-        <div className="mt-6 text-center text-sm text-slate-400">
+        <div className="mt-6 text-center text-sm text-neutral-400">
           Already have an account?{' '}
-          <Link href="/login" className="text-blue-400 hover:text-blue-300">
+          <Link href="/login" className="text-red-400 hover:text-red-300">
             Sign in
           </Link>
         </div>

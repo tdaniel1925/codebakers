@@ -108,17 +108,17 @@ export default function SetupPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-white">Setup</h1>
-        <p className="text-slate-400 mt-1">
+        <p className="text-neutral-400 mt-1">
           Configure the CLI and manage your API keys
         </p>
       </div>
 
       {/* Installation Steps */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-neutral-800/50 border-neutral-700">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Terminal className="h-5 w-5 text-blue-400" />
+              <Terminal className="h-5 w-5 text-red-400" />
               <CardTitle className="text-white">Install CLI</CardTitle>
             </div>
             <CardDescription>
@@ -126,16 +126,16 @@ export default function SetupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <code className="block rounded bg-slate-900 px-4 py-3 font-mono text-sm text-green-400">
+            <code className="block rounded bg-neutral-900 px-4 py-3 font-mono text-sm text-red-400">
               npm install -g @codebakers/cli
             </code>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-neutral-800/50 border-neutral-700">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Key className="h-5 w-5 text-yellow-400" />
+              <Key className="h-5 w-5 text-red-400" />
               <CardTitle className="text-white">Login</CardTitle>
             </div>
             <CardDescription>
@@ -143,19 +143,19 @@ export default function SetupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <code className="block rounded bg-slate-900 px-4 py-3 font-mono text-sm text-green-400">
+            <code className="block rounded bg-neutral-900 px-4 py-3 font-mono text-sm text-red-400">
               codebakers login
             </code>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-neutral-400">
               You'll be prompted to enter your API key
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-neutral-800/50 border-neutral-700">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Terminal className="h-5 w-5 text-purple-400" />
+              <Terminal className="h-5 w-5 text-red-400" />
               <CardTitle className="text-white">Install Patterns</CardTitle>
             </div>
             <CardDescription>
@@ -163,19 +163,19 @@ export default function SetupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <code className="block rounded bg-slate-900 px-4 py-3 font-mono text-sm text-green-400">
+            <code className="block rounded bg-neutral-900 px-4 py-3 font-mono text-sm text-red-400">
               codebakers install
             </code>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-neutral-400">
               Run this in your project root directory
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-neutral-800/50 border-neutral-700">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <TestTube2 className="h-5 w-5 text-green-400" />
+              <TestTube2 className="h-5 w-5 text-red-400" />
               <CardTitle className="text-white">Setup Testing</CardTitle>
             </div>
             <CardDescription>
@@ -183,7 +183,7 @@ export default function SetupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <code className="block rounded bg-slate-900 px-4 py-3 font-mono text-sm text-green-400">
+            <code className="block rounded bg-neutral-900 px-4 py-3 font-mono text-sm text-red-400">
               npm install -D @playwright/test && npx playwright install
             </code>
           </CardContent>
@@ -191,7 +191,7 @@ export default function SetupPage() {
       </div>
 
       {/* API Keys Management */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-neutral-800/50 border-neutral-700">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-white">API Keys</CardTitle>
@@ -201,12 +201,12 @@ export default function SetupPage() {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-red-600 hover:bg-red-700">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Key
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogContent className="bg-neutral-800 border-neutral-700">
               <DialogHeader>
                 <DialogTitle className="text-white">Create API Key</DialogTitle>
                 <DialogDescription>
@@ -221,14 +221,14 @@ export default function SetupPage() {
                         Save this key! It won't be shown again.
                       </p>
                       <div className="flex items-center gap-2">
-                        <code className="flex-1 rounded bg-slate-900 px-3 py-2 font-mono text-sm text-slate-300 break-all">
+                        <code className="flex-1 rounded bg-neutral-900 px-3 py-2 font-mono text-sm text-neutral-300 break-all">
                           {newKey}
                         </code>
                         <Button
                           variant="outline"
                           size="icon"
                           onClick={() => copyKey(newKey)}
-                          className="border-slate-600 flex-shrink-0"
+                          className="border-neutral-600 flex-shrink-0"
                         >
                           {copied ? (
                             <Check className="h-4 w-4 text-green-500" />
@@ -254,12 +254,12 @@ export default function SetupPage() {
                       placeholder="Key name (optional)"
                       value={newKeyName}
                       onChange={(e) => setNewKeyName(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-neutral-700 border-neutral-600 text-white"
                     />
                     <Button
                       onClick={createApiKey}
                       disabled={isCreating}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      className="w-full bg-red-600 hover:bg-red-700"
                     >
                       {isCreating ? (
                         <>
@@ -279,50 +279,50 @@ export default function SetupPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+              <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
             </div>
           ) : apiKeys.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
+            <div className="text-center py-8 text-neutral-400">
               No API keys yet. Create one to get started.
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700">
-                  <TableHead className="text-slate-300">Name</TableHead>
-                  <TableHead className="text-slate-300">Key Prefix</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
-                  <TableHead className="text-slate-300">Last Used</TableHead>
-                  <TableHead className="text-slate-300">Created</TableHead>
-                  <TableHead className="text-slate-300 text-right">
+                <TableRow className="border-neutral-700">
+                  <TableHead className="text-neutral-300">Name</TableHead>
+                  <TableHead className="text-neutral-300">Key Prefix</TableHead>
+                  <TableHead className="text-neutral-300">Status</TableHead>
+                  <TableHead className="text-neutral-300">Last Used</TableHead>
+                  <TableHead className="text-neutral-300">Created</TableHead>
+                  <TableHead className="text-neutral-300 text-right">
                     Actions
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {apiKeys.map((key) => (
-                  <TableRow key={key.id} className="border-slate-700">
+                  <TableRow key={key.id} className="border-neutral-700">
                     <TableCell className="text-white font-medium">
                       {key.name}
                     </TableCell>
-                    <TableCell className="font-mono text-slate-400">
+                    <TableCell className="font-mono text-neutral-400">
                       {key.keyPrefix}...
                     </TableCell>
                     <TableCell>
                       {key.isActive ? (
                         <Badge className="bg-green-600">Active</Badge>
                       ) : (
-                        <Badge variant="outline" className="border-slate-600">
+                        <Badge variant="outline" className="border-neutral-600">
                           Revoked
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-slate-400">
+                    <TableCell className="text-neutral-400">
                       {key.lastUsedAt
                         ? new Date(key.lastUsedAt).toLocaleDateString()
                         : 'Never'}
                     </TableCell>
-                    <TableCell className="text-slate-400">
+                    <TableCell className="text-neutral-400">
                       {new Date(key.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">

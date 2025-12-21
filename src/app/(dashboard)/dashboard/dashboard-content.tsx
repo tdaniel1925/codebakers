@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Copy, Check, Key, Clock, CreditCard, Zap } from 'lucide-react';
+import { Copy, Check, Terminal, Download, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 interface DashboardContentProps {
   stats: {
@@ -21,189 +22,266 @@ interface DashboardContentProps {
     apiKeyCount: number;
     lastApiCall: Date | null;
     seatLimit?: number | null;
+    downloadsUsed?: number;
+    downloadsLimit?: number;
   };
   apiKey: {
     keyPrefix: string;
     name: string | null;
+    fullKey?: string;
   } | null;
 }
 
 export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
   const [copied, setCopied] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+
+  const hasActiveSubscription =
+    stats.subscription?.status === 'active' || stats.subscription?.isBeta;
+
+  const isFreeUser = !hasActiveSubscription;
+  const downloadsUsed = stats.downloadsUsed || 0;
+  const downloadsLimit = stats.downloadsLimit || 3;
+  const downloadsRemaining = Math.max(0, downloadsLimit - downloadsUsed);
+  const downloadProgress = (downloadsUsed / downloadsLimit) * 100;
 
   const copyApiKey = async () => {
-    if (apiKey) {
-      await navigator.clipboard.writeText(apiKey.keyPrefix + '_••••••••');
+    if (apiKey?.fullKey) {
+      await navigator.clipboard.writeText(apiKey.fullKey);
+      setCopied(true);
+      toast.success('API key copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
+    } else if (apiKey) {
+      await navigator.clipboard.writeText(apiKey.keyPrefix);
       setCopied(true);
       toast.success('API key prefix copied');
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const hasActiveSubscription =
-    stats.subscription?.status === 'active' || stats.subscription?.isBeta;
+  // Steps for getting started
+  const steps = [
+    {
+      id: 1,
+      title: 'Install CLI',
+      command: 'npm install -g @codebakers/cli',
+      completed: false,
+    },
+    {
+      id: 2,
+      title: 'Login with your key',
+      command: 'codebakers login',
+      completed: false,
+    },
+    {
+      id: 3,
+      title: 'Add to your project',
+      command: 'codebakers install',
+      completed: !!stats.lastApiCall,
+    },
+  ];
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-        <p className="text-slate-400 mt-1">
-          Welcome to CodeBakers. Get started with production-ready patterns.
+    <div className="max-w-4xl mx-auto space-y-8">
+      {/* Welcome Section */}
+      <div className="text-center py-8">
+        <h1 className="text-3xl font-bold text-white mb-2">
+          Welcome to CodeBakers
+        </h1>
+        <p className="text-neutral-400">
+          Production-ready patterns for AI-assisted development
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-300">
-              Subscription
-            </CardTitle>
-            <CreditCard className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              {hasActiveSubscription ? (
-                <>
-                  <Badge className="bg-green-600">
-                    {stats.subscription?.plan?.toUpperCase() || 'ACTIVE'}
-                  </Badge>
+      {/* Status Card */}
+      <Card className="bg-gradient-to-br from-neutral-900/80 to-neutral-900/40 border-neutral-800">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${hasActiveSubscription ? 'bg-red-600/20' : 'bg-red-500/10'}`}>
+                <Sparkles className={`w-6 h-6 ${hasActiveSubscription ? 'text-red-400' : 'text-red-500'}`} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-semibold text-lg">
+                    {hasActiveSubscription
+                      ? `${stats.subscription?.plan?.charAt(0).toUpperCase()}${stats.subscription?.plan?.slice(1)} Plan`
+                      : 'Free Plan'}
+                  </span>
                   {stats.subscription?.isBeta && (
-                    <Badge variant="outline" className="border-blue-500 text-blue-400">
-                      Beta
-                    </Badge>
+                    <Badge className="bg-red-600">Beta</Badge>
                   )}
-                </>
-              ) : (
-                <Badge variant="outline" className="border-slate-600 text-slate-400">
-                  Inactive
-                </Badge>
-              )}
+                </div>
+                <p className="text-neutral-400 text-sm">
+                  {hasActiveSubscription
+                    ? 'Unlimited downloads'
+                    : `${downloadsRemaining} of ${downloadsLimit} free downloads remaining`}
+                </p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-300">
-              API Keys
-            </CardTitle>
-            <Key className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{stats.apiKeyCount}</div>
-          </CardContent>
-        </Card>
+            {isFreeUser && (
+              <Link href="/billing">
+                <Button className="bg-red-600 hover:bg-red-700 gap-2">
+                  Upgrade Now
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            )}
+          </div>
 
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-300">
-              Last API Call
-            </CardTitle>
-            <Clock className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-white">
-              {stats.lastApiCall
-                ? new Date(stats.lastApiCall).toLocaleDateString()
-                : 'Never'}
+          {/* Progress bar for free users */}
+          {isFreeUser && (
+            <div className="mt-6">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-neutral-400">Downloads used</span>
+                <span className="text-white">{downloadsUsed} / {downloadsLimit}</span>
+              </div>
+              <Progress value={downloadProgress} className="h-2 bg-neutral-800" />
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </CardContent>
+      </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-300">
-              Patterns
-            </CardTitle>
-            <Zap className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">114</div>
-            <p className="text-xs text-slate-400">Production patterns</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* API Key Display */}
+      {/* API Key Card */}
       {apiKey && (
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white">Your API Key</CardTitle>
-            <CardDescription>
-              Use this key to authenticate CLI requests
+        <Card className="bg-neutral-900/80 border-neutral-800">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-white flex items-center gap-2">
+              <Terminal className="w-5 h-5 text-red-400" />
+              Your API Key
+            </CardTitle>
+            <CardDescription className="text-neutral-400">
+              Use this key to authenticate with the CLI
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4">
-              <code className="flex-1 rounded bg-slate-900 px-4 py-2 font-mono text-sm text-slate-300">
-                {apiKey.keyPrefix}_••••••••••••••••
-              </code>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 relative">
+                <code className="block w-full rounded-lg bg-black px-4 py-3 font-mono text-sm text-neutral-300 border border-neutral-800">
+                  {showKey && apiKey.fullKey
+                    ? apiKey.fullKey
+                    : `${apiKey.keyPrefix}_${'•'.repeat(24)}`}
+                </code>
+              </div>
               <Button
                 variant="outline"
-                size="icon"
+                onClick={() => setShowKey(!showKey)}
+                className="border-neutral-700 text-neutral-300 hover:bg-neutral-800"
+              >
+                {showKey ? 'Hide' : 'Show'}
+              </Button>
+              <Button
                 onClick={copyApiKey}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="bg-red-600 hover:bg-red-700 gap-2"
               >
                 {copied ? (
-                  <Check className="h-4 w-4 text-green-500" />
+                  <>
+                    <Check className="h-4 w-4" />
+                    Copied
+                  </>
                 ) : (
-                  <Copy className="h-4 w-4" />
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Copy
+                  </>
                 )}
               </Button>
             </div>
-            <p className="mt-2 text-sm text-slate-400">
-              Need a new key? Go to{' '}
-              <Link href="/setup" className="text-blue-400 hover:underline">
-                Setup
-              </Link>{' '}
-              to manage your API keys.
-            </p>
           </CardContent>
         </Card>
       )}
 
-      {/* Quick Start */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      {/* Getting Started Steps */}
+      <Card className="bg-neutral-900/80 border-neutral-800">
         <CardHeader>
-          <CardTitle className="text-white">Quick Start</CardTitle>
-          <CardDescription>Get up and running in minutes</CardDescription>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Download className="w-5 h-5 text-red-400" />
+            Get Started in 3 Steps
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-300">
-              1. Install the CLI
-            </p>
-            <code className="block rounded bg-slate-900 px-4 py-2 font-mono text-sm text-slate-300">
-              npm install -g @codebakers/cli
-            </code>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-300">2. Login</p>
-            <code className="block rounded bg-slate-900 px-4 py-2 font-mono text-sm text-slate-300">
-              codebakers login
-            </code>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-300">
-              3. Install patterns in your project
-            </p>
-            <code className="block rounded bg-slate-900 px-4 py-2 font-mono text-sm text-slate-300">
-              codebakers install
-            </code>
-          </div>
-
-          <div className="pt-4">
-            <Link href="/setup">
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                View Full Setup Guide
-              </Button>
-            </Link>
-          </div>
+          {steps.map((step) => (
+            <div
+              key={step.id}
+              className={`flex items-start gap-4 p-4 rounded-lg transition-colors ${
+                step.completed
+                  ? 'bg-red-600/10 border border-red-500/20'
+                  : 'bg-black/50 border border-neutral-800'
+              }`}
+            >
+              <div className="flex-shrink-0 mt-0.5">
+                {step.completed ? (
+                  <CheckCircle2 className="w-6 h-6 text-red-500" />
+                ) : (
+                  <div className="w-6 h-6 rounded-full border-2 border-neutral-700 flex items-center justify-center">
+                    <span className="text-xs text-neutral-400">{step.id}</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`font-medium ${step.completed ? 'text-red-400' : 'text-white'}`}>
+                  {step.title}
+                </p>
+                <code className="block mt-2 rounded bg-black px-3 py-2 font-mono text-sm text-neutral-300 overflow-x-auto border border-neutral-800">
+                  {step.command}
+                </code>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
+
+      {/* Quick Links */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link href="/setup" className="group">
+          <Card className="bg-neutral-900/80 border-neutral-800 hover:border-red-500/50 transition-colors h-full">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center">
+                <Terminal className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <p className="font-medium text-white group-hover:text-red-400 transition-colors">
+                  Full Setup Guide
+                </p>
+                <p className="text-sm text-neutral-400">Detailed instructions</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/team" className="group">
+          <Card className="bg-neutral-900/80 border-neutral-800 hover:border-red-500/50 transition-colors h-full">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <p className="font-medium text-white group-hover:text-red-400 transition-colors">
+                  Team Settings
+                </p>
+                <p className="text-sm text-neutral-400">Manage your team</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/billing" className="group">
+          <Card className="bg-neutral-900/80 border-neutral-800 hover:border-red-500/50 transition-colors h-full">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center">
+                <Download className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <p className="font-medium text-white group-hover:text-red-400 transition-colors">
+                  Billing & Plans
+                </p>
+                <p className="text-sm text-neutral-400">Manage subscription</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
     </div>
   );
 }

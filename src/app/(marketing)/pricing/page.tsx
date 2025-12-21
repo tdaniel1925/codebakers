@@ -55,26 +55,26 @@ export default async function PricingPage() {
   const isLoggedIn = !!session;
 
   return (
-    <div className="py-20 px-4">
+    <div className="py-20 px-4 bg-black min-h-screen">
       <div className="container mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             Simple, transparent pricing
           </h1>
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+          <p className="text-xl text-neutral-400 max-w-2xl mx-auto">
             One subscription, 34 modules. No hidden fees, no per-project
             charges.
           </p>
         </div>
 
         {/* Free Project Banner */}
-        <div className="max-w-2xl mx-auto mb-12 p-4 rounded-lg bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 text-center">
-          <Badge className="bg-green-600 mb-2">Try Free</Badge>
+        <div className="max-w-2xl mx-auto mb-12 p-4 rounded-lg bg-gradient-to-r from-red-600/20 to-red-900/20 border border-red-500/30 text-center">
+          <Badge className="bg-red-600 mb-2">Try Free</Badge>
           <p className="text-white font-medium">
             Start with 1 free project - no credit card required
           </p>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-neutral-400 text-sm mt-1">
             Upgrade anytime to unlock unlimited projects
           </p>
         </div>
@@ -97,7 +97,7 @@ export default async function PricingPage() {
 
         {/* Payment Methods */}
         <div className="text-center mt-8">
-          <p className="text-slate-400 text-sm">
+          <p className="text-neutral-500 text-sm">
             Secure payments powered by PayPal. Pay with credit card, debit card, or PayPal balance.
           </p>
         </div>
@@ -108,49 +108,49 @@ export default async function PricingPage() {
             Frequently Asked Questions
           </h2>
           <div className="space-y-6">
-            <div className="p-6 rounded-lg bg-slate-800/50 border border-slate-700">
+            <div className="p-6 rounded-lg bg-neutral-900/80 border border-neutral-800">
               <h3 className="font-semibold text-white mb-2">
                 Which AI tools does this work with?
               </h3>
-              <p className="text-slate-400">
+              <p className="text-neutral-400">
                 CodeBakers works with Cursor IDE, Claude Code CLI, Aider, and
                 any AI tool that reads context files. The patterns are delivered
                 as standard markdown files.
               </p>
             </div>
-            <div className="p-6 rounded-lg bg-slate-800/50 border border-slate-700">
+            <div className="p-6 rounded-lg bg-neutral-900/80 border border-neutral-800">
               <h3 className="font-semibold text-white mb-2">
                 Can I pay without a PayPal account?
               </h3>
-              <p className="text-slate-400">
+              <p className="text-neutral-400">
                 Yes! PayPal supports guest checkout with credit or debit cards.
-                You don't need to create a PayPal account to subscribe.
+                You don&apos;t need to create a PayPal account to subscribe.
               </p>
             </div>
-            <div className="p-6 rounded-lg bg-slate-800/50 border border-slate-700">
+            <div className="p-6 rounded-lg bg-neutral-900/80 border border-neutral-800">
               <h3 className="font-semibold text-white mb-2">
                 Can I cancel anytime?
               </h3>
-              <p className="text-slate-400">
-                Yes, you can cancel your subscription at any time. You'll retain
+              <p className="text-neutral-400">
+                Yes, you can cancel your subscription at any time. You&apos;ll retain
                 access until the end of your billing period. No questions asked.
               </p>
             </div>
-            <div className="p-6 rounded-lg bg-slate-800/50 border border-slate-700">
+            <div className="p-6 rounded-lg bg-neutral-900/80 border border-neutral-800">
               <h3 className="font-semibold text-white mb-2">
                 What tech stack do the patterns cover?
               </h3>
-              <p className="text-slate-400">
+              <p className="text-neutral-400">
                 Next.js 14+, React, TypeScript, Supabase, Drizzle ORM, Stripe,
                 shadcn/ui, Tailwind CSS, Zod, React Hook Form, Playwright, and
                 many integrations like Resend, VAPI, Inngest, and more.
               </p>
             </div>
-            <div className="p-6 rounded-lg bg-slate-800/50 border border-slate-700">
+            <div className="p-6 rounded-lg bg-neutral-900/80 border border-neutral-800">
               <h3 className="font-semibold text-white mb-2">
                 How are patterns delivered?
               </h3>
-              <p className="text-slate-400">
+              <p className="text-neutral-400">
                 Install our CLI, login with your API key, and run `codebakers
                 install` in your project. Patterns are downloaded and configured
                 automatically.

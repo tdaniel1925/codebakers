@@ -395,8 +395,8 @@ export default function HomePage() {
       <section className="relative pt-20 pb-32 px-4">
         {/* Animated gradient background */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute top-60 -left-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-500/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute top-60 -left-40 w-80 h-80 bg-red-800/20 rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
 
         <motion.div
@@ -406,7 +406,7 @@ export default function HomePage() {
           variants={staggerContainer}
         >
           <motion.div variants={fadeInUp}>
-            <Badge className="mb-6 bg-blue-900/50 text-blue-300 border-blue-700">
+            <Badge className="mb-6 bg-red-900/50 text-red-300 border-red-700">
               <Sparkles className="h-3 w-3 mr-1" />
               34 Modules • {totalLines.toLocaleString()}+ Lines of Production Code
             </Badge>
@@ -418,7 +418,7 @@ export default function HomePage() {
           >
             Stop fighting
             <br />
-            <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent">
               AI revision loops
             </span>
           </motion.h1>
@@ -433,7 +433,7 @@ export default function HomePage() {
 
           <motion.div className="flex justify-center gap-4 mb-12" variants={fadeInUp}>
             <Link href="/signup">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 h-12 px-8">
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 h-12 px-8">
                 Start Free Trial
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -442,7 +442,7 @@ export default function HomePage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-slate-700 text-slate-300 hover:bg-slate-800 h-12 px-8"
+                className="border-neutral-700 text-neutral-300 hover:bg-neutral-800 h-12 px-8"
               >
                 See Demo
               </Button>
@@ -475,7 +475,7 @@ export default function HomePage() {
       </section>
 
       {/* Problem Section */}
-      <section className="py-20 px-4 bg-slate-900/50">
+      <section className="py-20 px-4 bg-neutral-900/50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -582,7 +582,7 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Badge className="mb-4 bg-blue-900/50 text-blue-300 border-blue-700">
+            <Badge className="mb-4 bg-red-900/50 text-red-300 border-red-700">
               Live Demo
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -602,8 +602,8 @@ export default function HomePage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                     activeTab === tab.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      ? 'bg-red-600 text-white'
+                      : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
                   }`}
                 >
                   <tab.icon className="h-4 w-4" />
@@ -662,7 +662,7 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.15 }}
               >
-                <div className="w-12 h-12 rounded-full bg-blue-600 text-white text-xl font-bold flex items-center justify-center mx-auto mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-600 text-white text-xl font-bold flex items-center justify-center mx-auto mb-4">
                   {step.step}
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">{step.title}</h3>
@@ -677,7 +677,7 @@ export default function HomePage() {
       </section>
 
       {/* Module Showcase */}
-      <section className="py-20 px-4 bg-slate-900/50">
+      <section className="py-20 px-4 bg-neutral-900/50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -755,7 +755,7 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
               >
-                <ai.icon className="h-6 w-6 text-blue-400" />
+                <ai.icon className="h-6 w-6 text-red-400" />
                 <span className="text-white font-medium">{ai.name}</span>
                 <Check className="h-4 w-4 text-green-400" />
               </motion.div>
@@ -765,7 +765,7 @@ export default function HomePage() {
       </section>
 
       {/* Industry Experts */}
-      <section className="py-20 px-4 bg-slate-900/50">
+      <section className="py-20 px-4 bg-neutral-900/50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -838,7 +838,7 @@ export default function HomePage() {
                 </div>
                 <p className="text-slate-300 mb-4">&ldquo;{testimonial.content}&rdquo;</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm">
+                  <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-medium text-sm">
                     {testimonial.avatar}
                   </div>
                   <div>
@@ -853,7 +853,7 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 px-4 bg-slate-900/50">
+      <section className="py-20 px-4 bg-neutral-900/50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -875,8 +875,8 @@ export default function HomePage() {
                 key={plan.name}
                 className={`rounded-lg p-6 ${
                   plan.popular
-                    ? 'bg-blue-600/20 border-2 border-blue-500 relative'
-                    : 'bg-slate-800/50 border border-slate-700'
+                    ? 'bg-red-600/20 border-2 border-red-500 relative'
+                    : 'bg-neutral-800/50 border border-neutral-700'
                 }`}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -884,7 +884,7 @@ export default function HomePage() {
                 transition={{ delay: i * 0.1 }}
               >
                 {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white border-0">
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white border-0">
                     Most Popular
                   </Badge>
                 )}
@@ -905,7 +905,7 @@ export default function HomePage() {
                 <Link href="/signup">
                   <Button
                     className={`w-full ${
-                      plan.popular ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-700 hover:bg-slate-600'
+                      plan.popular ? 'bg-red-600 hover:bg-red-700' : 'bg-neutral-700 hover:bg-neutral-600'
                     }`}
                   >
                     {plan.cta}
@@ -965,7 +965,7 @@ export default function HomePage() {
       <section className="py-20 px-4">
         <div className="container mx-auto">
           <motion.div
-            className="rounded-2xl bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 border border-blue-500/30 p-12 text-center"
+            className="rounded-2xl bg-gradient-to-r from-red-600/20 via-red-700/20 to-red-900/20 border border-red-500/30 p-12 text-center"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -973,13 +973,13 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Ready to ship 5x faster?
             </h2>
-            <p className="text-slate-300 mb-8 max-w-xl mx-auto">
+            <p className="text-neutral-300 mb-8 max-w-xl mx-auto">
               Join developers building production apps in days, not weeks.
               Start your 14-day free trial today.
             </p>
             <div className="flex justify-center gap-4">
               <Link href="/signup">
-                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 h-12 px-8">
+                <Button size="lg" className="bg-red-600 hover:bg-red-700 h-12 px-8">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -988,13 +988,13 @@ export default function HomePage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-slate-600 text-slate-300 hover:bg-slate-800 h-12 px-8"
+                  className="border-neutral-600 text-neutral-300 hover:bg-neutral-800 h-12 px-8"
                 >
                   View Pricing
                 </Button>
               </Link>
             </div>
-            <p className="text-sm text-slate-500 mt-6">
+            <p className="text-sm text-neutral-500 mt-6">
               No credit card required. Cancel anytime.
             </p>
           </motion.div>

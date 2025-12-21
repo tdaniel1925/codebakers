@@ -375,7 +375,7 @@ export default function HomePage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center">
               <span className="text-white font-bold text-sm">CB</span>
             </div>
             <span className="text-xl font-bold text-foreground">CodeBakers</span>
@@ -400,7 +400,7 @@ export default function HomePage() {
               </Button>
             </Link>
             <Link href="/signup">
-              <Button className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-md shadow-blue-500/20 text-sm">
+              <Button className="bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/20 text-sm">
                 Start Free
                 <ArrowRight02Icon className="ml-1 h-4 w-4" />
               </Button>
@@ -410,7 +410,7 @@ export default function HomePage() {
           <div className="flex md:hidden items-center gap-2">
             <ThemeToggle />
             <Link href="/signup">
-              <Button size="sm" className="bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm">
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-sm">
                 Start Free
               </Button>
             </Link>
@@ -429,19 +429,19 @@ export default function HomePage() {
 
         <div className="container mx-auto text-center relative z-10">
           {/* Top badge - IDE focus */}
-          <div className="inline-flex items-center gap-3 mb-8 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 border border-blue-500/20 dark:border-blue-500/30">
+          <div className="inline-flex items-center gap-3 mb-8 px-5 py-2.5 rounded-full bg-gradient-to-r from-red-500/10 to-red-900/10 dark:from-red-500/20 dark:to-red-900/20 border border-red-500/20 dark:border-red-500/30">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-sm font-medium text-foreground">Works with</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="font-semibold text-blue-600 dark:text-blue-400">Cursor</span>
+              <span className="font-semibold text-red-600 dark:text-red-400">Cursor</span>
               <span className="text-muted-foreground">•</span>
-              <span className="font-semibold text-purple-600 dark:text-purple-400">Claude Code</span>
+              <span className="font-semibold text-white">Claude Code</span>
               <span className="text-muted-foreground">•</span>
-              <span className="font-semibold text-cyan-600 dark:text-cyan-400">Windsurf</span>
+              <span className="font-semibold text-red-600 dark:text-red-400">Windsurf</span>
               <span className="text-muted-foreground">•</span>
-              <span className="font-semibold text-orange-600 dark:text-orange-400">Aider</span>
+              <span className="font-semibold text-white">Aider</span>
             </div>
           </div>
 
@@ -449,7 +449,7 @@ export default function HomePage() {
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-[0.95] tracking-tight">
             <span className="text-foreground">Production-Ready Code</span>
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-cyan-500 dark:from-blue-400 dark:via-purple-400 dark:to-cyan-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-red-600 to-red-400 dark:from-red-400 dark:via-red-500 dark:to-red-300">
               On The First Prompt
             </span>
           </h1>
@@ -479,7 +479,7 @@ export default function HomePage() {
             </div>
             <div className="hidden sm:block w-px h-16 bg-border" />
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-500">1st</div>
+              <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-600">1st</div>
               <div className="text-sm text-muted-foreground font-medium">Prompt Success</div>
             </div>
           </div>
@@ -487,7 +487,7 @@ export default function HomePage() {
           {/* CTA Buttons - Prominent */}
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             <Link href="/signup">
-              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white h-16 px-10 text-xl font-semibold w-full sm:w-auto shadow-xl shadow-blue-500/30 transition-all hover:shadow-2xl hover:shadow-blue-500/40 hover:-translate-y-1 rounded-xl">
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-16 px-10 text-xl font-semibold w-full sm:w-auto shadow-xl shadow-red-500/30 transition-all hover:shadow-2xl hover:shadow-red-500/40 hover:-translate-y-1 rounded-xl">
                 Upgrade Your AI Now
                 <ArrowRight02Icon className="ml-2 h-6 w-6" />
               </Button>
@@ -498,7 +498,7 @@ export default function HomePage() {
                 variant="outline"
                 className="border-2 border-border hover:bg-accent h-16 px-10 text-xl font-semibold w-full sm:w-auto group rounded-xl"
               >
-                <PlayIcon className="mr-2 h-6 w-6 group-hover:text-blue-500 transition-colors" />
+                <PlayIcon className="mr-2 h-6 w-6 group-hover:text-red-500 transition-colors" />
                 See The Difference
               </Button>
             </Link>
@@ -721,7 +721,7 @@ export default function HomePage() {
       <section className="py-16 px-4" style={{ background: 'var(--section-features)' }}>
         <div className="container mx-auto">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800">Built For You</Badge>
+            <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">Built For You</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
               Whether you&apos;re solo or scaling
             </h2>
@@ -736,10 +736,10 @@ export default function HomePage() {
               return (
                 <div
                   key={audience.title}
-                  className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 hover:shadow-lg hover:shadow-blue-500/5 transition-all group"
+                  className="p-6 rounded-xl bg-card border border-border hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/5 transition-all group"
                 >
-                  <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30 w-fit mb-4 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
-                    <Icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 w-fit mb-4 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
+                    <Icon className="h-6 w-6 text-red-600 dark:text-red-400" />
                   </div>
                   <Badge className="mb-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800 text-xs">
                     {audience.highlight}
@@ -815,11 +815,11 @@ export default function HomePage() {
               return (
                 <div
                   key={feature.title}
-                  className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 hover:shadow-lg hover:shadow-blue-500/5 transition-all"
+                  className="p-6 rounded-xl bg-card border border-border hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/5 transition-all"
                 >
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                      <Icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30">
+                      <Icon className="h-6 w-6 text-red-600 dark:text-red-400" />
                     </div>
                     <Badge variant="outline" className="text-muted-foreground border-border">
                       {feature.stats}
@@ -878,12 +878,12 @@ export default function HomePage() {
           </div>
 
           {/* Mid-page CTA */}
-          <div className="mt-16 text-center p-8 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-200 dark:border-blue-800">
+          <div className="mt-16 text-center p-8 rounded-2xl bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 border border-red-200 dark:border-red-800">
             <h3 className="text-2xl font-bold text-foreground mb-2">Ready to ship faster?</h3>
             <p className="text-muted-foreground mb-6">Join 1,200+ developers who&apos;ve upgraded their AI.</p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link href="/signup">
-                <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-lg shadow-blue-500/30">
+                <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/30">
                   Start Building Now
                   <ArrowRight02Icon className="ml-2 h-5 w-5" />
                 </Button>
@@ -964,7 +964,7 @@ export default function HomePage() {
                 <tr className="border-b border-border">
                   <th className="text-left py-4 px-6 text-muted-foreground font-medium">Feature</th>
                   <th className="text-center py-4 px-6 text-foreground font-medium">
-                    <span className="text-blue-600 dark:text-blue-400">CodeBakers</span>
+                    <span className="text-red-600 dark:text-red-400">CodeBakers</span>
                   </th>
                   <th className="text-center py-4 px-6 text-muted-foreground font-medium">Free Alternatives</th>
                 </tr>
@@ -998,7 +998,7 @@ export default function HomePage() {
               <span className="text-foreground font-medium">Bottom line:</span> CodeBakers makes Cursor and Claude Code the best they can be.
             </p>
             <Link href="/signup">
-              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-blue-500/25">
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/25">
                 Upgrade Your AI Today
                 <ArrowRight02Icon className="ml-2 h-5 w-5" />
               </Button>
@@ -1017,7 +1017,7 @@ export default function HomePage() {
 
         <div className="container mx-auto relative z-10">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700">34 Modules</Badge>
+            <Badge className="mb-4 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700">34 Modules</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
               {totalLines.toLocaleString()} lines of production patterns
             </h2>
@@ -1034,15 +1034,15 @@ export default function HomePage() {
                   key={module.name}
                   className={`p-4 rounded-lg border transition-all hover:shadow-lg ${
                     module.required
-                      ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800 hover:border-blue-400 dark:hover:border-blue-700'
-                      : 'bg-card border-border hover:border-primary/50'
+                      ? 'bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800 hover:border-red-400 dark:hover:border-red-700'
+                      : 'bg-card border-border hover:border-red-500/50'
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <Icon className={`h-5 w-5 ${module.required ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} />
+                    <Icon className={`h-5 w-5 ${module.required ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`} />
                     <span className="font-mono text-sm text-foreground">{module.name}</span>
                     {module.required && (
-                      <Badge className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 ml-auto">
+                      <Badge className="text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700 ml-auto">
                         Always loaded
                       </Badge>
                     )}
@@ -1096,7 +1096,7 @@ export default function HomePage() {
 
         <div className="container mx-auto relative z-10">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-700">Pricing</Badge>
+            <Badge className="mb-4 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700">Pricing</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
               Less than a coffee a day
             </h2>
@@ -1122,8 +1122,8 @@ export default function HomePage() {
           </div>
 
           {/* Free Trial Banner */}
-          <div className="max-w-2xl mx-auto mb-12 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/30 text-center">
-            <Badge className="bg-green-600 text-white border-green-500 mb-2">Try Free</Badge>
+          <div className="max-w-2xl mx-auto mb-12 p-4 rounded-xl bg-gradient-to-r from-red-500/10 to-red-600/10 dark:from-red-500/20 dark:to-red-600/20 border border-red-500/30 text-center">
+            <Badge className="bg-red-600 text-white border-red-500 mb-2">Try Free</Badge>
             <p className="text-foreground font-medium">
               Start with 1 free project — no credit card required
             </p>
@@ -1138,12 +1138,12 @@ export default function HomePage() {
                 key={tier.name}
                 className={`p-6 rounded-xl border transition-all hover:shadow-xl ${
                   tier.popular
-                    ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-400 dark:border-blue-700 ring-2 ring-blue-500 dark:ring-blue-600 shadow-lg shadow-blue-500/10'
+                    ? 'bg-red-50 dark:bg-red-950/30 border-red-400 dark:border-red-700 ring-2 ring-red-500 dark:ring-red-600 shadow-lg shadow-red-500/10'
                     : 'bg-card border-border'
                 }`}
               >
                 {tier.popular && (
-                  <Badge className="mb-4 bg-blue-600 text-white border-blue-500">
+                  <Badge className="mb-4 bg-red-600 text-white border-red-500">
                     Most Popular
                   </Badge>
                 )}
@@ -1165,7 +1165,7 @@ export default function HomePage() {
                   <Button
                     className={`w-full ${
                       tier.popular
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-blue-500/25'
+                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/25'
                         : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                     }`}
                   >
@@ -1232,7 +1232,7 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             <Link href="/signup">
-              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white h-16 px-10 text-xl w-full sm:w-auto shadow-xl shadow-blue-500/30 transition-all hover:shadow-2xl hover:shadow-blue-500/40 hover:-translate-y-1">
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-16 px-10 text-xl w-full sm:w-auto shadow-xl shadow-red-500/30 transition-all hover:shadow-2xl hover:shadow-red-500/40 hover:-translate-y-1">
                 Start Building Now
                 <ArrowRight02Icon className="ml-2 h-6 w-6" />
               </Button>

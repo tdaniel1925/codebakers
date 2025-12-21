@@ -48,16 +48,16 @@ export function DashboardSidebar({ user, isAdmin }: DashboardSidebarProps) {
   return (
     <>
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <Zap className="h-6 w-6 text-blue-400" />
+          <Zap className="h-6 w-6 text-red-400" />
           <span className="font-bold text-white">CodeBakers</span>
         </div>
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="text-slate-300 hover:text-white hover:bg-slate-800"
+          className="text-neutral-300 hover:text-white hover:bg-neutral-800"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -74,7 +74,7 @@ export function DashboardSidebar({ user, isAdmin }: DashboardSidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed top-0 left-0 z-50 h-screen w-64 bg-slate-900 border-r border-slate-800 flex flex-col',
+          'fixed top-0 left-0 z-50 h-screen w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col',
           // Mobile: hidden by default, shown when mobileOpen is true
           'max-lg:transition-transform max-lg:duration-300',
           mobileOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full',
@@ -83,9 +83,9 @@ export function DashboardSidebar({ user, isAdmin }: DashboardSidebarProps) {
         )}
       >
         {/* Header */}
-        <div className="h-16 flex items-center px-4 border-b border-slate-800">
+        <div className="h-16 flex items-center px-4 border-b border-neutral-800">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <Zap className="h-6 w-6 text-blue-400 flex-shrink-0" />
+            <Zap className="h-6 w-6 text-red-400 flex-shrink-0" />
             <span className="font-bold text-white">CodeBakers</span>
           </Link>
         </div>
@@ -102,8 +102,8 @@ export function DashboardSidebar({ user, isAdmin }: DashboardSidebarProps) {
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'bg-red-600 text-white'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                 )}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
@@ -116,7 +116,7 @@ export function DashboardSidebar({ user, isAdmin }: DashboardSidebarProps) {
         {/* Admin Link (if admin) */}
         {isAdmin && (
           <>
-            <div className="border-t border-slate-800 mx-2" />
+            <div className="border-t border-neutral-800 mx-2" />
             <div className="p-2">
               <Link
                 href="/admin"
@@ -130,10 +130,10 @@ export function DashboardSidebar({ user, isAdmin }: DashboardSidebarProps) {
         )}
 
         {/* User Section */}
-        <div className="p-2 border-t border-slate-800">
+        <div className="p-2 border-t border-neutral-800">
           <div className="flex items-center gap-3 px-3 py-2">
             <Avatar className="h-8 w-8 flex-shrink-0">
-              <AvatarFallback className="bg-blue-600 text-white text-xs">
+              <AvatarFallback className="bg-red-600 text-white text-xs">
                 {initials}
               </AvatarFallback>
             </Avatar>
@@ -141,13 +141,13 @@ export function DashboardSidebar({ user, isAdmin }: DashboardSidebarProps) {
               <p className="text-sm font-medium text-white truncate">
                 {user.user_metadata?.full_name || 'User'}
               </p>
-              <p className="text-xs text-slate-400 truncate">{user.email}</p>
+              <p className="text-xs text-neutral-400 truncate">{user.email}</p>
             </div>
           </div>
           <Button
             variant="ghost"
             onClick={handleSignOut}
-            className="w-full mt-2 text-slate-400 hover:text-white hover:bg-slate-800 justify-start"
+            className="w-full mt-2 text-neutral-400 hover:text-white hover:bg-neutral-800 justify-start"
           >
             <LogOut className="h-4 w-4 flex-shrink-0" />
             <span className="ml-3">Sign Out</span>

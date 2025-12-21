@@ -7,9 +7,9 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-black">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-sm">
+      <nav className="sticky top-0 z-50 border-b border-neutral-800 bg-black/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <Link href="/" className="text-xl font-bold text-white">
@@ -18,23 +18,23 @@ export default function MarketingLayout({
             <div className="flex items-center space-x-4">
               <Link
                 href="/pricing"
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-neutral-400 hover:text-white transition-colors"
               >
                 Pricing
               </Link>
               <Link
                 href="/compare"
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-neutral-400 hover:text-white transition-colors"
               >
                 Compare
               </Link>
               <Link href="/login">
-                <Button variant="ghost" className="text-slate-300">
+                <Button variant="ghost" className="text-neutral-300">
                   Sign In
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button className="bg-red-600 hover:bg-red-700">
                   Get Started
                 </Button>
               </Link>
@@ -46,19 +46,19 @@ export default function MarketingLayout({
       <main>{children}</main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 py-12 mt-20">
+      <footer className="border-t border-neutral-800 py-12 mt-20">
         <div className="container mx-auto px-4">
           <div className="grid gap-8 md:grid-cols-4">
             <div>
               <h3 className="font-bold text-white mb-4">CodeBakers</h3>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-neutral-400">
                 Ship production-ready code from day one with 114 battle-tested
                 patterns.
               </p>
             </div>
             <div>
               <h4 className="font-medium text-white mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-slate-400">
+              <ul className="space-y-2 text-sm text-neutral-400">
                 <li>
                   <Link href="/pricing" className="hover:text-white">
                     Pricing
@@ -73,7 +73,7 @@ export default function MarketingLayout({
             </div>
             <div>
               <h4 className="font-medium text-white mb-4">Support</h4>
-              <ul className="space-y-2 text-sm text-slate-400">
+              <ul className="space-y-2 text-sm text-neutral-400">
                 <li>
                   <Link href="/setup" className="hover:text-white">
                     Documentation
@@ -83,7 +83,7 @@ export default function MarketingLayout({
             </div>
             <div>
               <h4 className="font-medium text-white mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-slate-400">
+              <ul className="space-y-2 text-sm text-neutral-400">
                 <li>
                   <Link href="#" className="hover:text-white">
                     Privacy
@@ -97,7 +97,7 @@ export default function MarketingLayout({
               </ul>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-slate-800 text-center text-sm text-slate-400">
+          <div className="mt-8 pt-8 border-t border-neutral-800 text-center text-sm text-neutral-400">
             &copy; {new Date().getFullYear()} CodeBakers. All rights reserved.
           </div>
         </div>

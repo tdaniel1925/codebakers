@@ -67,10 +67,10 @@ function LoginForm() {
   };
 
   return (
-    <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
+    <Card className="border-neutral-800 bg-neutral-900/80 backdrop-blur">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl text-white">Welcome back</CardTitle>
-        <CardDescription>Sign in to your CodeBakers account</CardDescription>
+        <CardDescription className="text-neutral-400">Sign in to your CodeBakers account</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -80,12 +80,12 @@ function LoginForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-200">Email</FormLabel>
+                  <FormLabel className="text-neutral-200">Email</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
                       placeholder="you@example.com"
-                      className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
+                      className="bg-neutral-800/50 border-neutral-700 text-white placeholder:text-neutral-500 focus:border-red-500 focus:ring-red-500/20"
                       {...field}
                     />
                   </FormControl>
@@ -99,12 +99,12 @@ function LoginForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-200">Password</FormLabel>
+                  <FormLabel className="text-neutral-200">Password</FormLabel>
                   <FormControl>
                     <Input
                       type="password"
                       placeholder="Your password"
-                      className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
+                      className="bg-neutral-800/50 border-neutral-700 text-white placeholder:text-neutral-500 focus:border-red-500 focus:ring-red-500/20"
                       {...field}
                     />
                   </FormControl>
@@ -116,7 +116,7 @@ function LoginForm() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
             >
               {isLoading ? (
                 <>
@@ -130,9 +130,9 @@ function LoginForm() {
           </form>
         </Form>
 
-        <div className="mt-6 text-center text-sm text-slate-400">
+        <div className="mt-6 text-center text-sm text-neutral-400">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-blue-400 hover:text-blue-300">
+          <Link href="/signup" className="text-red-400 hover:text-red-300">
             Sign up
           </Link>
         </div>
@@ -143,14 +143,14 @@ function LoginForm() {
 
 function LoginFormFallback() {
   return (
-    <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
+    <Card className="border-neutral-800 bg-neutral-900/80 backdrop-blur">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl text-white">Welcome back</CardTitle>
-        <CardDescription>Sign in to your CodeBakers account</CardDescription>
+        <CardDescription className="text-neutral-400">Sign in to your CodeBakers account</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+          <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
         </div>
       </CardContent>
     </Card>

@@ -136,27 +136,8 @@ function BillingContent() {
   };
 
   const handleSelectPlan = (planId: string) => {
-    const plan = plans.find(p => p.plan === planId);
-    if (!plan) return;
-
-    // Check which providers are available
-    const availableProviders = Object.entries(plan.providers)
-      .filter(([, available]) => available)
-      .map(([provider]) => provider);
-
-    if (availableProviders.length === 0) {
-      toast.error('No payment providers configured for this plan');
-      return;
-    }
-
-    if (availableProviders.length === 1) {
-      // Only one provider, go directly to checkout
-      handleCheckout(planId, availableProviders[0] as PaymentProvider);
-    } else {
-      // Multiple providers, show selection dialog
-      setSelectedPlan(planId);
-      setShowProviderDialog(true);
-    }
+    // Go directly to PayPal checkout (primary payment method)
+    handleCheckout(planId, 'paypal');
   };
 
   const handleCheckout = async (planId: string, provider: PaymentProvider) => {
@@ -242,17 +223,17 @@ function BillingContent() {
 
       {/* Current Plan */}
       {(currentPlan || isBeta) && (
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-neutral-900/80 border-neutral-800">
           <CardHeader>
             <CardTitle className="text-white">Current Plan</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Badge className="bg-green-600 text-lg px-4 py-1">
+              <Badge className="bg-red-600 text-lg px-4 py-1">
                 {isBeta ? 'Beta' : currentPlan?.toUpperCase()}
               </Badge>
               {isBeta && (
-                <span className="text-slate-400">Free access granted</span>
+                <span className="text-neutral-400">Free access granted</span>
               )}
             </div>
             {!isBeta && (
@@ -260,7 +241,7 @@ function BillingContent() {
                 variant="outline"
                 onClick={handleManageBilling}
                 disabled={isLoading === 'portal'}
-                className="border-slate-600 text-slate-300"
+                className="border-neutral-700 text-neutral-300"
               >
                 {isLoading === 'portal' ? (
                   <>
@@ -286,13 +267,13 @@ function BillingContent() {
           return (
             <Card
               key={plan.plan}
-              className={`bg-slate-800/50 border-slate-700 relative ${
-                isPopular ? 'ring-2 ring-blue-500' : ''
+              className={`bg-neutral-900/80 border-neutral-800 relative ${
+                isPopular ? 'ring-2 ring-red-500' : ''
               }`}
             >
               {isPopular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-blue-600">Most Popular</Badge>
+                  <Badge className="bg-red-600">Most Popular</Badge>
                 </div>
               )}
               <CardHeader>
@@ -301,7 +282,7 @@ function BillingContent() {
                   <span className="text-3xl font-bold text-white">
                     {formatPrice(plan.priceMonthly)}
                   </span>
-                  <span className="text-slate-400">/month</span>
+                  <span className="text-neutral-400">/month</span>
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -309,32 +290,17 @@ function BillingContent() {
                   {plan.features.map((feature) => (
                     <li
                       key={feature}
-                      className="flex items-center gap-2 text-sm text-slate-300"
+                      className="flex items-center gap-2 text-sm text-neutral-300"
                     >
-                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <Check className="h-4 w-4 text-red-500 flex-shrink-0" />
                       {feature}
                     </li>
                   ))}
                 </ul>
 
-                {/* Payment providers indicator */}
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-700">
-                  <span className="text-xs text-slate-500">Pay with:</span>
-                  {plan.providers.stripe && (
-                    <span title="Credit Card (Stripe)">
-                      <CreditCard className="h-4 w-4 text-slate-400" />
-                    </span>
-                  )}
-                  {plan.providers.square && (
-                    <span title="Square">
-                      <Square className="h-4 w-4 text-slate-400" />
-                    </span>
-                  )}
-                  {plan.providers.paypal && (
-                    <span title="PayPal">
-                      <Wallet className="h-4 w-4 text-slate-400" />
-                    </span>
-                  )}
+                {/* Payment method indicator */}
+                <div className="flex items-center gap-2 pt-2 border-t border-neutral-800">
+                  <span className="text-xs text-neutral-500">Secure payment via PayPal</span>
                 </div>
 
                 <Button
@@ -342,8 +308,8 @@ function BillingContent() {
                   disabled={isLoading === plan.plan || currentPlan === plan.plan}
                   className={`w-full ${
                     isPopular
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-slate-700 hover:bg-slate-600'
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-neutral-800 hover:bg-neutral-700'
                   }`}
                 >
                   {isLoading === plan.plan ? (
@@ -365,10 +331,10 @@ function BillingContent() {
 
       {/* Payment Provider Selection Dialog */}
       <Dialog open={showProviderDialog} onOpenChange={setShowProviderDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-neutral-900 border-neutral-800">
           <DialogHeader>
             <DialogTitle className="text-white">Choose Payment Method</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-neutral-400">
               Select how you'd like to pay for your subscription
             </DialogDescription>
           </DialogHeader>
@@ -376,26 +342,26 @@ function BillingContent() {
             {selectedPlan && plans.find(p => p.plan === selectedPlan)?.providers.stripe && (
               <Button
                 onClick={() => handleCheckout(selectedPlan, 'stripe')}
-                className="w-full bg-slate-700 hover:bg-slate-600 justify-start"
+                className="w-full bg-neutral-800 hover:bg-neutral-700 justify-start"
                 disabled={isLoading !== null}
               >
                 <CreditCard className="h-5 w-5 mr-3" />
                 <div className="text-left">
                   <div className="font-medium">Credit / Debit Card</div>
-                  <div className="text-xs text-slate-400">Pay with Stripe</div>
+                  <div className="text-xs text-neutral-400">Pay with Stripe</div>
                 </div>
               </Button>
             )}
             {selectedPlan && plans.find(p => p.plan === selectedPlan)?.providers.square && (
               <Button
                 onClick={() => handleCheckout(selectedPlan, 'square')}
-                className="w-full bg-slate-700 hover:bg-slate-600 justify-start"
+                className="w-full bg-neutral-800 hover:bg-neutral-700 justify-start"
                 disabled={isLoading !== null}
               >
                 <Square className="h-5 w-5 mr-3" />
                 <div className="text-left">
                   <div className="font-medium">Square</div>
-                  <div className="text-xs text-slate-400">Pay with Square</div>
+                  <div className="text-xs text-neutral-400">Pay with Square</div>
                 </div>
               </Button>
             )}
@@ -417,14 +383,14 @@ function BillingContent() {
       </Dialog>
 
       {/* FAQ */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-neutral-900/80 border-neutral-800">
         <CardHeader>
           <CardTitle className="text-white">Frequently Asked Questions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <h4 className="font-medium text-white">Can I cancel anytime?</h4>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-neutral-400">
               Yes, you can cancel your subscription at any time. You'll retain
               access until the end of your billing period.
             </p>
@@ -433,16 +399,16 @@ function BillingContent() {
             <h4 className="font-medium text-white">
               What payment methods do you accept?
             </h4>
-            <p className="text-sm text-slate-400">
-              We accept credit/debit cards (via Stripe), Square, and PayPal for
-              secure payment processing.
+            <p className="text-sm text-neutral-400">
+              We accept credit cards, debit cards, and PayPal balance through
+              secure PayPal checkout. No PayPal account required.
             </p>
           </div>
           <div>
             <h4 className="font-medium text-white">
               Can I upgrade or downgrade my plan?
             </h4>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-neutral-400">
               Yes, you can change your plan at any time. Changes take effect
               immediately, and we'll prorate any charges.
             </p>
@@ -458,12 +424,12 @@ function BillingFallback() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-white">Billing</h1>
-        <p className="text-slate-400 mt-1">
+        <p className="text-neutral-400 mt-1">
           Manage your subscription and billing
         </p>
       </div>
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
       </div>
     </div>
   );

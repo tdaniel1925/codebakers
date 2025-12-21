@@ -329,13 +329,13 @@ export function InteractiveDemo() {
             onChange={(e) => setUserInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="e.g., login form with email and password..."
-            className="w-full h-14 px-5 pr-32 rounded-xl border-2 border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-lg"
+            className="w-full h-14 px-5 pr-32 rounded-xl border-2 border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg"
             disabled={isGenerating}
           />
           <Button
             onClick={handleGenerate}
             disabled={!userInput.trim() || isGenerating}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-md"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-md"
           >
             {isGenerating ? (
               <>
@@ -359,7 +359,7 @@ export function InteractiveDemo() {
               key={suggestion}
               onClick={() => handleSuggestionClick(suggestion)}
               disabled={isGenerating}
-              className="px-3 py-1 text-sm rounded-full border border-border bg-muted/50 hover:bg-muted hover:border-blue-400 text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
+              className="px-3 py-1 text-sm rounded-full border border-border bg-muted/50 hover:bg-muted hover:border-red-400 text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
             >
               {suggestion}
             </button>
@@ -371,8 +371,8 @@ export function InteractiveDemo() {
       {isGenerating && (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-blue-200 dark:border-blue-900 animate-pulse" />
-            <AiBrain02Icon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-blue-500 animate-pulse" />
+            <div className="w-16 h-16 rounded-full border-4 border-red-200 dark:border-red-900 animate-pulse" />
+            <AiBrain02Icon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-red-500 animate-pulse" />
           </div>
           <p className="mt-4 text-muted-foreground animate-pulse">Analyzing your request...</p>
         </div>
@@ -509,7 +509,7 @@ export function InteractiveDemo() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all hover:-translate-y-0.5"
+                className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 transition-all hover:-translate-y-0.5"
                 asChild
               >
                 <Link href="/signup">

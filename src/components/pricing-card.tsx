@@ -66,31 +66,31 @@ export function PricingCard({
 
   return (
     <div
-      className={`rounded-xl bg-slate-800/50 border p-8 relative flex flex-col ${
-        popular ? 'border-blue-500 ring-2 ring-blue-500' : 'border-slate-700'
+      className={`rounded-xl bg-neutral-900/80 border p-8 relative flex flex-col ${
+        popular ? 'border-red-500 ring-2 ring-red-500' : 'border-neutral-800'
       }`}
     >
       {popular && (
-        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600">
+        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600">
           Most Popular
         </Badge>
       )}
 
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-white">{name}</h2>
-        <p className="text-slate-400 mt-1">{description}</p>
+        <p className="text-neutral-400 mt-1">{description}</p>
       </div>
 
       <div className="mb-6">
         <span className="text-4xl font-bold text-white">${price}</span>
-        <span className="text-slate-400">/month</span>
+        <span className="text-neutral-400">/month</span>
       </div>
 
       <ul className="space-y-3 mb-8 flex-1">
         {features.map((feature) => (
           <li key={feature} className="flex items-center gap-3">
-            <Check className="h-5 w-5 text-green-400 flex-shrink-0" />
-            <span className="text-slate-300">{feature}</span>
+            <Check className="h-5 w-5 text-red-400 flex-shrink-0" />
+            <span className="text-neutral-300">{feature}</span>
           </li>
         ))}
       </ul>
@@ -100,8 +100,8 @@ export function PricingCard({
         disabled={isLoading}
         className={`w-full ${
           popular
-            ? 'bg-blue-600 hover:bg-blue-700'
-            : 'bg-slate-700 hover:bg-slate-600'
+            ? 'bg-red-600 hover:bg-red-700'
+            : 'bg-neutral-800 hover:bg-neutral-700 border border-neutral-700'
         }`}
       >
         {isLoading ? (
@@ -118,7 +118,7 @@ export function PricingCard({
       </Button>
 
       {/* Payment methods info */}
-      <p className="text-xs text-slate-500 text-center mt-4">
+      <p className="text-xs text-neutral-500 text-center mt-4">
         Pay with credit card or PayPal
       </p>
     </div>

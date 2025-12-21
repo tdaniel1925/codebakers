@@ -62,7 +62,7 @@ export default function ComparePage() {
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             Time Savings Calculator
           </h1>
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+          <p className="text-xl text-neutral-400 max-w-2xl mx-auto">
             See exactly how much time CodeBakers saves you on common development
             tasks
           </p>
@@ -70,16 +70,16 @@ export default function ComparePage() {
 
         {/* Comparison Table */}
         <div className="max-w-4xl mx-auto mb-16">
-          <div className="rounded-xl bg-slate-800/50 border border-slate-700 overflow-hidden">
-            <div className="grid grid-cols-4 gap-4 p-4 bg-slate-900/50 border-b border-slate-700">
-              <div className="font-semibold text-slate-300">Task</div>
-              <div className="font-semibold text-slate-300 text-center">
+          <div className="rounded-xl bg-neutral-800/50 border border-neutral-700 overflow-hidden">
+            <div className="grid grid-cols-4 gap-4 p-4 bg-neutral-900/50 border-b border-neutral-700">
+              <div className="font-semibold text-neutral-300">Task</div>
+              <div className="font-semibold text-neutral-300 text-center">
                 Without CodeBakers
               </div>
-              <div className="font-semibold text-slate-300 text-center">
+              <div className="font-semibold text-neutral-300 text-center">
                 With CodeBakers
               </div>
-              <div className="font-semibold text-slate-300 text-center">
+              <div className="font-semibold text-neutral-300 text-center">
                 Time Saved
               </div>
             </div>
@@ -88,7 +88,7 @@ export default function ComparePage() {
                 key={item.task}
                 className={`grid grid-cols-4 gap-4 p-4 items-center ${
                   index !== comparisons.length - 1
-                    ? 'border-b border-slate-700'
+                    ? 'border-b border-neutral-700'
                     : ''
                 }`}
               >
@@ -108,26 +108,26 @@ export default function ComparePage() {
 
         {/* Summary */}
         <div className="grid gap-8 md:grid-cols-3 max-w-4xl mx-auto mb-16">
-          <div className="p-6 rounded-xl bg-gradient-to-br from-blue-900/50 to-blue-800/30 border border-blue-700">
-            <Clock className="h-8 w-8 text-blue-400 mb-4" />
+          <div className="p-6 rounded-xl bg-gradient-to-br from-red-900/50 to-red-800/30 border border-red-700">
+            <Clock className="h-8 w-8 text-red-400 mb-4" />
             <div className="text-3xl font-bold text-white mb-2">10+ hours</div>
-            <p className="text-slate-400">
+            <p className="text-neutral-400">
               Saved per feature implementation
             </p>
           </div>
           <div className="p-6 rounded-xl bg-gradient-to-br from-green-900/50 to-green-800/30 border border-green-700">
             <TrendingUp className="h-8 w-8 text-green-400 mb-4" />
             <div className="text-3xl font-bold text-white mb-2">85%</div>
-            <p className="text-slate-400">
+            <p className="text-neutral-400">
               Average time reduction on tasks
             </p>
           </div>
-          <div className="p-6 rounded-xl bg-gradient-to-br from-purple-900/50 to-purple-800/30 border border-purple-700">
-            <div className="h-8 w-8 text-purple-400 mb-4 font-bold text-2xl">
+          <div className="p-6 rounded-xl bg-gradient-to-br from-neutral-800/50 to-neutral-900/30 border border-neutral-700">
+            <div className="h-8 w-8 text-white mb-4 font-bold text-2xl">
               0
             </div>
             <div className="text-3xl font-bold text-white mb-2">Bugs</div>
-            <p className="text-slate-400">
+            <p className="text-neutral-400">
               From following battle-tested patterns
             </p>
           </div>
@@ -139,31 +139,31 @@ export default function ComparePage() {
             Why is it so much faster?
           </h2>
           <div className="space-y-4">
-            <div className="p-6 rounded-lg bg-slate-800/50 border border-slate-700">
+            <div className="p-6 rounded-lg bg-neutral-800/50 border border-neutral-700">
               <h3 className="font-semibold text-white mb-2">
                 No more prompt iteration
               </h3>
-              <p className="text-slate-400">
+              <p className="text-neutral-400">
                 Without patterns, you spend 20+ prompts fixing "add loading
                 state", "handle errors", "make it accessible". With CodeBakers,
                 your AI knows to include these from the first prompt.
               </p>
             </div>
-            <div className="p-6 rounded-lg bg-slate-800/50 border border-slate-700">
+            <div className="p-6 rounded-lg bg-neutral-800/50 border border-neutral-700">
               <h3 className="font-semibold text-white mb-2">
                 Tests come for free
               </h3>
-              <p className="text-slate-400">
+              <p className="text-neutral-400">
                 Every pattern includes Playwright tests. Your AI automatically
                 generates tests for every feature it builds. No more "I'll add
                 tests later" (you won't).
               </p>
             </div>
-            <div className="p-6 rounded-lg bg-slate-800/50 border border-slate-700">
+            <div className="p-6 rounded-lg bg-neutral-800/50 border border-neutral-700">
               <h3 className="font-semibold text-white mb-2">
                 Consistent architecture
               </h3>
-              <p className="text-slate-400">
+              <p className="text-neutral-400">
                 All patterns follow the same conventions. Your AI builds new
                 features that integrate perfectly with existing code, without
                 you explaining the codebase structure.
@@ -177,11 +177,11 @@ export default function ComparePage() {
           <h2 className="text-2xl font-bold text-white mb-4">
             Ready to save 10+ hours per feature?
           </h2>
-          <p className="text-slate-400 mb-8 max-w-xl mx-auto">
+          <p className="text-neutral-400 mb-8 max-w-xl mx-auto">
             At $49/month, CodeBakers pays for itself in your first hour.
           </p>
           <Link href="/signup">
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 h-12 px-8">
+            <Button size="lg" className="bg-red-600 hover:bg-red-700 h-12 px-8">
               Start Saving Time
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
