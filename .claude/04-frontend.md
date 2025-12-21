@@ -4,6 +4,391 @@
 
 ---
 
+# DECISION GUIDES
+
+Before generating frontend code, use these guides to clarify requirements.
+
+---
+
+## 📝 FORM DESIGN DECISIONS
+
+### Decision Guide
+
+| Pattern | Best For | Complexity |
+|---------|----------|------------|
+| **Single Page Form** | Simple forms (< 6 fields), quick actions | Low |
+| **Multi-Step Wizard** | Complex flows (onboarding, checkout), many fields | Medium |
+| **Inline Editing** | Settings pages, data tables, quick updates | Medium |
+| **Modal Form** | Quick create/edit without leaving context | Low |
+
+### Questions to Ask
+1. How many fields? (< 6 = single page, 6+ = consider wizard)
+2. Are there logical groupings? (Yes = wizard with steps)
+3. Does user need to see other content while editing? (Yes = modal or inline)
+4. Is there conditional logic between fields? (Yes = wizard with validation per step)
+
+### Option A: Single Page Form
+```typescript
+// Simple form for quick actions
+<Card>
+  <CardHeader>
+    <CardTitle>Create Project</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* All fields visible at once */}
+      </form>
+    </Form>
+  </CardContent>
+</Card>
+```
+
+### Option B: Multi-Step Wizard
+```typescript
+// components/wizard/multi-step-form.tsx
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Check } from 'lucide-react';
+
+interface Step {
+  id: string;
+  title: string;
+  description?: string;
+  component: React.ReactNode;
+  validate?: () => Promise<boolean>;
+}
+
+interface MultiStepFormProps {
+  steps: Step[];
+  onComplete: () => void;
+}
+
+export function MultiStepForm({ steps, onComplete }: MultiStepFormProps) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+
+  const progress = ((currentStep + 1) / steps.length) * 100;
+
+  const goNext = async () => {
+    const step = steps[currentStep];
+    if (step.validate) {
+      const isValid = await step.validate();
+      if (!isValid) return;
+    }
+
+    setCompletedSteps((prev) => new Set([...prev, currentStep]));
+
+    if (currentStep === steps.length - 1) {
+      onComplete();
+    } else {
+      setCurrentStep((prev) => prev + 1);
+    }
+  };
+
+  const goBack = () => {
+    setCurrentStep((prev) => Math.max(0, prev - 1));
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Progress */}
+      <div className="space-y-2">
+        <Progress value={progress} className="h-2" />
+        <div className="flex justify-between">
+          {steps.map((step, index) => (
+            <div
+              key={step.id}
+              className={`flex items-center gap-2 text-sm ${
+                index <= currentStep ? 'text-foreground' : 'text-muted-foreground'
+              }`}
+            >
+              <div
+                className={`h-6 w-6 rounded-full flex items-center justify-center text-xs ${
+                  completedSteps.has(index)
+                    ? 'bg-green-500 text-white'
+                    : index === currentStep
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted'
+                }`}
+              >
+                {completedSteps.has(index) ? <Check className="h-3 w-3" /> : index + 1}
+              </div>
+              <span className="hidden sm:inline">{step.title}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Step Content */}
+      <div className="min-h-[300px]">
+        {steps[currentStep].component}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex justify-between">
+        <Button
+          variant="outline"
+          onClick={goBack}
+          disabled={currentStep === 0}
+        >
+          Back
+        </Button>
+        <Button onClick={goNext}>
+          {currentStep === steps.length - 1 ? 'Complete' : 'Continue'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## 🪟 MODAL VS DRAWER DECISIONS
+
+### Decision Guide
+
+| Pattern | Best For | Screen Usage |
+|---------|----------|--------------|
+| **Modal (Dialog)** | Confirmations, quick forms, focused tasks | Center, blocks background |
+| **Drawer (Sheet)** | Detail views, longer forms, preview panels | Side panel, slides in |
+| **Full Page** | Complex editing, many related actions | Entire screen |
+
+### Questions to Ask
+1. How much content? (Little = modal, lots = drawer/page)
+2. Does user need to reference main content? (Yes = drawer)
+3. Is it a quick confirmation? (Yes = modal)
+4. Mobile-first? (Consider bottom sheet for mobile)
+
+### Option A: Modal (Centered Dialog)
+```typescript
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+
+export function ConfirmModal({ open, onOpenChange, onConfirm }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete item?</DialogTitle>
+          <DialogDescription>
+            This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={onConfirm}>
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+### Option B: Drawer (Side Sheet)
+```typescript
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+
+export function DetailDrawer({ open, onOpenChange, item }) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{item.name}</SheetTitle>
+          <SheetDescription>View and edit details</SheetDescription>
+        </SheetHeader>
+        <div className="mt-6 space-y-6">
+          {/* Longer form or detail content */}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+```
+
+### Option C: Bottom Sheet (Mobile)
+```typescript
+// For mobile-first or responsive drawers
+<Sheet open={open} onOpenChange={onOpenChange}>
+  <SheetContent
+    side="bottom"
+    className="h-[85vh] rounded-t-xl"
+  >
+    <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-muted mb-4" />
+    {/* Content */}
+  </SheetContent>
+</Sheet>
+```
+
+---
+
+## 📊 DATA TABLE DECISIONS
+
+### Decision Guide
+
+| Pattern | Best For | Features |
+|---------|----------|----------|
+| **Simple Table** | < 20 rows, no sorting needed | Basic display |
+| **DataTable** | Sorting, filtering, pagination | Full-featured |
+| **Virtualized List** | 1000+ rows, performance critical | Windowed rendering |
+| **Card Grid** | Visual content, images | Mobile-friendly |
+
+### Questions to Ask
+1. How many rows expected? (< 50 = simple, 50-500 = DataTable, 500+ = virtualized)
+2. Need sorting/filtering? (Yes = DataTable)
+3. Is it mostly text or visual content? (Visual = card grid)
+4. Mobile important? (Yes = consider cards or responsive table)
+
+### Option A: Simple Table
+```typescript
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
+export function SimpleTable({ data }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Status</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {data.map((row) => (
+          <TableRow key={row.id}>
+            <TableCell>{row.name}</TableCell>
+            <TableCell>{row.email}</TableCell>
+            <TableCell>{row.status}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+```
+
+### Option B: DataTable with TanStack Table
+```typescript
+// See 04-frontend.md DataTable section for full implementation
+// Includes: sorting, filtering, pagination, row selection
+import { DataTable } from '@/components/ui/data-table';
+import { columns } from './columns';
+
+<DataTable
+  columns={columns}
+  data={data}
+  searchKey="name"
+  filterableColumns={[
+    { id: 'status', title: 'Status', options: statusOptions }
+  ]}
+/>
+```
+
+### Option C: Card Grid (Visual/Mobile)
+```typescript
+export function CardGrid({ data }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {data.map((item) => (
+        <Card key={item.id} className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="text-lg">{item.name}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Visual content, image, etc */}
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" size="sm">View</Button>
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## ⏳ LOADING STATE DECISIONS
+
+### Decision Guide
+
+| Pattern | Best For | User Experience |
+|---------|----------|-----------------|
+| **Skeleton** | Content with known structure | Shows layout, less jarring |
+| **Spinner** | Unknown content, quick loads | Simple, universal |
+| **Progress Bar** | Long operations, uploads | Shows completion % |
+| **Shimmer** | Lists, repeated content | Animated placeholder |
+
+### Questions to Ask
+1. Do you know the content structure? (Yes = skeleton)
+2. Expected load time? (< 1s = spinner, > 1s = skeleton/progress)
+3. Is it a list of similar items? (Yes = shimmer/skeleton)
+4. Can you show progress %? (Yes = progress bar)
+
+### Skeleton Examples
+```typescript
+// Card skeleton
+export function CardSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-6 w-1/3" />
+        <Skeleton className="h-4 w-2/3" />
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-4/5" />
+      </CardContent>
+    </Card>
+  );
+}
+
+// Table skeleton
+export function TableSkeleton({ rows = 5 }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex gap-4">
+          <Skeleton className="h-10 flex-1" />
+          <Skeleton className="h-10 flex-1" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
 # PART 7: FRONTEND PATTERNS
 
 ## 🎨 COMPONENT PATTERNS

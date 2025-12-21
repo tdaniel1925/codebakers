@@ -18,6 +18,37 @@ BEFORE writing ANY code:
 
 ---
 
+## 👋 FIRST USE: WELCOME MESSAGE
+
+**On first interaction with a new user, show this welcome:**
+
+```
+Welcome to CodeBakers! I'm your AI development assistant with 33 production-ready modules.
+
+💡 **Quick Tip:** Type `/` to see available commands:
+
+  /new          - Start a new project with templates
+  /audit        - Audit existing code for improvements
+  /add-auth     - Add authentication
+  /add-payments - Add Stripe/PayPal billing
+  /add-api      - Create API endpoints
+  /deps         - Check dependencies
+  /status       - View project status
+
+Or just describe what you want to build and I'll help!
+
+What would you like to create today?
+```
+
+**Show this welcome when:**
+- No `.codebakers.json` exists (first time)
+- User types "help", "start", "hello", or similar greeting
+- User seems unfamiliar with the system
+
+**After welcome, proceed to STEP 0 (project detection).**
+
+---
+
 ## MODULE FORMAT (IMPORTANT)
 
 All pattern files in `.claude/` are **base64 encoded** for protection.
@@ -45,6 +76,258 @@ This is decoded content.
 
 ---
 
+## STEP 0: PROJECT DETECTION (NEW vs EXISTING)
+
+**FIRST INTERACTION ONLY:** Determine if this is a new project or adding CodeBakers to an existing codebase.
+
+### Check State File First
+
+```
+1. Look for .codebakers.json in project root
+2. If EXISTS → Read it, skip detection, use saved projectType
+3. If NOT EXISTS → Continue to auto-detection below
+```
+
+If state file exists, greet with context:
+```
+"Welcome back! I see this is a [new/existing] project.
+[If existing] Last audit: 75% score, 2 critical issues remaining.
+[If new] Stack: Next.js + Drizzle + Supabase.
+How can I help today?"
+```
+
+### Auto-Detection Signals (if no state file)
+
+Check these indicators automatically:
+
+| Signal | New Project | Existing Project |
+|--------|-------------|------------------|
+| `package.json` exists | No | Yes |
+| `src/` folder has files | No/Empty | Has code |
+| `app/` or `pages/` exists | No | Yes |
+| Components folder | No | Has files |
+| Database schema | No | Already defined |
+| `.env` file | No | Has values |
+
+### If Unclear, Ask:
+
+```
+"Is this a new project starting from scratch, or are you adding
+CodeBakers patterns to an existing codebase?
+
+A) **New Project** - I'll help you build from scratch using CodeBakers patterns
+B) **Existing Project** - I'll audit your code and upgrade it to CodeBakers standards"
+```
+
+### After Detection: Create State File
+
+Once project type is determined, create `.codebakers.json`:
+
+```json
+// For NEW project:
+{
+  "version": "1.0",
+  "projectType": "new",
+  "createdAt": "[current timestamp]",
+  "lastUpdated": "[current timestamp]",
+  "decisions": {},
+  "stack": {
+    "framework": "nextjs",
+    "database": "drizzle",
+    "auth": "supabase",
+    "ui": "shadcn"
+  }
+}
+
+// For EXISTING project:
+{
+  "version": "1.0",
+  "projectType": "existing",
+  "createdAt": "[current timestamp]",
+  "lastUpdated": "[current timestamp]",
+  "decisions": {},
+  "audit": {
+    "status": "not_started"
+  },
+  "migration": {
+    "completedTasks": []
+  }
+}
+```
+
+### Workflow by Project Type
+
+#### NEW PROJECT WORKFLOW
+
+1. **Scaffold the foundation** (load 10-generators.md)
+   - Set up Next.js with TypeScript
+   - Configure Tailwind, shadcn/ui
+   - Set up Drizzle + database
+   - Create folder structure
+
+2. **Build feature by feature** using patterns
+   - Follow the module loading rules below
+   - Each feature gets proper types, error handling, tests
+
+3. **Quality checklist before each commit**
+   - Run through 00-core.md quality checks
+
+#### EXISTING PROJECT WORKFLOW (AUDIT MODE)
+
+1. **Run CodeBakers Audit** (load 19-audit.md + relevant modules)
+
+   Scan and report on:
+   ```
+   [ ] TypeScript strict mode enabled?
+   [ ] Zod validation on all inputs?
+   [ ] Proper error handling patterns?
+   [ ] Loading/error states in UI?
+   [ ] Database queries use Drizzle patterns?
+   [ ] Auth follows security best practices?
+   [ ] API routes have rate limiting?
+   [ ] Tests exist for critical paths?
+   ```
+
+2. **Generate Upgrade Plan**
+
+   Prioritize fixes by impact:
+   - 🔴 **Critical**: Security issues, data integrity
+   - 🟠 **High**: Missing error handling, no validation
+   - 🟡 **Medium**: Non-standard patterns, missing types
+   - 🟢 **Low**: Style consistency, naming conventions
+
+3. **Upgrade Incrementally**
+
+   For each issue:
+   - Show current code vs. CodeBakers pattern
+   - Explain why the change matters
+   - Apply fix with minimal disruption
+   - Preserve existing business logic
+
+### Audit Command
+
+When user says "audit", "review", "check my code", or "upgrade to CodeBakers":
+
+```
+1. Load 19-audit.md + 00-core.md
+2. Scan the codebase structure
+3. Generate a detailed audit report
+4. Propose prioritized fixes
+5. Ask which category to tackle first
+```
+
+### Example Audit Report Format
+
+```markdown
+# CodeBakers Audit Report
+
+## Summary
+- Files scanned: 47
+- Issues found: 23
+- Critical: 2 | High: 5 | Medium: 12 | Low: 4
+
+## Critical Issues (Fix Immediately)
+
+### 1. SQL Injection Risk
+**File:** `src/app/api/users/route.ts:24`
+**Current:**
+const user = await db.execute(`SELECT * FROM users WHERE id = ${id}`);
+
+**CodeBakers Pattern:**
+const user = await db.select().from(users).where(eq(users.id, id));
+
+**Why:** Raw SQL with string interpolation allows injection attacks.
+
+---
+
+## High Priority Issues
+...
+```
+
+---
+
+## PROJECT STATE FILE (.codebakers.json)
+
+**IMPORTANT:** Check for and maintain a `.codebakers.json` file in the project root to track decisions and progress.
+
+### On First Interaction
+
+1. Check if `.codebakers.json` exists
+2. If NO → Ask new vs existing, then create the file
+3. If YES → Read it and continue from saved state
+
+### State File Schema
+
+```json
+{
+  "version": "1.0",
+  "projectType": "new" | "existing",
+  "createdAt": "2024-01-15T10:30:00Z",
+  "lastUpdated": "2024-01-15T10:30:00Z",
+
+  "decisions": {
+    "authLayout": "split" | "centered",
+    "navigation": "top" | "sidebar" | "both",
+    "theme": "light" | "dark" | "system" | "toggle",
+    "formStyle": "single" | "wizard" | "modal"
+  },
+
+  "audit": {
+    "status": "not_started" | "in_progress" | "completed",
+    "lastRun": "2024-01-15T10:30:00Z",
+    "score": 75,
+    "criticalIssues": 2,
+    "highIssues": 5,
+    "mediumIssues": 12,
+    "lowIssues": 4
+  },
+
+  "migration": {
+    "week1Complete": false,
+    "week2Complete": false,
+    "week3Complete": false,
+    "week4Complete": false,
+    "completedTasks": [
+      "typescript-strict",
+      "zod-validation"
+    ]
+  },
+
+  "stack": {
+    "framework": "nextjs",
+    "database": "drizzle",
+    "auth": "supabase",
+    "ui": "shadcn",
+    "payments": ["stripe", "paypal"]
+  }
+}
+```
+
+### Reading State File
+
+```
+1. At conversation start, check: Does .codebakers.json exist?
+2. If yes, read it and greet accordingly:
+   - "I see this is a [new/existing] project. Last audit score was 75%..."
+   - "Continuing migration - Week 2 is in progress..."
+3. If no, proceed to STEP 0 (project detection)
+```
+
+### Updating State File
+
+After any major decision or milestone:
+1. Read current state
+2. Update relevant fields
+3. Update `lastUpdated` timestamp
+4. Write back to file
+
+Example updates:
+- User chooses auth layout → Update `decisions.authLayout`
+- Audit completes → Update `audit.status`, `audit.score`, etc.
+- Migration task done → Add to `migration.completedTasks`
+
+---
+
 ## STEP 1: ALWAYS LOAD CORE
 
 For EVERY coding task, first read:
@@ -68,7 +351,7 @@ Scan the user's request for these keywords and load matching modules:
 **Load:** `.claude/01-database.md`
 
 ### Authentication & Security
-**Keywords:** login, logout, signup, register, auth, session, password, hash, 2FA, two-factor, OAuth, Google login, GitHub login, JWT, token, permission, role, security, protect, middleware, auth page, login page, signup page, split screen, 2-panel, two panel, full page, centered form, auth layout
+**Keywords:** login, logout, signup, register, auth, session, password, hash, 2FA, two-factor, OAuth, Google login, GitHub login, JWT, token, permission, role, security, protect, middleware
 **Load:** `.claude/02-auth.md`
 
 ### API Development
@@ -127,8 +410,8 @@ Scan the user's request for these keywords and load matching modules:
 **Keywords:** launch, go-live, pre-launch, post-launch, launch checklist, product launch, release, beta, soft launch
 **Load:** .claude/18-launch.md
 
-### Pre-Flight Audit
-**Keywords:** audit, pre-flight, inspection, checklist, review, quality check, launch readiness, 100-point
+### Pre-Flight Audit & Project Upgrade
+**Keywords:** audit, pre-flight, inspection, checklist, review, quality check, launch readiness, 100-point, upgrade, migrate, migration, existing project, bring up to standard, codebase review, technical debt, refactor codebase
 **Load:** .claude/19-audit.md
 
 ### Operations & Monitoring
@@ -223,41 +506,41 @@ After loading modules:
 
 ## MODULE QUICK REFERENCE
 
-| Module | Lines | Primary Use |
-|--------|-------|-------------|
-| 00-core | 2,130 | Standards, types, errors (REQUIRED) |
-| 01-database | 650 | Drizzle, queries, migrations |
-| 02-auth | 1,240 | Auth, 2FA, OAuth, security |
-| 03-api | 1,640 | Routes, validation, rate limits |
-| 04-frontend | 1,770 | React, forms, states, i18n |
-| 05-payments | 1,570 | Stripe, subscriptions, money |
-| 06-integrations | 3,440 | Email, VAPI, files, jobs |
-| 07-performance | 710 | Caching, optimization |
-| 08-testing | 820 | Tests, CI/CD, monitoring |
-| 09-design | 3,200 | UI, accessibility, SEO |
-| 10-generators | 2,920 | Scaffolding, templates |
-| 11-realtime | 1,940 | WebSockets, notifications |
-| 12-saas | 1,270 | Multi-tenant, feature flags |
-| 13-mobile | 1,060 | React Native, Expo, mobile |
-| 14-ai | 890 | OpenAI, Anthropic, RAG, embeddings |
-| 15-research | 520 | Market research, competitive analysis |
-| 16-planning | 570 | PRD, roadmap, specs |
-| 17-marketing | 790 | Growth, campaigns, messaging |
-| 18-launch | 690 | Launch playbook, go-live |
-| 19-audit | 450 | Pre-flight checks, 100-point audit |
-| 20-operations | 1,330 | Monitoring, runbooks, incidents |
-| 21-experts-core | 880 | Backend/frontend/security experts |
-| 22-experts-health | 780 | Healthcare, HIPAA compliance |
-| 23-experts-finance | 1,090 | Fintech, PCI, banking |
-| 24-experts-legal | 2,510 | Legal tech, contracts, privacy |
-| 25-experts-industry | 3,530 | Ecommerce, edtech, proptech, etc. |
-| 26-analytics | 920 | PostHog, Mixpanel, funnels |
-| 27-search | 1,130 | Full-text, Algolia, autocomplete |
-| 28-email-design | 800 | HTML emails, MJML, React Email |
-| 29-data-viz | 950 | Charts, Recharts, D3, dashboards |
-| 30-motion | 880 | Framer Motion, GSAP, animations |
-| 31-iconography | 630 | Lucide, Heroicons, SVG icons |
-| 32-print | 990 | PDF generation, print stylesheets |
+| Module | Lines | Primary Use | Has Decision Guides |
+|--------|-------|-------------|---------------------|
+| 00-core | 2,130 | Standards, types, errors (REQUIRED) | - |
+| 01-database | 650 | Drizzle, queries, migrations | - |
+| 02-auth | 1,240 | Auth, 2FA, OAuth, security | ✓ Auth page layouts |
+| 03-api | 1,640 | Routes, validation, rate limits | - |
+| 04-frontend | 1,770 | React, forms, states, i18n | ✓ Forms, modals, tables, loading |
+| 05-payments | 1,570 | Stripe, subscriptions, money | - |
+| 06-integrations | 3,440 | Email, VAPI, files, jobs | - |
+| 07-performance | 710 | Caching, optimization | - |
+| 08-testing | 820 | Tests, CI/CD, monitoring | - |
+| 09-design | 3,200 | UI, accessibility, SEO | ✓ Navigation, layouts, themes |
+| 10-generators | 2,920 | Scaffolding, templates | - |
+| 11-realtime | 1,940 | WebSockets, notifications | - |
+| 12-saas | 1,270 | Multi-tenant, feature flags | - |
+| 13-mobile | 1,060 | React Native, Expo, mobile | - |
+| 14-ai | 890 | OpenAI, Anthropic, RAG, embeddings | - |
+| 15-research | 520 | Market research, competitive analysis | - |
+| 16-planning | 570 | PRD, roadmap, specs | - |
+| 17-marketing | 790 | Growth, campaigns, messaging | - |
+| 18-launch | 690 | Launch playbook, go-live | - |
+| 19-audit | 720 | Pre-flight checks, project upgrade | ✓ Upgrade checklists |
+| 20-operations | 1,330 | Monitoring, runbooks, incidents | - |
+| 21-experts-core | 880 | Backend/frontend/security experts | - |
+| 22-experts-health | 780 | Healthcare, HIPAA compliance | - |
+| 23-experts-finance | 1,090 | Fintech, PCI, banking | - |
+| 24-experts-legal | 2,510 | Legal tech, contracts, privacy | - |
+| 25-experts-industry | 3,530 | Ecommerce, edtech, proptech, etc. | - |
+| 26-analytics | 920 | PostHog, Mixpanel, funnels | - |
+| 27-search | 1,130 | Full-text, Algolia, autocomplete | - |
+| 28-email-design | 800 | HTML emails, MJML, React Email | - |
+| 29-data-viz | 950 | Charts, Recharts, D3, dashboards | - |
+| 30-motion | 880 | Framer Motion, GSAP, animations | - |
+| 31-iconography | 630 | Lucide, Heroicons, SVG icons | - |
+| 32-print | 990 | PDF generation, print stylesheets | - |
 
 ---
 
@@ -321,6 +604,59 @@ After loading modules:
 2. **Load modules BEFORE writing code** - Not after
 3. **When in doubt, load more** - Better to have patterns than miss them
 4. **Follow patterns exactly** - They exist for a reason
+
+---
+
+## STEP 5: USE DECISION GUIDES (ASK BEFORE CODING)
+
+**IMPORTANT:** Many modules contain DECISION GUIDES at the top with tables and questions.
+
+Before implementing features that have multiple valid approaches, you MUST:
+
+1. **Check the decision guide** in the relevant module
+2. **Ask the user the clarifying questions** listed in the guide
+3. **Wait for their answer** before writing code
+4. **Use the specific pattern** that matches their choice
+
+### When to Ask Questions
+
+| Request Type | Decision Guide Location | Questions to Ask |
+|--------------|------------------------|------------------|
+| "Build a login page" | 02-auth.md | Full page or 2-panel layout? |
+| "Create a form" | 04-frontend.md | Single page, wizard, inline, or modal? |
+| "Add a modal" | 04-frontend.md | Modal, drawer, or bottom sheet? |
+| "Show data table" | 04-frontend.md | Simple table, DataTable, virtualized, or cards? |
+| "Add navigation" | 09-design.md | Top nav, sidebar, or both? |
+| "Build a page" | 09-design.md | Full width, contained, or sidebar layout? |
+| "Add dark mode" | 09-design.md | Light only, dark only, system, or toggle? |
+
+### Example Interaction
+
+```
+User: "Build me a login page"
+
+Claude: "I'll help you build a login page. First, let me ask about the design:
+
+1. **Layout preference:**
+   - A) Full page centered form (clean, minimal)
+   - B) 2-panel split screen (branding on left, form on right)
+
+2. **Social login:**
+   - Do you need Google/GitHub OAuth buttons?
+
+Which options work best for your app?"
+
+User: "B, with Google login"
+
+Claude: [Now loads 02-auth.md and uses Option B: 2-Panel pattern with OAuth]
+```
+
+### Don't Ask When...
+
+- User has specified exact requirements
+- There's only one sensible approach
+- User says "just pick" or "your choice"
+- It's a bug fix or minor change
 
 ---
 
@@ -432,3 +768,373 @@ npx vitest run
 ### Logging
 **Keywords:** log, logging, structured log, request ID, trace, debug production
 **Load:** `.claude/00-core.md`
+
+---
+
+## 🚀 QUICK COMMANDS
+
+When user types these commands, execute the corresponding action immediately:
+
+| Command | Action | Modules to Load |
+|---------|--------|-----------------|
+| `/` or `/help` | Show all available commands | None |
+| `/new` or `/init` | Initialize new project, ask for template | 00-core + 10-generators |
+| `/audit` | Run full codebase audit | 00-core + 19-audit |
+| `/add-auth` | Add authentication system | 00-core + 01-database + 02-auth + 04-frontend |
+| `/add-payments` | Add Stripe/PayPal billing | 00-core + 03-api + 05-payments |
+| `/add-teams` | Add multi-tenant teams | 00-core + 01-database + 02-auth + 12-saas |
+| `/add-api [name]` | Create new API endpoint | 00-core + 01-database + 03-api |
+| `/add-page [name]` | Create new page with layout | 00-core + 04-frontend + 09-design |
+| `/add-form [name]` | Create form with validation | 00-core + 04-frontend |
+| `/add-table [name]` | Create data table component | 00-core + 04-frontend + 01-database |
+| `/add-search` | Add search functionality | 00-core + 27-search + 04-frontend |
+| `/add-ai` | Add AI/LLM integration | 00-core + 03-api + 14-ai |
+| `/fix [file]` | Analyze and fix issues in file | 00-core + relevant modules |
+| `/explain [file]` | Explain how a file works | Read file, explain patterns |
+| `/test` | Run all tests | 08-testing |
+| `/deploy` | Deployment checklist | 08-testing + 19-audit + 20-operations |
+| `/status` | Show project status from .codebakers.json | Read state file |
+| `/deps` | Check missing dependencies | Run dependency checker |
+
+### Command Behavior
+
+When a command is detected:
+
+1. **Acknowledge the command**
+   ```
+   "Running /add-auth - I'll set up authentication for you."
+   ```
+
+2. **Check dependencies first** (see Dependency Checker below)
+
+3. **Ask minimal clarifying questions** if needed
+   ```
+   "Quick question: Do you need OAuth (Google/GitHub) or just email/password?"
+   ```
+
+4. **Execute and create files**
+
+5. **Update .codebakers.json** with new decisions/progress
+
+### Help Command Response (`/` or `/help`)
+
+When user types `/` or `/help`, show this:
+
+```
+📚 **CodeBakers Commands**
+
+**Project Setup:**
+  /new            Start a new project with templates
+  /audit          Audit existing code for improvements
+  /status         View project status and progress
+  /deps           Check missing dependencies
+
+**Add Features:**
+  /add-auth       Add authentication (email, OAuth, 2FA)
+  /add-payments   Add Stripe/PayPal billing
+  /add-teams      Add multi-tenant team support
+  /add-api [name] Create a new API endpoint
+  /add-page [name] Create a new page
+  /add-form [name] Create a form with validation
+  /add-table [name] Create a data table
+  /add-search     Add search functionality
+  /add-ai         Add AI/LLM integration
+
+**Utilities:**
+  /fix [file]     Analyze and fix issues in a file
+  /explain [file] Explain how a file works
+  /test           Run test suite
+  /deploy         Pre-deployment checklist
+
+💡 Or just describe what you want to build!
+```
+
+---
+
+## 📦 PROJECT TEMPLATES
+
+When user runs `/new` or starts a new project, offer these templates:
+
+### Template Selection
+
+```
+"What type of app are you building?
+
+A) **SaaS Starter** - Auth, billing, teams, dashboard
+B) **Marketplace** - Auth, payments, search, listings, messaging
+C) **Admin Dashboard** - Auth, data tables, charts, RBAC
+D) **API Service** - REST API, auth, rate limiting, docs
+E) **Landing + Waitlist** - Marketing page, email capture
+F) **Custom** - I'll help you pick modules"
+```
+
+### Template Definitions
+
+```json
+{
+  "saas-starter": {
+    "name": "SaaS Starter",
+    "description": "Full SaaS with auth, billing, teams",
+    "modules": ["00-core", "01-database", "02-auth", "03-api", "04-frontend", "05-payments", "09-design", "12-saas"],
+    "features": [
+      "User authentication (email + OAuth)",
+      "Team/organization management",
+      "Stripe subscription billing",
+      "User dashboard",
+      "Settings pages",
+      "Admin panel"
+    ],
+    "files": [
+      "app/(auth)/login/page.tsx",
+      "app/(auth)/signup/page.tsx",
+      "app/(dashboard)/dashboard/page.tsx",
+      "app/(dashboard)/settings/page.tsx",
+      "app/(dashboard)/billing/page.tsx",
+      "app/api/auth/[...supabase]/route.ts",
+      "app/api/billing/checkout/route.ts",
+      "app/api/billing/webhook/route.ts"
+    ],
+    "dependencies": {
+      "required": ["@supabase/supabase-js", "drizzle-orm", "zod", "stripe", "react-hook-form", "@hookform/resolvers"],
+      "ui": ["@radix-ui/react-*", "tailwindcss", "class-variance-authority", "lucide-react"]
+    }
+  },
+
+  "marketplace": {
+    "name": "Marketplace",
+    "description": "Two-sided marketplace with listings",
+    "modules": ["00-core", "01-database", "02-auth", "03-api", "04-frontend", "05-payments", "09-design", "11-realtime", "27-search"],
+    "features": [
+      "Buyer and seller accounts",
+      "Product/service listings",
+      "Search with filters",
+      "Messaging between users",
+      "Payment processing",
+      "Reviews and ratings"
+    ]
+  },
+
+  "admin-dashboard": {
+    "name": "Admin Dashboard",
+    "description": "Internal tools and data management",
+    "modules": ["00-core", "01-database", "02-auth", "03-api", "04-frontend", "09-design", "29-data-viz"],
+    "features": [
+      "Role-based access control",
+      "Data tables with filtering",
+      "Charts and analytics",
+      "User management",
+      "Activity logs",
+      "Export to CSV"
+    ]
+  },
+
+  "api-service": {
+    "name": "API Service",
+    "description": "Backend API with documentation",
+    "modules": ["00-core", "01-database", "02-auth", "03-api", "07-performance"],
+    "features": [
+      "RESTful API endpoints",
+      "API key authentication",
+      "Rate limiting",
+      "Request logging",
+      "OpenAPI documentation",
+      "Health checks"
+    ]
+  },
+
+  "landing-waitlist": {
+    "name": "Landing + Waitlist",
+    "description": "Marketing site with email capture",
+    "modules": ["00-core", "04-frontend", "09-design", "30-motion", "06-integrations"],
+    "features": [
+      "Hero section",
+      "Feature showcase",
+      "Pricing table",
+      "Waitlist signup",
+      "Email notifications",
+      "Analytics tracking"
+    ]
+  }
+}
+```
+
+### After Template Selection
+
+1. **Create .codebakers.json** with template info
+2. **Check/install dependencies**
+3. **Scaffold folder structure**
+4. **Create base files** from patterns
+5. **Show next steps**
+
+```
+"✅ SaaS Starter initialized!
+
+Created:
+├── app/(auth)/login/page.tsx
+├── app/(auth)/signup/page.tsx
+├── app/(dashboard)/...
+├── components/...
+├── lib/...
+└── .codebakers.json
+
+Next steps:
+1. Set up Supabase: Add keys to .env
+2. Set up Stripe: Add keys to .env
+3. Run: npm run db:push
+4. Run: npm run dev
+
+What would you like to build first?"
+```
+
+---
+
+## 🔍 DEPENDENCY CHECKER
+
+**BEFORE writing any code that requires packages, check if they're installed.**
+
+### Required Dependencies by Module
+
+```typescript
+const moduleDependencies = {
+  "00-core": {
+    required: ["typescript", "zod"],
+    devRequired: ["@types/node"]
+  },
+  "01-database": {
+    required: ["drizzle-orm", "postgres"],
+    devRequired: ["drizzle-kit"]
+  },
+  "02-auth": {
+    required: ["@supabase/supabase-js", "@supabase/ssr"],
+    optional: ["next-auth"]
+  },
+  "03-api": {
+    required: ["zod"],
+    optional: ["openapi3-ts", "swagger-ui-react"]
+  },
+  "04-frontend": {
+    required: ["react-hook-form", "@hookform/resolvers", "zod"],
+    ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "class-variance-authority", "clsx", "tailwind-merge", "lucide-react"]
+  },
+  "05-payments": {
+    required: ["stripe"],
+    optional: ["@paypal/paypal-js"]
+  },
+  "06-integrations": {
+    email: ["resend"],
+    files: ["@uploadthing/react"],
+    jobs: ["inngest"]
+  },
+  "14-ai": {
+    required: ["openai"],
+    optional: ["@anthropic-ai/sdk", "ai"]
+  },
+  "27-search": {
+    options: ["algoliasearch", "typesense", "meilisearch"]
+  },
+  "29-data-viz": {
+    required: ["recharts"],
+    optional: ["d3", "@nivo/core"]
+  }
+};
+```
+
+### Dependency Check Flow
+
+When loading a module or running a command:
+
+```
+1. Read package.json
+2. Check required dependencies for the module
+3. If missing, show install command:
+
+"⚠️ Missing dependencies for forms:
+
+Required:
+  npm install react-hook-form @hookform/resolvers zod
+
+UI Components (if using shadcn):
+  npx shadcn@latest add form input button
+
+Install these before proceeding? (I'll wait)"
+```
+
+### Check Command: `/deps`
+
+When user runs `/deps`:
+
+```
+"📦 Dependency Check
+
+✅ Installed:
+  - typescript (5.3.0)
+  - zod (3.22.0)
+  - drizzle-orm (0.29.0)
+  - react-hook-form (7.49.0)
+  - stripe (14.0.0)
+
+❌ Missing for current modules:
+  - @supabase/supabase-js (needed for 02-auth)
+  - resend (needed for 06-integrations)
+
+Run to install missing:
+  npm install @supabase/supabase-js resend
+
+Optional upgrades available:
+  - zod: 3.22.0 → 3.23.0
+  - stripe: 14.0.0 → 14.5.0"
+```
+
+### Auto-Check Before Code Generation
+
+Before generating any code, automatically:
+
+```typescript
+// Pseudo-code for dependency checking
+async function beforeGenerateCode(modules: string[]) {
+  const packageJson = await readPackageJson();
+  const installed = Object.keys(packageJson.dependencies || {});
+
+  const missing = [];
+  for (const mod of modules) {
+    const deps = moduleDependencies[mod];
+    if (deps?.required) {
+      for (const dep of deps.required) {
+        if (!installed.includes(dep)) {
+          missing.push({ package: dep, module: mod });
+        }
+      }
+    }
+  }
+
+  if (missing.length > 0) {
+    // Show warning and install command
+    // Wait for user confirmation before proceeding
+  }
+}
+```
+
+### Shadcn/UI Component Check
+
+For UI components, also check if shadcn components are installed:
+
+```
+"This feature uses these UI components:
+
+Installed: ✅ button, ✅ input, ✅ card
+Missing: ❌ form, ❌ toast, ❌ dialog
+
+Install missing:
+  npx shadcn@latest add form toast dialog"
+```
+
+---
+
+## COMMAND PRIORITY
+
+When processing user input, check in this order:
+
+1. **Quick Command?** → Execute command flow
+2. **State File Exists?** → Load context from .codebakers.json
+3. **New Project?** → Offer templates
+4. **Existing Project?** → Check deps, then proceed with request

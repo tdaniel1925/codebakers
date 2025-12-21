@@ -1,6 +1,271 @@
 # PRE-FLIGHT AUDIT
 # Module: 19-audit.md
-# Load when: BUSINESS project, Audit phase (before launch)
+# Load when: BUSINESS project, Audit phase (before launch), Existing project upgrade
+
+---
+
+## 🔄 EXISTING PROJECT UPGRADE AUDIT
+
+Use this section when adding CodeBakers to an existing codebase.
+
+### Quick Compatibility Check
+
+Run these commands to assess the current state:
+
+```bash
+# Check TypeScript config
+cat tsconfig.json | grep "strict"
+
+# Check for existing patterns
+grep -r "zod" src/ | head -5
+grep -r "drizzle" src/ | head -5
+grep -r "react-hook-form" src/ | head -5
+
+# Count files by type
+find src -name "*.ts" -o -name "*.tsx" | wc -l
+find src -name "*.js" -o -name "*.jsx" | wc -l
+
+# Check package.json for key dependencies
+cat package.json | grep -E "(next|react|typescript|zod|drizzle)"
+```
+
+### Upgrade Compatibility Matrix
+
+| Your Current Stack | CodeBakers Equivalent | Migration Effort |
+|--------------------|----------------------|------------------|
+| JavaScript | TypeScript | High - Add types incrementally |
+| Prisma | Drizzle | Medium - Schema migration |
+| MongoDB/Mongoose | PostgreSQL + Drizzle | High - Data migration |
+| Express/Fastify | Next.js API Routes | High - Route restructure |
+| Create React App | Next.js App Router | High - Full migration |
+| Redux/MobX | React Query + Zustand | Medium - State refactor |
+| Formik/custom forms | React Hook Form + Zod | Medium - Form rewrites |
+| Styled Components | Tailwind CSS | Medium - Style migration |
+| Custom UI | shadcn/ui | Low - Component swap |
+| No validation | Zod everywhere | Medium - Add validation |
+| Console.log | Structured logging | Low - Replace logs |
+| No rate limiting | Rate limiting | Low - Add middleware |
+
+### Upgrade Priority Checklist
+
+#### 🔴 Critical (Do First)
+
+| # | Check | Status | Notes |
+|---|-------|--------|-------|
+| 1 | TypeScript strict mode enabled | ⬜ | `"strict": true` in tsconfig |
+| 2 | SQL injection vulnerabilities fixed | ⬜ | No raw SQL with interpolation |
+| 3 | Authentication uses secure patterns | ⬜ | Check session/JWT handling |
+| 4 | Secrets not exposed in code | ⬜ | All in env vars |
+| 5 | Input validation on all API routes | ⬜ | Zod schemas |
+| 6 | HTTPS enforced in production | ⬜ | |
+
+#### 🟠 High Priority (Week 1)
+
+| # | Check | Status | Notes |
+|---|-------|--------|-------|
+| 7 | Error handling standardized | ⬜ | Use handleApiError pattern |
+| 8 | API responses use consistent format | ⬜ | { data } or { error, code } |
+| 9 | Database queries use Drizzle | ⬜ | No raw queries |
+| 10 | Rate limiting on public endpoints | ⬜ | checkRateLimit middleware |
+| 11 | Logging with request IDs | ⬜ | Structured logging |
+| 12 | Forms use React Hook Form + Zod | ⬜ | Validation + UX |
+
+#### 🟡 Medium Priority (Week 2-3)
+
+| # | Check | Status | Notes |
+|---|-------|--------|-------|
+| 13 | UI components use shadcn/ui | ⬜ | Consistent design system |
+| 14 | Loading states on all async UI | ⬜ | Skeleton/spinner patterns |
+| 15 | Error states on all data fetches | ⬜ | ErrorBoundary, error UI |
+| 16 | Empty states designed | ⬜ | Not just blank screens |
+| 17 | React Query for server state | ⬜ | Caching, refetching |
+| 18 | Toast notifications for actions | ⬜ | Success/error feedback |
+
+#### 🟢 Low Priority (Ongoing)
+
+| # | Check | Status | Notes |
+|---|-------|--------|-------|
+| 19 | Tests for critical paths | ⬜ | At minimum: auth, payments |
+| 20 | Consistent naming conventions | ⬜ | kebab-case files, PascalCase components |
+| 21 | No unused code/dependencies | ⬜ | Clean up dead code |
+| 22 | Documentation updated | ⬜ | README, API docs |
+| 23 | Accessibility basics | ⬜ | Semantic HTML, ARIA |
+| 24 | Mobile responsive | ⬜ | Test on real devices |
+
+### Migration Patterns
+
+#### Pattern 1: Upgrade Validation
+
+**Before (no validation):**
+```typescript
+// ❌ Old pattern
+export async function POST(req: Request) {
+  const body = await req.json();
+  const user = await db.query(`INSERT INTO users (email) VALUES ('${body.email}')`);
+  return Response.json(user);
+}
+```
+
+**After (CodeBakers pattern):**
+```typescript
+// ✅ CodeBakers pattern
+import { z } from 'zod';
+import { handleApiError, successResponse, autoRateLimit } from '@/lib/api-utils';
+import { db, users } from '@/db';
+
+const createUserSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2).max(100),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    autoRateLimit(req);
+    const body = await req.json();
+    const data = createUserSchema.parse(body);
+
+    const [user] = await db.insert(users).values(data).returning();
+
+    return successResponse(user, 201);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+```
+
+#### Pattern 2: Upgrade Forms
+
+**Before (uncontrolled/custom):**
+```typescript
+// ❌ Old pattern
+function ContactForm() {
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email.includes('@')) {
+      setError('Invalid email');
+      return;
+    }
+    // submit...
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input value={email} onChange={e => setEmail(e.target.value)} />
+      {error && <span style={{color: 'red'}}>{error}</span>}
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+```
+
+**After (CodeBakers pattern):**
+```typescript
+// ✅ CodeBakers pattern
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+const schema = z.object({
+  email: z.string().email('Please enter a valid email'),
+});
+
+function ContactForm() {
+  const form = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: { email: '' },
+  });
+
+  const onSubmit = async (data: z.infer<typeof schema>) => {
+    // submit with validated data
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <Input {...field} />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? 'Sending...' : 'Submit'}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+```
+
+#### Pattern 3: Upgrade Database Queries
+
+**Before (Prisma/raw SQL):**
+```typescript
+// ❌ Prisma
+const users = await prisma.user.findMany({
+  where: { teamId: teamId },
+  include: { profile: true },
+});
+
+// ❌ Raw SQL
+const result = await pool.query('SELECT * FROM users WHERE team_id = $1', [teamId]);
+```
+
+**After (Drizzle):**
+```typescript
+// ✅ Drizzle
+import { db, users, profiles } from '@/db';
+import { eq } from 'drizzle-orm';
+
+const result = await db
+  .select()
+  .from(users)
+  .leftJoin(profiles, eq(users.id, profiles.userId))
+  .where(eq(users.teamId, teamId));
+```
+
+### Incremental Migration Strategy
+
+```
+Week 1: Critical Security + Core Infrastructure
+├── Enable TypeScript strict mode
+├── Add Zod validation to all API routes
+├── Implement rate limiting
+├── Set up structured logging
+└── Fix any SQL injection risks
+
+Week 2: API Layer Standardization
+├── Migrate to handleApiError pattern
+├── Standardize response formats
+├── Add request ID tracking
+├── Convert to Drizzle queries
+└── Add API tests for critical paths
+
+Week 3: Frontend Patterns
+├── Install shadcn/ui components
+├── Migrate forms to React Hook Form
+├── Add loading/error/empty states
+├── Implement toast notifications
+└── Add React Query for data fetching
+
+Week 4: Polish & Testing
+├── Add E2E tests for critical flows
+├── Fix accessibility issues
+├── Mobile responsive fixes
+├── Performance optimization
+└── Documentation updates
+```
 
 ---
 
