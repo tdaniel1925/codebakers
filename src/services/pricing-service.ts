@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 
 export interface PlanDetails {
   id: string;
-  plan: 'beta' | 'pro' | 'team' | 'agency';
+  plan: 'beta' | 'pro' | 'team' | 'agency' | 'enterprise';
   name: string;
   description: string | null;
   features: string[];
@@ -50,7 +50,7 @@ export class PricingService {
   /**
    * Get a specific plan by type
    */
-  static async getPlan(planType: 'pro' | 'team' | 'agency'): Promise<PlanDetails | null> {
+  static async getPlan(planType: 'pro' | 'team' | 'agency' | 'enterprise'): Promise<PlanDetails | null> {
     const [plan] = await db
       .select()
       .from(subscriptionPricing)
@@ -81,7 +81,7 @@ export class PricingService {
    * Get provider-specific plan ID
    */
   static async getProviderPlanId(
-    planType: 'pro' | 'team' | 'agency',
+    planType: 'pro' | 'team' | 'agency' | 'enterprise',
     provider: PaymentProvider,
     yearly: boolean = false
   ): Promise<string | null> {
@@ -104,7 +104,7 @@ export class PricingService {
    * Update a pricing plan
    */
   static async updatePlan(
-    planType: 'pro' | 'team' | 'agency',
+    planType: 'pro' | 'team' | 'agency' | 'enterprise',
     data: Partial<{
       name: string;
       description: string;
@@ -141,7 +141,7 @@ export class PricingService {
    * Create or update a pricing plan (upsert)
    */
   static async upsertPlan(data: {
-    plan: 'pro' | 'team' | 'agency';
+    plan: 'pro' | 'team' | 'agency' | 'enterprise';
     name: string;
     description?: string;
     features?: string[];

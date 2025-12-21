@@ -302,6 +302,10 @@ const coverageAreas = [
     category: 'Project Deliverables',
     items: ['Technical Specs', 'Architecture Docs', 'Handoff Guides', 'API Documentation', 'Roadmap Templates', 'Risk Assessments', 'Go-live Playbooks', 'Rollback Procedures', '100-point Audits'],
   },
+  {
+    category: 'Security & Infrastructure',
+    items: ['Rate Limiting', 'CSRF Protection', 'Input Sanitization', 'Secure Headers', 'Session Management', 'API Key Rotation', 'Webhook Verification', 'Audit Logging', 'Error Boundaries'],
+  },
 ];
 
 // FAQ data - v5.0
@@ -1072,7 +1076,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {coverageAreas.map((area) => (
               <div key={area.category} className="p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow">
                 <h3 className="text-lg font-semibold text-foreground mb-4">{area.category}</h3>

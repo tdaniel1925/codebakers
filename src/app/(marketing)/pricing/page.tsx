@@ -2,11 +2,18 @@ import { getServerSession } from '@/lib/auth';
 import { PricingCard } from '@/components/pricing-card';
 import { Badge } from '@/components/ui/badge';
 
-const plans = [
+const plans: Array<{
+  name: string;
+  price: number | 'custom';
+  plan: 'pro' | 'team' | 'agency' | 'enterprise';
+  description: string;
+  features: string[];
+  popular: boolean;
+}> = [
   {
     name: 'Pro',
     price: 49,
-    plan: 'pro' as const,
+    plan: 'pro',
     description: 'Perfect for solo developers',
     features: [
       '34 production modules',
@@ -21,7 +28,7 @@ const plans = [
   {
     name: 'Team',
     price: 149,
-    plan: 'team' as const,
+    plan: 'team',
     description: 'For growing teams',
     features: [
       'Everything in Pro',
@@ -36,7 +43,7 @@ const plans = [
   {
     name: 'Agency',
     price: 349,
-    plan: 'agency' as const,
+    plan: 'agency',
     description: 'For agencies & consultancies',
     features: [
       'Everything in Team',
@@ -45,6 +52,22 @@ const plans = [
       'Custom patterns on request',
       'Dedicated support',
       'Training sessions',
+    ],
+    popular: false,
+  },
+  {
+    name: 'Enterprise',
+    price: 'custom',
+    plan: 'enterprise',
+    description: 'For large organizations',
+    features: [
+      'Everything in Agency',
+      'Custom SLA',
+      'Dedicated account manager',
+      'Custom pattern development',
+      'On-premise deployment option',
+      'SSO/SAML integration',
+      'Invoice billing',
     ],
     popular: false,
   },
@@ -80,7 +103,7 @@ export default async function PricingPage() {
         </div>
 
         {/* Plans */}
-        <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
           {plans.map((plan) => (
             <PricingCard
               key={plan.name}

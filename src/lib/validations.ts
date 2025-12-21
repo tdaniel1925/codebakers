@@ -24,13 +24,13 @@ export const createApiKeySchema = z.object({
 
 // Billing schemas
 export const checkoutSchema = z.object({
-  plan: z.enum(['pro', 'team', 'agency'], {
+  plan: z.enum(['pro', 'team', 'agency', 'enterprise'], {
     message: 'Invalid plan selected',
   }),
 });
 
 // Subscription plan schema for webhook validation
-export const subscriptionPlanSchema = z.enum(['pro', 'team', 'agency']);
+export const subscriptionPlanSchema = z.enum(['pro', 'team', 'agency', 'enterprise']);
 export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>;
 
 // Admin schemas

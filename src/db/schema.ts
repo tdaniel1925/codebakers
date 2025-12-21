@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, timestamp, boolean, integer, pgEnum } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-export const subscriptionPlanEnum = pgEnum('subscription_plan', ['beta', 'pro', 'team', 'agency']);
+export const subscriptionPlanEnum = pgEnum('subscription_plan', ['beta', 'pro', 'team', 'agency', 'enterprise']);
 export const paymentProviderEnum = pgEnum('payment_provider', ['stripe', 'square', 'paypal']);
 
 export const profiles = pgTable('profiles', {
@@ -128,6 +128,20 @@ export const subscriptionPricing = pgTable('subscription_pricing', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// Enterprise Inquiries - track enterprise plan inquiries
+export const enterpriseInquiries = pgTable('enterprise_inquiries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  company: text('company').notNull(),
+  teamSize: text('team_size'),
+  useCase: text('use_case'),
+  status: text('status').default('new'), // new, contacted, converted, declined
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+  respondedAt: timestamp('responded_at'),
+});
+
 // Module Reports - track outdated module reports from users
 export const moduleReports = pgTable('module_reports', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -201,4 +215,6 @@ export type ContentVersion = typeof contentVersions.$inferSelect;
 export type NewContentVersion = typeof contentVersions.$inferInsert;
 export type SubscriptionPricing = typeof subscriptionPricing.$inferSelect;
 export type NewSubscriptionPricing = typeof subscriptionPricing.$inferInsert;
+export type EnterpriseInquiry = typeof enterpriseInquiries.$inferSelect;
+export type NewEnterpriseInquiry = typeof enterpriseInquiries.$inferInsert;
 export type PaymentProvider = 'stripe' | 'square' | 'paypal';

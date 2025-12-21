@@ -1,8 +1,8 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Loader2, Check, CreditCard, Square, Wallet } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Loader2, Check, CreditCard, Square, Wallet, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,6 +82,24 @@ const fallbackPlans: PlanData[] = [
     ],
     providers: { stripe: true, square: true, paypal: true },
   },
+  {
+    plan: 'enterprise',
+    name: 'Enterprise',
+    description: null,
+    priceMonthly: 0, // Custom pricing
+    priceYearly: null,
+    seats: 9999,
+    features: [
+      'Everything in Agency',
+      'Custom SLA',
+      'Dedicated account manager',
+      'Custom pattern development',
+      'On-premise deployment option',
+      'SSO/SAML integration',
+      'Invoice billing',
+    ],
+    providers: { stripe: false, square: false, paypal: false },
+  },
 ];
 
 function BillingContent() {
@@ -92,6 +110,7 @@ function BillingContent() {
   const [showProviderDialog, setShowProviderDialog] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   useEffect(() => {
     // Check for success/canceled query params
@@ -261,9 +280,10 @@ function BillingContent() {
       )}
 
       {/* Plans */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {plans.map((plan) => {
           const isPopular = plan.plan === getPopularPlan();
+          const isEnterprise = plan.plan === 'enterprise';
           return (
             <Card
               key={plan.plan}
@@ -279,10 +299,16 @@ function BillingContent() {
               <CardHeader>
                 <CardTitle className="text-white">{plan.name}</CardTitle>
                 <CardDescription>
-                  <span className="text-3xl font-bold text-white">
-                    {formatPrice(plan.priceMonthly)}
-                  </span>
-                  <span className="text-neutral-400">/month</span>
+                  {isEnterprise ? (
+                    <span className="text-3xl font-bold text-white">Custom</span>
+                  ) : (
+                    <>
+                      <span className="text-3xl font-bold text-white">
+                        {formatPrice(plan.priceMonthly)}
+                      </span>
+                      <span className="text-neutral-400">/month</span>
+                    </>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -300,29 +326,41 @@ function BillingContent() {
 
                 {/* Payment method indicator */}
                 <div className="flex items-center gap-2 pt-2 border-t border-neutral-800">
-                  <span className="text-xs text-neutral-500">Secure payment via PayPal</span>
+                  <span className="text-xs text-neutral-500">
+                    {isEnterprise ? 'Custom pricing & onboarding' : 'Secure payment via PayPal'}
+                  </span>
                 </div>
 
-                <Button
-                  onClick={() => handleSelectPlan(plan.plan)}
-                  disabled={isLoading === plan.plan || currentPlan === plan.plan}
-                  className={`w-full ${
-                    isPopular
-                      ? 'bg-red-600 hover:bg-red-700'
-                      : 'bg-neutral-800 hover:bg-neutral-700'
-                  }`}
-                >
-                  {isLoading === plan.plan ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : currentPlan === plan.plan ? (
-                    'Current Plan'
-                  ) : (
-                    'Get Started'
-                  )}
-                </Button>
+                {isEnterprise ? (
+                  <Button
+                    onClick={() => router.push('/enterprise')}
+                    className="w-full bg-neutral-800 hover:bg-neutral-700"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Contact Us
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => handleSelectPlan(plan.plan)}
+                    disabled={isLoading === plan.plan || currentPlan === plan.plan}
+                    className={`w-full ${
+                      isPopular
+                        ? 'bg-red-600 hover:bg-red-700'
+                        : 'bg-neutral-800 hover:bg-neutral-700'
+                    }`}
+                  >
+                    {isLoading === plan.plan ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Loading...
+                      </>
+                    ) : currentPlan === plan.plan ? (
+                      'Current Plan'
+                    ) : (
+                      'Get Started'
+                    )}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           );

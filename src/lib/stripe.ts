@@ -35,6 +35,12 @@ export const PLANS = {
     seats: 999, // Effectively unlimited
     features: ['Everything in Team', 'Unlimited seats', 'White-label support'],
   },
+  enterprise: {
+    name: 'Enterprise',
+    price: 0, // Custom pricing
+    seats: 9999,
+    features: ['Everything in Agency', 'Custom SLA', 'SSO/SAML', 'Invoice billing'],
+  },
 } as const;
 
 export type PlanType = keyof typeof PLANS;

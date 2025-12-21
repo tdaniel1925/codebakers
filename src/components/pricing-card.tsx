@@ -4,15 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Loader2, CreditCard } from 'lucide-react';
+import { Check, Loader2, CreditCard, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PricingCardProps {
   name: string;
-  price: number;
+  price: number | 'custom';
   description: string;
   features: string[];
-  plan: 'pro' | 'team' | 'agency';
+  plan: 'pro' | 'team' | 'agency' | 'enterprise';
   popular?: boolean;
   isLoggedIn?: boolean;
 }
@@ -29,7 +29,15 @@ export function PricingCard({
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  const isEnterprise = plan === 'enterprise';
+
   const handleCheckout = async () => {
+    // Enterprise goes to contact form
+    if (isEnterprise) {
+      router.push('/enterprise');
+      return;
+    }
+
     if (!isLoggedIn) {
       // Redirect to signup with plan in query
       router.push(`/signup?plan=${plan}`);
@@ -82,8 +90,14 @@ export function PricingCard({
       </div>
 
       <div className="mb-6">
-        <span className="text-4xl font-bold text-white">${price}</span>
-        <span className="text-neutral-400">/month</span>
+        {price === 'custom' ? (
+          <span className="text-4xl font-bold text-white">Custom</span>
+        ) : (
+          <>
+            <span className="text-4xl font-bold text-white">${price}</span>
+            <span className="text-neutral-400">/month</span>
+          </>
+        )}
       </div>
 
       <ul className="space-y-3 mb-8 flex-1">
@@ -109,6 +123,11 @@ export function PricingCard({
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Processing...
           </>
+        ) : isEnterprise ? (
+          <>
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Contact Us
+          </>
         ) : (
           <>
             <CreditCard className="mr-2 h-4 w-4" />
@@ -119,7 +138,7 @@ export function PricingCard({
 
       {/* Payment methods info */}
       <p className="text-xs text-neutral-500 text-center mt-4">
-        Pay with credit card or PayPal
+        {isEnterprise ? 'Custom pricing & onboarding' : 'Pay with credit card or PayPal'}
       </p>
     </div>
   );

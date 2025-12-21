@@ -8,6 +8,9 @@ import { uninstall } from './commands/uninstall.js';
 import { installHook, uninstallHook } from './commands/install-hook.js';
 import { doctor } from './commands/doctor.js';
 import { init } from './commands/init.js';
+import { serve } from './commands/serve.js';
+import { mcpConfig, mcpUninstall } from './commands/mcp-config.js';
+import { setup } from './commands/setup.js';
 
 const program = new Command();
 
@@ -16,9 +19,15 @@ program
   .description('CodeBakers CLI - Production patterns for AI-assisted development')
   .version('1.0.0');
 
+// Primary command - one-time setup
+program
+  .command('setup')
+  .description('One-time setup: login + configure Claude Code (recommended)')
+  .action(setup);
+
 program
   .command('init')
-  .description('Interactive setup wizard (recommended for new users)')
+  .description('Interactive project setup wizard')
   .action(init);
 
 program
@@ -55,5 +64,24 @@ program
   .command('doctor')
   .description('Check if CodeBakers is set up correctly')
   .action(doctor);
+
+// MCP Server commands
+program
+  .command('serve')
+  .description('Start the MCP server for Claude Code integration')
+  .action(serve);
+
+program
+  .command('mcp-config')
+  .description('Show or install MCP configuration for Claude Code')
+  .option('--install', 'Install to global Claude Code config')
+  .option('--project', 'Create .mcp.json in current directory (for boilerplates)')
+  .option('--show', 'Show configuration without installing')
+  .action(mcpConfig);
+
+program
+  .command('mcp-uninstall')
+  .description('Remove MCP configuration from Claude Code')
+  .action(mcpUninstall);
 
 program.parse();

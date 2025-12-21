@@ -8,6 +8,20 @@
       "when": 1766285202657,
       "tag": "0000_useful_sauron",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1766337350218,
+      "tag": "0001_worthless_winter_soldier",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1766338023900,
+      "tag": "0002_military_kulan_gath",
+      "breakpoints": true
     }
   ]
 }

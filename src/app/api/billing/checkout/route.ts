@@ -19,6 +19,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { plan } = checkoutSchema.parse(body);
 
+    // Enterprise requires custom setup - redirect to contact
+    if (plan === 'enterprise') {
+      return NextResponse.json(
+        { error: 'Enterprise plans require custom setup. Please contact enterprise@codebakers.dev' },
+        { status: 400 }
+      );
+    }
+
     const team = await TeamService.getByOwnerId(session.user.id);
     if (!team) {
       return NextResponse.json({ error: 'No team found' }, { status: 404 });

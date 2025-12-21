@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 
 // Validation schema
 const checkoutSchema = z.object({
-  plan: z.enum(['pro', 'team', 'agency']),
+  plan: z.enum(['pro', 'team', 'agency', 'enterprise']),
 });
 
 export async function POST(req: NextRequest) {
@@ -39,6 +39,13 @@ export async function POST(req: NextRequest) {
     }
 
     const { plan } = result.data;
+
+    // Enterprise requires custom setup - redirect to contact
+    if (plan === 'enterprise') {
+      throw new ValidationError(
+        'Enterprise plans require custom setup. Please contact enterprise@codebakers.dev'
+      );
+    }
 
     // Get user's team
     const team = await TeamService.getByOwnerId(session.user.id);

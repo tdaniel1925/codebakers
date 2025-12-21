@@ -92,7 +92,7 @@ export class TeamService {
       stripeCustomerId?: string;
       stripeSubscriptionId?: string;
       subscriptionStatus?: string;
-      subscriptionPlan?: 'beta' | 'pro' | 'team' | 'agency' | null;
+      subscriptionPlan?: 'beta' | 'pro' | 'team' | 'agency' | 'enterprise' | null;
       seatLimit?: number;
     }
   ) {
@@ -118,7 +118,7 @@ export class TeamService {
       squareCustomerId?: string;
       squareSubscriptionId?: string;
       subscriptionStatus?: string;
-      subscriptionPlan?: 'beta' | 'pro' | 'team' | 'agency' | null;
+      subscriptionPlan?: 'beta' | 'pro' | 'team' | 'agency' | 'enterprise' | null;
       seatLimit?: number;
     }
   ) {
@@ -143,7 +143,7 @@ export class TeamService {
     data: {
       paypalSubscriptionId?: string;
       subscriptionStatus?: string;
-      subscriptionPlan?: 'beta' | 'pro' | 'team' | 'agency' | null;
+      subscriptionPlan?: 'beta' | 'pro' | 'team' | 'agency' | 'enterprise' | null;
       seatLimit?: number;
     }
   ) {

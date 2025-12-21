@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Copy, Check, Terminal, Download, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Copy, Check, Terminal, Download, ArrowRight, Sparkles, CheckCircle2, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +34,7 @@ interface DashboardContentProps {
 
 export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
   const [copied, setCopied] = useState(false);
+  const [copiedStep, setCopiedStep] = useState<number | null>(null);
   const [showKey, setShowKey] = useState(false);
 
   const hasActiveSubscription =
@@ -59,25 +60,39 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
     }
   };
 
-  // Steps for getting started
+  const copyCommand = async (command: string, stepId: number) => {
+    await navigator.clipboard.writeText(command);
+    setCopiedStep(stepId);
+    toast.success('Copied to clipboard');
+    setTimeout(() => setCopiedStep(null), 2000);
+  };
+
+  // Steps for getting started - MCP approach (no local files)
   const steps = [
     {
       id: 1,
-      title: 'Install CLI',
-      command: 'npm install -g @codebakers/cli',
-      completed: false,
+      title: 'Run setup command',
+      description: 'Open your terminal and run:',
+      command: 'npx @codebakers/cli setup',
+      note: 'This will prompt for your API key (shown below)',
+      completed: !!stats.lastApiCall,
     },
     {
       id: 2,
-      title: 'Login with your key',
-      command: 'codebakers login',
+      title: 'Enable in Claude Code',
+      description: 'Copy this into Claude Code:',
+      command: '/mcp add codebakers npx -y @codebakers/cli serve',
+      note: 'One-time setup, no restart needed!',
       completed: false,
     },
     {
       id: 3,
-      title: 'Add to your project',
-      command: 'codebakers install',
-      completed: !!stats.lastApiCall,
+      title: 'Start building!',
+      description: 'Ask Claude to build something:',
+      command: '"Build a login form with validation"',
+      note: 'Claude now has access to 34 production patterns',
+      isPrompt: true,
+      completed: false,
     },
   ];
 
@@ -196,9 +211,12 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
       <Card className="bg-neutral-900/80 border-neutral-800">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <Download className="w-5 h-5 text-red-400" />
+            <Zap className="w-5 h-5 text-red-400" />
             Get Started in 3 Steps
           </CardTitle>
+          <CardDescription className="text-neutral-400">
+            One-time setup. No files stored locally. Works across all projects.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {steps.map((step) => (
@@ -223,9 +241,29 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
                 <p className={`font-medium ${step.completed ? 'text-red-400' : 'text-white'}`}>
                   {step.title}
                 </p>
-                <code className="block mt-2 rounded bg-black px-3 py-2 font-mono text-sm text-neutral-300 overflow-x-auto border border-neutral-800">
-                  {step.command}
-                </code>
+                <p className="text-sm text-neutral-400 mt-1">{step.description}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <code className={`flex-1 rounded bg-black px-3 py-2 font-mono text-sm overflow-x-auto border border-neutral-800 ${step.isPrompt ? 'text-red-400 italic' : 'text-neutral-300'}`}>
+                    {step.command}
+                  </code>
+                  {!step.isPrompt && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyCommand(step.command, step.id)}
+                      className="text-neutral-400 hover:text-white hover:bg-neutral-800 shrink-0"
+                    >
+                      {copiedStep === step.id ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+                {step.note && (
+                  <p className="text-xs text-neutral-500 mt-2">{step.note}</p>
+                )}
               </div>
             </div>
           ))}
