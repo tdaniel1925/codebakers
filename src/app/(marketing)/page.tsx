@@ -299,7 +299,7 @@ const pricingPlans = [
       'Pattern updates',
       'Community support',
     ],
-    cta: 'Start Free Trial',
+    cta: 'Get Started',
     popular: false,
   },
   {
@@ -314,7 +314,7 @@ const pricingPlans = [
       'Priority support',
       'Private Slack channel',
     ],
-    cta: 'Start Free Trial',
+    cta: 'Get Started',
     popular: true,
   },
   {
@@ -352,8 +352,8 @@ const faqs = [
     answer: 'Yes! All patterns are plain markdown files in your project. You can modify them, add your own patterns, or request custom modules for your specific needs.',
   },
   {
-    question: 'Is there a free trial?',
-    answer: 'Yes, all plans include a 14-day free trial. No credit card required. Cancel anytime.',
+    question: 'Is there a free tier?',
+    answer: 'Yes! You get one free project with unlimited time. No credit card required. Upgrade anytime for more projects and features.',
   },
 ];
 
@@ -397,9 +397,8 @@ export default function HomePage() {
             className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight tracking-tight"
             variants={fadeInUp}
           >
-            Stop fighting
-            <br />
-            <span className="text-red-600">
+            Stop fighting{' '}
+            <span className="text-red-600 whitespace-nowrap">
               AI revision loops
             </span>
           </motion.h1>
@@ -415,7 +414,7 @@ export default function HomePage() {
           <motion.div className="flex justify-center gap-4 mb-16" variants={fadeInUp}>
             <Link href="/signup">
               <Button size="lg" className="bg-red-600 hover:bg-red-700 h-14 px-10 text-lg shadow-lg shadow-red-600/20">
-                Start Free Trial
+                Start Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -468,7 +467,7 @@ export default function HomePage() {
               The Problem
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              AI coding is broken
+              AI coding is&nbsp;broken
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
               You spend more time fixing AI output than writing code yourself.
@@ -507,7 +506,7 @@ export default function HomePage() {
               The Solution
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Production patterns for every feature
+              Production patterns for every&nbsp;feature
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
               CodeBakers gives your AI the context it needs to write real code the first time.
@@ -567,7 +566,7 @@ export default function HomePage() {
               Live Demo
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              See what CodeBakers generates
+              See what CodeBakers&nbsp;generates
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
               One prompt. Complete, production-ready code.
@@ -626,7 +625,7 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Get started in 60 seconds
+              Get started in 60&nbsp;seconds
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
               Three commands. That&apos;s all it takes.
@@ -667,7 +666,7 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              34 Production Modules
+              34 Production&nbsp;Modules
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
               Everything you need to build modern SaaS applications.
@@ -717,7 +716,7 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Works with any AI coding assistant
+              Works with any AI coding&nbsp;assistant
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
               CodeBakers patterns work with all major AI tools.
@@ -756,7 +755,7 @@ export default function HomePage() {
               Industry Modules
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Domain expertise built-in
+              Domain expertise&nbsp;built-in
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
               Specialized patterns for regulated industries and compliance requirements.
@@ -793,7 +792,7 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Loved by developers
+              Loved by&nbsp;developers
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
               Join thousands of developers shipping faster with CodeBakers.
@@ -841,10 +840,10 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Simple, transparent pricing
+              Simple, transparent&nbsp;pricing
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              14-day free trial. No credit card required. Cancel anytime.
+              One free project, forever. No credit card required.
             </p>
           </motion.div>
 
@@ -908,7 +907,7 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Frequently asked questions
+              Frequently asked&nbsp;questions
             </h2>
           </motion.div>
 
@@ -952,16 +951,16 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Ready to ship 5x faster?
+              Ready to ship 5x&nbsp;faster?
             </h2>
-            <p className="text-gray-400 mb-8 max-w-xl mx-auto text-lg">
+            <p className="text-gray-300 mb-8 max-w-xl mx-auto text-lg">
               Join developers building production apps in days, not weeks.
-              Start your 14-day free trial today.
+              Start with one free project, forever.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link href="/signup">
                 <Button size="lg" className="bg-red-600 hover:bg-red-700 h-14 px-10 text-lg shadow-lg">
-                  Start Free Trial
+                  Start Free
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
@@ -976,7 +975,7 @@ export default function HomePage() {
               </Link>
             </div>
             <p className="text-sm text-gray-500 mt-6">
-              No credit card required. Cancel anytime.
+              No credit card required. One free project, forever.
             </p>
           </motion.div>
         </div>

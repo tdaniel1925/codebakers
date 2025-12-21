@@ -307,6 +307,10 @@ const coverageAreas = [
 // FAQ data - v5.0
 const faqs = [
   {
+    question: 'How easy is it to install?',
+    answer: 'Two steps, under 2 minutes: 1) Run "npx @codebakers/cli setup" in your terminal and enter your API key. 2) Paste one command into Claude Code. That\'s it! No restart needed, works across all your projects instantly.',
+  },
+  {
     question: 'What AI tools does CodeBakers work with?',
     answer: 'Cursor IDE, Claude Code CLI, Aider, Windsurf, and any AI coding assistant. Our CLI automatically detects your IDE and configures everything. One install, instant upgrade to your entire AI coding workflow.',
   },
@@ -331,8 +335,8 @@ const faqs = [
     answer: 'HIPAA (18 identifiers, PHI logging), PCI-DSS (SAQ-A with Stripe), GDPR/CCPA (data export, consent), COPPA (age gates, parental consent), KYC/AML (screening rules), plus ToS and Privacy Policy generators. Built-in from day one.',
   },
   {
-    question: 'Can I read the pattern files directly?',
-    answer: 'The patterns are encrypted and delivered via a background daemon. Your AI IDE reads them, but they\'re not stored as plain text files you can open. This protects our IP while giving you full functionality.',
+    question: 'Are patterns stored on my computer?',
+    answer: 'No. Patterns are fetched on-demand via our MCP server and delivered directly to your AI. Nothing is stored locally, which means instant updates and better security. Your AI gets the patterns it needs, when it needs them.',
   },
   {
     question: 'What if I already have custom Cursor rules?',
@@ -454,7 +458,7 @@ export default function HomePage() {
             <span className="text-foreground">Production-Ready Code</span>
             <br />
             <span className="text-red-600 dark:text-red-500">
-              On The First Prompt
+              On The First&nbsp;Prompt
             </span>
           </h1>
 
@@ -512,7 +516,7 @@ export default function HomePage() {
           <div className="flex flex-wrap justify-center items-center gap-6 mb-12 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <SecurityCheckIcon className="h-5 w-5 text-green-500" />
-              <span>30-day money back guarantee</span>
+              <span>1 free project forever</span>
             </div>
             <div className="flex items-center gap-2">
               <FlashIcon className="h-5 w-5 text-yellow-500" />
@@ -520,7 +524,7 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-2">
               <Tick02Icon className="h-5 w-5 text-blue-500" />
-              <span>3 free downloads to try</span>
+              <span>No credit card required</span>
             </div>
           </div>
 
@@ -727,7 +731,7 @@ export default function HomePage() {
           <div className="text-center mb-12">
             <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">Built For You</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              Whether you&apos;re solo or scaling
+              Whether you&apos;re solo or&nbsp;scaling
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               CodeBakers adapts to how you build. Choose your project type and get exactly what you need.
@@ -765,7 +769,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">The Problem</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              Sound familiar?
+              Sound&nbsp;familiar?
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               You love AI coding tools. But you&apos;re stuck in an endless loop of &quot;almost right.&quot;
@@ -806,7 +810,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">The Solution</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              CodeBakers makes your AI write like a senior dev
+              CodeBakers makes your AI write like a senior&nbsp;dev
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               {totalLines.toLocaleString()} lines of production patterns. Your AI finally knows best practices.
@@ -849,7 +853,7 @@ export default function HomePage() {
               Loved by Developers
             </Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              Real developers. Real results.
+              Real developers. Real&nbsp;results.
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               See what happens when your AI actually knows what it&apos;s doing.
@@ -883,7 +887,7 @@ export default function HomePage() {
 
           {/* Mid-page CTA */}
           <div className="mt-16 text-center p-8 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
-            <h3 className="text-2xl font-bold text-foreground mb-2">Ready to ship faster?</h3>
+            <h3 className="text-2xl font-bold text-foreground mb-2">Ready to ship&nbsp;faster?</h3>
             <p className="text-muted-foreground mb-6">Join 1,200+ developers who&apos;ve upgraded their AI.</p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link href="/signup">
@@ -903,7 +907,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-secondary text-secondary-foreground border-border">Time Savings</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              Stop guessing. See the numbers.
+              Stop guessing. See the&nbsp;numbers.
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Real time savings measured across common development tasks.
@@ -955,7 +959,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">vs Alternatives</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              Why not free Cursor rules?
+              Why not free Cursor&nbsp;rules?
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               cursor.directory, awesome-cursorrules, and awesome-claude-code are great starting points. But they&apos;re just snippets you have to assemble yourself.
@@ -1018,7 +1022,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700">34 Modules</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              {totalLines.toLocaleString()} lines of production patterns
+              {totalLines.toLocaleString()} lines of production&nbsp;patterns
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Smart module loading means AI only loads what&apos;s relevant. Ask for a login form and it loads auth + frontend patterns, not all {totalLines.toLocaleString()} lines.
@@ -1061,7 +1065,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-secondary text-secondary-foreground border-border">Coverage</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              Complete product development
+              Complete product&nbsp;development
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Code, business, marketing, compliance — everything you need from discovery to launch.
@@ -1097,7 +1101,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700">Pricing</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              Less than a coffee a day
+              Less than a coffee a&nbsp;day
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Save 10+ hours per project. Pay less than your AI subscription.
@@ -1105,7 +1109,7 @@ export default function HomePage() {
             <div className="flex flex-wrap justify-center items-center gap-4 mt-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <SecurityCheckIcon className="h-4 w-4 text-green-500" />
-                <span>30-day money back guarantee</span>
+                <span>1 free project forever</span>
               </div>
               <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
               <div className="flex items-center gap-1">
@@ -1183,7 +1187,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-secondary text-secondary-foreground border-border">FAQ</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              Frequently asked questions
+              Frequently asked&nbsp;questions
             </h2>
           </div>
 
@@ -1217,7 +1221,7 @@ export default function HomePage() {
           </div>
 
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Your next project deserves better AI
+            Your next project deserves better&nbsp;AI
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Join 1,200+ developers who stopped fighting their tools and started shipping.
@@ -1235,7 +1239,7 @@ export default function HomePage() {
           <div className="flex flex-wrap justify-center items-center gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <SecurityCheckIcon className="h-5 w-5 text-green-500" />
-              <span>30-day money back guarantee</span>
+              <span>1 free project forever</span>
             </div>
             <div className="flex items-center gap-2">
               <FlashIcon className="h-5 w-5 text-yellow-500" />
