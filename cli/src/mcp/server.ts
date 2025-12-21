@@ -14,6 +14,22 @@ import { getApiKey, getApiUrl } from '../config.js';
 const patternCache = new Map<string, { content: string; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// Pattern detection keywords for auto-routing
+const PATTERN_KEYWORDS: Record<string, string[]> = {
+  '00-core': ['any', 'all', 'code', 'feature', 'build'],
+  '01-database': ['database', 'db', 'query', 'schema', 'table', 'migration', 'drizzle', 'sql', 'postgres'],
+  '02-auth': ['auth', 'login', 'signup', 'register', 'password', 'session', 'oauth', 'google', 'github', '2fa', 'permission', 'role'],
+  '03-api': ['api', 'endpoint', 'route', 'rest', 'crud', 'webhook', 'rate limit'],
+  '04-frontend': ['form', 'input', 'button', 'modal', 'component', 'react', 'ui', 'loading', 'skeleton', 'table', 'list'],
+  '05-payments': ['stripe', 'payment', 'checkout', 'billing', 'subscription', 'invoice', 'pricing'],
+  '06-integrations': ['email', 'resend', 'upload', 'file', 's3', 'sms', 'twilio', 'background job', 'inngest'],
+  '07-performance': ['cache', 'redis', 'optimize', 'performance', 'slow', 'fast'],
+  '08-testing': ['test', 'playwright', 'vitest', 'ci', 'deploy'],
+  '09-design': ['design', 'css', 'tailwind', 'responsive', 'mobile', 'accessibility', 'dark mode', 'theme'],
+  '14-ai': ['ai', 'llm', 'openai', 'anthropic', 'claude', 'gpt', 'chat', 'embedding', 'rag'],
+  '27-search': ['search', 'filter', 'autocomplete', 'algolia', 'typesense'],
+};
+
 class CodeBakersServer {
   private server: Server;
   private apiKey: string | null;
@@ -43,9 +59,24 @@ class CodeBakersServer {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
         {
+          name: 'optimize_and_build',
+          description:
+            'ALWAYS USE THIS FIRST for any coding request. Takes a simple user request, optimizes it into a production-ready prompt, detects relevant patterns, and returns everything needed to build the feature correctly. This ensures the user gets production-quality code on the first try.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              request: {
+                type: 'string',
+                description: 'The user\'s original request (e.g., "add login", "create checkout", "build search")',
+              },
+            },
+            required: ['request'],
+          },
+        },
+        {
           name: 'get_pattern',
           description:
-            'Fetch a CodeBakers pattern module by name. Use this to get production-ready code patterns for your project. Always load "00-core" first for any coding task.',
+            'Fetch a single CodeBakers pattern module by name. Use optimize_and_build instead for automatic pattern detection.',
           inputSchema: {
             type: 'object' as const,
             properties: {
@@ -61,7 +92,7 @@ class CodeBakersServer {
         {
           name: 'list_patterns',
           description:
-            'List all available CodeBakers pattern modules. Use this to discover what patterns are available.',
+            'List all available CodeBakers pattern modules.',
           inputSchema: {
             type: 'object' as const,
             properties: {},
@@ -70,7 +101,7 @@ class CodeBakersServer {
         {
           name: 'get_patterns',
           description:
-            'Fetch multiple CodeBakers patterns at once. More efficient than calling get_pattern multiple times.',
+            'Fetch multiple CodeBakers patterns at once. Use optimize_and_build instead for automatic pattern detection.',
           inputSchema: {
             type: 'object' as const,
             properties: {
@@ -98,6 +129,9 @@ class CodeBakersServer {
       const { name, arguments: args } = request.params;
 
       switch (name) {
+        case 'optimize_and_build':
+          return this.handleOptimizeAndBuild(args as { request: string });
+
         case 'get_pattern':
           return this.handleGetPattern(args as { pattern: string });
 
@@ -111,6 +145,102 @@ class CodeBakersServer {
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
       }
     });
+  }
+
+  private detectPatterns(request: string): string[] {
+    const lowerRequest = request.toLowerCase();
+    const detectedPatterns = new Set<string>();
+
+    // Always include core
+    detectedPatterns.add('00-core');
+
+    // Check each pattern's keywords
+    for (const [pattern, keywords] of Object.entries(PATTERN_KEYWORDS)) {
+      if (pattern === '00-core') continue; // Already added
+
+      for (const keyword of keywords) {
+        if (lowerRequest.includes(keyword)) {
+          detectedPatterns.add(pattern);
+          break;
+        }
+      }
+    }
+
+    // Always include frontend for UI-related requests
+    if (detectedPatterns.size > 1) {
+      detectedPatterns.add('04-frontend');
+    }
+
+    return Array.from(detectedPatterns).slice(0, 5); // Max 5 patterns
+  }
+
+  private async handleOptimizeAndBuild(args: { request: string }) {
+    const { request: userRequest } = args;
+
+    // Step 1: Call API to optimize the prompt
+    const optimizeResponse = await fetch(`${this.apiUrl}/api/optimize-prompt`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({ prompt: userRequest }),
+    });
+
+    let optimizedPrompt = userRequest;
+    let detectedFeature = 'Feature';
+
+    if (optimizeResponse.ok) {
+      const optimizeData = await optimizeResponse.json();
+      optimizedPrompt = optimizeData.optimizedPrompt || userRequest;
+      detectedFeature = optimizeData.featureName || 'Feature';
+    }
+
+    // Step 2: Detect relevant patterns
+    const patterns = this.detectPatterns(userRequest);
+
+    // Step 3: Fetch all relevant patterns
+    const patternResult = await this.fetchPatterns(patterns);
+
+    // Step 4: Build the response showing the optimization
+    const patternContent = Object.entries(patternResult.patterns || {})
+      .map(([name, text]) => `## ${name}\n\n${text}`)
+      .join('\n\n---\n\n');
+
+    const response = `# 🪄 Prompt Optimizer
+
+## Your Request
+"${userRequest}"
+
+## Optimized Prompt (Production-Ready)
+${optimizedPrompt}
+
+---
+
+## Detected Feature: ${detectedFeature}
+
+## Loaded Patterns: ${patterns.join(', ')}
+
+---
+
+# Pattern Documentation
+
+${patternContent}
+
+---
+
+**IMPORTANT:** Use the optimized prompt above as your guide. It includes all the production requirements (error handling, loading states, validation, tests, etc.) that you should implement.
+
+Show the user what their simple request was expanded into, then proceed with the implementation following the patterns above.`;
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: response,
+        },
+      ],
+    };
   }
 
   private async handleGetPattern(args: { pattern: string }) {
