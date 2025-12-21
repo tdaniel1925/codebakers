@@ -9,8 +9,8 @@ const plans = [
     price: 49,
     description: 'Perfect for solo developers',
     features: [
-      '33 production modules',
-      '44,654 lines of patterns',
+      '34 production modules',
+      '45,474 lines of patterns',
       'Auto-testing included',
       'Full stack coverage',
       '1 seat',
@@ -61,7 +61,7 @@ export default function PricingPage() {
             Simple, transparent pricing
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-            One subscription, 33 modules. No hidden fees, no per-project
+            One subscription, 34 modules. No hidden fees, no per-project
             charges.
           </p>
         </div>

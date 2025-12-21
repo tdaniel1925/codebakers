@@ -227,6 +227,7 @@ const moduleCategories = [
       { id: '30', name: 'Motion', lines: 877 },
       { id: '31', name: 'Icons', lines: 628 },
       { id: '32', name: 'Print/PDF', lines: 988 },
+      { id: '33', name: 'CI/CD', lines: 820 },
     ],
   },
 ];
@@ -247,10 +248,12 @@ const steps = [
   {
     step: 3,
     title: 'Download Patterns',
-    description: 'Get all 33 modules synced to your project',
+    description: 'Get all 34 modules synced to your project',
     code: 'codebakers install',
   },
 ];
+
+// Note: Total is 34 modules with ~45,500 lines (calculated dynamically)
 
 const aiCompatibility = [
   { name: 'Claude', icon: Bot, supported: true },
@@ -313,7 +316,7 @@ const pricingPlans = [
     period: '/month',
     description: 'For individual developers',
     features: [
-      'All 33 modules (44,654 lines)',
+      'All 34 modules',
       '1 API key',
       'Unlimited projects',
       'Pattern updates',
@@ -405,7 +408,7 @@ export default function HomePage() {
           <motion.div variants={fadeInUp}>
             <Badge className="mb-6 bg-blue-900/50 text-blue-300 border-blue-700">
               <Sparkles className="h-3 w-3 mr-1" />
-              33 Modules • {totalLines.toLocaleString()}+ Lines of Production Code
+              34 Modules • {totalLines.toLocaleString()}+ Lines of Production Code
             </Badge>
           </motion.div>
 
@@ -452,7 +455,7 @@ export default function HomePage() {
             variants={fadeInUp}
           >
             <div>
-              <div className="text-3xl font-bold text-white">33</div>
+              <div className="text-3xl font-bold text-white">34</div>
               <div className="text-sm text-slate-500">Modules</div>
             </div>
             <div>
@@ -550,7 +553,7 @@ export default function HomePage() {
               {
                 icon: Code2,
                 title: 'Full Stack',
-                description: '33 modules covering every aspect of modern apps.',
+                description: '34 modules covering every aspect of modern apps.',
               },
             ].map((feature, i) => (
               <motion.div
@@ -683,7 +686,7 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              33 Production Modules
+              34 Production Modules
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto">
               Everything you need to build modern SaaS applications.
