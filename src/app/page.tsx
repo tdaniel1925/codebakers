@@ -442,6 +442,11 @@ export default function HomePage() {
               backgroundSize: '80px 80px'
             }}
           />
+          {/* Fade out at bottom */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-40"
+            style={{ background: 'linear-gradient(to bottom, transparent, var(--section-hero))' }}
+          />
         </div>
 
         <div className="container mx-auto text-center relative z-10">
