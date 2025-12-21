@@ -18,27 +18,16 @@ import {
   RotateCcw,
   Layers,
   Terminal,
-  Download,
   Cpu,
   ChevronDown,
   Star,
-  Database,
   CreditCard,
   Lock,
   Webhook,
-  Smartphone,
   Globe,
-  BarChart3,
-  Search,
-  Mail,
-  LineChart,
-  FileText,
-  Palette,
-  Briefcase,
   Heart,
   Building2,
   Scale,
-  Users,
   MessageSquare,
   Bot,
 } from 'lucide-react';
@@ -56,12 +45,6 @@ const staggerContainer = {
       staggerChildren: 0.1,
     },
   },
-};
-
-const scaleIn = {
-  initial: { opacity: 0, scale: 0.9 },
-  animate: { opacity: 1, scale: 1 },
-  transition: { duration: 0.4 },
 };
 
 // Data
@@ -174,7 +157,6 @@ export const GET = withAuth(async (req, { user }) => {
 const moduleCategories = [
   {
     name: 'Core Development',
-    color: 'blue',
     modules: [
       { id: '00', name: 'Core Standards', lines: 2131 },
       { id: '01', name: 'Database', lines: 651 },
@@ -195,7 +177,6 @@ const moduleCategories = [
   },
   {
     name: 'Business & Planning',
-    color: 'purple',
     modules: [
       { id: '15', name: 'Research', lines: 517 },
       { id: '16', name: 'Planning', lines: 565 },
@@ -207,7 +188,6 @@ const moduleCategories = [
   },
   {
     name: 'Industry Experts',
-    color: 'emerald',
     modules: [
       { id: '21', name: 'Core Experts', lines: 879 },
       { id: '22', name: 'Healthcare', lines: 778 },
@@ -218,7 +198,6 @@ const moduleCategories = [
   },
   {
     name: 'Extended Features',
-    color: 'amber',
     modules: [
       { id: '26', name: 'Analytics', lines: 918 },
       { id: '27', name: 'Search', lines: 1130 },
@@ -252,8 +231,6 @@ const steps = [
     code: 'codebakers install',
   },
 ];
-
-// Note: Total is 34 modules with ~45,500 lines (calculated dynamically)
 
 const aiCompatibility = [
   { name: 'Claude', icon: Bot, supported: true },
@@ -392,13 +369,7 @@ export default function HomePage() {
   return (
     <div className="overflow-hidden">
       {/* Hero Section */}
-      <section className="relative pt-20 pb-32 px-4">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-500/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute top-60 -left-40 w-80 h-80 bg-red-800/20 rounded-full blur-3xl animate-pulse delay-1000" />
-        </div>
-
+      <section className="relative pt-20 pb-24 px-4">
         <motion.div
           className="container mx-auto text-center relative z-10"
           initial="initial"
@@ -406,43 +377,43 @@ export default function HomePage() {
           variants={staggerContainer}
         >
           <motion.div variants={fadeInUp}>
-            <Badge className="mb-6 bg-red-900/50 text-red-300 border-red-700">
+            <Badge className="mb-6 bg-red-50 text-red-600 border-red-200 hover:bg-red-100">
               <Sparkles className="h-3 w-3 mr-1" />
               34 Modules • {totalLines.toLocaleString()}+ Lines of Production Code
             </Badge>
           </motion.div>
 
           <motion.h1
-            className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight"
+            className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight tracking-tight"
             variants={fadeInUp}
           >
             Stop fighting
             <br />
-            <span className="bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent">
+            <span className="text-red-600">
               AI revision loops
             </span>
           </motion.h1>
 
           <motion.p
-            className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto"
+            className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed"
             variants={fadeInUp}
           >
             CodeBakers gives your AI assistant {totalLines.toLocaleString()}+ lines of battle-tested
             patterns. Get production-ready code on your first prompt.
           </motion.p>
 
-          <motion.div className="flex justify-center gap-4 mb-12" variants={fadeInUp}>
+          <motion.div className="flex justify-center gap-4 mb-16" variants={fadeInUp}>
             <Link href="/signup">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700 h-12 px-8">
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 h-14 px-10 text-lg shadow-lg shadow-red-600/20">
                 Start Free Trial
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link href="#demo">
               <Button
                 size="lg"
                 variant="outline"
-                className="border-neutral-700 text-neutral-300 hover:bg-neutral-800 h-12 px-8"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 h-14 px-10 text-lg"
               >
                 See Demo
               </Button>
@@ -451,31 +422,31 @@ export default function HomePage() {
 
           {/* Stats bar */}
           <motion.div
-            className="flex justify-center gap-8 md:gap-16 text-center"
+            className="flex justify-center gap-12 md:gap-20"
             variants={fadeInUp}
           >
-            <div>
-              <div className="text-3xl font-bold text-white">34</div>
-              <div className="text-sm text-slate-500">Modules</div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-gray-900">34</div>
+              <div className="text-sm text-gray-500 mt-1">Modules</div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-white">{(totalLines / 1000).toFixed(0)}K+</div>
-              <div className="text-sm text-slate-500">Lines of Code</div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-gray-900">{(totalLines / 1000).toFixed(0)}K+</div>
+              <div className="text-sm text-gray-500 mt-1">Lines of Code</div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-white">5x</div>
-              <div className="text-sm text-slate-500">Faster Development</div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-gray-900">5x</div>
+              <div className="text-sm text-gray-500 mt-1">Faster Development</div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-white">100%</div>
-              <div className="text-sm text-slate-500">Production Ready</div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-gray-900">100%</div>
+              <div className="text-sm text-gray-500 mt-1">Production Ready</div>
             </div>
           </motion.div>
         </motion.div>
       </section>
 
       {/* Problem Section */}
-      <section className="py-20 px-4 bg-neutral-900/50">
+      <section className="py-20 px-4 bg-gray-50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -483,13 +454,13 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Badge className="mb-4 bg-red-900/50 text-red-300 border-red-700">
+            <Badge className="mb-4 bg-red-50 text-red-600 border-red-200">
               The Problem
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               AI coding is broken
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <p className="text-gray-500 max-w-2xl mx-auto">
               You spend more time fixing AI output than writing code yourself.
             </p>
           </motion.div>
@@ -498,15 +469,15 @@ export default function HomePage() {
             {painPoints.map((point, i) => (
               <motion.div
                 key={point.title}
-                className="p-6 rounded-lg bg-red-950/20 border border-red-900/30"
+                className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
               >
-                <point.icon className="h-8 w-8 text-red-400 mb-4" />
-                <h3 className="text-lg font-semibold text-white mb-2">{point.title}</h3>
-                <p className="text-slate-400 text-sm">{point.description}</p>
+                <point.icon className="h-10 w-10 text-red-500 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{point.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{point.description}</p>
               </motion.div>
             ))}
           </div>
@@ -522,18 +493,18 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Badge className="mb-4 bg-green-900/50 text-green-300 border-green-700">
+            <Badge className="mb-4 bg-green-50 text-green-600 border-green-200">
               The Solution
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Production patterns for every feature
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <p className="text-gray-500 max-w-2xl mx-auto">
               CodeBakers gives your AI the context it needs to write real code the first time.
             </p>
           </motion.div>
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
             {[
               {
                 icon: Zap,
@@ -558,15 +529,15 @@ export default function HomePage() {
             ].map((feature, i) => (
               <motion.div
                 key={feature.title}
-                className="p-6 rounded-lg bg-green-950/20 border border-green-900/30"
+                className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
               >
-                <feature.icon className="h-8 w-8 text-green-400 mb-4" />
-                <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-                <p className="text-slate-400 text-sm">{feature.description}</p>
+                <feature.icon className="h-10 w-10 text-green-500 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{feature.description}</p>
               </motion.div>
             ))}
           </div>
@@ -574,7 +545,7 @@ export default function HomePage() {
       </section>
 
       {/* Interactive Demo Section */}
-      <section id="demo" className="py-20 px-4 bg-slate-900/50">
+      <section id="demo" className="py-20 px-4 bg-gray-50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -582,13 +553,13 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Badge className="mb-4 bg-red-900/50 text-red-300 border-red-700">
+            <Badge className="mb-4 bg-red-50 text-red-600 border-red-200">
               Live Demo
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               See what CodeBakers generates
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <p className="text-gray-500 max-w-2xl mx-auto">
               One prompt. Complete, production-ready code.
             </p>
           </motion.div>
@@ -600,10 +571,10 @@ export default function HomePage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-medium text-sm ${
                     activeTab === tab.id
-                      ? 'bg-red-600 text-white'
-                      : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                      ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
+                      : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                   }`}
                 >
                   <tab.icon className="h-4 w-4" />
@@ -614,20 +585,20 @@ export default function HomePage() {
 
             {/* Code display */}
             <motion.div
-              className="rounded-lg bg-slate-900 border border-slate-800 overflow-hidden"
+              className="rounded-2xl bg-gray-900 border border-gray-800 overflow-hidden shadow-2xl"
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
             >
-              <div className="flex items-center gap-2 px-4 py-3 bg-slate-800/50 border-b border-slate-700">
+              <div className="flex items-center gap-2 px-4 py-3 bg-gray-800 border-b border-gray-700">
                 <div className="w-3 h-3 rounded-full bg-red-500" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500" />
                 <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="ml-4 text-sm text-slate-500">
+                <span className="ml-4 text-sm text-gray-400">
                   {demoTabs.find((t) => t.id === activeTab)?.label}.tsx
                 </span>
               </div>
-              <pre className="p-4 text-sm text-slate-300 font-mono overflow-x-auto">
+              <pre className="p-6 text-sm text-gray-300 font-mono overflow-x-auto leading-relaxed">
                 {demoTabs.find((t) => t.id === activeTab)?.code}
               </pre>
             </motion.div>
@@ -644,10 +615,10 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Get started in 60 seconds
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <p className="text-gray-500 max-w-2xl mx-auto">
               Three commands. That&apos;s all it takes.
             </p>
           </motion.div>
@@ -662,12 +633,12 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.15 }}
               >
-                <div className="w-12 h-12 rounded-full bg-red-600 text-white text-xl font-bold flex items-center justify-center mx-auto mb-4">
+                <div className="w-14 h-14 rounded-full bg-red-600 text-white text-xl font-bold flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-600/20">
                   {step.step}
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">{step.title}</h3>
-                <p className="text-slate-400 text-sm mb-4">{step.description}</p>
-                <code className="px-3 py-2 rounded bg-slate-800 text-green-400 text-sm font-mono">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
+                <p className="text-gray-500 text-sm mb-4">{step.description}</p>
+                <code className="px-4 py-2.5 rounded-lg bg-gray-900 text-green-400 text-sm font-mono inline-block">
                   {step.code}
                 </code>
               </motion.div>
@@ -677,7 +648,7 @@ export default function HomePage() {
       </section>
 
       {/* Module Showcase */}
-      <section className="py-20 px-4 bg-neutral-900/50">
+      <section className="py-20 px-4 bg-gray-50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -685,28 +656,26 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               34 Production Modules
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <p className="text-gray-500 max-w-2xl mx-auto">
               Everything you need to build modern SaaS applications.
             </p>
           </motion.div>
 
-          <div className="grid gap-8 lg:grid-cols-2 max-w-6xl mx-auto">
+          <div className="grid gap-6 lg:grid-cols-2 max-w-6xl mx-auto">
             {moduleCategories.map((category, catIndex) => (
               <motion.div
                 key={category.name}
-                className="rounded-lg bg-slate-800/50 border border-slate-700 overflow-hidden"
+                className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: catIndex * 0.1 }}
               >
-                <div
-                  className={`px-4 py-3 bg-${category.color}-900/30 border-b border-${category.color}-700/30`}
-                >
-                  <h3 className={`font-semibold text-${category.color}-300`}>
+                <div className="px-5 py-4 bg-gray-50 border-b border-gray-100">
+                  <h3 className="font-semibold text-gray-900">
                     {category.name}
                   </h3>
                 </div>
@@ -714,11 +683,11 @@ export default function HomePage() {
                   {category.modules.map((module) => (
                     <div
                       key={module.id}
-                      className="px-3 py-2 rounded bg-slate-900/50 border border-slate-700"
+                      className="px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
                     >
-                      <div className="text-xs text-slate-500 mb-1">{module.id}</div>
-                      <div className="text-sm text-white truncate">{module.name}</div>
-                      <div className="text-xs text-slate-500">{module.lines} lines</div>
+                      <div className="text-xs text-gray-400 mb-0.5">{module.id}</div>
+                      <div className="text-sm text-gray-900 font-medium truncate">{module.name}</div>
+                      <div className="text-xs text-gray-400">{module.lines} lines</div>
                     </div>
                   ))}
                 </div>
@@ -737,10 +706,10 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Works with any AI coding assistant
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <p className="text-gray-500 max-w-2xl mx-auto">
               CodeBakers patterns work with all major AI tools.
             </p>
           </motion.div>
@@ -749,15 +718,15 @@ export default function HomePage() {
             {aiCompatibility.map((ai, i) => (
               <motion.div
                 key={ai.name}
-                className="flex items-center gap-3 px-6 py-4 rounded-lg bg-slate-800/50 border border-slate-700"
+                className="flex items-center gap-3 px-6 py-4 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
               >
-                <ai.icon className="h-6 w-6 text-red-400" />
-                <span className="text-white font-medium">{ai.name}</span>
-                <Check className="h-4 w-4 text-green-400" />
+                <ai.icon className="h-6 w-6 text-red-500" />
+                <span className="text-gray-900 font-medium">{ai.name}</span>
+                <Check className="h-5 w-5 text-green-500" />
               </motion.div>
             ))}
           </div>
@@ -765,7 +734,7 @@ export default function HomePage() {
       </section>
 
       {/* Industry Experts */}
-      <section className="py-20 px-4 bg-neutral-900/50">
+      <section className="py-20 px-4 bg-gray-50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -773,13 +742,13 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Badge className="mb-4 bg-emerald-900/50 text-emerald-300 border-emerald-700">
+            <Badge className="mb-4 bg-emerald-50 text-emerald-600 border-emerald-200">
               Industry Modules
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Domain expertise built-in
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <p className="text-gray-500 max-w-2xl mx-auto">
               Specialized patterns for regulated industries and compliance requirements.
             </p>
           </motion.div>
@@ -788,16 +757,16 @@ export default function HomePage() {
             {industryExperts.map((expert, i) => (
               <motion.div
                 key={expert.title}
-                className="p-6 rounded-lg bg-emerald-950/20 border border-emerald-900/30"
+                className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
               >
-                <expert.icon className="h-10 w-10 text-emerald-400 mb-4" />
-                <h3 className="text-lg font-semibold text-white mb-2">{expert.title}</h3>
-                <p className="text-slate-400 text-sm mb-3">{expert.description}</p>
-                <code className="text-xs text-emerald-400">{expert.module}</code>
+                <expert.icon className="h-12 w-12 text-emerald-500 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{expert.title}</h3>
+                <p className="text-gray-500 text-sm mb-3 leading-relaxed">{expert.description}</p>
+                <code className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded">{expert.module}</code>
               </motion.div>
             ))}
           </div>
@@ -813,10 +782,10 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Loved by developers
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <p className="text-gray-500 max-w-2xl mx-auto">
               Join thousands of developers shipping faster with CodeBakers.
             </p>
           </motion.div>
@@ -825,7 +794,7 @@ export default function HomePage() {
             {testimonials.map((testimonial, i) => (
               <motion.div
                 key={testimonial.name}
-                className="p-6 rounded-lg bg-slate-800/50 border border-slate-700"
+                className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -833,17 +802,17 @@ export default function HomePage() {
               >
                 <div className="flex items-center gap-1 mb-4">
                   {[...Array(testimonial.rating)].map((_, j) => (
-                    <Star key={j} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <Star key={j} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
-                <p className="text-slate-300 mb-4">&ldquo;{testimonial.content}&rdquo;</p>
+                <p className="text-gray-700 mb-5 leading-relaxed">&ldquo;{testimonial.content}&rdquo;</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-medium text-sm">
+                  <div className="w-11 h-11 rounded-full bg-red-600 flex items-center justify-center text-white font-semibold text-sm">
                     {testimonial.avatar}
                   </div>
                   <div>
-                    <div className="text-white font-medium">{testimonial.name}</div>
-                    <div className="text-sm text-slate-500">{testimonial.role}</div>
+                    <div className="text-gray-900 font-medium">{testimonial.name}</div>
+                    <div className="text-sm text-gray-500">{testimonial.role}</div>
                   </div>
                 </div>
               </motion.div>
@@ -853,7 +822,7 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 px-4 bg-neutral-900/50">
+      <section className="py-20 px-4 bg-gray-50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -861,10 +830,10 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Simple, transparent pricing
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <p className="text-gray-500 max-w-2xl mx-auto">
               14-day free trial. No credit card required. Cancel anytime.
             </p>
           </motion.div>
@@ -873,10 +842,10 @@ export default function HomePage() {
             {pricingPlans.map((plan, i) => (
               <motion.div
                 key={plan.name}
-                className={`rounded-lg p-6 ${
+                className={`rounded-2xl p-8 ${
                   plan.popular
-                    ? 'bg-red-600/20 border-2 border-red-500 relative'
-                    : 'bg-neutral-800/50 border border-neutral-700'
+                    ? 'bg-white ring-2 ring-red-600 shadow-xl relative'
+                    : 'bg-white border border-gray-200 shadow-sm'
                 }`}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -884,28 +853,30 @@ export default function HomePage() {
                 transition={{ delay: i * 0.1 }}
               >
                 {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white border-0">
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white border-0 px-4">
                     Most Popular
                   </Badge>
                 )}
-                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
                 <div className="mb-4">
-                  <span className="text-4xl font-bold text-white">{plan.price}</span>
-                  <span className="text-slate-400">{plan.period}</span>
+                  <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
+                  <span className="text-gray-500">{plan.period}</span>
                 </div>
-                <p className="text-slate-400 text-sm mb-6">{plan.description}</p>
-                <ul className="space-y-3 mb-6">
+                <p className="text-gray-500 text-sm mb-6">{plan.description}</p>
+                <ul className="space-y-3 mb-8">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-slate-300 text-sm">
-                      <Check className="h-4 w-4 text-green-400" />
+                    <li key={feature} className="flex items-center gap-3 text-gray-700 text-sm">
+                      <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
                       {feature}
                     </li>
                   ))}
                 </ul>
                 <Link href="/signup">
                   <Button
-                    className={`w-full ${
-                      plan.popular ? 'bg-red-600 hover:bg-red-700' : 'bg-neutral-700 hover:bg-neutral-600'
+                    className={`w-full h-12 ${
+                      plan.popular
+                        ? 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20'
+                        : 'bg-gray-900 hover:bg-gray-800'
                     }`}
                   >
                     {plan.cta}
@@ -926,16 +897,16 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Frequently asked questions
             </h2>
           </motion.div>
 
-          <div className="max-w-2xl mx-auto space-y-4">
+          <div className="max-w-2xl mx-auto space-y-3">
             {faqs.map((faq, i) => (
               <motion.div
                 key={faq.question}
-                className="rounded-lg bg-slate-800/50 border border-slate-700 overflow-hidden"
+                className="rounded-xl bg-white border border-gray-100 shadow-sm overflow-hidden"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -943,17 +914,17 @@ export default function HomePage() {
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between p-4 text-left"
+                  className="w-full flex items-center justify-between p-5 text-left"
                 >
-                  <span className="font-medium text-white">{faq.question}</span>
+                  <span className="font-medium text-gray-900">{faq.question}</span>
                   <ChevronDown
-                    className={`h-5 w-5 text-slate-400 transition-transform ${
+                    className={`h-5 w-5 text-gray-400 transition-transform ${
                       openFaq === i ? 'rotate-180' : ''
                     }`}
                   />
                 </button>
                 {openFaq === i && (
-                  <div className="px-4 pb-4 text-slate-400 text-sm">{faq.answer}</div>
+                  <div className="px-5 pb-5 text-gray-500 text-sm leading-relaxed">{faq.answer}</div>
                 )}
               </motion.div>
             ))}
@@ -965,7 +936,7 @@ export default function HomePage() {
       <section className="py-20 px-4">
         <div className="container mx-auto">
           <motion.div
-            className="rounded-2xl bg-gradient-to-r from-red-600/20 via-red-700/20 to-red-900/20 border border-red-500/30 p-12 text-center"
+            className="rounded-3xl bg-gray-900 p-12 md:p-16 text-center"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -973,28 +944,28 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Ready to ship 5x faster?
             </h2>
-            <p className="text-neutral-300 mb-8 max-w-xl mx-auto">
+            <p className="text-gray-400 mb-8 max-w-xl mx-auto text-lg">
               Join developers building production apps in days, not weeks.
               Start your 14-day free trial today.
             </p>
-            <div className="flex justify-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link href="/signup">
-                <Button size="lg" className="bg-red-600 hover:bg-red-700 h-12 px-8">
+                <Button size="lg" className="bg-red-600 hover:bg-red-700 h-14 px-10 text-lg shadow-lg">
                   Start Free Trial
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link href="/pricing">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-neutral-600 text-neutral-300 hover:bg-neutral-800 h-12 px-8"
+                  className="border-gray-600 text-white hover:bg-gray-800 h-14 px-10 text-lg"
                 >
                   View Pricing
                 </Button>
               </Link>
             </div>
-            <p className="text-sm text-neutral-500 mt-6">
+            <p className="text-sm text-gray-500 mt-6">
               No credit card required. Cancel anytime.
             </p>
           </motion.div>

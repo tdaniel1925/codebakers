@@ -308,14 +308,14 @@ export function InteractiveDemo() {
     <div className="w-full max-w-5xl mx-auto">
       {/* Header */}
       <div className="text-center mb-8">
-        <Badge className="mb-4 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 px-4 py-1">
+        <Badge className="mb-4 bg-amber-50 text-amber-600 border-amber-200 px-4 py-1">
           <AiBrain02Icon className="h-3 w-3 mr-2" />
           Try It Yourself
         </Badge>
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
           What do you want to build?
         </h2>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+        <p className="text-gray-500 text-lg max-w-2xl mx-auto">
           Type any feature and see exactly how much time and frustration you&apos;ll save.
         </p>
       </div>
@@ -329,13 +329,13 @@ export function InteractiveDemo() {
             onChange={(e) => setUserInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="e.g., login form with email and password..."
-            className="w-full h-14 px-5 pr-32 rounded-xl border-2 border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg"
+            className="w-full h-14 px-5 pr-32 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg"
             disabled={isGenerating}
           />
           <Button
             onClick={handleGenerate}
             disabled={!userInput.trim() || isGenerating}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-md"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white shadow-md"
           >
             {isGenerating ? (
               <>
@@ -353,13 +353,13 @@ export function InteractiveDemo() {
 
         {/* Quick suggestions */}
         <div className="mt-4 flex flex-wrap justify-center gap-2">
-          <span className="text-sm text-muted-foreground mr-2">Try:</span>
+          <span className="text-sm text-gray-500 mr-2">Try:</span>
           {suggestions.map((suggestion) => (
             <button
               key={suggestion}
               onClick={() => handleSuggestionClick(suggestion)}
               disabled={isGenerating}
-              className="px-3 py-1 text-sm rounded-full border border-border bg-muted/50 hover:bg-muted hover:border-red-400 text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
+              className="px-3 py-1 text-sm rounded-full border border-gray-200 bg-white hover:bg-gray-50 hover:border-red-300 text-gray-600 hover:text-gray-900 transition-all disabled:opacity-50"
             >
               {suggestion}
             </button>
@@ -371,10 +371,10 @@ export function InteractiveDemo() {
       {isGenerating && (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-red-200 dark:border-red-900 animate-pulse" />
+            <div className="w-16 h-16 rounded-full border-4 border-red-100 animate-pulse" />
             <AiBrain02Icon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-red-500 animate-pulse" />
           </div>
-          <p className="mt-4 text-muted-foreground animate-pulse">Analyzing your request...</p>
+          <p className="mt-4 text-gray-500 animate-pulse">Analyzing your request...</p>
         </div>
       )}
 
@@ -383,62 +383,62 @@ export function InteractiveDemo() {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Prompt display */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border">
-              <span className="text-muted-foreground text-sm">Building:</span>
-              <span className="text-foreground font-semibold">{currentMetrics.featureName}</span>
-              <span className="text-muted-foreground text-sm">from &quot;{displayedInput}&quot;</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 border border-gray-200">
+              <span className="text-gray-500 text-sm">Building:</span>
+              <span className="text-gray-900 font-semibold">{currentMetrics.featureName}</span>
+              <span className="text-gray-500 text-sm">from &quot;{displayedInput}&quot;</span>
             </div>
           </div>
 
           {/* Big stats comparison */}
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {/* Prompts needed */}
-            <div className="text-center p-6 rounded-xl bg-card border border-border">
-              <ArrowReloadHorizontalIcon className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-              <div className="text-sm text-muted-foreground mb-2">Prompts Needed</div>
+            <div className="text-center p-6 rounded-2xl bg-white border border-gray-100 shadow-sm">
+              <ArrowReloadHorizontalIcon className="h-8 w-8 mx-auto mb-3 text-gray-400" />
+              <div className="text-sm text-gray-500 mb-2">Prompts Needed</div>
               <div className="flex items-center justify-center gap-4">
                 <div>
                   <div className="text-2xl font-bold text-red-500">{currentMetrics.without.prompts}</div>
-                  <div className="text-xs text-muted-foreground">Without</div>
+                  <div className="text-xs text-gray-500">Without</div>
                 </div>
-                <ArrowRight02Icon className="h-5 w-5 text-muted-foreground" />
+                <ArrowRight02Icon className="h-5 w-5 text-gray-300" />
                 <div>
                   <div className="text-2xl font-bold text-green-500">{currentMetrics.with.prompts}</div>
-                  <div className="text-xs text-muted-foreground">With CodeBakers</div>
+                  <div className="text-xs text-gray-500">With CodeBakers</div>
                 </div>
               </div>
             </div>
 
             {/* Errors to fix */}
-            <div className="text-center p-6 rounded-xl bg-card border border-border">
-              <Alert02Icon className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-              <div className="text-sm text-muted-foreground mb-2">Errors to Fix</div>
+            <div className="text-center p-6 rounded-2xl bg-white border border-gray-100 shadow-sm">
+              <Alert02Icon className="h-8 w-8 mx-auto mb-3 text-gray-400" />
+              <div className="text-sm text-gray-500 mb-2">Errors to Fix</div>
               <div className="flex items-center justify-center gap-4">
                 <div>
                   <div className="text-2xl font-bold text-red-500">{currentMetrics.without.errors}</div>
-                  <div className="text-xs text-muted-foreground">Without</div>
+                  <div className="text-xs text-gray-500">Without</div>
                 </div>
-                <ArrowRight02Icon className="h-5 w-5 text-muted-foreground" />
+                <ArrowRight02Icon className="h-5 w-5 text-gray-300" />
                 <div>
                   <div className="text-2xl font-bold text-green-500">{currentMetrics.with.errors}</div>
-                  <div className="text-xs text-muted-foreground">With CodeBakers</div>
+                  <div className="text-xs text-gray-500">With CodeBakers</div>
                 </div>
               </div>
             </div>
 
             {/* Time spent */}
-            <div className="text-center p-6 rounded-xl bg-card border border-border">
-              <Clock01Icon className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-              <div className="text-sm text-muted-foreground mb-2">Time Spent</div>
+            <div className="text-center p-6 rounded-2xl bg-white border border-gray-100 shadow-sm">
+              <Clock01Icon className="h-8 w-8 mx-auto mb-3 text-gray-400" />
+              <div className="text-sm text-gray-500 mb-2">Time Spent</div>
               <div className="flex items-center justify-center gap-4">
                 <div>
                   <div className="text-2xl font-bold text-red-500">{currentMetrics.without.time}</div>
-                  <div className="text-xs text-muted-foreground">Without</div>
+                  <div className="text-xs text-gray-500">Without</div>
                 </div>
-                <ArrowRight02Icon className="h-5 w-5 text-muted-foreground" />
+                <ArrowRight02Icon className="h-5 w-5 text-gray-300" />
                 <div>
                   <div className="text-2xl font-bold text-green-500">{currentMetrics.with.time}</div>
-                  <div className="text-xs text-muted-foreground">With CodeBakers</div>
+                  <div className="text-xs text-gray-500">With CodeBakers</div>
                 </div>
               </div>
             </div>
@@ -447,18 +447,18 @@ export function InteractiveDemo() {
           {/* Detailed comparison cards */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             {/* Without CodeBakers */}
-            <div className="rounded-xl border-2 border-red-200 dark:border-red-900/50 overflow-hidden bg-card">
-              <div className="px-4 py-3 bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-900/50 flex items-center gap-2">
+            <div className="rounded-2xl border-2 border-red-100 overflow-hidden bg-white">
+              <div className="px-4 py-3 bg-red-50 border-b border-red-100 flex items-center gap-2">
                 <Cancel01Icon className="h-5 w-5 text-red-500" />
-                <span className="font-semibold text-red-700 dark:text-red-400">Without CodeBakers</span>
+                <span className="font-semibold text-red-700">Without CodeBakers</span>
               </div>
               <div className="p-4">
-                <p className="text-sm text-muted-foreground mb-4">What you&apos;ll be fixing:</p>
+                <p className="text-sm text-gray-500 mb-4">What you&apos;ll be fixing:</p>
                 <ul className="space-y-2">
                   {currentMetrics.without.issues.map((issue, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <Cancel01Icon className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-foreground">{issue}</span>
+                      <span className="text-gray-700">{issue}</span>
                     </li>
                   ))}
                 </ul>
@@ -466,18 +466,18 @@ export function InteractiveDemo() {
             </div>
 
             {/* With CodeBakers */}
-            <div className="rounded-xl border-2 border-green-200 dark:border-green-900/50 overflow-hidden bg-card">
-              <div className="px-4 py-3 bg-green-50 dark:bg-green-950/30 border-b border-green-200 dark:border-green-900/50 flex items-center gap-2">
+            <div className="rounded-2xl border-2 border-green-100 overflow-hidden bg-white">
+              <div className="px-4 py-3 bg-green-50 border-b border-green-100 flex items-center gap-2">
                 <Tick02Icon className="h-5 w-5 text-green-500" />
-                <span className="font-semibold text-green-700 dark:text-green-400">With CodeBakers</span>
+                <span className="font-semibold text-green-700">With CodeBakers</span>
               </div>
               <div className="p-4">
-                <p className="text-sm text-muted-foreground mb-4">What&apos;s included automatically:</p>
+                <p className="text-sm text-gray-500 mb-4">What&apos;s included automatically:</p>
                 <ul className="space-y-2">
                   {currentMetrics.with.includes.map((item, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <Tick02Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-foreground">{item}</span>
+                      <span className="text-gray-700">{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -487,29 +487,29 @@ export function InteractiveDemo() {
 
           {/* Bonus row */}
           <div className="grid grid-cols-3 gap-4 mb-8 text-center">
-            <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900/50">
-              <SecurityCheckIcon className="h-6 w-6 mx-auto mb-2 text-green-600 dark:text-green-400" />
-              <div className="text-sm font-medium text-green-700 dark:text-green-300">Security Built-in</div>
+            <div className="p-4 rounded-xl bg-green-50 border border-green-100">
+              <SecurityCheckIcon className="h-6 w-6 mx-auto mb-2 text-green-600" />
+              <div className="text-sm font-medium text-green-700">Security Built-in</div>
             </div>
-            <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900/50">
-              <TestTube01Icon className="h-6 w-6 mx-auto mb-2 text-green-600 dark:text-green-400" />
-              <div className="text-sm font-medium text-green-700 dark:text-green-300">Tests Included</div>
+            <div className="p-4 rounded-xl bg-green-50 border border-green-100">
+              <TestTube01Icon className="h-6 w-6 mx-auto mb-2 text-green-600" />
+              <div className="text-sm font-medium text-green-700">Tests Included</div>
             </div>
-            <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900/50">
-              <CodeIcon className="h-6 w-6 mx-auto mb-2 text-green-600 dark:text-green-400" />
-              <div className="text-sm font-medium text-green-700 dark:text-green-300">TypeScript Types</div>
+            <div className="p-4 rounded-xl bg-green-50 border border-green-100">
+              <CodeIcon className="h-6 w-6 mx-auto mb-2 text-green-600" />
+              <div className="text-sm font-medium text-green-700">TypeScript Types</div>
             </div>
           </div>
 
           {/* CTA buttons */}
           <div className="text-center">
-            <p className="text-muted-foreground mb-4">
-              Get production-ready code from <span className="text-foreground font-semibold">every prompt</span>.
+            <p className="text-gray-500 mb-4">
+              Get production-ready code from <span className="text-gray-900 font-semibold">every prompt</span>.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 transition-all hover:-translate-y-0.5"
+                className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20 hover:shadow-xl transition-all hover:-translate-y-0.5"
                 asChild
               >
                 <Link href="/signup">
@@ -520,6 +520,7 @@ export function InteractiveDemo() {
               <Button
                 variant="outline"
                 size="lg"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
                 asChild
               >
                 <Link href="#code-comparison">
@@ -534,7 +535,7 @@ export function InteractiveDemo() {
 
       {/* Initial state - before any generation */}
       {!showResult && !isGenerating && (
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="text-center py-12 text-gray-400">
           <AiBrain02Icon className="h-16 w-16 mx-auto mb-4 opacity-20" />
           <p>Type a feature above and click Compare to see the difference</p>
         </div>
