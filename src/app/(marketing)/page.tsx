@@ -30,6 +30,7 @@ import {
   Scale,
   MessageSquare,
   Bot,
+  Wand2,
 } from 'lucide-react';
 
 // Animation variants
@@ -68,6 +69,27 @@ const painPoints = [
     icon: Layers,
     title: 'No consistency',
     description: 'Different patterns, different styles, spaghetti code.',
+  },
+];
+
+const promptOptimizerSteps = [
+  {
+    step: 1,
+    label: 'You type',
+    example: '"Add login form"',
+    color: 'text-gray-500',
+  },
+  {
+    step: 2,
+    label: 'AI optimizes',
+    example: 'Adds 15+ production requirements automatically',
+    color: 'text-amber-500',
+  },
+  {
+    step: 3,
+    label: 'You get',
+    example: 'Complete auth with validation, errors, tests, a11y',
+    color: 'text-green-500',
   },
 ];
 
@@ -340,6 +362,10 @@ const faqs = [
     answer: 'CodeBakers provides pattern files that your AI assistant (Claude, Cursor, Copilot) reads before generating code. These patterns contain production-ready templates, best practices, and complete implementations that guide the AI to write better code on the first try.',
   },
   {
+    question: 'What is the Smart Prompt Optimizer?',
+    answer: 'The Prompt Optimizer automatically expands your simple requests into comprehensive, production-ready prompts. When you type "add login form", it becomes a detailed prompt including validation, error handling, loading states, accessibility, and tests—all tailored to your specific project\'s components and patterns.',
+  },
+  {
     question: 'What AI tools does it work with?',
     answer: 'CodeBakers works with any AI coding assistant that can read project files. This includes Claude, Cursor, GitHub Copilot, ChatGPT, Windsurf, Aider, and more. The patterns are stored as markdown files in your project.',
   },
@@ -553,8 +579,106 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Prompt Optimizer Section */}
+      <section id="smart-prompts" className="py-20 px-4 bg-gray-50">
+        <div className="container mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Badge className="mb-4 bg-amber-50 text-amber-600 border-amber-200">
+              <Wand2 className="h-3 w-3 mr-1" />
+              Smart Prompts
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              AI-powered prompt&nbsp;optimization
+            </h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">
+              Type a simple request. CodeBakers automatically expands it into a production-ready prompt with all requirements&nbsp;included.
+            </p>
+          </motion.div>
+
+          <div className="max-w-4xl mx-auto">
+            {/* Before/After comparison */}
+            <motion.div
+              className="grid md:grid-cols-2 gap-6 mb-12"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              {/* Before */}
+              <div className="rounded-2xl bg-white border border-gray-200 p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-2 h-2 rounded-full bg-gray-400" />
+                  <span className="text-sm font-medium text-gray-500">What you type</span>
+                </div>
+                <p className="text-lg text-gray-700 font-mono">&ldquo;Add login form&rdquo;</p>
+              </div>
+
+              {/* After */}
+              <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <Wand2 className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm font-medium text-amber-600">What AI receives</span>
+                </div>
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  Build a complete login form with <strong>React Hook Form + Zod validation</strong>, loading state on submit, inline error messages, toast notifications for failures, forgot password link, <strong>accessibility with ARIA labels</strong>, keyboard navigation, and <strong>Playwright tests</strong> for happy path and error states...
+                </p>
+              </div>
+            </motion.div>
+
+            {/* How it works steps */}
+            <motion.div
+              className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
+              {promptOptimizerSteps.map((item, i) => (
+                <div key={item.step} className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                      i === 0 ? 'bg-gray-400' : i === 1 ? 'bg-amber-500' : 'bg-green-500'
+                    }`}>
+                      {item.step}
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-400 uppercase tracking-wide">{item.label}</div>
+                      <div className={`text-sm font-medium ${item.color}`}>{item.example}</div>
+                    </div>
+                  </div>
+                  {i < promptOptimizerSteps.length - 1 && (
+                    <ArrowRight className="hidden md:block h-5 w-5 text-gray-300" />
+                  )}
+                </div>
+              ))}
+            </motion.div>
+
+            {/* Context-aware callout */}
+            <motion.div
+              className="mt-10 rounded-xl bg-gray-900 p-6 text-center"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Sparkles className="h-5 w-5 text-amber-400" />
+                <span className="text-white font-semibold">Context-Aware</span>
+              </div>
+              <p className="text-gray-400 text-sm max-w-xl mx-auto">
+                The optimizer knows your project structure—existing components, services, API routes, and database schema. Prompts are tailored to <em>your</em> codebase.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Interactive Demo Section */}
-      <section id="demo" className="py-20 px-4 bg-gray-50">
+      <section id="demo" className="py-20 px-4">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"

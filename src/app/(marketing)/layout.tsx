@@ -17,6 +17,12 @@ export default function MarketingLayout({
             </Link>
             <div className="flex items-center space-x-6">
               <Link
+                href="/#smart-prompts"
+                className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
+              >
+                Smart Prompts
+              </Link>
+              <Link
                 href="/pricing"
                 className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
               >
@@ -59,6 +65,11 @@ export default function MarketingLayout({
             <div>
               <h4 className="font-medium text-gray-900 mb-4">Product</h4>
               <ul className="space-y-3 text-sm text-gray-500">
+                <li>
+                  <Link href="/#smart-prompts" className="hover:text-gray-900 transition-colors">
+                    Smart Prompts
+                  </Link>
+                </li>
                 <li>
                   <Link href="/pricing" className="hover:text-gray-900 transition-colors">
                     Pricing
