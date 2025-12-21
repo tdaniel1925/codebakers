@@ -61,21 +61,21 @@ const supportedIDEs = [
 const testimonials = [
   {
     quote: "Went from 6 hours of prompting to 30 minutes. This is how AI coding should work.",
-    author: "Sarah Chen",
+    author: "Jason Jennings",
     role: "Indie Hacker",
-    avatar: "SC",
+    avatar: "JJ",
   },
   {
     quote: "My AI finally writes production code instead of demo garbage. Game changer for client work.",
-    author: "Marcus Johnson",
+    author: "Melissa Starke",
     role: "Freelance Developer",
-    avatar: "MJ",
+    avatar: "MS",
   },
   {
     quote: "We shipped our MVP in 2 weeks instead of 2 months. The compliance patterns alone saved us $10K in legal.",
-    author: "Alex Rivera",
+    author: "William Benoit",
     role: "Startup Founder",
-    avatar: "AR",
+    avatar: "WB",
   },
 ];
 

@@ -264,23 +264,23 @@ const industryExperts = [
 
 const testimonials = [
   {
-    name: 'Sarah Chen',
+    name: 'Jason Jennings',
     role: 'Senior Developer at TechCorp',
-    avatar: 'SC',
+    avatar: 'JJ',
     content: 'CodeBakers cut our development time by 60%. What used to take a week now takes two days.',
     rating: 5,
   },
   {
-    name: 'Marcus Johnson',
+    name: 'Melissa Starke',
     role: 'Founder, ShipFast.io',
-    avatar: 'MJ',
+    avatar: 'MS',
     content: 'Finally, AI that writes production code. No more fixing auth bugs or missing error handling.',
     rating: 5,
   },
   {
-    name: 'Elena Rodriguez',
+    name: 'William Benoit',
     role: 'Tech Lead at FinanceApp',
-    avatar: 'ER',
+    avatar: 'WB',
     content: 'The HIPAA and PCI modules alone saved us months of compliance work. Absolutely worth it.',
     rating: 5,
   },
