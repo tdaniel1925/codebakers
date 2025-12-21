@@ -9,10 +9,30 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { getApiKey, getApiUrl } from '../config.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Pattern cache to avoid repeated API calls
 const patternCache = new Map<string, { content: string; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Project context type
+interface ProjectContext {
+  projectName: string;
+  dependencies: string[];
+  devDependencies: string[];
+  folderStructure: string[];
+  hasAuth: boolean;
+  hasDatabase: boolean;
+  hasPayments: boolean;
+  uiLibrary: string | null;
+  schemaPath: string | null;
+  componentsPath: string | null;
+  existingComponents: string[];
+  existingServices: string[];
+  existingApiRoutes: string[];
+  codebakersState: Record<string, unknown> | null;
+}
 
 // Pattern detection keywords for auto-routing
 const PATTERN_KEYWORDS: Record<string, string[]> = {
@@ -52,6 +72,222 @@ class CodeBakersServer {
     );
 
     this.setupHandlers();
+  }
+
+  private gatherProjectContext(): ProjectContext {
+    const cwd = process.cwd();
+    const context: ProjectContext = {
+      projectName: 'Unknown',
+      dependencies: [],
+      devDependencies: [],
+      folderStructure: [],
+      hasAuth: false,
+      hasDatabase: false,
+      hasPayments: false,
+      uiLibrary: null,
+      schemaPath: null,
+      componentsPath: null,
+      existingComponents: [],
+      existingServices: [],
+      existingApiRoutes: [],
+      codebakersState: null,
+    };
+
+    // Read package.json
+    try {
+      const pkgPath = path.join(cwd, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+        context.projectName = pkg.name || 'Unknown';
+        context.dependencies = Object.keys(pkg.dependencies || {});
+        context.devDependencies = Object.keys(pkg.devDependencies || {});
+
+        // Detect libraries
+        const allDeps = [...context.dependencies, ...context.devDependencies];
+        context.hasAuth = allDeps.some(d => d.includes('supabase') || d.includes('next-auth') || d.includes('clerk'));
+        context.hasDatabase = allDeps.some(d => d.includes('drizzle') || d.includes('prisma') || d.includes('postgres'));
+        context.hasPayments = allDeps.some(d => d.includes('stripe') || d.includes('paypal'));
+
+        if (allDeps.includes('@radix-ui/react-dialog') || allDeps.some(d => d.includes('shadcn'))) {
+          context.uiLibrary = 'shadcn/ui';
+        } else if (allDeps.includes('@chakra-ui/react')) {
+          context.uiLibrary = 'Chakra UI';
+        } else if (allDeps.includes('@mui/material')) {
+          context.uiLibrary = 'Material UI';
+        }
+      }
+    } catch {
+      // Ignore package.json errors
+    }
+
+    // Read .codebakers.json state
+    try {
+      const statePath = path.join(cwd, '.codebakers.json');
+      if (fs.existsSync(statePath)) {
+        context.codebakersState = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+      }
+    } catch {
+      // Ignore state file errors
+    }
+
+    // Scan folder structure
+    const scanDir = (dir: string, prefix = ''): string[] => {
+      const results: string[] = [];
+      try {
+        if (!fs.existsSync(dir)) return results;
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+          const fullPath = path.join(prefix, entry.name);
+          if (entry.isDirectory()) {
+            results.push(fullPath + '/');
+            // Only go 2 levels deep
+            if (prefix.split('/').length < 2) {
+              results.push(...scanDir(path.join(dir, entry.name), fullPath));
+            }
+          }
+        }
+      } catch {
+        // Ignore scan errors
+      }
+      return results;
+    };
+
+    context.folderStructure = scanDir(cwd);
+
+    // Find schema path
+    const schemaPaths = [
+      'src/db/schema.ts',
+      'src/lib/db/schema.ts',
+      'db/schema.ts',
+      'prisma/schema.prisma',
+      'drizzle/schema.ts',
+    ];
+    for (const schemaPath of schemaPaths) {
+      if (fs.existsSync(path.join(cwd, schemaPath))) {
+        context.schemaPath = schemaPath;
+        break;
+      }
+    }
+
+    // Find components path and list components
+    const componentPaths = ['src/components', 'components', 'app/components'];
+    for (const compPath of componentPaths) {
+      const fullPath = path.join(cwd, compPath);
+      if (fs.existsSync(fullPath)) {
+        context.componentsPath = compPath;
+        try {
+          const scanComponents = (dir: string, prefix = ''): string[] => {
+            const comps: string[] = [];
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+              if (entry.name.startsWith('.')) continue;
+              if (entry.isDirectory()) {
+                comps.push(...scanComponents(path.join(dir, entry.name), entry.name + '/'));
+              } else if (entry.name.endsWith('.tsx') || entry.name.endsWith('.jsx')) {
+                comps.push(prefix + entry.name.replace(/\.(tsx|jsx)$/, ''));
+              }
+            }
+            return comps;
+          };
+          context.existingComponents = scanComponents(fullPath).slice(0, 50); // Limit to 50
+        } catch {
+          // Ignore component scan errors
+        }
+        break;
+      }
+    }
+
+    // Find services
+    const servicePaths = ['src/services', 'src/lib/services', 'services'];
+    for (const servPath of servicePaths) {
+      const fullPath = path.join(cwd, servPath);
+      if (fs.existsSync(fullPath)) {
+        try {
+          const entries = fs.readdirSync(fullPath);
+          context.existingServices = entries
+            .filter(e => e.endsWith('.ts') || e.endsWith('.js'))
+            .map(e => e.replace(/\.(ts|js)$/, ''))
+            .slice(0, 20);
+        } catch {
+          // Ignore service scan errors
+        }
+        break;
+      }
+    }
+
+    // Find API routes
+    const apiPaths = ['src/app/api', 'app/api', 'pages/api'];
+    for (const apiPath of apiPaths) {
+      const fullPath = path.join(cwd, apiPath);
+      if (fs.existsSync(fullPath)) {
+        try {
+          const scanApiRoutes = (dir: string, prefix = ''): string[] => {
+            const routes: string[] = [];
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+              if (entry.name.startsWith('.')) continue;
+              if (entry.isDirectory()) {
+                routes.push(...scanApiRoutes(path.join(dir, entry.name), prefix + '/' + entry.name));
+              } else if (entry.name === 'route.ts' || entry.name === 'route.js') {
+                routes.push(prefix || '/');
+              }
+            }
+            return routes;
+          };
+          context.existingApiRoutes = scanApiRoutes(fullPath).slice(0, 30);
+        } catch {
+          // Ignore API route scan errors
+        }
+        break;
+      }
+    }
+
+    return context;
+  }
+
+  private formatContextForPrompt(context: ProjectContext): string {
+    const lines: string[] = [];
+
+    lines.push(`Project: ${context.projectName}`);
+
+    if (context.uiLibrary) {
+      lines.push(`UI Library: ${context.uiLibrary}`);
+    }
+
+    if (context.schemaPath) {
+      lines.push(`Database Schema: ${context.schemaPath}`);
+    }
+
+    if (context.componentsPath && context.existingComponents.length > 0) {
+      lines.push(`Components Path: ${context.componentsPath}`);
+      lines.push(`Existing Components: ${context.existingComponents.slice(0, 20).join(', ')}`);
+    }
+
+    if (context.existingServices.length > 0) {
+      lines.push(`Existing Services: ${context.existingServices.join(', ')}`);
+    }
+
+    if (context.existingApiRoutes.length > 0) {
+      lines.push(`Existing API Routes: ${context.existingApiRoutes.join(', ')}`);
+    }
+
+    const features: string[] = [];
+    if (context.hasAuth) features.push('auth');
+    if (context.hasDatabase) features.push('database');
+    if (context.hasPayments) features.push('payments');
+    if (features.length > 0) {
+      lines.push(`Has: ${features.join(', ')}`);
+    }
+
+    const relevantDeps = context.dependencies.filter(d =>
+      ['next', 'react', 'drizzle-orm', 'stripe', '@supabase/supabase-js', 'zod', 'react-hook-form', 'tailwindcss'].some(rd => d.includes(rd))
+    );
+    if (relevantDeps.length > 0) {
+      lines.push(`Key Dependencies: ${relevantDeps.join(', ')}`);
+    }
+
+    return lines.join('\n');
   }
 
   private setupHandlers(): void {
@@ -177,14 +413,34 @@ class CodeBakersServer {
   private async handleOptimizeAndBuild(args: { request: string }) {
     const { request: userRequest } = args;
 
-    // Step 1: Call API to optimize the prompt
+    // Step 1: Gather project context
+    const context = this.gatherProjectContext();
+    const contextSummary = this.formatContextForPrompt(context);
+
+    // Step 2: Call API to optimize the prompt with context
     const optimizeResponse = await fetch(`${this.apiUrl}/api/optimize-prompt`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify({ prompt: userRequest }),
+      body: JSON.stringify({
+        prompt: userRequest,
+        context: {
+          summary: contextSummary,
+          projectName: context.projectName,
+          uiLibrary: context.uiLibrary,
+          schemaPath: context.schemaPath,
+          componentsPath: context.componentsPath,
+          existingComponents: context.existingComponents.slice(0, 30),
+          existingServices: context.existingServices,
+          existingApiRoutes: context.existingApiRoutes,
+          hasAuth: context.hasAuth,
+          hasDatabase: context.hasDatabase,
+          hasPayments: context.hasPayments,
+          dependencies: context.dependencies.slice(0, 30),
+        },
+      }),
     });
 
     let optimizedPrompt = userRequest;
@@ -196,21 +452,24 @@ class CodeBakersServer {
       detectedFeature = optimizeData.featureName || 'Feature';
     }
 
-    // Step 2: Detect relevant patterns
+    // Step 3: Detect relevant patterns
     const patterns = this.detectPatterns(userRequest);
 
-    // Step 3: Fetch all relevant patterns
+    // Step 4: Fetch all relevant patterns
     const patternResult = await this.fetchPatterns(patterns);
 
-    // Step 4: Build the response showing the optimization
+    // Step 5: Build the response showing the optimization with context
     const patternContent = Object.entries(patternResult.patterns || {})
       .map(([name, text]) => `## ${name}\n\n${text}`)
       .join('\n\n---\n\n');
 
-    const response = `# 🪄 Prompt Optimizer
+    const response = `# 🪄 Prompt Optimizer (Context-Aware)
 
 ## Your Request
 "${userRequest}"
+
+## Project Context Detected
+${contextSummary}
 
 ## Optimized Prompt (Production-Ready)
 ${optimizedPrompt}
@@ -229,7 +488,10 @@ ${patternContent}
 
 ---
 
-**IMPORTANT:** Use the optimized prompt above as your guide. It includes all the production requirements (error handling, loading states, validation, tests, etc.) that you should implement.
+**IMPORTANT:** Use the optimized prompt above as your guide. It is tailored to THIS project's structure, existing components, and conventions. The prompt includes:
+- References to existing components and services you should reuse
+- The correct file paths for this project
+- Production requirements (error handling, loading states, validation, tests)
 
 Show the user what their simple request was expanded into, then proceed with the implementation following the patterns above.`;
 
