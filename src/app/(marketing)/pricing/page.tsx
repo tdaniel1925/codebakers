@@ -1,12 +1,12 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { getServerSession } from '@/lib/auth';
+import { PricingCard } from '@/components/pricing-card';
 import { Badge } from '@/components/ui/badge';
-import { Check } from 'lucide-react';
 
 const plans = [
   {
     name: 'Pro',
     price: 49,
+    plan: 'pro' as const,
     description: 'Perfect for solo developers',
     features: [
       '34 production modules',
@@ -16,12 +16,12 @@ const plans = [
       '1 seat',
       'Email support',
     ],
-    cta: 'Get Started',
     popular: true,
   },
   {
     name: 'Team',
     price: 149,
+    plan: 'team' as const,
     description: 'For growing teams',
     features: [
       'Everything in Pro',
@@ -31,12 +31,12 @@ const plans = [
       'Priority support',
       'Slack community',
     ],
-    cta: 'Get Started',
     popular: false,
   },
   {
     name: 'Agency',
     price: 349,
+    plan: 'agency' as const,
     description: 'For agencies & consultancies',
     features: [
       'Everything in Team',
@@ -46,12 +46,14 @@ const plans = [
       'Dedicated support',
       'Training sessions',
     ],
-    cta: 'Contact Us',
     popular: false,
   },
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const session = await getServerSession();
+  const isLoggedIn = !!session;
+
   return (
     <div className="py-20 px-4">
       <div className="container mx-auto">
@@ -66,51 +68,38 @@ export default function PricingPage() {
           </p>
         </div>
 
+        {/* Free Project Banner */}
+        <div className="max-w-2xl mx-auto mb-12 p-4 rounded-lg bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 text-center">
+          <Badge className="bg-green-600 mb-2">Try Free</Badge>
+          <p className="text-white font-medium">
+            Start with 1 free project - no credit card required
+          </p>
+          <p className="text-slate-400 text-sm mt-1">
+            Upgrade anytime to unlock unlimited projects
+          </p>
+        </div>
+
         {/* Plans */}
         <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
           {plans.map((plan) => (
-            <div
+            <PricingCard
               key={plan.name}
-              className={`rounded-xl bg-slate-800/50 border p-8 relative ${
-                plan.popular ? 'border-blue-500 ring-2 ring-blue-500' : 'border-slate-700'
-              }`}
-            >
-              {plan.popular && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600">
-                  Most Popular
-                </Badge>
-              )}
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-white">{plan.name}</h2>
-                <p className="text-slate-400 mt-1">{plan.description}</p>
-              </div>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-white">
-                  ${plan.price}
-                </span>
-                <span className="text-slate-400">/month</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-3">
-                    <Check className="h-5 w-5 text-green-400 flex-shrink-0" />
-                    <span className="text-slate-300">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/signup" className="block">
-                <Button
-                  className={`w-full ${
-                    plan.popular
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-slate-700 hover:bg-slate-600'
-                  }`}
-                >
-                  {plan.cta}
-                </Button>
-              </Link>
-            </div>
+              name={plan.name}
+              price={plan.price}
+              plan={plan.plan}
+              description={plan.description}
+              features={plan.features}
+              popular={plan.popular}
+              isLoggedIn={isLoggedIn}
+            />
           ))}
+        </div>
+
+        {/* Payment Methods */}
+        <div className="text-center mt-8">
+          <p className="text-slate-400 text-sm">
+            Secure payments powered by PayPal. Pay with credit card, debit card, or PayPal balance.
+          </p>
         </div>
 
         {/* FAQ */}
@@ -127,6 +116,15 @@ export default function PricingPage() {
                 CodeBakers works with Cursor IDE, Claude Code CLI, Aider, and
                 any AI tool that reads context files. The patterns are delivered
                 as standard markdown files.
+              </p>
+            </div>
+            <div className="p-6 rounded-lg bg-slate-800/50 border border-slate-700">
+              <h3 className="font-semibold text-white mb-2">
+                Can I pay without a PayPal account?
+              </h3>
+              <p className="text-slate-400">
+                Yes! PayPal supports guest checkout with credit or debit cards.
+                You don't need to create a PayPal account to subscribe.
               </p>
             </div>
             <div className="p-6 rounded-lg bg-slate-800/50 border border-slate-700">
