@@ -1,122 +1,103 @@
 'use client';
 
 import Link from 'next/link';
-import { Code2, CheckCircle2, Sparkles, Infinity, Clock, Gift } from 'lucide-react';
+import { Code2, Check, Zap } from 'lucide-react';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Free Project CTA */}
-      <div className="hidden lg:flex lg:w-1/2 bg-black p-12 flex-col justify-center relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dc2626' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }} />
+    <div className="h-screen flex overflow-hidden">
+      {/* Left Panel - Sleek Marketing */}
+      <div className="hidden lg:flex lg:w-1/2 bg-black flex-col justify-center relative">
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-[0.03]">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)`,
+              backgroundSize: '60px 60px',
+            }}
+          />
         </div>
 
-        {/* Floating elements */}
-        <div className="absolute top-20 right-20 w-32 h-32 bg-red-600/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-32 left-10 w-40 h-40 bg-red-500/5 rounded-full blur-3xl" />
+        {/* Red glow accent */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-600/10 rounded-full blur-[120px]" />
 
-        <div className="relative z-10 max-w-lg mx-auto text-center">
+        <div className="relative z-10 px-16">
           {/* Logo */}
           <Link href="/" className="inline-flex items-center gap-3 mb-12 group">
-            <div className="w-12 h-12 rounded-xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/25">
-              <Code2 className="w-7 h-7 text-white" />
+            <div className="w-11 h-11 rounded-xl bg-red-600 flex items-center justify-center">
+              <Code2 className="w-6 h-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-white group-hover:text-red-400 transition-colors">
-              CodeBakers
-            </span>
+            <span className="text-2xl font-bold text-white">CodeBakers</span>
           </Link>
 
-          {/* Free Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600/20 border border-red-500/30 mb-8">
-            <Gift className="w-5 h-5 text-red-400" />
-            <span className="text-red-300 font-semibold">100% Free to Start</span>
-          </div>
-
-          {/* Main Headline */}
-          <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-6">
-            Build Your First Project
-            <span className="block text-red-500 mt-2">
-              Completely Free
-            </span>
+          {/* Main Headline - Bold & Clean */}
+          <h1 className="text-5xl font-bold text-white leading-[1.1] mb-4 tracking-tight">
+            Ship production code
+            <br />
+            <span className="text-red-500">on your first prompt.</span>
           </h1>
 
-          {/* Description */}
-          <p className="text-xl text-neutral-300 mb-10 leading-relaxed">
-            Use CodeBakers on one complete project with <strong className="text-white">unlimited access</strong> for <strong className="text-white">as long as you need</strong>. No time limits. No credit card required.
+          {/* Simple value prop */}
+          <p className="text-lg text-neutral-400 mb-8 max-w-md">
+            45K+ lines of battle-tested patterns for your AI assistant.
+            <span className="text-white"> Start free, no credit card.</span>
           </p>
 
-          {/* Benefits */}
-          <div className="space-y-4 text-left max-w-sm mx-auto mb-10">
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-neutral-900/80 border border-neutral-800">
-              <div className="w-12 h-12 rounded-lg bg-red-600/20 flex items-center justify-center flex-shrink-0">
-                <Infinity className="w-6 h-6 text-red-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">Unlimited Downloads</h3>
-                <p className="text-sm text-neutral-400">All 34 modules for your project</p>
-              </div>
+          {/* Inline benefits - compact */}
+          <div className="flex flex-wrap gap-x-6 gap-y-3 mb-10">
+            <div className="flex items-center gap-2 text-neutral-300">
+              <Check className="w-4 h-4 text-red-500" />
+              <span className="text-sm">34 modules</span>
             </div>
-
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-neutral-900/80 border border-neutral-800">
-              <div className="w-12 h-12 rounded-lg bg-red-600/20 flex items-center justify-center flex-shrink-0">
-                <Clock className="w-6 h-6 text-red-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">No Time Pressure</h3>
-                <p className="text-sm text-neutral-400">Use it as long as you need</p>
-              </div>
+            <div className="flex items-center gap-2 text-neutral-300">
+              <Check className="w-4 h-4 text-red-500" />
+              <span className="text-sm">Works with Cursor & Claude</span>
             </div>
-
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-neutral-900/80 border border-neutral-800">
-              <div className="w-12 h-12 rounded-lg bg-red-600/20 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-6 h-6 text-red-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">Production Ready</h3>
-                <p className="text-sm text-neutral-400">45,474 lines of battle-tested patterns</p>
-              </div>
+            <div className="flex items-center gap-2 text-neutral-300">
+              <Check className="w-4 h-4 text-red-500" />
+              <span className="text-sm">Auto-generated tests</span>
+            </div>
+            <div className="flex items-center gap-2 text-neutral-300">
+              <Check className="w-4 h-4 text-red-500" />
+              <span className="text-sm">Unlimited downloads</span>
             </div>
           </div>
 
-          {/* Trust indicators */}
-          <div className="flex items-center justify-center gap-6 text-sm">
-            <div className="flex items-center gap-2 text-neutral-400">
-              <CheckCircle2 className="w-4 h-4 text-red-500" />
-              <span>No credit card</span>
+          {/* Social proof */}
+          <div className="flex items-center gap-3">
+            <div className="flex -space-x-2">
+              {['bg-red-600', 'bg-neutral-600', 'bg-red-500', 'bg-neutral-700'].map((bg, i) => (
+                <div
+                  key={i}
+                  className={`w-8 h-8 rounded-full ${bg} border-2 border-black flex items-center justify-center text-white text-xs font-medium`}
+                >
+                  {['S', 'M', 'A', 'J'][i]}
+                </div>
+              ))}
             </div>
-            <div className="flex items-center gap-2 text-neutral-400">
-              <CheckCircle2 className="w-4 h-4 text-red-500" />
-              <span>Instant access</span>
-            </div>
-            <div className="flex items-center gap-2 text-neutral-400">
-              <CheckCircle2 className="w-4 h-4 text-red-500" />
-              <span>Works with any AI</span>
-            </div>
+            <span className="text-sm text-neutral-500">
+              1,200+ developers shipping faster
+            </span>
           </div>
         </div>
       </div>
 
       {/* Right Panel - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-neutral-900 p-8">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo & CTA */}
-          <div className="lg:hidden mb-8 text-center">
-            <Link href="/" className="inline-flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-red-600 flex items-center justify-center">
-                <Code2 className="w-6 h-6 text-white" />
+      <div className="w-full lg:w-1/2 flex items-center justify-center bg-neutral-900 p-6">
+        <div className="w-full max-w-sm">
+          {/* Mobile Logo */}
+          <div className="lg:hidden mb-6 text-center">
+            <Link href="/" className="inline-flex items-center gap-2.5 mb-3">
+              <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center">
+                <Code2 className="w-5 h-5 text-white" />
               </div>
-              <span className="text-2xl font-bold text-white">
-                CodeBakers
-              </span>
+              <span className="text-xl font-bold text-white">CodeBakers</span>
             </Link>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/30">
-              <Gift className="w-4 h-4 text-red-400" />
-              <span className="text-red-300 text-sm font-medium">1 Free Project - No Limits</span>
-            </div>
+            <p className="text-sm text-neutral-400">
+              <Zap className="w-3.5 h-3.5 inline mr-1 text-red-500" />
+              Ship production code on your first prompt
+            </p>
           </div>
 
           {children}
