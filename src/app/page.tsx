@@ -433,13 +433,13 @@ export default function HomePage() {
 
       {/* Hero Section - Viewport Optimized */}
       <section className="pt-24 pb-8 px-4 min-h-[calc(100vh-4rem)] flex items-center relative overflow-hidden" style={{ background: 'var(--section-hero)' }}>
-        {/* Grid Background Pattern */}
+        {/* Grid Background Pattern - Large white squares */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div
-            className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+            className="absolute inset-0 opacity-[0.08] dark:opacity-[0.06]"
             style={{
-              backgroundImage: `linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)`,
-              backgroundSize: '80px 80px'
+              backgroundImage: `linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)`,
+              backgroundSize: '120px 120px'
             }}
           />
         </div>
