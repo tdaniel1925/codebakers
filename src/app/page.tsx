@@ -444,7 +444,7 @@ export default function HomePage() {
             <span className="relative inline-block">
               <span className="text-muted-foreground">prompts</span>
               {/* Proofreader-style insertion: handwriting above with caret pointing UP */}
-              <span className="absolute -top-10 sm:-top-12 md:-top-16 lg:-top-20 -left-4 sm:-left-16 md:-left-24 lg:-left-28 flex flex-col items-center pointer-events-none select-none">
+              <span className="absolute -top-4 sm:-top-5 md:-top-6 lg:-top-8 -left-4 sm:-left-16 md:-left-24 lg:-left-28 flex flex-col items-center pointer-events-none select-none">
                 <span
                   className="text-red-500 text-xl sm:text-2xl md:text-3xl lg:text-4xl whitespace-nowrap rotate-[-3deg]"
                   style={{ fontFamily: "'Caveat', cursive" }}
