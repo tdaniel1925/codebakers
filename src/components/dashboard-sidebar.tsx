@@ -12,6 +12,7 @@ import {
   Shield,
   Menu,
   Zap,
+  Plug,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/onboarding', label: 'IDE Setup', icon: Plug },
   { href: '/setup', label: 'Setup', icon: Settings },
   { href: '/billing', label: 'Billing', icon: CreditCard },
   { href: '/team', label: 'Team', icon: Users },
