@@ -13,8 +13,8 @@ const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET;
 
 // Use sandbox for testing, production for live
-const PAYPAL_BASE_URL = 'https://api-m.sandbox.paypal.com';
-// const PAYPAL_BASE_URL = 'https://api-m.paypal.com'; // Uncomment for production
+// const PAYPAL_BASE_URL = 'https://api-m.sandbox.paypal.com'; // Sandbox
+const PAYPAL_BASE_URL = 'https://api-m.paypal.com'; // Production
 
 interface PlanConfig {
   name: string;

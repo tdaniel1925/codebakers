@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Copy, Check, Terminal, FolderCode, ArrowRight, Sparkles, CreditCard, Users, Plug } from 'lucide-react';
+import { Terminal, FolderCode, ArrowRight, Sparkles, CreditCard, Users, Plug, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,13 +29,11 @@ interface DashboardContentProps {
   apiKey: {
     keyPrefix: string;
     name: string | null;
-    fullKey?: string;
   } | null;
 }
 
 export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
-  const [copied, setCopied] = useState(false);
-  const [showKey, setShowKey] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const hasActiveSubscription =
     stats.subscription?.status === 'active' || stats.subscription?.isBeta;
@@ -43,17 +41,35 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
   const isFreeUser = !hasActiveSubscription;
   const hasLockedProject = !!stats.freeTrialProject;
 
-  const copyApiKey = async () => {
-    if (apiKey?.fullKey) {
-      await navigator.clipboard.writeText(apiKey.fullKey);
-      setCopied(true);
-      toast.success('API key copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
-    } else if (apiKey) {
-      await navigator.clipboard.writeText(apiKey.keyPrefix);
-      setCopied(true);
-      toast.success('API key prefix copied');
-      setTimeout(() => setCopied(false), 2000);
+  const regenerateKey = async () => {
+    if (!confirm('Generate a new API key? Your current key will stop working.')) {
+      return;
+    }
+
+    setIsRegenerating(true);
+    try {
+      const response = await fetch('/api/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Default' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate key');
+      }
+
+      const data = await response.json();
+
+      // Copy the new key to clipboard
+      await navigator.clipboard.writeText(data.key);
+      toast.success('New API key generated and copied to clipboard! Save it now - it won\'t be shown again.');
+
+      // Refresh the page to show updated key prefix
+      setTimeout(() => window.location.reload(), 2000);
+    } catch (error) {
+      toast.error('Failed to generate new API key');
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -139,38 +155,36 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
               Use this key to authenticate with the CLI
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="flex-1 relative">
                 <code className="block w-full rounded-lg bg-black px-4 py-3 font-mono text-sm text-neutral-300 border border-neutral-800">
-                  {showKey && apiKey.fullKey
-                    ? apiKey.fullKey
-                    : `${apiKey.keyPrefix}_${'•'.repeat(24)}`}
+                  {apiKey.keyPrefix}_••••••••••••••••
                 </code>
               </div>
               <Button
-                variant="outline"
-                onClick={() => setShowKey(!showKey)}
-                className="border-neutral-700 text-neutral-300 hover:bg-neutral-800"
-              >
-                {showKey ? 'Hide' : 'Show'}
-              </Button>
-              <Button
-                onClick={copyApiKey}
+                onClick={regenerateKey}
+                disabled={isRegenerating}
                 className="bg-red-600 hover:bg-red-700 gap-2"
               >
-                {copied ? (
+                {isRegenerating ? (
                   <>
-                    <Check className="h-4 w-4" />
-                    Copied
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Generating...
                   </>
                 ) : (
                   <>
-                    <Copy className="h-4 w-4" />
-                    Copy
+                    <RefreshCw className="h-4 w-4" />
+                    New Key
                   </>
                 )}
               </Button>
+            </div>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-amber-200">
+                Lost your key? Click "New Key" to generate a fresh one. The new key will be copied to your clipboard automatically.
+              </p>
             </div>
           </CardContent>
         </Card>

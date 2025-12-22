@@ -134,7 +134,15 @@ function BillingContent() {
       if (response.ok) {
         const data = await response.json();
         if (data.plans?.length > 0) {
-          setPlans(data.plans);
+          // Always ensure enterprise plan is included (it's handled differently - contact form)
+          const enterprisePlan = fallbackPlans.find(p => p.plan === 'enterprise');
+          const hasEnterprise = data.plans.some((p: PlanData) => p.plan === 'enterprise');
+
+          if (enterprisePlan && !hasEnterprise) {
+            setPlans([...data.plans, enterprisePlan]);
+          } else {
+            setPlans(data.plans);
+          }
         }
       }
     } catch (error) {
