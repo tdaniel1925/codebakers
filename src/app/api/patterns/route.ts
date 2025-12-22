@@ -114,15 +114,17 @@ async function validateRequest(req: NextRequest) {
   }
 
   const { team } = validation;
-  const downloadCheck = TeamService.canDownload(team);
 
-  if (!downloadCheck.allowed) {
-    const isSuspended = downloadCheck.code === 'ACCOUNT_SUSPENDED';
+  // Check access - no project ID for this endpoint (backwards compatible)
+  const accessCheck = TeamService.canAccessProject(team, null);
+
+  if (!accessCheck.allowed) {
+    const isSuspended = accessCheck.code === 'ACCOUNT_SUSPENDED';
     return {
       error: NextResponse.json(
         {
-          error: downloadCheck.reason,
-          code: downloadCheck.code,
+          error: accessCheck.reason,
+          code: accessCheck.code,
           ...(isSuspended
             ? { supportUrl: 'https://codebakers.dev/support' }
             : { upgradeUrl: 'https://codebakers.dev/billing' }),

@@ -338,12 +338,14 @@ async function validateRequest(req: NextRequest) {
   }
 
   const { team } = validation;
-  const downloadCheck = TeamService.canDownload(team);
 
-  if (!downloadCheck.allowed) {
+  // Check access - no project ID for this endpoint (backwards compatible)
+  const accessCheck = TeamService.canAccessProject(team, null);
+
+  if (!accessCheck.allowed) {
     return {
       error: NextResponse.json(
-        { error: downloadCheck.reason, code: downloadCheck.code },
+        { error: accessCheck.reason, code: accessCheck.code },
         { status: 403 }
       ),
     };

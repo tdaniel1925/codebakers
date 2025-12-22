@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import { db, profiles } from '@/db';
 import { DashboardService } from '@/services/dashboard-service';
 
 export async function GET(request: Request) {
@@ -14,7 +13,14 @@ export async function GET(request: Request) {
 
     if (!error && data.user) {
       // Create profile and team if needed
-      await DashboardService.ensureTeamExists(data.user.id, data.user.email!);
+      const team = await DashboardService.ensureTeamExists(data.user.id, data.user.email!);
+
+      // Check if user needs onboarding
+      const needsOnboarding = !team.onboardingCompletedAt;
+
+      if (needsOnboarding) {
+        return NextResponse.redirect(`${origin}/onboarding`);
+      }
 
       return NextResponse.redirect(`${origin}${next}`);
     }

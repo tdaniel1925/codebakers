@@ -266,16 +266,25 @@ export class TeamService {
   }
 
   /**
-   * Check if team can download (not suspended AND (has unlimited access OR has free downloads remaining))
+   * Check if team can access content for a given project
+   * Free trial: unlimited downloads but locked to ONE project
    */
-  static canDownload(team: {
-    subscriptionStatus: string | null;
-    betaGrantedAt: Date | null;
-    freeDownloadsUsed: number | null;
-    freeDownloadsLimit: number | null;
-    suspendedAt: Date | null;
-    suspendedReason: string | null;
-  }): { allowed: boolean; reason?: string; remaining?: number; code?: string } {
+  static canAccessProject(
+    team: {
+      subscriptionStatus: string | null;
+      betaGrantedAt: Date | null;
+      freeTrialProjectId: string | null;
+      suspendedAt: Date | null;
+      suspendedReason: string | null;
+    },
+    projectId: string | null
+  ): {
+    allowed: boolean;
+    reason?: string;
+    code?: string;
+    isNewProject?: boolean;
+    lockedProjectId?: string | null;
+  } {
     // Check suspension first
     if (this.isSuspended(team)) {
       return {
@@ -290,30 +299,44 @@ export class TeamService {
       return { allowed: true };
     }
 
-    const used = team.freeDownloadsUsed ?? 0;
-    const limit = team.freeDownloadsLimit ?? 3;
-    const remaining = limit - used;
-
-    if (remaining > 0) {
-      return { allowed: true, remaining };
+    // Free trial: check project lock
+    // If no project ID provided, allow (for backwards compatibility)
+    if (!projectId) {
+      return { allowed: true };
     }
 
+    // First project usage - will be locked to this project
+    if (!team.freeTrialProjectId) {
+      return { allowed: true, isNewProject: true };
+    }
+
+    // Check if same project
+    if (team.freeTrialProjectId === projectId) {
+      return { allowed: true };
+    }
+
+    // Different project - not allowed on free trial
     return {
       allowed: false,
-      reason: `Free trial limit reached (${limit} downloads). Please upgrade to continue.`,
-      remaining: 0,
-      code: 'TRIAL_LIMIT_REACHED',
+      reason: 'Free trial is limited to one project. Upgrade to Pro for unlimited projects.',
+      code: 'TRIAL_PROJECT_LIMIT',
+      lockedProjectId: team.freeTrialProjectId,
     };
   }
 
   /**
-   * Increment free downloads counter (only for non-unlimited users)
+   * Lock free trial to a specific project
    */
-  static async incrementFreeDownloads(teamId: string): Promise<void> {
+  static async setFreeTrialProject(
+    teamId: string,
+    projectId: string,
+    projectName: string
+  ): Promise<void> {
     await db
       .update(teams)
       .set({
-        freeDownloadsUsed: sql`COALESCE(${teams.freeDownloadsUsed}, 0) + 1`,
+        freeTrialProjectId: projectId,
+        freeTrialProjectName: projectName,
         updatedAt: new Date(),
       })
       .where(eq(teams.id, teamId));
@@ -325,14 +348,12 @@ export class TeamService {
   static getTrialStatus(team: {
     subscriptionStatus: string | null;
     betaGrantedAt: Date | null;
-    freeDownloadsUsed: number | null;
-    freeDownloadsLimit: number | null;
+    freeTrialProjectId: string | null;
+    freeTrialProjectName: string | null;
   }): {
-    type: 'unlimited' | 'trial' | 'expired';
+    type: 'unlimited' | 'trial' | 'trial_locked';
     reason?: string;
-    used?: number;
-    limit?: number;
-    remaining?: number;
+    projectName?: string | null;
   } {
     if (this.hasUnlimitedAccess(team)) {
       return {
@@ -341,14 +362,13 @@ export class TeamService {
       };
     }
 
-    const used = team.freeDownloadsUsed ?? 0;
-    const limit = team.freeDownloadsLimit ?? 3;
-    const remaining = limit - used;
-
-    if (remaining > 0) {
-      return { type: 'trial', used, limit, remaining };
+    if (team.freeTrialProjectId) {
+      return {
+        type: 'trial_locked',
+        projectName: team.freeTrialProjectName,
+      };
     }
 
-    return { type: 'expired', used, limit, remaining: 0 };
+    return { type: 'trial' };
   }
 }

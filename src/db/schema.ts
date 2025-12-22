@@ -41,9 +41,16 @@ export const teams = pgTable('teams', {
   betaGrantedAt: timestamp('beta_granted_at'),
   betaGrantedReason: text('beta_granted_reason'),
 
-  // Free trial usage tracking
+  // Free trial - unlimited downloads but locked to one project
+  freeTrialProjectId: text('free_trial_project_id'), // Hash of project path or git remote
+  freeTrialProjectName: text('free_trial_project_name'), // Friendly name for display
+
+  // Legacy download tracking (kept for backwards compatibility)
   freeDownloadsUsed: integer('free_downloads_used').default(0),
-  freeDownloadsLimit: integer('free_downloads_limit').default(3),
+  freeDownloadsLimit: integer('free_downloads_limit').default(10),
+
+  // Onboarding tracking
+  onboardingCompletedAt: timestamp('onboarding_completed_at'),
 
   // Suspension (admin action for unpaid, abuse, etc.)
   suspendedAt: timestamp('suspended_at'),

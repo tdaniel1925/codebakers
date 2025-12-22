@@ -2,6 +2,7 @@ import { db, teams, apiKeys, profiles } from '@/db';
 import { eq } from 'drizzle-orm';
 import { TeamService } from './team-service';
 import { ApiKeyService } from './api-key-service';
+import { EmailService } from './email-service';
 
 export class DashboardService {
   static async getStats(userId: string) {
@@ -35,6 +36,13 @@ export class DashboardService {
       apiKeyCount: keys.length,
       lastApiCall: lastUsedKey?.lastUsedAt || null,
       seatLimit: team.seatLimit,
+      // Free trial project info
+      freeTrialProject: team.freeTrialProjectId
+        ? {
+            id: team.freeTrialProjectId,
+            name: team.freeTrialProjectName,
+          }
+        : null,
     };
   }
 
@@ -70,6 +78,11 @@ export class DashboardService {
         email.split('@')[0] + "'s Team"
       );
       team = result.team;
+
+      // Send welcome email to new user (async, don't await)
+      EmailService.sendWelcome(email, team.name).catch((err) => {
+        console.error('[DashboardService] Failed to send welcome email:', err);
+      });
     }
 
     return team;

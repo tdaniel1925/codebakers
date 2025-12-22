@@ -421,7 +421,7 @@ export default function AdminUsersPage() {
                       {user.team && !user.team.betaGrantedAt && user.team.subscriptionStatus !== 'active' ? (
                         <div className="flex items-center gap-2">
                           <span className="text-slate-400">
-                            {user.team.freeDownloadsUsed ?? 0}/{user.team.freeDownloadsLimit ?? 3}
+                            {user.team.freeDownloadsUsed ?? 0}/{user.team.freeDownloadsLimit ?? 10}
                           </span>
                           <Download className="h-3 w-3 text-slate-500" />
                         </div>

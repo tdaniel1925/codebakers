@@ -26,42 +26,48 @@ export async function GET(req: NextRequest) {
 
     const { team } = validation;
 
-    // Check access: unlimited (paid/beta) OR free trial with remaining downloads
-    const downloadCheck = TeamService.canDownload(team);
+    // Get project info from headers (sent by CLI)
+    const projectId = req.headers.get('x-project-id');
+    const projectName = req.headers.get('x-project-name') || 'Unknown Project';
 
-    if (!downloadCheck.allowed) {
-      const isSuspended = downloadCheck.code === 'ACCOUNT_SUSPENDED';
+    // Check access: unlimited (paid/beta) OR free trial for same project
+    const accessCheck = TeamService.canAccessProject(team, projectId);
+
+    if (!accessCheck.allowed) {
+      const isSuspended = accessCheck.code === 'ACCOUNT_SUSPENDED';
+      const isProjectLimit = accessCheck.code === 'TRIAL_PROJECT_LIMIT';
+
       return NextResponse.json(
         {
-          error: downloadCheck.reason,
-          code: downloadCheck.code,
-          ...(isSuspended
-            ? { supportUrl: 'https://codebakers.dev/support' }
-            : { upgradeUrl: 'https://codebakers.dev/billing' }),
+          error: accessCheck.reason,
+          code: accessCheck.code,
+          ...(isSuspended && { supportUrl: 'https://codebakers.dev/support' }),
+          ...(isProjectLimit && {
+            upgradeUrl: 'https://codebakers.dev/billing',
+            lockedProject: accessCheck.lockedProjectId,
+          }),
         },
-        { status: isSuspended ? 403 : 402 } // Forbidden for suspended, Payment Required for trial limit
+        { status: isSuspended ? 403 : 402 }
       );
+    }
+
+    // Lock free trial to this project if it's a new project
+    if (accessCheck.isNewProject && projectId) {
+      await TeamService.setFreeTrialProject(team.id, projectId, projectName);
     }
 
     // Get encoded content
     const content = await ContentService.getEncodedContent();
 
-    // Increment free downloads counter (only for non-unlimited users)
-    if (!TeamService.hasUnlimitedAccess(team)) {
-      await TeamService.incrementFreeDownloads(team.id);
-    }
-
-    // Include trial info in response for free users
+    // Include trial info in response
     const trialStatus = TeamService.getTrialStatus(team);
 
     return NextResponse.json({
       ...content,
       _meta: {
         trialStatus: trialStatus.type,
-        ...(trialStatus.type === 'trial' && {
-          downloadsUsed: (trialStatus.used ?? 0) + 1, // +1 because we just used one
-          downloadsLimit: trialStatus.limit,
-          downloadsRemaining: (trialStatus.remaining ?? 1) - 1,
+        ...(trialStatus.type === 'trial_locked' && {
+          projectName: trialStatus.projectName,
         }),
       },
     });

@@ -2,12 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Copy, Check, Terminal, Download, ArrowRight, Sparkles, CheckCircle2, Zap } from 'lucide-react';
+import { Copy, Check, Terminal, FolderCode, ArrowRight, Sparkles, CheckCircle2, Zap, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 
 interface DashboardContentProps {
   stats: {
@@ -22,8 +21,10 @@ interface DashboardContentProps {
     apiKeyCount: number;
     lastApiCall: Date | null;
     seatLimit?: number | null;
-    downloadsUsed?: number;
-    downloadsLimit?: number;
+    freeTrialProject?: {
+      id: string;
+      name: string | null;
+    } | null;
   };
   apiKey: {
     keyPrefix: string;
@@ -41,10 +42,7 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
     stats.subscription?.status === 'active' || stats.subscription?.isBeta;
 
   const isFreeUser = !hasActiveSubscription;
-  const downloadsUsed = stats.downloadsUsed || 0;
-  const downloadsLimit = stats.downloadsLimit || 3;
-  const downloadsRemaining = Math.max(0, downloadsLimit - downloadsUsed);
-  const downloadProgress = (downloadsUsed / downloadsLimit) * 100;
+  const hasLockedProject = !!stats.freeTrialProject;
 
   const copyApiKey = async () => {
     if (apiKey?.fullKey) {
@@ -121,7 +119,7 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
                   <span className="text-white font-semibold text-lg">
                     {hasActiveSubscription
                       ? `${stats.subscription?.plan?.charAt(0).toUpperCase()}${stats.subscription?.plan?.slice(1)} Plan`
-                      : 'Free Plan'}
+                      : 'Free Trial'}
                   </span>
                   {stats.subscription?.isBeta && (
                     <Badge className="bg-red-600">Beta</Badge>
@@ -129,8 +127,10 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
                 </div>
                 <p className="text-neutral-400 text-sm">
                   {hasActiveSubscription
-                    ? 'Unlimited downloads'
-                    : `${downloadsRemaining} of ${downloadsLimit} free downloads remaining`}
+                    ? 'Unlimited projects'
+                    : hasLockedProject
+                      ? 'Unlimited usage for 1 project'
+                      : 'Unlimited usage for your first project'}
                 </p>
               </div>
             </div>
@@ -138,21 +138,23 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
             {isFreeUser && (
               <Link href="/billing">
                 <Button className="bg-red-600 hover:bg-red-700 gap-2">
-                  Upgrade Now
+                  Upgrade for More Projects
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
             )}
           </div>
 
-          {/* Progress bar for free users */}
-          {isFreeUser && (
-            <div className="mt-6">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-neutral-400">Downloads used</span>
-                <span className="text-white">{downloadsUsed} / {downloadsLimit}</span>
+          {/* Project info for free users */}
+          {isFreeUser && hasLockedProject && (
+            <div className="mt-6 p-4 rounded-lg bg-black/50 border border-neutral-800">
+              <div className="flex items-center gap-3">
+                <FolderCode className="w-5 h-5 text-red-400" />
+                <div>
+                  <p className="text-sm text-neutral-400">Free trial locked to:</p>
+                  <p className="text-white font-medium">{stats.freeTrialProject?.name || 'Your Project'}</p>
+                </div>
               </div>
-              <Progress value={downloadProgress} className="h-2 bg-neutral-800" />
             </div>
           )}
         </CardContent>
@@ -308,7 +310,7 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
           <Card className="bg-neutral-900/80 border-neutral-800 hover:border-red-500/50 transition-colors h-full">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center">
-                <Download className="w-5 h-5 text-red-400" />
+                <CreditCard className="w-5 h-5 text-red-400" />
               </div>
               <div>
                 <p className="font-medium text-white group-hover:text-red-400 transition-colors">
