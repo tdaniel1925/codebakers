@@ -6,63 +6,56 @@ import { handleApiError, autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
-// Feature detection keywords
-const FEATURE_KEYWORDS: Record<string, { name: string; keywords: string[] }> = {
-  auth: {
-    name: 'Authentication',
-    keywords: ['auth', 'login', 'signup', 'register', 'password', 'session', 'oauth', '2fa'],
-  },
-  form: {
-    name: 'Form',
-    keywords: ['form', 'input', 'field', 'submit', 'validation'],
-  },
-  payment: {
-    name: 'Payment',
-    keywords: ['stripe', 'payment', 'checkout', 'billing', 'subscription', 'invoice'],
-  },
-  api: {
-    name: 'API Endpoint',
-    keywords: ['api', 'endpoint', 'route', 'rest', 'crud', 'backend'],
-  },
-  upload: {
-    name: 'File Upload',
-    keywords: ['upload', 'file', 'image', 'photo', 's3', 'storage'],
-  },
-  dashboard: {
-    name: 'Dashboard',
-    keywords: ['dashboard', 'admin', 'panel', 'analytics', 'stats'],
-  },
-  search: {
-    name: 'Search',
-    keywords: ['search', 'filter', 'find', 'autocomplete', 'query'],
-  },
-  database: {
-    name: 'Database',
-    keywords: ['database', 'db', 'schema', 'table', 'query', 'migration'],
-  },
-  email: {
-    name: 'Email',
-    keywords: ['email', 'send', 'notification', 'resend', 'newsletter'],
-  },
-  ai: {
-    name: 'AI Integration',
-    keywords: ['ai', 'llm', 'openai', 'claude', 'gpt', 'chat', 'embedding'],
-  },
-};
+// Available feature types for classification
+const FEATURE_TYPES = [
+  'Authentication',
+  'Form',
+  'Payment',
+  'API Endpoint',
+  'File Upload',
+  'Dashboard',
+  'Search',
+  'Database',
+  'Email',
+  'AI Integration',
+  'Animation',
+  'Image Gallery',
+  'Notifications',
+  'Comments',
+  'Settings',
+  'Landing Page',
+  'Data Table',
+  'Modal/Dialog',
+  'Navigation',
+  'Charts/Visualization',
+  'Feature', // Generic fallback
+] as const;
 
-function detectFeature(prompt: string): string {
-  const lowerPrompt = prompt.toLowerCase();
-
-  for (const [, feature] of Object.entries(FEATURE_KEYWORDS)) {
-    for (const keyword of feature.keywords) {
-      if (lowerPrompt.includes(keyword)) {
-        return feature.name;
-      }
-    }
-  }
-
-  return 'Feature';
-}
+// Available pattern modules
+const PATTERN_MODULES = [
+  '00-core',
+  '01-database',
+  '02-auth',
+  '03-api',
+  '04-frontend',
+  '05-payments',
+  '06-integrations',
+  '07-performance',
+  '08-testing',
+  '09-design',
+  '10-generators',
+  '11-realtime',
+  '12-saas',
+  '13-mobile',
+  '14-ai',
+  '26-analytics',
+  '27-search',
+  '28-email-design',
+  '29-data-viz',
+  '30-motion',
+  '31-iconography',
+  '32-print',
+] as const;
 
 // Project context type from MCP server
 interface ProjectContext {
@@ -78,6 +71,13 @@ interface ProjectContext {
   hasDatabase: boolean;
   hasPayments: boolean;
   dependencies: string[];
+}
+
+// AI response structure
+interface AIAnalysis {
+  optimizedPrompt: string;
+  featureName: string;
+  patterns: string[];
 }
 
 function buildSystemPrompt(context?: ProjectContext): string {
@@ -119,33 +119,84 @@ function buildSystemPrompt(context?: ProjectContext): string {
 
   return `You are a prompt optimization expert for CodeBakers, a production-ready code patterns system.
 
-Your job is to take a simple, casual developer request and expand it into a comprehensive, production-ready prompt that will result in high-quality code.
+Your job is to:
+1. Analyze the developer's request to understand their TRUE INTENT (not just keywords)
+2. Classify the feature type based on what they're actually trying to build
+3. Select the relevant pattern modules that would help
+4. Expand the request into a comprehensive, production-ready prompt
 ${contextSection}
-Rules:
-1. Keep the optimized prompt under 300 words
-2. Include specific technical requirements (error handling, loading states, validation, accessibility, tests)
-3. Reference the SPECIFIC components, services, and file paths from the project context when available
-4. Be specific about edge cases and error scenarios
-5. Include testing requirements
-6. If the project has existing components (Button, Input, Card, etc.), explicitly mention to use them
-7. If a schema path exists, mention where to add database changes
-8. Maintain the original intent while adding production requirements
+AVAILABLE FEATURE TYPES:
+${FEATURE_TYPES.join(', ')}
 
-Output ONLY the optimized prompt, no explanations or preamble.`;
+AVAILABLE PATTERN MODULES:
+${PATTERN_MODULES.join(', ')}
+
+PATTERN MODULE PURPOSES:
+- 00-core: Always include. Core standards, TypeScript, error handling
+- 01-database: Database schemas, queries, migrations, Drizzle ORM
+- 02-auth: Login, signup, sessions, OAuth, 2FA, permissions
+- 03-api: REST endpoints, validation, rate limiting, webhooks
+- 04-frontend: React components, forms, modals, tables, state
+- 05-payments: Stripe, subscriptions, billing, invoices
+- 06-integrations: Email, SMS, file upload, background jobs
+- 07-performance: Caching, optimization, lazy loading
+- 08-testing: Unit tests, E2E tests, CI/CD
+- 09-design: UI/UX, accessibility, responsive design, SEO
+- 10-generators: Scaffolding, boilerplate, project setup
+- 11-realtime: WebSockets, notifications, live updates
+- 12-saas: Multi-tenant, teams, feature flags
+- 13-mobile: React Native, Expo, mobile-specific
+- 14-ai: LLM integration, embeddings, RAG, streaming
+- 26-analytics: Tracking, metrics, funnels, dashboards
+- 27-search: Full-text search, autocomplete, filters
+- 28-email-design: HTML email templates, MJML
+- 29-data-viz: Charts, graphs, data visualization
+- 30-motion: Animations, transitions, Framer Motion
+- 31-iconography: Icons, SVG, icon systems
+- 32-print: PDF generation, print stylesheets
+
+INTENT ANALYSIS RULES:
+- "zoom animation on image" → Animation (NOT File Upload just because "image" is mentioned)
+- "upload profile picture" → File Upload
+- "image gallery" → Image Gallery
+- "login form" → Authentication (NOT just Form)
+- "payment checkout" → Payment
+- Focus on the PRIMARY ACTION/INTENT, not incidental words
+
+RESPONSE FORMAT:
+You MUST respond with valid JSON only, no markdown, no explanation:
+{
+  "optimizedPrompt": "The expanded production-ready prompt (under 300 words)",
+  "featureName": "One of the feature types listed above",
+  "patterns": ["00-core", "plus 1-4 other relevant patterns"]
+}
+
+Rules for optimized prompt:
+1. Keep under 300 words
+2. Include error handling, loading states, validation, accessibility, tests
+3. Reference specific components/services from project context when available
+4. Be specific about edge cases
+5. Always include testing requirements`;
 }
 
 /**
  * POST /api/optimize-prompt
  * Optimizes a simple prompt into a production-ready one using AI
- * Accepts optional project context for context-aware optimization
+ * AI analyzes intent to determine feature type and relevant patterns (no keyword matching)
  */
 export async function POST(req: NextRequest) {
   try {
     autoRateLimit(req);
 
-    // Validate API key
-    const validation = await validateRequest(req);
-    if (validation.error) return validation.error;
+    // Check for demo mode (public demo on homepage)
+    const authHeader = req.headers.get('authorization');
+    const isDemo = authHeader === 'Bearer demo';
+
+    if (!isDemo) {
+      // Validate API key for non-demo requests
+      const validation = await validateRequest(req);
+      if (validation.error) return validation.error;
+    }
 
     const body = await req.json();
     const { prompt, context } = body as { prompt: string; context?: ProjectContext };
@@ -157,17 +208,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Detect feature type
-    const featureName = detectFeature(prompt);
-
     // Check if we have Anthropic API key
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
     if (!anthropicKey) {
-      // Fallback to template-based optimization
+      // Fallback to template-based optimization (no AI available)
       return NextResponse.json({
-        optimizedPrompt: getTemplateOptimization(prompt, featureName, context),
-        featureName,
+        optimizedPrompt: getTemplateOptimization(prompt, context),
+        featureName: 'Feature',
+        patterns: ['00-core', '04-frontend'],
         method: 'template',
         hasContext: !!context,
       });
@@ -176,7 +225,7 @@ export async function POST(req: NextRequest) {
     // Build context-aware system prompt
     const systemPrompt = buildSystemPrompt(context);
 
-    // Use Anthropic to optimize the prompt
+    // Use Anthropic to analyze intent and optimize the prompt
     const anthropic = new Anthropic({ apiKey: anthropicKey });
 
     const message = await anthropic.messages.create({
@@ -186,18 +235,41 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: 'user',
-          content: `Optimize this developer request into a production-ready prompt:\n\n"${prompt}"`,
+          content: `Analyze this developer request and respond with JSON:\n\n"${prompt}"`,
         },
       ],
     });
 
-    const optimizedPrompt = message.content[0].type === 'text'
-      ? message.content[0].text
-      : getTemplateOptimization(prompt, featureName, context);
+    // Parse AI response
+    let analysis: AIAnalysis;
+    try {
+      const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+      // Clean up any markdown formatting the AI might have added
+      const cleanJson = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      analysis = JSON.parse(cleanJson);
+
+      // Ensure patterns always includes 00-core
+      if (!analysis.patterns.includes('00-core')) {
+        analysis.patterns.unshift('00-core');
+      }
+
+      // Limit to max 5 patterns
+      analysis.patterns = analysis.patterns.slice(0, 5);
+    } catch {
+      // If JSON parsing fails, fallback to template
+      return NextResponse.json({
+        optimizedPrompt: getTemplateOptimization(prompt, context),
+        featureName: 'Feature',
+        patterns: ['00-core', '04-frontend'],
+        method: 'template-fallback',
+        hasContext: !!context,
+      });
+    }
 
     return NextResponse.json({
-      optimizedPrompt,
-      featureName,
+      optimizedPrompt: analysis.optimizedPrompt,
+      featureName: analysis.featureName,
+      patterns: analysis.patterns,
       method: 'ai',
       hasContext: !!context,
     });
@@ -208,7 +280,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function getTemplateOptimization(prompt: string, featureName: string, context?: ProjectContext): string {
+function getTemplateOptimization(prompt: string, context?: ProjectContext): string {
   // Build context-aware additions
   let contextAdditions = '';
 
@@ -241,29 +313,8 @@ function getTemplateOptimization(prompt: string, featureName: string, context?: 
     }
   }
 
-  const templates: Record<string, string> = {
-    'Authentication': `Build a complete authentication system based on the request: "${prompt}". Include: email and password fields using React Hook Form and Zod validation, loading state on submit button, inline error messages for invalid input, toast notification for failed attempts, forgot password link, optional "remember me" checkbox, redirect on success.${contextAdditions} Make it fully accessible with ARIA labels and keyboard navigation. Add Playwright tests for happy path and error states.`,
-
-    'Form': `Build a form based on the request: "${prompt}". Include: React Hook Form with Zod schema validation, loading state on submit, inline error messages, toast notifications for success/failure, proper TypeScript types, disabled state while submitting.${contextAdditions} Make it accessible with proper labels and ARIA attributes. Add Playwright tests.`,
-
-    'Payment': `Implement payment functionality for: "${prompt}". Include: Stripe checkout session API route with proper error handling, webhook endpoint for payment events (checkout.session.completed, invoice.paid), signature verification, idempotency keys, sync subscription status to database, handle failed payments gracefully, customer portal redirect.${contextAdditions} Add comprehensive error logging and Playwright tests.`,
-
-    'API Endpoint': `Create an API endpoint for: "${prompt}". Include: Zod schema validation for request body and query params, authentication middleware check, rate limiting, proper HTTP status codes (200, 201, 400, 401, 403, 404, 429, 500), consistent error response format with error codes, request ID for tracing, audit logging for mutations.${contextAdditions} Use Drizzle ORM with parameterized queries. Add OpenAPI documentation comments and integration tests.`,
-
-    'File Upload': `Build file upload functionality for: "${prompt}". Include: file type validation, max file size limit (10MB), upload progress indicator, presigned URL generation for secure uploads, preview before upload, multiple file selection, cancel functionality, error handling with user-friendly messages.${contextAdditions} Use React Hook Form for integration. Add tests for validation and upload flow.`,
-
-    'Dashboard': `Build a dashboard for: "${prompt}". Include: React Query for data fetching with auto-refresh, skeleton loaders during initial load, error boundaries with retry button, responsive grid layout, stat cards with trend indicators, date range picker for filtering, export to CSV functionality.${contextAdditions} Implement optimistic updates where applicable. Add loading and error state tests.`,
-
-    'Search': `Build search functionality for: "${prompt}". Include: debounced input to prevent API flooding, loading spinner during search, empty state with helpful message, keyboard navigation (arrow keys, enter, escape), highlight matching text in results, recent searches in localStorage, clear button.${contextAdditions} Use ARIA combobox pattern for accessibility. Add Playwright tests for keyboard navigation.`,
-
-    'Database': `Implement database operations for: "${prompt}". Include: Drizzle ORM schema with proper types, parameterized queries to prevent SQL injection, proper indexing for performance, soft delete pattern if applicable, audit logging for mutations, transaction support for multi-table operations.${contextAdditions} Add migration files and tests.`,
-
-    'Email': `Implement email functionality for: "${prompt}". Include: Resend integration with proper error handling, HTML email templates with React Email, plain text fallback, unsubscribe link where applicable, rate limiting, queue for bulk sends, bounce handling.${contextAdditions} Add tests for template rendering and send flow.`,
-
-    'AI Integration': `Build AI integration for: "${prompt}". Include: streaming response support, proper error handling for API failures, rate limiting, token counting and cost tracking, retry logic with exponential backoff, user-friendly error messages, loading states.${contextAdditions} Consider caching for repeated queries. Add tests for happy path and error scenarios.`,
-  };
-
-  return templates[featureName] || `Build this feature based on the request: "${prompt}". Include: comprehensive error handling with user-friendly messages, loading and skeleton states, Zod validation for all inputs, TypeScript types throughout, proper authentication checks, audit logging for important actions, responsive design, accessibility (ARIA labels, keyboard navigation), and Playwright tests for critical paths.${contextAdditions} Follow established codebase conventions and use existing UI components.`;
+  // Generic template when AI is not available
+  return `Build this feature based on the request: "${prompt}". Include: comprehensive error handling with user-friendly messages, loading and skeleton states, Zod validation for all inputs, TypeScript types throughout, proper authentication checks where needed, responsive design, accessibility (ARIA labels, keyboard navigation), and Playwright tests for critical paths.${contextAdditions} Follow established codebase conventions and use existing UI components.`;
 }
 
 async function validateRequest(req: NextRequest) {

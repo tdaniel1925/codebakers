@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectType": "existing",
   "createdAt": "2024-12-21T00:00:00Z",
-  "lastUpdated": "2024-12-21T00:00:00Z",
+  "lastUpdated": "2024-12-21T21:15:00Z",
   "decisions": {
     "authLayout": "centered",
     "navigation": "top",
@@ -13,28 +13,31 @@
     "database": "drizzle",
     "auth": "custom",
     "ui": "shadcn",
-    "payments": ["stripe"]
+    "payments": ["stripe", "paypal"]
   },
   "currentWork": {
-    "lastUpdated": "2024-12-21T00:00:00Z",
-    "activeFeature": "Marketing site and Prompt Optimizer demo",
+    "lastUpdated": "2024-12-21T21:15:00Z",
+    "activeFeature": "Beta launch preparation",
     "status": "completed",
-    "summary": "Built marketing homepage with Smart Prompts section and Interactive Demo. Added context-aware prompt optimization API. Fixed Interactive Demo to show different optimized prompts based on feature keywords. Removed copy button and made output non-selectable.",
+    "summary": "Site is production-ready for beta users. All pages verified working: homepage, signup, pricing. Build passes with no errors. Deployed to codebakers.ai.",
     "pendingTasks": [],
     "completedThisSession": [
       "Made hero grid more visible with smaller 80px squares",
       "Added gradient fade at bottom of hero grid",
-      "Added 15 feature types to Interactive Demo (ai, notification, table, modal, settings, comment, auth, crud, landing, etc.)",
-      "Removed copy button and added select-none to prevent copying",
-      "Updated suggestion chips to include AI chatbot",
-      "Added session continuity instructions to CLAUDE.md"
+      "Added 15 feature types to Interactive Demo",
+      "Removed copy button and added select-none",
+      "Added session continuity to CLAUDE.md (auto-resume)",
+      "Created .codebakers.json for state persistence",
+      "Production build verification - passed",
+      "Deployed to Vercel production",
+      "Verified homepage, signup, and pricing pages work"
     ],
     "keyFiles": [
       "src/app/page.tsx",
       "src/components/interactive-demo.tsx",
       "src/app/api/optimize-prompt/route.ts",
-      "cli/src/mcp/server.ts"
+      "CLAUDE.md"
     ],
-    "notes": "User prefers minimal UI - no copy buttons on demo outputs. All changes deployed to Vercel (codebakers project)."
+    "notes": "Site live at codebakers.ai. Ready for beta users. User prefers minimal UI."
   }
 }
