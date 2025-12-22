@@ -32,7 +32,6 @@ import {
   Bot,
   Wand2,
   Play,
-  Pause,
 } from 'lucide-react';
 
 // Animation variants
@@ -49,6 +48,14 @@ const staggerContainer = {
     },
   },
 };
+
+// IDE logos
+const supportedIDEs = [
+  { name: 'Cursor', logo: '/logos/cursor.svg', primary: true },
+  { name: 'Claude Code', logo: '/logos/claude.svg', primary: true },
+  { name: 'Windsurf', logo: '/logos/windsurf.svg', primary: false },
+  { name: 'Aider', logo: '/logos/aider.svg', primary: false },
+];
 
 // Data
 const painPoints = [
@@ -398,14 +405,14 @@ export default function HomePage() {
 
   return (
     <div className="overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-24 px-4">
+      {/* Hero Section - Dark */}
+      <section className="relative pt-20 pb-24 px-4 bg-gray-950">
         {/* Grid Background Pattern */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div
-            className="absolute inset-0 opacity-[0.03]"
+            className="absolute inset-0 opacity-[0.05]"
             style={{
-              backgroundImage: `linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)`,
+              backgroundImage: `linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)`,
               backgroundSize: '80px 80px'
             }}
           />
@@ -417,29 +424,46 @@ export default function HomePage() {
           variants={staggerContainer}
         >
           <motion.div variants={fadeInUp}>
-            <Badge className="mb-6 bg-red-50 text-red-600 border-red-200 hover:bg-red-100">
+            <Badge className="mb-6 bg-red-950/50 text-red-400 border-red-800 hover:bg-red-900/50">
               <Sparkles className="h-3 w-3 mr-1" />
               34 Modules • {totalLines.toLocaleString()}+ Lines of Production Code
             </Badge>
           </motion.div>
 
           <motion.h1
-            className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight tracking-tight"
+            className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight"
             variants={fadeInUp}
           >
-            Stop fighting{' '}
-            <span className="text-red-600 whitespace-nowrap">
-              AI revision loops
-            </span>
+            <span className="text-gray-400">Your prompts</span>
+            <span className="text-red-500"> suck.</span>
+            <br />
+            <span className="text-white">We fix&nbsp;them.</span>
           </motion.h1>
 
           <motion.p
-            className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed"
+            className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto leading-relaxed"
             variants={fadeInUp}
           >
             CodeBakers gives your AI assistant {totalLines.toLocaleString()}+ lines of battle-tested
             patterns. Get production-ready code on your first prompt.
           </motion.p>
+
+          {/* IDE Logos */}
+          <motion.div className="flex justify-center items-center gap-8 mb-10" variants={fadeInUp}>
+            {supportedIDEs.map((ide) => (
+              <div
+                key={ide.name}
+                className="flex items-center gap-2 opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <img
+                  src={ide.logo}
+                  alt={ide.name}
+                  className="h-6 w-6 brightness-0 invert"
+                />
+                <span className="text-sm text-gray-400 font-medium hidden sm:inline">{ide.name}</span>
+              </div>
+            ))}
+          </motion.div>
 
           <motion.div className="flex justify-center gap-4 mb-16" variants={fadeInUp}>
             <Link href="/signup">
@@ -452,7 +476,7 @@ export default function HomePage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 h-14 px-10 text-lg"
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 h-14 px-10 text-lg"
               >
                 See Demo
               </Button>
@@ -465,28 +489,42 @@ export default function HomePage() {
             variants={fadeInUp}
           >
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-900">34</div>
+              <div className="text-4xl font-bold text-white">34</div>
               <div className="text-sm text-gray-500 mt-1">Modules</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-900">{(totalLines / 1000).toFixed(0)}K+</div>
+              <div className="text-4xl font-bold text-white">{(totalLines / 1000).toFixed(0)}K+</div>
               <div className="text-sm text-gray-500 mt-1">Lines of Code</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-900">5x</div>
+              <div className="text-4xl font-bold text-white">5x</div>
               <div className="text-sm text-gray-500 mt-1">Faster Development</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-900">100%</div>
+              <div className="text-4xl font-bold text-white">100%</div>
               <div className="text-sm text-gray-500 mt-1">Production Ready</div>
             </div>
           </motion.div>
         </motion.div>
       </section>
 
-      {/* Video Demo Section */}
-      <section className="py-16 px-4 -mt-8 relative z-20">
+      {/* Video Demo Section - White Background */}
+      <section className="py-20 px-4 bg-white relative z-20">
         <div className="container mx-auto">
+          <motion.div
+            className="text-center mb-10"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              See it in action
+            </h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">
+              Watch how CodeBakers transforms your AI workflow
+            </p>
+          </motion.div>
+
           <motion.div
             className="max-w-5xl mx-auto"
             initial={{ opacity: 0, y: 40 }}
@@ -494,22 +532,22 @@ export default function HomePage() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            {/* Browser Frame */}
+            {/* Video Frame */}
             <div className="relative group">
-              {/* Glow Effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-red-600 via-red-500 to-orange-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
+              {/* Shadow Effect */}
+              <div className="absolute -inset-4 bg-gradient-to-r from-red-100 via-gray-100 to-red-100 rounded-3xl blur-2xl opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
 
-              {/* Browser Chrome */}
-              <div className="relative rounded-2xl overflow-hidden bg-gray-900 shadow-2xl shadow-black/40 border border-gray-800">
+              {/* Video Container */}
+              <div className="relative rounded-2xl overflow-hidden bg-gray-100 shadow-2xl border border-gray-200">
                 {/* Browser Header */}
-                <div className="flex items-center gap-2 px-4 py-3 bg-gray-800/80 border-b border-gray-700/50">
+                <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200">
                   <div className="flex gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                    <div className="w-3 h-3 rounded-full bg-red-400" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                    <div className="w-3 h-3 rounded-full bg-green-400" />
                   </div>
                   <div className="flex-1 flex justify-center">
-                    <div className="px-4 py-1.5 rounded-lg bg-gray-900/60 border border-gray-700/50 text-sm text-gray-400 flex items-center gap-2">
+                    <div className="px-4 py-1.5 rounded-lg bg-white border border-gray-200 text-sm text-gray-500 flex items-center gap-2">
                       <Lock className="w-3 h-3" />
                       codebakers.dev
                     </div>
@@ -517,15 +555,13 @@ export default function HomePage() {
                   <div className="w-16" />
                 </div>
 
-                {/* Video Container */}
-                <div className="relative aspect-video bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-                  {/* Video element */}
+                {/* Video */}
+                <div className="relative aspect-video bg-gray-900">
                   <video
                     ref={videoRef}
                     className="absolute inset-0 w-full h-full object-cover"
                     playsInline
                     loop
-                    muted
                     onClick={() => {
                       if (videoRef.current) {
                         if (isPlaying) {
@@ -547,7 +583,7 @@ export default function HomePage() {
                     }`}
                   >
                     {/* Dark overlay */}
-                    <div className="absolute inset-0 bg-black/40" />
+                    <div className="absolute inset-0 bg-black/50" />
 
                     {/* Play Button */}
                     <button
@@ -567,8 +603,8 @@ export default function HomePage() {
 
                     {/* Caption */}
                     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center">
-                      <p className="text-white/80 text-sm font-medium">
-                        Watch how CodeBakers transforms your AI workflow
+                      <p className="text-white/90 text-sm font-medium">
+                        Click to play with sound
                       </p>
                     </div>
                   </div>
@@ -583,7 +619,7 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.4 }}
               >
-                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-100 text-sm font-medium text-gray-700">
+                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-200 text-sm font-medium text-gray-700">
                   <span className="text-green-500 mr-1">✓</span> No revisions needed
                 </div>
               </motion.div>
@@ -595,7 +631,7 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.5 }}
               >
-                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-100 text-sm font-medium text-gray-700">
+                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-200 text-sm font-medium text-gray-700">
                   <span className="text-red-500 mr-1">⚡</span> Production-ready
                 </div>
               </motion.div>
@@ -607,7 +643,7 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.6 }}
               >
-                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-100 text-sm font-medium text-gray-700">
+                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-200 text-sm font-medium text-gray-700">
                   <span className="text-amber-500 mr-1">🔥</span> Ships in minutes
                 </div>
               </motion.div>
