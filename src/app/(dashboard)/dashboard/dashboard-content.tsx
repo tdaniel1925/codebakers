@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Terminal, FolderCode, ArrowRight, Sparkles, CreditCard, Users, Plug, RefreshCw, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { Terminal, FolderCode, ArrowRight, Sparkles, CreditCard, Users, Plug, RefreshCw, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +33,7 @@ interface DashboardContentProps {
 
 export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const hasActiveSubscription =
     stats.subscription?.status === 'active' || stats.subscription?.isBeta;
@@ -47,6 +47,7 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
     }
 
     setIsRegenerating(true);
+    setMessage(null);
     try {
       const response = await fetch('/api/keys', {
         method: 'POST',
@@ -62,12 +63,12 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
 
       // Copy the new key to clipboard (key is in result.data.key due to successResponse wrapper)
       await navigator.clipboard.writeText(result.data.key);
-      toast.success('New API key generated and copied to clipboard! Save it now - it won\'t be shown again.');
+      setMessage({ type: 'success', text: 'New API key generated and copied to clipboard! Save it now - it won\'t be shown again.' });
 
       // Refresh the page to show updated key prefix
-      setTimeout(() => window.location.reload(), 2000);
+      setTimeout(() => window.location.reload(), 3000);
     } catch (error) {
-      toast.error('Failed to generate new API key');
+      setMessage({ type: 'error', text: 'Failed to generate new API key. Please try again.' });
     } finally {
       setIsRegenerating(false);
     }
@@ -180,12 +181,30 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
                 )}
               </Button>
             </div>
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-              <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-amber-200">
-                Lost your key? Click "New Key" to generate a fresh one. The new key will be copied to your clipboard automatically.
-              </p>
-            </div>
+            {message && (
+              <div className={`flex items-start gap-2 p-3 rounded-lg ${
+                message.type === 'success'
+                  ? 'bg-green-500/10 border border-green-500/20'
+                  : 'bg-red-500/10 border border-red-500/20'
+              }`}>
+                {message.type === 'success' ? (
+                  <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                )}
+                <p className={`text-sm ${message.type === 'success' ? 'text-green-200' : 'text-red-200'}`}>
+                  {message.text}
+                </p>
+              </div>
+            )}
+            {!message && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-amber-200">
+                  Lost your key? Click "New Key" to generate a fresh one. The new key will be copied to your clipboard automatically.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
