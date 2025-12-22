@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Copy, Check, Terminal, FolderCode, ArrowRight, Sparkles, CheckCircle2, Zap, CreditCard } from 'lucide-react';
+import { Copy, Check, Terminal, FolderCode, ArrowRight, Sparkles, CreditCard, Users, Plug } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,7 +35,6 @@ interface DashboardContentProps {
 
 export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
   const [copied, setCopied] = useState(false);
-  const [copiedStep, setCopiedStep] = useState<number | null>(null);
   const [showKey, setShowKey] = useState(false);
 
   const hasActiveSubscription =
@@ -58,57 +57,27 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
     }
   };
 
-  const copyCommand = async (command: string, stepId: number) => {
-    await navigator.clipboard.writeText(command);
-    setCopiedStep(stepId);
-    toast.success('Copied to clipboard');
-    setTimeout(() => setCopiedStep(null), 2000);
-  };
-
-  // Steps for getting started - MCP approach (no local files)
-  const steps = [
-    {
-      id: 1,
-      title: 'Run setup command',
-      description: 'Open your terminal and run:',
-      command: 'npx @codebakers/cli setup',
-      note: 'This will prompt for your API key (shown below)',
-      completed: !!stats.lastApiCall,
-    },
-    {
-      id: 2,
-      title: 'Enable in Claude Code',
-      description: 'Copy this into Claude Code:',
-      command: '/mcp add codebakers npx -y @codebakers/cli serve',
-      note: 'One-time setup, no restart needed!',
-      completed: false,
-    },
-    {
-      id: 3,
-      title: 'Start building!',
-      description: 'Ask Claude to build something:',
-      command: '"Build a login form with validation"',
-      note: 'Claude now has access to 34 production patterns',
-      isPrompt: true,
-      completed: false,
-    },
-  ];
-
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Welcome Section */}
-      <div className="text-center py-8">
+      <div>
         <h1 className="text-3xl font-bold text-white mb-2">
-          Welcome to CodeBakers
+          Dashboard
         </h1>
         <p className="text-neutral-400">
-          Production-ready patterns for AI-assisted development
+          Manage your CodeBakers account and subscription
         </p>
       </div>
 
-      {/* Status Card */}
+      {/* Subscription Status Card */}
       <Card className="bg-neutral-900/80 border-neutral-800">
-        <CardContent className="p-6">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-white flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-red-400" />
+            Subscription
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${hasActiveSubscription ? 'bg-red-600/20' : 'bg-red-500/10'}`}>
@@ -135,14 +104,12 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
               </div>
             </div>
 
-            {isFreeUser && (
-              <Link href="/billing">
-                <Button className="bg-red-600 hover:bg-red-700 gap-2">
-                  Upgrade for More Projects
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            )}
+            <Link href="/billing">
+              <Button className={isFreeUser ? "bg-red-600 hover:bg-red-700 gap-2" : "bg-neutral-800 hover:bg-neutral-700 gap-2"}>
+                {isFreeUser ? 'Upgrade Plan' : 'Manage Billing'}
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
           </div>
 
           {/* Project info for free users */}
@@ -209,82 +176,19 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
         </Card>
       )}
 
-      {/* Getting Started Steps */}
-      <Card className="bg-neutral-900/80 border-neutral-800">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Zap className="w-5 h-5 text-red-400" />
-            Get Started in 3 Steps
-          </CardTitle>
-          <CardDescription className="text-neutral-400">
-            One-time setup. No files stored locally. Works across all projects.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {steps.map((step) => (
-            <div
-              key={step.id}
-              className={`flex items-start gap-4 p-4 rounded-lg transition-colors ${
-                step.completed
-                  ? 'bg-red-600/10 border border-red-500/20'
-                  : 'bg-black/50 border border-neutral-800'
-              }`}
-            >
-              <div className="flex-shrink-0 mt-0.5">
-                {step.completed ? (
-                  <CheckCircle2 className="w-6 h-6 text-red-500" />
-                ) : (
-                  <div className="w-6 h-6 rounded-full border-2 border-neutral-700 flex items-center justify-center">
-                    <span className="text-xs text-neutral-400">{step.id}</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`font-medium ${step.completed ? 'text-red-400' : 'text-white'}`}>
-                  {step.title}
-                </p>
-                <p className="text-sm text-neutral-400 mt-1">{step.description}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <code className={`flex-1 rounded bg-black px-3 py-2 font-mono text-sm overflow-x-auto border border-neutral-800 ${step.isPrompt ? 'text-red-400 italic' : 'text-neutral-300'}`}>
-                    {step.command}
-                  </code>
-                  {!step.isPrompt && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyCommand(step.command, step.id)}
-                      className="text-neutral-400 hover:text-white hover:bg-neutral-800 shrink-0"
-                    >
-                      {copiedStep === step.id ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-                {step.note && (
-                  <p className="text-xs text-neutral-500 mt-2">{step.note}</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/setup" className="group">
+        <Link href="/onboarding" className="group">
           <Card className="bg-neutral-900/80 border-neutral-800 hover:border-red-500/50 transition-colors h-full">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center">
-                <Terminal className="w-5 h-5 text-red-400" />
+                <Plug className="w-5 h-5 text-red-400" />
               </div>
               <div>
                 <p className="font-medium text-white group-hover:text-red-400 transition-colors">
-                  Full Setup Guide
+                  IDE Setup
                 </p>
-                <p className="text-sm text-neutral-400">Detailed instructions</p>
+                <p className="text-sm text-neutral-400">Configure your IDE</p>
               </div>
             </CardContent>
           </Card>
@@ -294,11 +198,11 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
           <Card className="bg-neutral-900/80 border-neutral-800 hover:border-red-500/50 transition-colors h-full">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-red-400" />
+                <Users className="w-5 h-5 text-red-400" />
               </div>
               <div>
                 <p className="font-medium text-white group-hover:text-red-400 transition-colors">
-                  Team Settings
+                  Team
                 </p>
                 <p className="text-sm text-neutral-400">Manage your team</p>
               </div>
@@ -314,7 +218,7 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
               </div>
               <div>
                 <p className="font-medium text-white group-hover:text-red-400 transition-colors">
-                  Billing & Plans
+                  Billing
                 </p>
                 <p className="text-sm text-neutral-400">Manage subscription</p>
               </div>

@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { User } from '@supabase/supabase-js';
 import {
   LayoutDashboard,
-  Settings,
   CreditCard,
   Users,
   LogOut,
@@ -23,7 +22,6 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/onboarding', label: 'IDE Setup', icon: Plug },
-  { href: '/setup', label: 'Setup', icon: Settings },
   { href: '/billing', label: 'Billing', icon: CreditCard },
   { href: '/team', label: 'Team', icon: Users },
 ];
