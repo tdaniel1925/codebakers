@@ -58,10 +58,10 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
         throw new Error('Failed to generate key');
       }
 
-      const data = await response.json();
+      const result = await response.json();
 
-      // Copy the new key to clipboard
-      await navigator.clipboard.writeText(data.key);
+      // Copy the new key to clipboard (key is in result.data.key due to successResponse wrapper)
+      await navigator.clipboard.writeText(result.data.key);
       toast.success('New API key generated and copied to clipboard! Save it now - it won\'t be shown again.');
 
       // Refresh the page to show updated key prefix
