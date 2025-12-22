@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Terminal, FolderCode, ArrowRight, Sparkles, CreditCard, Users, Plug, RefreshCw, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { Terminal, FolderCode, ArrowRight, Sparkles, CreditCard, Users, Plug, RefreshCw, AlertCircle, CheckCircle, XCircle, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,7 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [newKey, setNewKey] = useState<string | null>(null);
 
   const hasActiveSubscription =
     stats.subscription?.status === 'active' || stats.subscription?.isBeta;
@@ -46,6 +47,7 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
     setIsRegenerating(true);
     setMessage(null);
     setShowConfirm(false);
+    setNewKey(null);
     try {
       const response = await fetch('/api/keys', {
         method: 'POST',
@@ -58,17 +60,29 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
       }
 
       const result = await response.json();
+      const generatedKey = result.data.key;
 
-      // Copy the new key to clipboard (key is in result.data.key due to successResponse wrapper)
-      await navigator.clipboard.writeText(result.data.key);
-      setMessage({ type: 'success', text: 'New API key generated and copied to clipboard! Save it now - it won\'t be shown again.' });
+      // Store the key to display it
+      setNewKey(generatedKey);
 
-      // Refresh the page to show updated key prefix
-      setTimeout(() => window.location.reload(), 3000);
+      // Try to copy to clipboard
+      try {
+        await navigator.clipboard.writeText(generatedKey);
+        setMessage({ type: 'success', text: 'New API key generated and copied to clipboard!' });
+      } catch {
+        setMessage({ type: 'success', text: 'New API key generated! Copy it from below.' });
+      }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to generate new API key. Please try again.' });
     } finally {
       setIsRegenerating(false);
+    }
+  };
+
+  const copyKey = async () => {
+    if (newKey) {
+      await navigator.clipboard.writeText(newKey);
+      setMessage({ type: 'success', text: 'Key copied to clipboard!' });
     }
   };
 
@@ -221,11 +235,32 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
                 </p>
               </div>
             )}
-            {!message && !showConfirm && (
+            {newKey && (
+              <div className="space-y-2 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                <p className="text-sm text-green-200 font-medium">Your new API key (save it now!):</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 font-mono bg-black text-green-300 px-3 py-2 rounded text-sm break-all select-all">
+                    {newKey}
+                  </code>
+                  <Button
+                    onClick={copyKey}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 shrink-0 gap-1"
+                  >
+                    <Copy className="h-3 w-3" />
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-green-300/70">
+                  This key will not be shown again after you leave this page.
+                </p>
+              </div>
+            )}
+            {!message && !showConfirm && !newKey && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                 <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
                 <p className="text-sm text-amber-200">
-                  Lost your key? Click "New Key" to generate a fresh one. The new key will be copied to your clipboard automatically.
+                  Lost your key? Click "New Key" to generate a fresh one.
                 </p>
               </div>
             )}
