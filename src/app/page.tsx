@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Code2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -371,8 +372,8 @@ export default function HomePage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-950 border-b border-gray-800">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center">
-              <CodeIcon className="w-5 h-5 text-white" />
+            <div className="w-11 h-11 rounded-xl bg-red-600 flex items-center justify-center">
+              <Code2 className="w-6 h-6 text-white" />
             </div>
             <span className="text-xl font-bold text-white">CodeBakers</span>
           </Link>
