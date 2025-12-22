@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,8 @@ import {
   MessageSquare,
   Bot,
   Wand2,
+  Play,
+  Pause,
 } from 'lucide-react';
 
 // Animation variants
@@ -386,6 +388,8 @@ const faqs = [
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('auth');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const totalLines = moduleCategories.reduce(
     (acc, cat) => acc + cat.modules.reduce((sum, m) => sum + m.lines, 0),
@@ -478,6 +482,132 @@ export default function HomePage() {
             </div>
           </motion.div>
         </motion.div>
+      </section>
+
+      {/* Video Demo Section */}
+      <section className="py-16 px-4 -mt-8 relative z-20">
+        <div className="container mx-auto">
+          <motion.div
+            className="max-w-5xl mx-auto"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            {/* Browser Frame */}
+            <div className="relative group">
+              {/* Glow Effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-red-600 via-red-500 to-orange-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
+
+              {/* Browser Chrome */}
+              <div className="relative rounded-2xl overflow-hidden bg-gray-900 shadow-2xl shadow-black/40 border border-gray-800">
+                {/* Browser Header */}
+                <div className="flex items-center gap-2 px-4 py-3 bg-gray-800/80 border-b border-gray-700/50">
+                  <div className="flex gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                  </div>
+                  <div className="flex-1 flex justify-center">
+                    <div className="px-4 py-1.5 rounded-lg bg-gray-900/60 border border-gray-700/50 text-sm text-gray-400 flex items-center gap-2">
+                      <Lock className="w-3 h-3" />
+                      codebakers.dev
+                    </div>
+                  </div>
+                  <div className="w-16" />
+                </div>
+
+                {/* Video Container */}
+                <div className="relative aspect-video bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+                  {/* Placeholder content until video is added */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    {/* Animated gradient background */}
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/20 via-gray-900 to-gray-900" />
+
+                    {/* Grid pattern overlay */}
+                    <div
+                      className="absolute inset-0 opacity-[0.03]"
+                      style={{
+                        backgroundImage: `linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)`,
+                        backgroundSize: '40px 40px'
+                      }}
+                    />
+
+                    {/* Play Button */}
+                    <button
+                      onClick={() => setIsPlaying(!isPlaying)}
+                      className="relative z-10 group/play"
+                    >
+                      <div className="absolute inset-0 bg-red-600 rounded-full blur-xl opacity-40 group-hover/play:opacity-60 transition-opacity" />
+                      <div className="relative w-20 h-20 rounded-full bg-red-600 hover:bg-red-500 transition-colors flex items-center justify-center shadow-lg shadow-red-600/30">
+                        {isPlaying ? (
+                          <Pause className="w-8 h-8 text-white" />
+                        ) : (
+                          <Play className="w-8 h-8 text-white ml-1" />
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Coming Soon Text */}
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center">
+                      <p className="text-gray-500 text-sm">
+                        Watch how CodeBakers transforms your AI workflow
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actual video element (hidden until src is added) */}
+                  <video
+                    ref={videoRef}
+                    className="absolute inset-0 w-full h-full object-cover hidden"
+                    playsInline
+                    loop
+                  >
+                    {/* Add video source here when ready */}
+                    {/* <source src="/demo.mp4" type="video/mp4" /> */}
+                  </video>
+                </div>
+              </div>
+
+              {/* Floating badges */}
+              <motion.div
+                className="absolute -right-4 top-1/4 hidden lg:block"
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+              >
+                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-100 text-sm font-medium text-gray-700">
+                  <span className="text-green-500 mr-1">✓</span> No revisions needed
+                </div>
+              </motion.div>
+
+              <motion.div
+                className="absolute -left-4 top-1/2 hidden lg:block"
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-100 text-sm font-medium text-gray-700">
+                  <span className="text-red-500 mr-1">⚡</span> Production-ready
+                </div>
+              </motion.div>
+
+              <motion.div
+                className="absolute -right-2 bottom-1/4 hidden lg:block"
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.6 }}
+              >
+                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-100 text-sm font-medium text-gray-700">
+                  <span className="text-amber-500 mr-1">🔥</span> Ships in minutes
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
       </section>
 
       {/* Problem Section */}
