@@ -437,31 +437,26 @@ export default function HomePage() {
         </div>
 
         <div className="container mx-auto text-center relative z-10">
-          {/* Top badge - Works INSIDE your IDE */}
-          <div className="inline-flex items-center gap-3 mb-6 px-5 py-2 rounded-full bg-amber-500/10 border border-amber-500/20">
-            <MagicWand02Icon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <span className="text-sm font-medium text-foreground">Prompt enhancer for your AI IDE</span>
-          </div>
-
           {/* MAIN HEADLINE - The Problem & Solution */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-[1] tracking-tight">
-            <span className="text-muted-foreground">Your</span>
-            {/* Handwriting annotation with insert caret - positioned between Your and prompts */}
-            <span className="relative inline-block mx-1 sm:mx-2">
-              {/* Insert caret pointing down and handwriting above */}
-              <span className="flex flex-col items-center pointer-events-none select-none">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-[1] tracking-tight mt-8">
+            <span className="text-muted-foreground">Your </span>
+            {/* Handwriting annotation floating above the space between Your and prompts */}
+            <span className="relative inline-block">
+              <span className="text-muted-foreground">prompts</span>
+              {/* Proofreader-style insertion: handwriting above with caret pointing UP */}
+              <span className="absolute -top-10 sm:-top-12 md:-top-16 lg:-top-20 -left-4 sm:-left-16 md:-left-24 lg:-left-28 flex flex-col items-center pointer-events-none select-none">
                 <span
-                  className="text-red-500 text-xl sm:text-2xl md:text-3xl lg:text-4xl whitespace-nowrap rotate-[-2deg]"
+                  className="text-red-500 text-xl sm:text-2xl md:text-3xl lg:text-4xl whitespace-nowrap rotate-[-3deg]"
                   style={{ fontFamily: "'Caveat', cursive" }}
                 >
                   Cursor / Claude Code
                 </span>
+                {/* Caret pointing UP (^) */}
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-red-500 -mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 5V19M5 12l7 7 7-7" />
+                  <path d="M12 19V5M5 12l7-7 7 7" />
                 </svg>
               </span>
             </span>
-            <span className="text-muted-foreground">prompts</span>
             <span className="text-red-600 dark:text-red-500"> suck.</span>
             <br />
             <span className="text-foreground">We fix&nbsp;them.</span>
