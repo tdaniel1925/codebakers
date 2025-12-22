@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Copy, Check, ArrowRight, Terminal, Sparkles, PartyPopper } from 'lucide-react';
+import { Copy, Check, ArrowRight, Terminal, Sparkles, PartyPopper, Code2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,15 +13,45 @@ interface OnboardingData {
   teamName: string;
 }
 
+type IDE = 'cursor' | 'claude-code' | 'windsurf' | 'aider' | null;
+
+const ideOptions = [
+  {
+    id: 'cursor' as IDE,
+    name: 'Cursor',
+    logo: '/logos/cursor.svg',
+    description: 'AI-powered code editor',
+  },
+  {
+    id: 'claude-code' as IDE,
+    name: 'Claude Code',
+    logo: '/logos/claude.svg',
+    description: 'Anthropic\'s CLI coding assistant',
+  },
+  {
+    id: 'windsurf' as IDE,
+    name: 'Windsurf',
+    logo: '/logos/windsurf.svg',
+    description: 'Codeium\'s AI IDE',
+  },
+  {
+    id: 'aider' as IDE,
+    name: 'Aider',
+    logo: '/logos/aider.svg',
+    description: 'AI pair programming in terminal',
+  },
+];
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [selectedIDE, setSelectedIDE] = useState<IDE>(null);
   const [data, setData] = useState<OnboardingData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
 
-  const totalSteps = 3;
+  const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
   useEffect(() => {
@@ -76,32 +106,76 @@ export default function OnboardingPage() {
 
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-2xl">
-          {/* Step 1: Welcome + API Key */}
+          {/* Step 1: Choose IDE */}
           {step === 1 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="text-center">
+                <div className="w-20 h-20 rounded-2xl bg-red-600/20 flex items-center justify-center mx-auto mb-6">
+                  <Code2 className="w-10 h-10 text-red-400" />
+                </div>
+                <h1 className="text-3xl font-bold text-white mb-2">
+                  Welcome to CodeBakers!
+                </h1>
+                <p className="text-neutral-400 text-lg">
+                  Which AI coding tool are you using?
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {ideOptions.map((ide) => (
+                  <button
+                    key={ide.id}
+                    onClick={() => setSelectedIDE(ide.id)}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      selectedIDE === ide.id
+                        ? 'border-red-500 bg-red-600/10'
+                        : 'border-neutral-800 bg-neutral-900/50 hover:border-neutral-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <img
+                        src={ide.logo}
+                        alt={ide.name}
+                        className="w-8 h-8"
+                      />
+                      <span className="font-medium text-white">{ide.name}</span>
+                    </div>
+                    <p className="text-sm text-neutral-500">{ide.description}</p>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => setStep(2)}
+                  disabled={!selectedIDE}
+                  size="lg"
+                  className="bg-red-600 hover:bg-red-700 gap-2 disabled:opacity-50"
+                >
+                  Next: Get API Key
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: API Key */}
+          {step === 2 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="text-center">
                 <div className="w-20 h-20 rounded-2xl bg-red-600/20 flex items-center justify-center mx-auto mb-6">
                   <Sparkles className="w-10 h-10 text-red-400" />
                 </div>
                 <h1 className="text-3xl font-bold text-white mb-2">
-                  Welcome to CodeBakers!
+                  Your API Key
                 </h1>
                 <p className="text-neutral-400 text-lg">
-                  Let's get you set up in 2 minutes
+                  Copy this key — you'll need it in the next step
                 </p>
               </div>
 
               <Card className="bg-neutral-900/80 border-neutral-800">
                 <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Terminal className="w-5 h-5 text-red-400" />
-                    <span className="font-medium text-white">Your API Key</span>
-                  </div>
-
-                  <p className="text-sm text-neutral-400">
-                    Copy this key — you'll need it in the next step.
-                  </p>
-
                   <div className="flex items-center gap-2">
                     <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-neutral-300 border border-neutral-800 overflow-x-auto">
                       {data?.apiKey || 'Loading...'}
@@ -132,85 +206,6 @@ export default function OnboardingPage() {
                 </CardContent>
               </Card>
 
-              <div className="flex justify-end">
-                <Button
-                  onClick={() => setStep(2)}
-                  size="lg"
-                  className="bg-red-600 hover:bg-red-700 gap-2"
-                >
-                  Next: Connect to Claude Code
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Add MCP to Claude Code */}
-          {step === 2 && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="text-center">
-                <div className="w-20 h-20 rounded-2xl bg-red-600/20 flex items-center justify-center mx-auto mb-6">
-                  <Terminal className="w-10 h-10 text-red-400" />
-                </div>
-                <h1 className="text-3xl font-bold text-white mb-2">
-                  Connect to Claude Code
-                </h1>
-                <p className="text-neutral-400 text-lg">
-                  Run these two commands in your terminal
-                </p>
-              </div>
-
-              <Card className="bg-neutral-900/80 border-neutral-800">
-                <CardContent className="p-6 space-y-6">
-                  {/* Step 2a: Setup */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">
-                        1
-                      </div>
-                      <span className="font-medium text-white">Run setup (enter your API key when prompted)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800">
-                        npx @codebakers/cli setup
-                      </code>
-                      <Button
-                        variant="outline"
-                        onClick={() => copyToClipboard('npx @codebakers/cli setup', 'setup')}
-                        className="border-neutral-700 shrink-0"
-                      >
-                        {copied === 'setup' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Step 2b: Add MCP */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">
-                        2
-                      </div>
-                      <span className="font-medium text-white">Add CodeBakers to Claude Code</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800 break-all">
-                        /mcp add codebakers npx -y @codebakers/cli serve
-                      </code>
-                      <Button
-                        variant="outline"
-                        onClick={() => copyToClipboard('/mcp add codebakers npx -y @codebakers/cli serve', 'mcp')}
-                        className="border-neutral-700 shrink-0"
-                      >
-                        {copied === 'mcp' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-neutral-500 mt-2">
-                      Run this command inside Claude Code (CMD/Ctrl + K → type the command)
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
               <div className="flex justify-between">
                 <Button
                   variant="ghost"
@@ -224,6 +219,157 @@ export default function OnboardingPage() {
                   size="lg"
                   className="bg-red-600 hover:bg-red-700 gap-2"
                 >
+                  Next: Setup {ideOptions.find(i => i.id === selectedIDE)?.name}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: IDE-specific setup */}
+          {step === 3 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="text-center">
+                <div className="w-20 h-20 rounded-2xl bg-red-600/20 flex items-center justify-center mx-auto mb-6">
+                  <Terminal className="w-10 h-10 text-red-400" />
+                </div>
+                <h1 className="text-3xl font-bold text-white mb-2">
+                  Setup {ideOptions.find(i => i.id === selectedIDE)?.name}
+                </h1>
+                <p className="text-neutral-400 text-lg">
+                  {selectedIDE === 'claude-code' && 'Run these commands in your terminal'}
+                  {selectedIDE === 'cursor' && 'Run this command in your project folder'}
+                  {selectedIDE === 'windsurf' && 'Run this command in your project folder'}
+                  {selectedIDE === 'aider' && 'Run this command in your project folder'}
+                </p>
+              </div>
+
+              <Card className="bg-neutral-900/80 border-neutral-800">
+                <CardContent className="p-6 space-y-6">
+                  {/* Claude Code Setup */}
+                  {selectedIDE === 'claude-code' && (
+                    <>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">1</div>
+                          <span className="font-medium text-white">Run setup (enter your API key when prompted)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800">
+                            npx @codebakers/cli setup
+                          </code>
+                          <Button variant="outline" onClick={() => copyToClipboard('npx @codebakers/cli setup', 'setup')} className="border-neutral-700 shrink-0">
+                            {copied === 'setup' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">2</div>
+                          <span className="font-medium text-white">Add CodeBakers to Claude Code</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800 break-all">
+                            /mcp add codebakers npx -y @codebakers/cli serve
+                          </code>
+                          <Button variant="outline" onClick={() => copyToClipboard('/mcp add codebakers npx -y @codebakers/cli serve', 'mcp')} className="border-neutral-700 shrink-0">
+                            {copied === 'mcp' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-2">Run inside Claude Code (CMD/Ctrl + K → type the command)</p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Cursor Setup */}
+                  {selectedIDE === 'cursor' && (
+                    <>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">1</div>
+                          <span className="font-medium text-white">Run setup in your project folder</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800">
+                            npx @codebakers/cli setup --ide cursor
+                          </code>
+                          <Button variant="outline" onClick={() => copyToClipboard('npx @codebakers/cli setup --ide cursor', 'setup')} className="border-neutral-700 shrink-0">
+                            {copied === 'setup' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-2">This creates a .cursorrules file with CodeBakers patterns</p>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">2</div>
+                          <span className="font-medium text-white">Restart Cursor</span>
+                        </div>
+                        <p className="text-neutral-400 text-sm">Close and reopen Cursor to load the new rules file.</p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Windsurf Setup */}
+                  {selectedIDE === 'windsurf' && (
+                    <>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">1</div>
+                          <span className="font-medium text-white">Run setup in your project folder</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800">
+                            npx @codebakers/cli setup --ide windsurf
+                          </code>
+                          <Button variant="outline" onClick={() => copyToClipboard('npx @codebakers/cli setup --ide windsurf', 'setup')} className="border-neutral-700 shrink-0">
+                            {copied === 'setup' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-2">This creates a .windsurfrules file with CodeBakers patterns</p>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">2</div>
+                          <span className="font-medium text-white">Restart Windsurf</span>
+                        </div>
+                        <p className="text-neutral-400 text-sm">Close and reopen Windsurf to load the new rules file.</p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Aider Setup */}
+                  {selectedIDE === 'aider' && (
+                    <>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">1</div>
+                          <span className="font-medium text-white">Run setup in your project folder</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800">
+                            npx @codebakers/cli setup --ide aider
+                          </code>
+                          <Button variant="outline" onClick={() => copyToClipboard('npx @codebakers/cli setup --ide aider', 'setup')} className="border-neutral-700 shrink-0">
+                            {copied === 'setup' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-2">This creates a .aider.conf.yml file with CodeBakers patterns</p>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">2</div>
+                          <span className="font-medium text-white">Start Aider with the config</span>
+                        </div>
+                        <p className="text-neutral-400 text-sm">Aider will automatically load the CodeBakers patterns from the config file.</p>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-between">
+                <Button variant="ghost" onClick={() => setStep(2)} className="text-neutral-400 hover:text-white">Back</Button>
+                <Button onClick={() => setStep(4)} size="lg" className="bg-red-600 hover:bg-red-700 gap-2">
                   I've done this
                   <ArrowRight className="w-4 h-4" />
                 </Button>
@@ -231,8 +377,8 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 3: All Done */}
-          {step === 3 && (
+          {/* Step 4: All Done */}
+          {step === 4 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="text-center">
                 <div className="w-20 h-20 rounded-2xl bg-green-600/20 flex items-center justify-center mx-auto mb-6">
@@ -290,7 +436,7 @@ export default function OnboardingPage() {
 
           {/* Step indicator */}
           <div className="flex justify-center gap-2 mt-8">
-            {[1, 2, 3].map((s) => (
+            {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
                 className={`w-2 h-2 rounded-full transition-colors ${
