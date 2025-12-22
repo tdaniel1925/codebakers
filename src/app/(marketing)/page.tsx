@@ -256,12 +256,8 @@ const steps = [
 ];
 
 const aiCompatibility = [
-  { name: 'Claude', icon: Bot, supported: true },
   { name: 'Cursor', icon: Code2, supported: true },
-  { name: 'GitHub Copilot', icon: Terminal, supported: true },
-  { name: 'ChatGPT', icon: MessageSquare, supported: true },
-  { name: 'Windsurf', icon: Globe, supported: true },
-  { name: 'Aider', icon: Cpu, supported: true },
+  { name: 'Claude Code', icon: Bot, supported: true },
 ];
 
 const industryExperts = [
@@ -368,7 +364,7 @@ const faqs = [
   },
   {
     question: 'What AI tools does it work with?',
-    answer: 'CodeBakers works with any AI coding assistant that can read project files. This includes Claude, Cursor, GitHub Copilot, ChatGPT, Windsurf, Aider, and more. The patterns are stored as markdown files in your project.',
+    answer: 'CodeBakers works with Cursor IDE and Claude Code CLI via MCP (Model Context Protocol) for secure, on-demand pattern access. No files stored locally—patterns are fetched when needed.',
   },
   {
     question: 'What tech stack is covered?',

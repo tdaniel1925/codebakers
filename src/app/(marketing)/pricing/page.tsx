@@ -136,9 +136,8 @@ export default async function PricingPage() {
                 Which AI tools does this work with?
               </h3>
               <p className="text-neutral-400">
-                CodeBakers works with Cursor IDE, Claude Code CLI, Aider, and
-                any AI tool that reads context files. The patterns are delivered
-                as standard markdown files.
+                CodeBakers works with Cursor IDE and Claude Code CLI via MCP
+                (Model Context Protocol) for secure, on-demand pattern access.
               </p>
             </div>
             <div className="p-6 rounded-lg bg-neutral-900/80 border border-neutral-800">

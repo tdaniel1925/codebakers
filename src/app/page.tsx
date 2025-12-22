@@ -59,8 +59,6 @@ import {
 const supportedIDEs = [
   { name: 'Cursor', logo: '/logos/cursor.svg', primary: true },
   { name: 'Claude Code', logo: '/logos/claude.svg', primary: true },
-  { name: 'Windsurf', logo: '/logos/windsurf.svg', primary: false },
-  { name: 'Aider', logo: '/logos/aider.svg', primary: false },
 ];
 
 // Social proof testimonials
@@ -204,7 +202,7 @@ const features = [
   {
     icon: CommandLineIcon,
     title: 'Works With Your IDE',
-    description: 'Cursor, Claude Code, Aider, Windsurf—any AI that reads context files. One install, instant upgrade to your entire workflow.',
+    description: 'Cursor and Claude Code—the two leading AI coding tools. One install, instant upgrade to your entire workflow.',
     stats: 'All major AI IDEs',
   },
 ];
@@ -249,7 +247,7 @@ const vsCompetitors = [
   },
   {
     feature: 'Works across AI IDEs',
-    codebakers: 'Cursor, Claude Code, Windsurf, Aider',
+    codebakers: 'Cursor, Claude Code',
     others: 'Cursor only (mostly)',
   },
   {
@@ -303,7 +301,7 @@ const faqs = [
   },
   {
     question: 'What AI tools does CodeBakers work with?',
-    answer: 'Cursor IDE, Claude Code CLI, Aider, Windsurf, and any AI coding assistant. Our CLI automatically detects your IDE and configures everything. One install, instant upgrade to your entire AI coding workflow.',
+    answer: 'Cursor IDE and Claude Code CLI—the two most popular AI coding tools. Our CLI configures everything with MCP (Model Context Protocol) for secure, on-demand pattern access.',
   },
   {
     question: 'How is this different from other Cursor rules?',
@@ -527,10 +525,6 @@ export default function HomePage() {
               <span className="font-semibold text-foreground">Cursor</span>
               <span className="text-muted-foreground">•</span>
               <span className="font-semibold text-foreground">Claude Code</span>
-              <span className="text-muted-foreground">•</span>
-              <span className="font-semibold text-foreground">Windsurf</span>
-              <span className="text-muted-foreground">•</span>
-              <span className="font-semibold text-foreground">Aider</span>
             </div>
           </div>
 
@@ -778,34 +772,6 @@ export default function HomePage() {
                 className="h-10 w-10 rounded-lg"
               />
               <span className="text-lg font-semibold text-foreground">Claude Code</span>
-            </div>
-            {/* Windsurf */}
-            <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
-              <Image
-                src="/logos/windsurf.svg"
-                alt="Windsurf"
-                width={40}
-                height={40}
-                className="h-10 w-10 hidden dark:block"
-              />
-              <Image
-                src="/logos/windsurf-black.svg"
-                alt="Windsurf"
-                width={40}
-                height={40}
-                className="h-10 w-10 dark:hidden"
-              />
-              <span className="text-lg font-semibold text-foreground">Windsurf</span>
-            </div>
-            {/* Aider */}
-            <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
-              <Image
-                src="/logos/aider.svg"
-                alt="Aider"
-                width={80}
-                height={40}
-                className="h-8 w-auto"
-              />
             </div>
           </div>
         </div>
@@ -1421,7 +1387,7 @@ export default function HomePage() {
           </div>
 
           <p className="text-xs text-muted-foreground/50 mt-8">
-            Works inside Cursor, Claude Code, Windsurf, Aider & any AI IDE • Not an app builder — enhances your existing tools
+            Works inside Cursor & Claude Code • Not an app builder — enhances your existing tools
           </p>
         </div>
       </section>

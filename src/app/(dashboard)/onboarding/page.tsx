@@ -13,7 +13,7 @@ interface OnboardingData {
   teamName: string;
 }
 
-type IDE = 'cursor' | 'claude-code' | 'windsurf' | 'aider' | null;
+type IDE = 'cursor' | 'claude-code' | null;
 
 const ideOptions = [
   {
@@ -27,18 +27,6 @@ const ideOptions = [
     name: 'Claude Code',
     logo: '/logos/claude.svg',
     description: 'Anthropic\'s CLI coding assistant',
-  },
-  {
-    id: 'windsurf' as IDE,
-    name: 'Windsurf',
-    logo: '/logos/windsurf.svg',
-    description: 'Codeium\'s AI IDE',
-  },
-  {
-    id: 'aider' as IDE,
-    name: 'Aider',
-    logo: '/logos/aider.svg',
-    description: 'AI pair programming in terminal',
   },
 ];
 
@@ -238,9 +226,7 @@ export default function OnboardingPage() {
                 </h1>
                 <p className="text-neutral-400 text-lg">
                   {selectedIDE === 'claude-code' && 'Run these commands in your terminal'}
-                  {selectedIDE === 'cursor' && 'Run this command in your project folder'}
-                  {selectedIDE === 'windsurf' && 'Run this command in your project folder'}
-                  {selectedIDE === 'aider' && 'Run this command in your project folder'}
+                  {selectedIDE === 'cursor' && 'Follow these steps to connect CodeBakers'}
                 </p>
               </div>
 
@@ -281,86 +267,66 @@ export default function OnboardingPage() {
                     </>
                   )}
 
-                  {/* Cursor Setup */}
+                  {/* Cursor Setup - MCP */}
                   {selectedIDE === 'cursor' && (
                     <>
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">1</div>
-                          <span className="font-medium text-white">Run setup in your project folder</span>
+                          <span className="font-medium text-white">Run setup (enter your API key when prompted)</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800">
-                            npx @codebakers/cli setup --ide cursor
+                            npx @codebakers/cli setup
                           </code>
-                          <Button variant="outline" onClick={() => copyToClipboard('npx @codebakers/cli setup --ide cursor', 'setup')} className="border-neutral-700 shrink-0">
+                          <Button variant="outline" onClick={() => copyToClipboard('npx @codebakers/cli setup', 'setup')} className="border-neutral-700 shrink-0">
                             {copied === 'setup' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                           </Button>
                         </div>
-                        <p className="text-xs text-neutral-500 mt-2">This creates a .cursorrules file with CodeBakers patterns</p>
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">2</div>
+                          <span className="font-medium text-white">Open Cursor Settings</span>
+                        </div>
+                        <p className="text-neutral-400 text-sm">Press <code className="bg-neutral-800 px-2 py-0.5 rounded text-xs">Cmd/Ctrl + Shift + J</code> or go to <strong className="text-white">Cursor Settings → MCP</strong></p>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">3</div>
+                          <span className="font-medium text-white">Add new MCP server</span>
+                        </div>
+                        <p className="text-neutral-400 text-sm mb-3">Click <strong className="text-white">"+ Add new MCP server"</strong> and paste this config:</p>
+                        <div className="rounded-lg bg-black border border-neutral-800 p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-xs text-neutral-500">mcp.json</span>
+                            <Button variant="ghost" size="sm" onClick={() => copyToClipboard(`{
+  "mcpServers": {
+    "codebakers": {
+      "command": "npx",
+      "args": ["-y", "@codebakers/cli", "serve"]
+    }
+  }
+}`, 'mcp-config')} className="h-6 px-2 text-neutral-500 hover:text-white">
+                              {copied === 'mcp-config' ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                            </Button>
+                          </div>
+                          <pre className="font-mono text-sm text-red-400 whitespace-pre overflow-x-auto">{`{
+  "mcpServers": {
+    "codebakers": {
+      "command": "npx",
+      "args": ["-y", "@codebakers/cli", "serve"]
+    }
+  }
+}`}</pre>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">4</div>
                           <span className="font-medium text-white">Restart Cursor</span>
                         </div>
-                        <p className="text-neutral-400 text-sm">Close and reopen Cursor to load the new rules file.</p>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Windsurf Setup */}
-                  {selectedIDE === 'windsurf' && (
-                    <>
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">1</div>
-                          <span className="font-medium text-white">Run setup in your project folder</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800">
-                            npx @codebakers/cli setup --ide windsurf
-                          </code>
-                          <Button variant="outline" onClick={() => copyToClipboard('npx @codebakers/cli setup --ide windsurf', 'setup')} className="border-neutral-700 shrink-0">
-                            {copied === 'setup' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-neutral-500 mt-2">This creates a .windsurfrules file with CodeBakers patterns</p>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">2</div>
-                          <span className="font-medium text-white">Restart Windsurf</span>
-                        </div>
-                        <p className="text-neutral-400 text-sm">Close and reopen Windsurf to load the new rules file.</p>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Aider Setup */}
-                  {selectedIDE === 'aider' && (
-                    <>
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">1</div>
-                          <span className="font-medium text-white">Run setup in your project folder</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800">
-                            npx @codebakers/cli setup --ide aider
-                          </code>
-                          <Button variant="outline" onClick={() => copyToClipboard('npx @codebakers/cli setup --ide aider', 'setup')} className="border-neutral-700 shrink-0">
-                            {copied === 'setup' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-neutral-500 mt-2">This creates a .aider.conf.yml file with CodeBakers patterns</p>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">2</div>
-                          <span className="font-medium text-white">Start Aider with the config</span>
-                        </div>
-                        <p className="text-neutral-400 text-sm">Aider will automatically load the CodeBakers patterns from the config file.</p>
+                        <p className="text-neutral-400 text-sm">Close and reopen Cursor. You should see "codebakers" in your MCP servers list.</p>
                       </div>
                     </>
                   )}
