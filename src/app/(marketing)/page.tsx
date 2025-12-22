@@ -519,53 +519,59 @@ export default function HomePage() {
 
                 {/* Video Container */}
                 <div className="relative aspect-video bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-                  {/* Placeholder content until video is added */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    {/* Animated gradient background */}
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/20 via-gray-900 to-gray-900" />
+                  {/* Video element */}
+                  <video
+                    ref={videoRef}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    playsInline
+                    loop
+                    muted
+                    onClick={() => {
+                      if (videoRef.current) {
+                        if (isPlaying) {
+                          videoRef.current.pause();
+                        } else {
+                          videoRef.current.play();
+                        }
+                        setIsPlaying(!isPlaying);
+                      }
+                    }}
+                  >
+                    <source src="/demo.mp4" type="video/mp4" />
+                  </video>
 
-                    {/* Grid pattern overlay */}
-                    <div
-                      className="absolute inset-0 opacity-[0.03]"
-                      style={{
-                        backgroundImage: `linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)`,
-                        backgroundSize: '40px 40px'
-                      }}
-                    />
+                  {/* Overlay with play button (shows when paused) */}
+                  <div
+                    className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
+                      isPlaying ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    }`}
+                  >
+                    {/* Dark overlay */}
+                    <div className="absolute inset-0 bg-black/40" />
 
                     {/* Play Button */}
                     <button
-                      onClick={() => setIsPlaying(!isPlaying)}
+                      onClick={() => {
+                        if (videoRef.current) {
+                          videoRef.current.play();
+                          setIsPlaying(true);
+                        }
+                      }}
                       className="relative z-10 group/play"
                     >
                       <div className="absolute inset-0 bg-red-600 rounded-full blur-xl opacity-40 group-hover/play:opacity-60 transition-opacity" />
                       <div className="relative w-20 h-20 rounded-full bg-red-600 hover:bg-red-500 transition-colors flex items-center justify-center shadow-lg shadow-red-600/30">
-                        {isPlaying ? (
-                          <Pause className="w-8 h-8 text-white" />
-                        ) : (
-                          <Play className="w-8 h-8 text-white ml-1" />
-                        )}
+                        <Play className="w-8 h-8 text-white ml-1" />
                       </div>
                     </button>
 
-                    {/* Coming Soon Text */}
+                    {/* Caption */}
                     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center">
-                      <p className="text-gray-500 text-sm">
+                      <p className="text-white/80 text-sm font-medium">
                         Watch how CodeBakers transforms your AI workflow
                       </p>
                     </div>
                   </div>
-
-                  {/* Actual video element (hidden until src is added) */}
-                  <video
-                    ref={videoRef}
-                    className="absolute inset-0 w-full h-full object-cover hidden"
-                    playsInline
-                    loop
-                  >
-                    {/* Add video source here when ready */}
-                    {/* <source src="/demo.mp4" type="video/mp4" /> */}
-                  </video>
                 </div>
               </div>
 
