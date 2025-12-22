@@ -204,60 +204,73 @@ export function InteractiveDemo() {
 
   return (
     <div className="w-full max-w-5xl mx-auto">
-      {/* Header */}
+      {/* Header - Clear about what this is */}
       <div className="text-center mb-8">
-        <Badge className="mb-4 bg-amber-50 text-amber-600 border-amber-200 px-4 py-1">
+        <Badge className="mb-4 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 px-4 py-1">
           <AiMagicIcon className="h-3 w-3 mr-2" />
-          Try It Yourself
+          Prompt Optimizer Demo
         </Badge>
         <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-          What do you want to&nbsp;build?
+          See how we enhance your&nbsp;prompts
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Type any feature and see exactly how much time and frustration you&apos;ll save.
+          Type a prompt like you would in Cursor or Claude Code.
+          <br />
+          <span className="text-foreground font-medium">Watch it transform into production-ready instructions.</span>
         </p>
       </div>
 
-      {/* Input area */}
+      {/* Input area - styled like an IDE */}
       <div className="max-w-2xl mx-auto mb-8">
-        <div className="relative">
-          <input
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g., zoom animation on an image, user profile page..."
-            className="w-full h-14 px-5 pr-32 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg"
-            disabled={isGenerating}
-          />
-          <Button
-            onClick={handleGenerate}
-            disabled={!userInput.trim() || isGenerating}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white shadow-md"
-          >
-            {isGenerating ? (
-              <>
-                <Loading03Icon className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <AiMagicIcon className="mr-2 h-4 w-4" />
-                Compare
-              </>
-            )}
-          </Button>
+        <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-card overflow-hidden shadow-lg">
+          {/* Fake IDE header */}
+          <div className="px-4 py-2 bg-gray-100 dark:bg-muted border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+            <div className="flex gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+            </div>
+            <span className="text-xs text-gray-500 dark:text-muted-foreground font-mono ml-2">your prompt</span>
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="add user authentication..."
+              className="w-full h-14 px-5 pr-32 bg-white dark:bg-card text-gray-900 dark:text-foreground placeholder:text-gray-400 dark:placeholder:text-muted-foreground focus:outline-none text-lg font-mono"
+              disabled={isGenerating}
+            />
+            <Button
+              onClick={handleGenerate}
+              disabled={!userInput.trim() || isGenerating}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-amber-500 hover:bg-amber-600 text-white shadow-md"
+            >
+              {isGenerating ? (
+                <>
+                  <Loading03Icon className="mr-2 h-4 w-4 animate-spin" />
+                  Enhancing...
+                </>
+              ) : (
+                <>
+                  <AiMagicIcon className="mr-2 h-4 w-4" />
+                  Enhance
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Quick suggestions */}
         <div className="mt-4 flex flex-wrap justify-center gap-2">
-          <span className="text-sm text-gray-500 mr-2">Try:</span>
+          <span className="text-sm text-gray-500 dark:text-muted-foreground mr-2">Examples:</span>
           {suggestions.map((suggestion) => (
             <button
               key={suggestion}
               onClick={() => handleSuggestionClick(suggestion)}
               disabled={isGenerating}
-              className="px-3 py-1 text-sm rounded-full border border-gray-200 bg-white hover:bg-gray-50 hover:border-red-300 text-gray-600 hover:text-gray-900 transition-all disabled:opacity-50"
+              className="px-3 py-1 text-sm rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-card hover:bg-gray-50 dark:hover:bg-muted hover:border-amber-300 dark:hover:border-amber-700 text-gray-600 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground transition-all disabled:opacity-50"
             >
               {suggestion}
             </button>
@@ -276,64 +289,80 @@ export function InteractiveDemo() {
       {isGenerating && (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-red-100 animate-pulse" />
-            <Loading03Icon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-red-500 animate-spin" />
+            <div className="w-16 h-16 rounded-full border-4 border-amber-100 dark:border-amber-900 animate-pulse" />
+            <Loading03Icon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-amber-500 animate-spin" />
           </div>
-          <p className="mt-4 text-muted-foreground animate-pulse">AI is analyzing your request...</p>
+          <p className="mt-4 text-muted-foreground animate-pulse">Enhancing your prompt...</p>
         </div>
       )}
 
       {/* Results - Simple metrics comparison */}
       {showResult && currentStats && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Prompt Optimization Section */}
-          <div className="mb-10 max-w-3xl mx-auto">
-            <div className="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 overflow-hidden">
-              <div className="px-5 py-3 bg-amber-100/50 border-b border-amber-200 flex items-center justify-between">
+          {/* Prompt Transformation - The Main Event */}
+          <div className="mb-10 max-w-4xl mx-auto">
+            <div className="rounded-2xl border-2 border-border bg-card overflow-hidden shadow-xl">
+              {/* Header */}
+              <div className="px-5 py-3 bg-muted border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <AiMagicIcon className="h-5 w-5 text-amber-600" />
-                  <span className="font-semibold text-amber-800">Prompt Optimizer</span>
+                  <AiMagicIcon className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  <span className="font-semibold text-foreground">Prompt Transformation</span>
                 </div>
-                <Badge className="bg-amber-200 text-amber-800 border-amber-300">AI-Powered</Badge>
+                <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
+                  <Tick02Icon className="h-3 w-3 mr-1" />
+                  Enhanced
+                </Badge>
               </div>
-              <div className="p-5">
-                {/* Before */}
-                <div className="mb-4">
-                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">You typed:</div>
-                  <div className="px-4 py-3 rounded-lg bg-white border border-gray-200 text-gray-600 italic">
-                    &quot;{displayedInput}&quot;
+
+              <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
+                {/* Before - Your prompt */}
+                <div className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                      <span className="text-sm font-bold text-muted-foreground">1</span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">YOUR PROMPT</div>
+                      <div className="text-xs text-muted-foreground">What you typed</div>
+                    </div>
+                  </div>
+                  <div className="px-4 py-4 rounded-xl bg-muted font-mono text-foreground">
+                    {displayedInput}
                   </div>
                 </div>
 
-                {/* Arrow */}
-                <div className="flex justify-center my-3">
-                  <div className="flex items-center gap-2 text-amber-600">
-                    <div className="h-px w-8 bg-amber-300" />
-                    <AiMagicIcon className="h-5 w-5" />
-                    <div className="h-px w-8 bg-amber-300" />
+                {/* After - Enhanced prompt */}
+                <div className="p-6 bg-green-50/50 dark:bg-green-950/20">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
+                      <AiMagicIcon className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-green-700 dark:text-green-400">ENHANCED PROMPT</div>
+                      <div className="text-xs text-green-600 dark:text-green-500">What your AI receives</div>
+                    </div>
                   </div>
-                </div>
-
-                {/* After */}
-                <div>
-                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Optimized prompt:</div>
-                  <div className="px-4 py-3 rounded-lg bg-white border-2 border-green-200 text-gray-800 text-sm leading-relaxed select-none">
+                  <div className="px-4 py-4 rounded-xl bg-white dark:bg-card border-2 border-green-200 dark:border-green-800 text-foreground text-sm leading-relaxed select-none">
                     {optimizedPrompt}
                   </div>
                 </div>
+              </div>
 
-                <p className="mt-4 text-xs text-amber-700 text-center">
-                  AI analyzed your intent and generated a production-ready prompt.
-                </p>
+              {/* Bottom callout */}
+              <div className="px-5 py-3 bg-amber-50 dark:bg-amber-950/20 border-t border-border flex items-center justify-center gap-2">
+                <AiMagicIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <span className="text-sm text-amber-700 dark:text-amber-300">
+                  This enhanced prompt gets sent to your AI in Cursor, Claude Code, etc.
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Feature name badge */}
+          {/* Feature type indicator */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 border border-gray-200">
-              <span className="text-gray-500 text-sm">Detected:</span>
-              <span className="text-gray-900 font-semibold">{featureName}</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted border border-border">
+              <span className="text-muted-foreground text-sm">Feature type:</span>
+              <span className="text-foreground font-semibold">{featureName}</span>
             </div>
           </div>
 
@@ -450,8 +479,8 @@ export function InteractiveDemo() {
 
           {/* CTA buttons */}
           <div className="text-center">
-            <p className="text-gray-500 mb-4">
-              Get production-ready code from <span className="text-gray-900 font-semibold">every prompt</span>.
+            <p className="text-muted-foreground mb-4">
+              Get enhanced prompts for <span className="text-foreground font-semibold">every feature you build</span>.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button
@@ -460,18 +489,18 @@ export function InteractiveDemo() {
                 asChild
               >
                 <Link href="/signup">
-                  Start Building Better
+                  Upgrade My Prompts
                   <ArrowRight02Icon className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                className="border-border text-foreground hover:bg-muted"
                 asChild
               >
-                <Link href="#code-comparison">
-                  See Code Examples
+                <Link href="#how-it-works">
+                  Learn How It Works
                   <ArrowRight02Icon className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -483,8 +512,11 @@ export function InteractiveDemo() {
       {/* Initial state - before any generation */}
       {!showResult && !isGenerating && !error && (
         <div className="text-center py-12 text-muted-foreground">
-          <AiMagicIcon className="h-16 w-16 mx-auto mb-4 opacity-20" />
-          <p>Type a feature above and click Compare to see the difference</p>
+          <div className="max-w-md mx-auto">
+            <AiMagicIcon className="h-16 w-16 mx-auto mb-4 opacity-20" />
+            <p className="mb-2">Type a prompt above and click <strong>Enhance</strong></p>
+            <p className="text-sm opacity-70">See how CodeBakers transforms simple prompts into production-ready instructions</p>
+          </div>
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectType": "existing",
   "createdAt": "2024-12-21T00:00:00Z",
-  "lastUpdated": "2024-12-21T21:15:00Z",
+  "lastUpdated": "2025-12-21T12:00:00Z",
   "decisions": {
     "authLayout": "centered",
     "navigation": "top",
@@ -16,28 +16,28 @@
     "payments": ["stripe", "paypal"]
   },
   "currentWork": {
-    "lastUpdated": "2024-12-21T21:15:00Z",
-    "activeFeature": "Beta launch preparation",
+    "lastUpdated": "2025-12-21T12:00:00Z",
+    "activeFeature": "Website messaging overhaul",
     "status": "completed",
-    "summary": "Site is production-ready for beta users. All pages verified working: homepage, signup, pricing. Build passes with no errors. Deployed to codebakers.ai.",
+    "summary": "Complete website overhaul to fix messaging confusion. Users were thinking CodeBakers was an app builder (like Lovable/Replit) instead of a prompt enhancer for their IDE. Now the value prop is clear: 'Your prompts suck. We fix them.'",
     "pendingTasks": [],
     "completedThisSession": [
-      "Made hero grid more visible with smaller 80px squares",
-      "Added gradient fade at bottom of hero grid",
-      "Added 15 feature types to Interactive Demo",
-      "Removed copy button and added select-none",
-      "Added session continuity to CLAUDE.md (auto-resume)",
-      "Created .codebakers.json for state persistence",
-      "Production build verification - passed",
-      "Deployed to Vercel production",
-      "Verified homepage, signup, and pricing pages work"
+      "Rewrote hero: 'Your prompts suck. We fix them.' with IDE visual",
+      "Added 'How It Works' 3-step visual showing IDE workflow",
+      "Redesigned Interactive Demo as 'Prompt Optimizer Demo'",
+      "Added callout: 'CodeBakers is NOT an app builder'",
+      "Replaced 'The Problem' section with 'Two Problems, One Solution'",
+      "Updated all CTAs from 'Start Building' to 'Upgrade My Prompts'",
+      "Added IDE-style input with mac window chrome in demo",
+      "Emphasized 'Works INSIDE your IDE' throughout",
+      "Updated final CTA copy for prompt enhancement focus",
+      "Production build verification - passed"
     ],
     "keyFiles": [
       "src/app/page.tsx",
       "src/components/interactive-demo.tsx",
-      "src/app/api/optimize-prompt/route.ts",
-      "CLAUDE.md"
+      "src/app/api/optimize-prompt/route.ts"
     ],
-    "notes": "Site live at codebakers.ai. Ready for beta users. User prefers minimal UI."
+    "notes": "Key messaging now emphasizes: (1) CodeBakers works INSIDE Cursor/Claude Code, (2) It's a prompt enhancer not an app builder, (3) Two problems: bad prompts + long prompts = we solve both."
   }
 }

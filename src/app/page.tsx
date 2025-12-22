@@ -165,25 +165,6 @@ const modules = [
   { name: '33-cicd', lines: 820, description: 'GitHub Actions, Vercel, Netlify, Docker', icon: Rocket01Icon, category: 'extended' },
 ];
 
-// The Problem - why vanilla AI coding sucks
-const problems = [
-  {
-    icon: ArrowReloadHorizontalIcon,
-    title: 'Endless Revision Loops',
-    description: '"Add validation" → "Now add loading states" → "Handle errors" → "Make it accessible" → Still broken after 10 prompts.',
-  },
-  {
-    icon: AiBrain02Icon,
-    title: 'AI Doesn\'t Know Best Practices',
-    description: 'Vanilla Claude/GPT writes code that works in demos but fails in production. Missing error handling, security holes, no tests.',
-  },
-  {
-    icon: Clock01Icon,
-    title: 'Hours on Basic Features',
-    description: 'Auth system? 4-6 hours of prompting. Stripe integration? 3-4 hours. Every project starts from zero.',
-  },
-];
-
 // Features with more detail - v4.1
 const features = [
   {
@@ -431,8 +412,8 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero Section - Viewport Optimized */}
-      <section className="pt-24 pb-8 px-4 min-h-[calc(100vh-4rem)] flex items-center relative overflow-hidden" style={{ background: 'var(--section-hero)' }}>
+      {/* Hero Section - Clear Value Prop */}
+      <section className="pt-24 pb-12 px-4 min-h-[calc(100vh-4rem)] flex items-center relative overflow-hidden" style={{ background: 'var(--section-hero)' }}>
         {/* Grid Background Pattern */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div
@@ -450,78 +431,110 @@ export default function HomePage() {
         </div>
 
         <div className="container mx-auto text-center relative z-10">
-          {/* Top badge - IDE focus */}
-          <div className="inline-flex items-center gap-3 mb-6 px-5 py-2 rounded-full bg-red-500/10 border border-red-500/20">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-sm font-medium text-foreground">Works with</span>
+          {/* Top badge - Works INSIDE your IDE */}
+          <div className="inline-flex items-center gap-3 mb-6 px-5 py-2 rounded-full bg-amber-500/10 border border-amber-500/20">
+            <MagicWand02Icon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <span className="text-sm font-medium text-foreground">Prompt enhancer for your AI IDE</span>
+          </div>
+
+          {/* MAIN HEADLINE - The Problem & Solution */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-[1] tracking-tight">
+            <span className="text-muted-foreground">Your prompts</span>
+            <span className="text-red-600 dark:text-red-500"> suck.</span>
+            <br />
+            <span className="text-foreground">We fix&nbsp;them.</span>
+          </h1>
+
+          {/* Clear explanation - what we actually do */}
+          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto font-medium">
+            Type <span className="font-mono text-foreground bg-muted px-2 py-0.5 rounded">&quot;add login&quot;</span> in Cursor or Claude Code.
+            <br className="hidden md:block" />
+            <span className="text-foreground font-bold">Get production-ready code on the first try.</span>
+          </p>
+
+          {/* Visual: Before → After in IDE context */}
+          <div className="max-w-3xl mx-auto mb-8">
+            <div className="rounded-2xl border-2 border-border bg-card/80 backdrop-blur-sm overflow-hidden shadow-2xl">
+              {/* IDE-style header */}
+              <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center gap-3">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                </div>
+                <span className="text-sm text-muted-foreground font-mono">cursor / claude code</span>
+              </div>
+
+              <div className="p-6">
+                <div className="grid md:grid-cols-2 gap-6 items-start">
+                  {/* What you type */}
+                  <div className="text-left">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded bg-muted flex items-center justify-center">
+                        <span className="text-xs font-bold text-muted-foreground">1</span>
+                      </div>
+                      <span className="text-sm font-medium text-muted-foreground">What you type</span>
+                    </div>
+                    <div className="px-4 py-3 rounded-lg bg-muted font-mono text-base text-foreground">
+                      add login form
+                    </div>
+                  </div>
+
+                  {/* What AI receives */}
+                  <div className="text-left">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded bg-green-500 flex items-center justify-center">
+                        <MagicWand02Icon className="h-3 w-3 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">What AI receives</span>
+                    </div>
+                    <div className="px-4 py-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-sm text-foreground leading-relaxed">
+                      Build login with <strong>React Hook Form + Zod</strong>, loading states, error handling, toast notifications, <strong>accessibility</strong>, keyboard nav, and <strong>Playwright tests</strong>...
+                    </div>
+                  </div>
+                </div>
+
+                {/* Result */}
+                <div className="mt-6 pt-6 border-t border-border text-center">
+                  <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm font-medium">
+                    <Tick02Icon className="h-4 w-4" />
+                    Production-ready code. First prompt. No revisions.
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="font-semibold text-red-600 dark:text-red-400">Cursor</span>
+          </div>
+
+          {/* Works with */}
+          <div className="flex flex-wrap justify-center items-center gap-4 mb-8">
+            <span className="text-sm text-muted-foreground">Works inside:</span>
+            <div className="flex items-center gap-4">
+              <span className="font-semibold text-foreground">Cursor</span>
               <span className="text-muted-foreground">•</span>
               <span className="font-semibold text-foreground">Claude Code</span>
               <span className="text-muted-foreground">•</span>
-              <span className="font-semibold text-red-600 dark:text-red-400">Windsurf</span>
+              <span className="font-semibold text-foreground">Windsurf</span>
               <span className="text-muted-foreground">•</span>
               <span className="font-semibold text-foreground">Aider</span>
             </div>
           </div>
 
-          {/* MAIN HEADLINE - Big & Bold */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 leading-[0.95] tracking-tight">
-            <span className="text-foreground">Production-Ready Code</span>
-            <br />
-            <span className="text-red-600 dark:text-red-500">
-              On The First&nbsp;Prompt
-            </span>
-          </h1>
-
-          {/* Value prop - clear & direct */}
-          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-6 max-w-3xl mx-auto font-medium">
-            Make your AI write code like a <span className="text-foreground font-bold">senior developer</span>.
-            <br className="hidden md:block" />
-            <span className="text-foreground">No more revision loops. No more demo garbage.</span>
-          </p>
-
-          {/* Bold Stats Row */}
-          <div className="flex flex-wrap justify-center gap-4 md:gap-8 mb-6">
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-black text-foreground">34</div>
-              <div className="text-xs text-muted-foreground font-medium">Modules</div>
-            </div>
-            <div className="hidden sm:block w-px h-12 bg-border" />
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-black text-foreground">{(totalLines / 1000).toFixed(0)}K+</div>
-              <div className="text-xs text-muted-foreground font-medium">Lines of Code</div>
-            </div>
-            <div className="hidden sm:block w-px h-12 bg-border" />
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-black text-green-600 dark:text-green-500">90%</div>
-              <div className="text-xs text-muted-foreground font-medium">Less Revision</div>
-            </div>
-            <div className="hidden sm:block w-px h-12 bg-border" />
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-black text-red-600 dark:text-red-500">1st</div>
-              <div className="text-xs text-muted-foreground font-medium">Prompt Success</div>
-            </div>
-          </div>
-
-          {/* CTA Buttons - Prominent */}
+          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row justify-center gap-3 mb-6">
             <Link href="/signup">
               <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-14 px-8 text-lg font-semibold w-full sm:w-auto shadow-xl shadow-red-500/30 transition-all hover:shadow-2xl hover:shadow-red-500/40 hover:-translate-y-1 rounded-xl">
-                Upgrade Your AI Now
+                Upgrade My Prompts
                 <ArrowRight02Icon className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="#demo-comparison">
+            <Link href="#how-it-works">
               <Button
                 size="lg"
                 variant="outline"
                 className="border-2 border-border hover:bg-accent h-14 px-8 text-lg font-semibold w-full sm:w-auto group rounded-xl"
               >
                 <PlayIcon className="mr-2 h-5 w-5 group-hover:text-red-500 transition-colors" />
-                See The Difference
+                See How It Works
               </Button>
             </Link>
           </div>
@@ -538,106 +551,98 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-2">
               <Tick02Icon className="h-4 w-4 text-blue-500" />
-              <span>No credit card required</span>
+              <span>No credit card</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Before/After Comparison - Below the fold */}
-      <section className="py-16 px-4" style={{ background: 'var(--section-hero)' }} id="demo">
+      {/* How It Works - 3 Step Visual */}
+      <section className="py-20 px-4" style={{ background: 'var(--section-hero)' }} id="how-it-works">
         <div className="container mx-auto">
-          <div className="max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-4 md:gap-6">
-              {/* BEFORE - Without CodeBakers */}
-              <div className="rounded-xl bg-red-950/20 dark:bg-red-950/40 border-2 border-red-500/30 p-6 text-left relative overflow-hidden">
-                <div className="absolute top-3 right-3">
-                  <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 font-bold">WITHOUT</Badge>
-                </div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Cancel01Icon className="h-6 w-6 text-red-500" />
-                  <span className="font-bold text-red-600 dark:text-red-400">Vanilla AI Output</span>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-start gap-2 text-muted-foreground">
-                    <Cancel01Icon className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
-                    <span>Missing error handling</span>
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800">
+              <CommandLineIcon className="h-3 w-3 mr-1" />
+              Works Inside Your IDE
+            </Badge>
+            <h2 className="text-4xl font-bold text-foreground mb-4">
+              How it works
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              CodeBakers enhances your prompts <strong className="text-foreground">inside</strong> Cursor, Claude Code, or any AI IDE.
+              <br />Not a separate app. Not an app builder.
+            </p>
+          </div>
+
+          {/* 3 Steps */}
+          <div className="max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-8">
+              {/* Step 1 */}
+              <div className="relative">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center">
+                    <span className="text-2xl font-black text-muted-foreground">1</span>
                   </div>
-                  <div className="flex items-start gap-2 text-muted-foreground">
-                    <Cancel01Icon className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
-                    <span>No loading states</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-muted-foreground">
-                    <Cancel01Icon className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
-                    <span>Security vulnerabilities</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-muted-foreground">
-                    <Cancel01Icon className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
-                    <span>No tests included</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-muted-foreground">
-                    <Cancel01Icon className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
-                    <span>5-10 revision prompts needed</span>
+                  <h3 className="text-xl font-bold text-foreground mb-2">You type a simple prompt</h3>
+                  <p className="text-muted-foreground mb-4">In Cursor, Claude Code, or your favorite AI IDE</p>
+                  <div className="p-4 rounded-xl bg-muted font-mono text-sm text-foreground">
+                    &quot;add stripe checkout&quot;
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-red-500/20">
-                  <span className="text-2xl font-bold text-red-500">4-6 hours</span>
-                  <span className="text-muted-foreground text-sm ml-2">per feature</span>
+                {/* Arrow */}
+                <div className="hidden md:block absolute top-12 -right-4 w-8">
+                  <ArrowRight02Icon className="h-8 w-8 text-muted-foreground/30" />
                 </div>
               </div>
 
-              {/* AFTER - With CodeBakers */}
-              <div className="rounded-xl bg-green-950/20 dark:bg-green-950/40 border-2 border-green-500/30 p-6 text-left relative overflow-hidden">
-                <div className="absolute top-3 right-3">
-                  <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30 font-bold">WITH CODEBAKERS</Badge>
-                </div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Tick02Icon className="h-6 w-6 text-green-500" />
-                  <span className="font-bold text-green-600 dark:text-green-400">Production-Ready Output</span>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-start gap-2 text-foreground">
-                    <Tick02Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Complete error handling</span>
+              {/* Step 2 */}
+              <div className="relative">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 mx-auto mb-4 flex items-center justify-center">
+                    <MagicWand02Icon className="h-8 w-8 text-amber-600 dark:text-amber-400" />
                   </div>
-                  <div className="flex items-start gap-2 text-foreground">
-                    <Tick02Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Loading, empty, error states</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-foreground">
-                    <Tick02Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Security best practices</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-foreground">
-                    <Tick02Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Tests auto-generated</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-foreground">
-                    <Tick02Icon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="font-semibold">Works on first prompt</span>
+                  <h3 className="text-xl font-bold text-foreground mb-2">CodeBakers enhances it</h3>
+                  <p className="text-muted-foreground mb-4">AI adds 15+ production requirements automatically</p>
+                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm text-foreground text-left">
+                    Build Stripe checkout with <strong>webhook verification</strong>, error handling, <strong>idempotency keys</strong>, database sync, loading states, <strong>Playwright tests</strong>...
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-green-500/20">
-                  <span className="text-2xl font-bold text-green-500">30 minutes</span>
-                  <span className="text-muted-foreground text-sm ml-2">per feature</span>
+                {/* Arrow */}
+                <div className="hidden md:block absolute top-12 -right-4 w-8">
+                  <ArrowRight02Icon className="h-8 w-8 text-muted-foreground/30" />
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-2xl bg-green-100 dark:bg-green-900/30 mx-auto mb-4 flex items-center justify-center">
+                  <Tick02Icon className="h-8 w-8 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">Get production-ready code</h3>
+                <p className="text-muted-foreground mb-4">Complete, tested, secure — on the first try</p>
+                <div className="p-4 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-sm text-foreground text-left">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tick02Icon className="h-4 w-4 text-green-500" />
+                    <span>Webhook handlers</span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tick02Icon className="h-4 w-4 text-green-500" />
+                    <span>Error recovery</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Tick02Icon className="h-4 w-4 text-green-500" />
+                    <span>Playwright tests</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Bottom quote */}
-            <div className="mt-8 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border">
-              <div className="flex items-center justify-center gap-3">
-                <div className="flex -space-x-2">
-                  {['bg-red-600', 'bg-neutral-700', 'bg-red-500', 'bg-neutral-600'].map((bg, i) => (
-                    <div key={i} className={`w-8 h-8 rounded-full ${bg} border-2 border-background flex items-center justify-center text-white text-xs font-bold`}>
-                      {['S', 'M', 'A', 'J'][i]}
-                    </div>
-                  ))}
-                </div>
-                <span className="text-muted-foreground text-sm">
-                  Join <span className="text-foreground font-bold">1,200+</span> developers who upgraded their AI
-                </span>
-              </div>
+            {/* Key point callout */}
+            <div className="mt-12 p-6 rounded-2xl bg-foreground text-center">
+              <p className="text-background text-lg font-medium">
+                <span className="text-amber-400">💡</span> CodeBakers is <strong>not</strong> an app builder.
+                It makes your <em>existing</em> AI IDE write better code.
+              </p>
             </div>
           </div>
         </div>
@@ -743,93 +748,91 @@ export default function HomePage() {
         <InteractiveDemo />
       </section>
 
-      {/* Smart Prompts Section */}
+      {/* Two Big Problems We Solve */}
       <section id="smart-prompts" className="py-20 px-4" style={{ background: 'var(--section-compare)' }}>
         <div className="container mx-auto">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800">
-              <MagicWand02Icon className="h-3 w-3 mr-1" />
-              Smart Prompts
+            <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">
+              Two Problems, One Solution
             </Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              AI-powered prompt&nbsp;optimization
+              Most prompts are <span className="text-red-600 dark:text-red-500">bad</span> or take <span className="text-red-600 dark:text-red-500">forever</span> to type
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Type a simple request. CodeBakers automatically expands it into a production-ready prompt with all requirements&nbsp;included.
+              We solve both problems.
             </p>
           </div>
 
           <div className="max-w-4xl mx-auto">
-            {/* Before/After comparison */}
-            <div className="grid md:grid-cols-2 gap-6 mb-12">
-              {/* Before */}
-              <div className="rounded-2xl bg-card border border-border p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">What you type</span>
+            <div className="grid md:grid-cols-2 gap-8 mb-12">
+              {/* Problem 1: Bad prompts */}
+              <div className="rounded-2xl bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-900/50 p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <Cancel01Icon className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-foreground">Problem 1</h3>
+                    <p className="text-red-600 dark:text-red-400 font-medium">Bad prompts = bad code</p>
+                  </div>
                 </div>
-                <p className="text-lg text-foreground font-mono">&ldquo;Add login form&rdquo;</p>
+                <p className="text-muted-foreground mb-4">
+                  &quot;Add a login form&quot; gives you demo garbage. Missing validation, no error handling, no tests, not accessible.
+                </p>
+                <div className="px-4 py-3 rounded-lg bg-muted font-mono text-sm text-muted-foreground">
+                  → 5-10 revision prompts later, still not production-ready
+                </div>
               </div>
 
-              {/* After */}
-              <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800 p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <MagicWand02Icon className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm font-medium text-amber-600 dark:text-amber-400">What AI receives</span>
+              {/* Problem 2: Long prompts */}
+              <div className="rounded-2xl bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-900/50 p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <Clock01Icon className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-foreground">Problem 2</h3>
+                    <p className="text-red-600 dark:text-red-400 font-medium">Good prompts take forever</p>
+                  </div>
                 </div>
-                <p className="text-sm text-foreground leading-relaxed">
-                  Build a complete login form with <strong>React Hook Form + Zod validation</strong>, loading state on submit, inline error messages, toast notifications for failures, forgot password link, <strong>accessibility with ARIA labels</strong>, keyboard navigation, and <strong>Playwright tests</strong> for happy path and error states...
+                <p className="text-muted-foreground mb-4">
+                  To get good output, you&apos;d need to specify validation, error handling, loading states, tests, accessibility...
                 </p>
+                <div className="px-4 py-3 rounded-lg bg-muted font-mono text-sm text-muted-foreground">
+                  → 200+ word prompts for every feature
+                </div>
               </div>
             </div>
 
-            {/* How it works steps */}
-            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-muted-foreground">
-                    1
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">You type</div>
-                    <div className="text-sm font-medium text-muted-foreground">&quot;Add login form&quot;</div>
-                  </div>
-                </div>
-                <ArrowRight02Icon className="hidden md:block h-5 w-5 text-muted-foreground/50" />
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-amber-500">
-                    2
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">AI optimizes</div>
-                    <div className="text-sm font-medium text-amber-600 dark:text-amber-400">Adds 15+ production requirements</div>
-                  </div>
-                </div>
-                <ArrowRight02Icon className="hidden md:block h-5 w-5 text-muted-foreground/50" />
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-green-500">
-                  3
+            {/* The Solution */}
+            <div className="rounded-2xl bg-green-50 dark:bg-green-950/20 border-2 border-green-200 dark:border-green-800 p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center">
+                  <MagicWand02Icon className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide">You get</div>
-                  <div className="text-sm font-medium text-green-600 dark:text-green-400">Complete auth with tests, a11y</div>
+                  <h3 className="text-xl font-bold text-foreground">CodeBakers Solution</h3>
+                  <p className="text-green-600 dark:text-green-400 font-medium">Short prompts → Production-ready code</p>
                 </div>
               </div>
-            </div>
 
-            {/* Context-aware callout */}
-            <div className="mt-10 rounded-xl bg-foreground p-6 text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <SparklesIcon className="h-5 w-5 text-amber-400" />
-                <span className="text-background font-semibold">Context-Aware</span>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground mb-2">You type:</div>
+                  <div className="px-4 py-3 rounded-lg bg-white dark:bg-card border border-border font-mono text-foreground">
+                    add login form
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-green-600 dark:text-green-400 mb-2">AI receives:</div>
+                  <div className="px-4 py-3 rounded-lg bg-white dark:bg-card border-2 border-green-300 dark:border-green-700 text-sm text-foreground">
+                    Build login with React Hook Form + Zod, loading states, error handling, toast notifications, ARIA accessibility, Playwright tests...
+                  </div>
+                </div>
               </div>
-              <p className="text-muted text-sm max-w-xl mx-auto">
-                The optimizer knows your project structure—existing components, services, API routes, and database schema. Prompts are tailored to <em>your</em> codebase.
+
+              <p className="mt-6 text-center text-green-700 dark:text-green-400 font-medium">
+                ✓ 5-word prompt → Complete, tested, production-ready code
               </p>
             </div>
           </div>
@@ -874,57 +877,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* The Problem Section */}
-      <section className="py-20 px-4" style={{ background: 'var(--section-compare)' }}>
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">The Problem</Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Sound&nbsp;familiar?
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              You love AI coding tools. But you&apos;re stuck in an endless loop of &quot;almost&nbsp;right.&quot;
-            </p>
-          </div>
-
-          <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
-            {problems.map((problem) => {
-              const Icon = problem.icon;
-              return (
-                <div
-                  key={problem.title}
-                  className="p-6 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50"
-                >
-                  <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 w-fit mb-4">
-                    <Icon className="h-6 w-6 text-red-600 dark:text-red-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">
-                    {problem.title}
-                  </h3>
-                  <p className="text-muted-foreground">{problem.description}</p>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="text-center mt-12">
-            <p className="text-lg text-muted-foreground">
-              <span className="text-foreground font-medium">The solution?</span> Give your AI the patterns it needs to write production code from the start.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* Features Section */}
       <section id="features" className="py-20 px-4" style={{ background: 'var(--section-compare)' }}>
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">The Solution</Badge>
+            <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">What You Get</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              CodeBakers makes your AI write like a senior&nbsp;dev
+              Your AI writes senior-level code from&nbsp;day&nbsp;one
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              {totalLines.toLocaleString()} lines of production patterns. Your AI finally knows best&nbsp;practices.
+              {totalLines.toLocaleString()} lines of production patterns enhance every prompt you type in your&nbsp;IDE.
             </p>
           </div>
 
@@ -1326,22 +1288,22 @@ export default function HomePage() {
           {/* Featured quote */}
           <div className="mb-10 max-w-2xl mx-auto">
             <p className="text-2xl md:text-3xl font-medium text-foreground italic leading-relaxed">
-              &quot;I used to spend weekends debugging AI output. Now I ship features while my competitors are still prompting.&quot;
+              &quot;I type 5 words in Cursor. I get production-ready code with tests. This is what AI coding should be.&quot;
             </p>
             <p className="text-muted-foreground mt-4">— Sarah Chen, Indie Hacker</p>
           </div>
 
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Your next project deserves better&nbsp;AI
+            Stop typing long prompts. Start shipping&nbsp;faster.
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join 1,200+ developers who stopped fighting their tools and started&nbsp;shipping.
+            Your prompts get enhanced automatically. Your AI writes better code. You ship&nbsp;faster.
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             <Link href="/signup">
               <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-16 px-10 text-xl w-full sm:w-auto shadow-xl shadow-red-500/30 transition-all hover:shadow-2xl hover:shadow-red-500/40 hover:-translate-y-1">
-                Start Building Now
+                Upgrade My Prompts
                 <ArrowRight02Icon className="ml-2 h-6 w-6" />
               </Button>
             </Link>
@@ -1363,7 +1325,7 @@ export default function HomePage() {
           </div>
 
           <p className="text-xs text-muted-foreground/50 mt-8">
-            Works with Cursor, Claude Code, Windsurf, Aider & any AI IDE • {totalLines.toLocaleString()} lines of production patterns
+            Works inside Cursor, Claude Code, Windsurf, Aider & any AI IDE • Not an app builder — enhances your existing tools
           </p>
         </div>
       </section>
