@@ -445,7 +445,23 @@ export default function HomePage() {
 
           {/* MAIN HEADLINE - The Problem & Solution */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-[1] tracking-tight">
-            <span className="text-muted-foreground">Your prompts</span>
+            <span className="text-muted-foreground">Your </span>
+            {/* Handwriting annotation with insert caret */}
+            <span className="relative inline-block">
+              <span className="text-muted-foreground">prompts</span>
+              {/* Insert caret and handwriting */}
+              <span className="absolute -top-6 sm:-top-8 md:-top-10 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none select-none">
+                <span
+                  className="text-red-500 text-base sm:text-lg md:text-xl lg:text-2xl whitespace-nowrap rotate-[-2deg]"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  Cursor / Claude Code
+                </span>
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 -mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 19V5M5 12l7-7 7 7" />
+                </svg>
+              </span>
+            </span>
             <span className="text-red-600 dark:text-red-500"> suck.</span>
             <br />
             <span className="text-foreground">We fix&nbsp;them.</span>
