@@ -135,7 +135,7 @@ const featureMetrics: Record<string, FeatureMetrics> = {
     },
   },
   upload: {
-    keywords: ['upload', 'file', 'image', 'photo', 's3', 'storage', 'media'],
+    keywords: ['upload', 'file upload', 'drag and drop', 'dropzone', 's3', 'storage', 'file picker'],
     featureName: 'File Upload',
     optimizedPrompt: 'Build a file upload component with drag-and-drop support. Include: file type validation (images: jpg, png, webp; documents: pdf, docx), max file size limit (10MB), upload progress indicator, S3 presigned URL generation for secure direct uploads, image preview before upload, multiple file selection, cancel upload functionality, error handling with user-friendly messages, cleanup on component unmount. Use React Hook Form for form integration. Add tests for validation and upload flow.',
     without: {
@@ -479,6 +479,64 @@ const featureMetrics: Record<string, FeatureMetrics> = {
         'Mobile responsive',
         'Image optimization',
         'Newsletter signup',
+      ],
+    },
+  },
+  animation: {
+    keywords: ['animation', 'animate', 'motion', 'transition', 'hover', 'scroll', 'parallax', 'fade', 'slide', 'zoom', 'transform', 'keyframe', 'framer'],
+    featureName: 'Animation',
+    optimizedPrompt: 'Build an animation component using Framer Motion. Include: smooth enter/exit transitions, configurable duration and easing, hover and tap interactions, scroll-triggered animations with viewport detection, staggered children animations, gesture-based interactions, reduced-motion media query support for accessibility, performance optimization with will-change, reusable animation variants. Handle cleanup properly on unmount. Add visual tests for animation states.',
+    without: {
+      prompts: '6-10',
+      errors: '4-5',
+      time: '30-45 min',
+      issues: [
+        'Janky animations',
+        'No reduced motion support',
+        'Memory leaks',
+        'Poor performance',
+        'Inconsistent timing',
+      ],
+    },
+    with: {
+      prompts: '1',
+      errors: '0',
+      time: '5 min',
+      includes: [
+        'Framer Motion setup',
+        'Accessibility support',
+        'Performance optimized',
+        'Reusable variants',
+        'Gesture handling',
+      ],
+    },
+  },
+  image: {
+    keywords: ['image', 'photo', 'gallery', 'carousel', 'slider', 'lightbox', 'thumbnail', 'lazy load image'],
+    featureName: 'Image Gallery',
+    optimizedPrompt: 'Build an image gallery component. Include: responsive grid layout, lazy loading with blur placeholder, lightbox modal for full-size view, keyboard navigation (arrow keys, escape to close), touch swipe support for mobile, image zoom on hover/click, thumbnail navigation, loading skeleton states, error handling for broken images, next/image optimization. Add accessibility with proper alt text and ARIA labels. Include Playwright tests.',
+    without: {
+      prompts: '8-12',
+      errors: '5-7',
+      time: '1-2 hours',
+      issues: [
+        'No lazy loading',
+        'Poor mobile experience',
+        'No keyboard nav',
+        'Large bundle size',
+        'No error handling',
+      ],
+    },
+    with: {
+      prompts: '1',
+      errors: '0',
+      time: '10 min',
+      includes: [
+        'Lazy loading',
+        'Lightbox modal',
+        'Touch gestures',
+        'Image optimization',
+        'Keyboard accessible',
       ],
     },
   },
