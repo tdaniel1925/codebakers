@@ -33,6 +33,7 @@ interface DashboardContentProps {
 
 export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const hasActiveSubscription =
@@ -42,12 +43,9 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
   const hasLockedProject = !!stats.freeTrialProject;
 
   const regenerateKey = async () => {
-    if (!confirm('Generate a new API key? Your current key will stop working.')) {
-      return;
-    }
-
     setIsRegenerating(true);
     setMessage(null);
+    setShowConfirm(false);
     try {
       const response = await fetch('/api/keys', {
         method: 'POST',
@@ -163,24 +161,50 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
                   {apiKey.keyPrefix}_••••••••••••••••
                 </code>
               </div>
-              <Button
-                onClick={regenerateKey}
-                disabled={isRegenerating}
-                className="bg-red-600 hover:bg-red-700 gap-2"
-              >
-                {isRegenerating ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4" />
-                    New Key
-                  </>
-                )}
-              </Button>
+              {!showConfirm ? (
+                <Button
+                  onClick={() => setShowConfirm(true)}
+                  disabled={isRegenerating}
+                  className="bg-red-600 hover:bg-red-700 gap-2"
+                >
+                  {isRegenerating ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4" />
+                      New Key
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={regenerateKey}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Confirm
+                  </Button>
+                  <Button
+                    onClick={() => setShowConfirm(false)}
+                    variant="outline"
+                    className="border-neutral-700 hover:bg-neutral-800"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
             </div>
+            {showConfirm && !message && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-amber-200">
+                  Your current key will stop working. Are you sure?
+                </p>
+              </div>
+            )}
             {message && (
               <div className={`flex items-start gap-2 p-3 rounded-lg ${
                 message.type === 'success'
@@ -197,7 +221,7 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
                 </p>
               </div>
             )}
-            {!message && (
+            {!message && !showConfirm && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                 <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
                 <p className="text-sm text-amber-200">
