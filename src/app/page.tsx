@@ -368,33 +368,33 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-950 border-b border-gray-800">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center">
               <span className="text-white font-bold text-sm">CB</span>
             </div>
-            <span className="text-xl font-bold text-foreground">CodeBakers</span>
+            <span className="text-xl font-bold text-white">CodeBakers</span>
           </Link>
           <div className="hidden md:flex items-center gap-6">
-            <Link href="#smart-prompts" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+            <Link href="#smart-prompts" className="text-gray-400 hover:text-white transition-colors text-sm">
               Smart Prompts
             </Link>
-            <Link href="#features" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+            <Link href="#features" className="text-gray-400 hover:text-white transition-colors text-sm">
               Features
             </Link>
-            <Link href="#compare" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+            <Link href="#compare" className="text-gray-400 hover:text-white transition-colors text-sm">
               Compare
             </Link>
-            <Link href="#modules" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+            <Link href="#modules" className="text-gray-400 hover:text-white transition-colors text-sm">
               Modules
             </Link>
-            <Link href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+            <Link href="#pricing" className="text-gray-400 hover:text-white transition-colors text-sm">
               Pricing
             </Link>
             <ThemeToggle />
             <Link href="/login">
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground text-sm">
+              <Button variant="ghost" className="text-gray-400 hover:text-white text-sm">
                 Login
               </Button>
             </Link>
@@ -452,8 +452,6 @@ export default function HomePage() {
 
           {/* Clear explanation - what we actually do */}
           <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto font-medium">
-            Type <span className="font-mono text-foreground bg-muted px-2 py-0.5 rounded">&quot;add login&quot;</span> in Cursor or Claude Code.
-            <br className="hidden md:block" />
             <span className="text-foreground font-bold">Get production-ready code on the first try.</span>
           </p>
 
