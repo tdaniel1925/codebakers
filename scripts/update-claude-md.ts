@@ -4,9 +4,16 @@ import { join } from 'path';
 // Load environment variables from .env.local
 config({ path: join(__dirname, '..', '.env.local') });
 
-import { db, contentVersions } from '../src/db';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import { eq } from 'drizzle-orm';
 import { readFileSync } from 'fs';
+import { contentVersions } from '../src/db/schema';
+
+// Create connection with SSL for Supabase
+const connectionString = process.env.DATABASE_URL!;
+const queryClient = postgres(connectionString, { ssl: 'require' });
+const db = drizzle(queryClient);
 
 async function updateClaudeMd() {
   console.log('Reading CLAUDE.md...');
@@ -23,6 +30,7 @@ async function updateClaudeMd() {
 
   if (!activeVersion) {
     console.error('No active version found!');
+    await queryClient.end();
     process.exit(1);
   }
 
@@ -35,10 +43,12 @@ async function updateClaudeMd() {
     .where(eq(contentVersions.id, activeVersion.id));
 
   console.log('Done! CLAUDE.md has been updated in the active content version.');
+  await queryClient.end();
   process.exit(0);
 }
 
-updateClaudeMd().catch((err) => {
+updateClaudeMd().catch(async (err) => {
   console.error('Error:', err);
+  await queryClient.end();
   process.exit(1);
 });
