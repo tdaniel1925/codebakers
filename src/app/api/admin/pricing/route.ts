@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 }
 
 const upsertPlanSchema = z.object({
-  plan: z.enum(['pro', 'team', 'agency']),
+  plan: z.enum(['pro', 'team', 'agency', 'enterprise']),
   name: z.string().min(1),
   description: z.string().optional(),
   features: z.array(z.string()).optional(),

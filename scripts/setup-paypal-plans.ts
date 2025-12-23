@@ -27,19 +27,25 @@ const PLANS: Record<string, PlanConfig> = {
   pro: {
     name: 'CodeBakers Pro',
     description: 'Perfect for solo developers - 34 modules, 1 seat',
-    price: '49.00',
+    price: '149.00',
     seats: 1,
   },
   team: {
     name: 'CodeBakers Team',
     description: 'For growing teams - 34 modules, 5 seats',
-    price: '149.00',
+    price: '299.00',
     seats: 5,
   },
   agency: {
     name: 'CodeBakers Agency',
     description: 'For agencies - 34 modules, unlimited seats',
-    price: '349.00',
+    price: '499.00',
+    seats: -1,
+  },
+  enterprise: {
+    name: 'CodeBakers Enterprise',
+    description: 'Unlimited teams, custom SLA, dedicated support',
+    price: '999.00',
     seats: -1,
   },
 };
@@ -186,6 +192,7 @@ async function main() {
     console.log(`PAYPAL_PRO_PLAN_ID=${planIds.pro}`);
     console.log(`PAYPAL_TEAM_PLAN_ID=${planIds.team}`);
     console.log(`PAYPAL_AGENCY_PLAN_ID=${planIds.agency}`);
+    console.log(`PAYPAL_ENTERPRISE_PLAN_ID=${planIds.enterprise}`);
     console.log('\n========================================');
     console.log('Next Steps:');
     console.log('========================================');

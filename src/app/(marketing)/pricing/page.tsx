@@ -12,7 +12,7 @@ const plans: Array<{
 }> = [
   {
     name: 'Pro',
-    price: 49,
+    price: 149,
     plan: 'pro',
     description: 'Perfect for solo developers',
     features: [
@@ -27,7 +27,7 @@ const plans: Array<{
   },
   {
     name: 'Team',
-    price: 149,
+    price: 299,
     plan: 'team',
     description: 'For growing teams',
     features: [
@@ -42,7 +42,7 @@ const plans: Array<{
   },
   {
     name: 'Agency',
-    price: 349,
+    price: 499,
     plan: 'agency',
     description: 'For agencies & consultancies',
     features: [
@@ -57,17 +57,18 @@ const plans: Array<{
   },
   {
     name: 'Enterprise',
-    price: 'custom',
+    price: 999,
     plan: 'enterprise',
-    description: 'For large organizations',
+    description: 'Unlimited teams & custom SLA',
     features: [
       'Everything in Agency',
-      'Custom SLA',
+      'Unlimited teams',
+      'Custom SLA (99.9% uptime)',
       'Dedicated account manager',
       'Custom pattern development',
-      'On-premise deployment option',
       'SSO/SAML integration',
       'Invoice billing',
+      'On-premise deployment option',
     ],
     popular: false,
   },
@@ -83,11 +84,11 @@ export default async function PricingPage() {
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Simple, transparent pricing
+            Pays for itself in one project
           </h1>
           <p className="text-xl text-neutral-400 max-w-2xl mx-auto">
-            One subscription, 34 modules. No hidden fees, no per-project
-            charges.
+            Save 20+ hours per project. 10x ROI on your first build.
+            One subscription, 34 modules.
           </p>
         </div>
 

@@ -13,7 +13,10 @@
     "database": "drizzle",
     "auth": "custom",
     "ui": "shadcn",
-    "payments": ["stripe", "paypal"]
+    "payments": [
+      "stripe",
+      "paypal"
+    ]
   },
   "currentWork": {
     "lastUpdated": "2025-12-21T12:00:00Z",
@@ -39,5 +42,49 @@
       "src/app/api/optimize-prompt/route.ts"
     ],
     "notes": "Key messaging now emphasizes: (1) CodeBakers works INSIDE Cursor/Claude Code, (2) It's a prompt enhancer not an app builder, (3) Two problems: bad prompts + long prompts = we solve both."
+  },
+  "context": {
+    "src\\db\\schema.ts": {
+      "purpose": "[TODO: Describe this database schema]",
+      "exports": [
+        "subscriptionPlanEnum",
+        "paymentProviderEnum",
+        "profiles",
+        "teams",
+        "teamMembers",
+        "apiKeys",
+        "contentVersions",
+        "subscriptionPricing",
+        "enterpriseInquiries",
+        "moduleReports",
+        "patternSubmissions",
+        "profilesRelations",
+        "teamsRelations",
+        "teamMembersRelations",
+        "apiKeysRelations",
+        "Profile",
+        "NewProfile",
+        "Team",
+        "NewTeam",
+        "TeamMember",
+        "NewTeamMember",
+        "ApiKey",
+        "NewApiKey",
+        "ModuleReport",
+        "NewModuleReport",
+        "ContentVersion",
+        "NewContentVersion",
+        "SubscriptionPricing",
+        "NewSubscriptionPricing",
+        "EnterpriseInquiry",
+        "NewEnterpriseInquiry",
+        "PatternSubmission",
+        "NewPatternSubmission",
+        "PaymentProvider"
+      ],
+      "createdAt": "2025-12-23T06:19:30.694Z",
+      "schema": {},
+      "relations": []
+    }
   }
 }

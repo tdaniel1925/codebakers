@@ -252,7 +252,7 @@ const vsCompetitors = [
   },
   {
     feature: 'Price',
-    codebakers: '$19-49/mo',
+    codebakers: '$149-999/mo',
     others: 'Free (DIY assembly)',
   },
 ];
@@ -337,7 +337,7 @@ const faqs = [
 const pricingTiers = [
   {
     name: 'Pro',
-    price: 49,
+    price: 149,
     description: 'For individual developers',
     features: ['1 developer seat', 'All 34 modules', '45,474 lines of patterns', '30+ expert perspectives', 'CLI access', 'Discord community'],
     cta: 'Start Building',
@@ -345,16 +345,23 @@ const pricingTiers = [
   },
   {
     name: 'Team',
-    price: 149,
+    price: 299,
     description: 'For small teams',
     features: ['5 developer seats', 'Everything in Pro', 'Team management', 'Shared API keys', 'Priority support', 'Slack channel'],
     cta: 'Start Free',
   },
   {
     name: 'Agency',
-    price: 349,
+    price: 499,
     description: 'For agencies & consultancies',
     features: ['Unlimited seats', 'Everything in Team', 'White-label option', 'Custom patterns', 'Dedicated support', '1:1 onboarding'],
+    cta: 'Contact Sales',
+  },
+  {
+    name: 'Enterprise',
+    price: 999,
+    description: 'Unlimited teams & custom SLA',
+    features: ['Unlimited teams', 'Everything in Agency', 'Custom SLA (99.9%)', 'SSO/SAML', 'Invoice billing', 'Dedicated account manager'],
     cta: 'Contact Sales',
   },
 ];
@@ -1036,13 +1043,148 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ROI Calculator Section - With vs Without */}
+      <section className="py-20 px-4" style={{ background: 'var(--section-stats)' }}>
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
+              ROI Calculator
+            </Badge>
+            <h2 className="text-4xl font-bold text-foreground mb-4">
+              The math is simple
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Save 20+ hours per month. CodeBakers pays for itself in your first project.
+            </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto">
+            {/* ROI Comparison Cards */}
+            <div className="grid md:grid-cols-2 gap-8 mb-12">
+              {/* Without CodeBakers */}
+              <div className="rounded-2xl bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-900/50 p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <Cancel01Icon className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-foreground">Without CodeBakers</h3>
+                    <p className="text-red-600 dark:text-red-400 text-sm">Standard AI prompting</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
+                    <span className="text-muted-foreground">Auth system</span>
+                    <span className="text-red-600 dark:text-red-400 font-medium">4-6 hours</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
+                    <span className="text-muted-foreground">Payment integration</span>
+                    <span className="text-red-600 dark:text-red-400 font-medium">3-4 hours</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
+                    <span className="text-muted-foreground">Forms & validation</span>
+                    <span className="text-red-600 dark:text-red-400 font-medium">2-3 hours</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
+                    <span className="text-muted-foreground">Database + API</span>
+                    <span className="text-red-600 dark:text-red-400 font-medium">3-4 hours</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
+                    <span className="text-muted-foreground">Testing</span>
+                    <span className="text-red-600 dark:text-red-400 font-medium">2-4 hours</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
+                    <span className="text-muted-foreground">Error handling</span>
+                    <span className="text-red-600 dark:text-red-400 font-medium">1-2 hours</span>
+                  </div>
+                </div>
+                <div className="mt-6 pt-4 border-t border-red-300 dark:border-red-800">
+                  <div className="flex justify-between items-center">
+                    <span className="text-foreground font-semibold">Total per project</span>
+                    <span className="text-2xl font-bold text-red-600 dark:text-red-400">15-23 hours</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">@ $100/hr = <span className="text-red-600 dark:text-red-400 font-medium">$1,500-$2,300</span></p>
+                </div>
+              </div>
+
+              {/* With CodeBakers */}
+              <div className="rounded-2xl bg-green-50 dark:bg-green-950/20 border-2 border-green-200 dark:border-green-800 p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center">
+                    <Tick02Icon className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-foreground">With CodeBakers</h3>
+                    <p className="text-green-600 dark:text-green-400 text-sm">Enhanced AI prompting</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
+                    <span className="text-muted-foreground">Auth system</span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">30 min</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
+                    <span className="text-muted-foreground">Payment integration</span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">30 min</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
+                    <span className="text-muted-foreground">Forms & validation</span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">10 min</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
+                    <span className="text-muted-foreground">Database + API</span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">25 min</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
+                    <span className="text-muted-foreground">Testing</span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">Auto-included</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
+                    <span className="text-muted-foreground">Error handling</span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">Auto-included</span>
+                  </div>
+                </div>
+                <div className="mt-6 pt-4 border-t border-green-300 dark:border-green-700">
+                  <div className="flex justify-between items-center">
+                    <span className="text-foreground font-semibold">Total per project</span>
+                    <span className="text-2xl font-bold text-green-600 dark:text-green-400">~2 hours</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">@ $100/hr = <span className="text-green-600 dark:text-green-400 font-medium">$200</span></p>
+                </div>
+              </div>
+            </div>
+
+            {/* ROI Summary */}
+            <div className="rounded-2xl bg-foreground p-8 text-center">
+              <div className="grid md:grid-cols-3 gap-8">
+                <div>
+                  <div className="text-4xl font-bold text-green-400 mb-2">90%</div>
+                  <p className="text-background/80">Time saved per project</p>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold text-amber-400 mb-2">$1,500+</div>
+                  <p className="text-background/80">Saved per project</p>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold text-cyan-400 mb-2">10x</div>
+                  <p className="text-background/80">ROI on subscription</p>
+                </div>
+              </div>
+              <p className="text-background mt-6 text-lg">
+                <span className="text-amber-400 font-semibold">$149/month</span> saves you <span className="text-green-400 font-semibold">$1,500+</span> on your first project alone.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Time Savings Comparison */}
       <section id="compare" className="py-20 px-4 relative" style={{ background: 'var(--section-compare)' }}>
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-secondary text-secondary-foreground border-border">Time Savings</Badge>
+            <Badge className="mb-4 bg-secondary text-secondary-foreground border-border">Task Breakdown</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              Stop guessing. See the&nbsp;numbers.
+              Time saved on every&nbsp;task
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Real time savings measured across common development&nbsp;tasks.
@@ -1236,10 +1378,10 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700">Pricing</Badge>
             <h2 className="text-4xl font-bold text-foreground mb-4">
-              Less than a coffee a&nbsp;day
+              Pays for itself in one&nbsp;project
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Save 10+ hours per project. Pay less than your AI&nbsp;subscription.
+              Save 20+ hours per project. 10x ROI on your first&nbsp;build.
             </p>
             <div className="flex flex-wrap justify-center items-center gap-4 mt-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
@@ -1270,7 +1412,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
             {pricingTiers.map((tier) => (
               <div
                 key={tier.name}

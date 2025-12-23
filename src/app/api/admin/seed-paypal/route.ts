@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       name: 'Pro',
       description: 'Perfect for solo developers',
       seats: 1,
-      priceMonthly: 4900,
+      priceMonthly: 14900,
       features: [
         '34 production modules',
         '45,474 lines of patterns',
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       name: 'Team',
       description: 'For growing teams',
       seats: 5,
-      priceMonthly: 14900,
+      priceMonthly: 29900,
       features: [
         'Everything in Pro',
         '5 team seats',
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       name: 'Agency',
       description: 'For agencies & consultancies',
       seats: -1,
-      priceMonthly: 34900,
+      priceMonthly: 49900,
       features: [
         'Everything in Team',
         'Unlimited seats',
@@ -74,6 +74,28 @@ export async function POST(req: NextRequest) {
       displayOrder: 3,
     });
     results.push({ plan: 'agency', id: agency?.id, paypalPlanId: process.env.PAYPAL_AGENCY_PLAN_ID });
+
+    // Seed Enterprise plan
+    const enterprise = await PricingService.upsertPlan({
+      plan: 'enterprise',
+      name: 'Enterprise',
+      description: 'Unlimited teams & custom SLA',
+      seats: -1,
+      priceMonthly: 99900,
+      features: [
+        'Everything in Agency',
+        'Unlimited teams',
+        'Custom SLA (99.9% uptime)',
+        'Dedicated account manager',
+        'Custom pattern development',
+        'SSO/SAML integration',
+        'Invoice billing',
+        'On-premise deployment option',
+      ],
+      paypalPlanId: process.env.PAYPAL_ENTERPRISE_PLAN_ID || undefined,
+      displayOrder: 4,
+    });
+    results.push({ plan: 'enterprise', id: enterprise?.id, paypalPlanId: process.env.PAYPAL_ENTERPRISE_PLAN_ID });
 
     return NextResponse.json({
       success: true,
