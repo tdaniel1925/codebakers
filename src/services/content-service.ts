@@ -11,10 +11,13 @@ export { obfuscateContent as encodeContent, deobfuscateContent as decodeContent 
 export class ContentService {
   /**
    * Get encoded content - prioritizes database version, falls back to filesystem
+   * @param version Optional specific version string to fetch (e.g., "15.2")
    */
-  static async getEncodedContent() {
-    // Try database first
-    const dbVersion = await ContentManagementService.getActiveVersion();
+  static async getEncodedContent(version?: string) {
+    // Try database first - get specific version if requested, otherwise active
+    const dbVersion = version
+      ? await ContentManagementService.getVersionByString(version)
+      : await ContentManagementService.getActiveVersion();
 
     if (dbVersion) {
       const modules: Record<string, string> = {};

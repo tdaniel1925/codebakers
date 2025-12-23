@@ -402,20 +402,67 @@ ${ctaButton('Upgrade to Pro', `${APP_URL}/billing`)}
   /**
    * Send team invite email
    */
-  static async sendInvite(email: string, inviteUrl: string) {
+  static async sendTeamInvite(
+    email: string,
+    inviteUrl: string,
+    teamName: string,
+    inviterName?: string
+  ) {
+    const inviterText = inviterName
+      ? `${inviterName} has invited you`
+      : "You've been invited";
+
     const content = `
 <h1 style="margin: 0 0 16px 0; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center;">
-  You've been invited!
+  Join ${teamName} on CodeBakers
 </h1>
 
 <p style="margin: 0 0 32px 0; font-size: 16px; line-height: 1.6; color: #a3a3a3; text-align: center;">
-  You've been invited to join a team on CodeBakers. Click below to accept the invitation and get started.
+  ${inviterText} to join <strong style="color: #ffffff;">${teamName}</strong> on CodeBakers.
+  Click below to accept the invitation and start building faster together.
 </p>
 
 ${ctaButton('Accept Invitation', inviteUrl)}
 
 <p style="margin: 32px 0 0 0; font-size: 14px; color: #525252; text-align: center;">
-  This invitation expires in 7 days.
+  This invitation expires in 7 days. If you didn't expect this, you can safely ignore it.
+</p>
+
+<div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #262626;">
+  <p style="margin: 0; font-size: 12px; color: #404040; text-align: center;">
+    If the button doesn't work, copy and paste this link into your browser:
+  </p>
+  <p style="margin: 8px 0 0 0; font-size: 12px; color: #dc2626; word-break: break-all; text-align: center;">
+    ${inviteUrl}
+  </p>
+</div>
+    `.trim();
+
+    return this.send({
+      to: email,
+      subject: `Join ${teamName} on CodeBakers`,
+      html: baseTemplate(content),
+      text: `${inviterText} to join ${teamName} on CodeBakers!\n\nClick this link to accept: ${inviteUrl}\n\nThis invitation expires in 7 days.`,
+    });
+  }
+
+  /**
+   * Send generic invite email (used by Supabase auth)
+   */
+  static async sendInvite(email: string, inviteUrl: string) {
+    const content = `
+<h1 style="margin: 0 0 16px 0; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center;">
+  You've been invited to CodeBakers
+</h1>
+
+<p style="margin: 0 0 32px 0; font-size: 16px; line-height: 1.6; color: #a3a3a3; text-align: center;">
+  Click the button below to accept your invitation and start building faster with production-ready patterns.
+</p>
+
+${ctaButton('Accept Invitation', inviteUrl)}
+
+<p style="margin: 32px 0 0 0; font-size: 14px; color: #525252; text-align: center;">
+  This invitation expires in 7 days. If you didn't expect this, you can safely ignore it.
 </p>
 
 <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #262626;">

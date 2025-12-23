@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Terminal, FolderCode, ArrowRight, Sparkles, CreditCard, Users, Plug, RefreshCw, AlertCircle, CheckCircle, XCircle, Copy } from 'lucide-react';
+import { Terminal, FolderCode, ArrowRight, Sparkles, CreditCard, Users, Plug, RefreshCw, AlertCircle, CheckCircle, XCircle, Copy, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -269,18 +269,18 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
       )}
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/onboarding" className="group">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Link href="/analytics" className="group">
           <Card className="bg-neutral-900/80 border-neutral-800 hover:border-red-500/50 transition-colors h-full">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center">
-                <Plug className="w-5 h-5 text-red-400" />
+                <BarChart3 className="w-5 h-5 text-red-400" />
               </div>
               <div>
                 <p className="font-medium text-white group-hover:text-red-400 transition-colors">
-                  IDE Setup
+                  Analytics
                 </p>
-                <p className="text-sm text-neutral-400">Configure your IDE</p>
+                <p className="text-sm text-neutral-400">View usage stats</p>
               </div>
             </CardContent>
           </Card>
@@ -313,6 +313,22 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
                   Billing
                 </p>
                 <p className="text-sm text-neutral-400">Manage subscription</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/onboarding" className="group">
+          <Card className="bg-neutral-900/80 border-neutral-800 hover:border-red-500/50 transition-colors h-full">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center">
+                <Plug className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <p className="font-medium text-white group-hover:text-red-400 transition-colors">
+                  IDE Setup
+                </p>
+                <p className="text-sm text-neutral-400">Configure your IDE</p>
               </div>
             </CardContent>
           </Card>

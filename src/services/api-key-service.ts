@@ -57,6 +57,7 @@ export class ApiKeyService {
           freeTrialProjectName: teams.freeTrialProjectName,
           suspendedAt: teams.suspendedAt,
           suspendedReason: teams.suspendedReason,
+          pinnedPatternVersion: teams.pinnedPatternVersion,
         },
         ownerName: profiles.fullName,
       })
@@ -67,7 +68,7 @@ export class ApiKeyService {
       .limit(1);
 
     if (!key || !key.isActive) {
-      return { valid: false, team: null, ownerName: null };
+      return { valid: false, team: null, ownerName: null, apiKeyId: null };
     }
 
     // Update last used timestamp
@@ -76,7 +77,7 @@ export class ApiKeyService {
       .set({ lastUsedAt: new Date() })
       .where(eq(apiKeys.id, key.id));
 
-    return { valid: true, team: key.team, ownerName: key.ownerName };
+    return { valid: true, team: key.team, ownerName: key.ownerName, apiKeyId: key.id };
   }
 
   static async listByTeam(teamId: string) {

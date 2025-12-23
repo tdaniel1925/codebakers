@@ -166,6 +166,43 @@ export class ContentManagementService {
   }
 
   /**
+   * Get a specific version by version string (e.g., "15.2")
+   */
+  static async getVersionByString(versionStr: string) {
+    const [version] = await db
+      .select()
+      .from(contentVersions)
+      .where(eq(contentVersions.version, versionStr))
+      .limit(1);
+
+    if (!version) return null;
+
+    return {
+      ...version,
+      modulesContent: version.modulesContent ? JSON.parse(version.modulesContent) : {},
+      cursorModulesContent: version.cursorModulesContent ? JSON.parse(version.cursorModulesContent) : {},
+    };
+  }
+
+  /**
+   * List available versions for version picker
+   */
+  static async listAvailableVersions() {
+    const versions = await db
+      .select({
+        version: contentVersions.version,
+        changelog: contentVersions.changelog,
+        publishedAt: contentVersions.publishedAt,
+        isActive: contentVersions.isActive,
+      })
+      .from(contentVersions)
+      .where(eq(contentVersions.isActive, true))
+      .orderBy(desc(contentVersions.publishedAt));
+
+    return versions;
+  }
+
+  /**
    * Get content stats for a version
    */
   static getContentStats(version: {

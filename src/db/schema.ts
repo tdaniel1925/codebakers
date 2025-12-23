@@ -57,6 +57,10 @@ export const teams = pgTable('teams', {
   suspendedReason: text('suspended_reason'),
 
   seatLimit: integer('seat_limit').default(1),
+
+  // Pattern versioning - allow teams to pin to a specific version
+  pinnedPatternVersion: text('pinned_pattern_version'),
+
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -211,6 +215,28 @@ export const patternSubmissions = pgTable('pattern_submissions', {
   reviewedAt: timestamp('reviewed_at'),
 });
 
+// Pattern Usage - track which patterns are being fetched for analytics
+export const patternUsage = pgTable('pattern_usage', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  apiKeyId: uuid('api_key_id').references(() => apiKeys.id, { onDelete: 'set null' }),
+  patternName: text('pattern_name').notNull(),
+  fetchedAt: timestamp('fetched_at').defaultNow().notNull(),
+});
+
+// Team Invites - pending invitations to join teams
+export const teamInvites = pgTable('team_invites', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  email: text('email').notNull(),
+  role: text('role').default('member').notNull(),
+  invitedBy: uuid('invited_by').references(() => profiles.id, { onDelete: 'cascade' }).notNull(),
+  invitedAt: timestamp('invited_at').defaultNow().notNull(),
+  acceptedAt: timestamp('accepted_at'),
+  expiresAt: timestamp('expires_at').notNull(),
+  token: text('token').notNull().unique(),
+});
+
 // Relations
 export const profilesRelations = relations(profiles, ({ many }) => ({
   ownedTeams: many(teams),
@@ -263,4 +289,8 @@ export type EnterpriseInquiry = typeof enterpriseInquiries.$inferSelect;
 export type NewEnterpriseInquiry = typeof enterpriseInquiries.$inferInsert;
 export type PatternSubmission = typeof patternSubmissions.$inferSelect;
 export type NewPatternSubmission = typeof patternSubmissions.$inferInsert;
+export type PatternUsage = typeof patternUsage.$inferSelect;
+export type NewPatternUsage = typeof patternUsage.$inferInsert;
+export type TeamInvite = typeof teamInvites.$inferSelect;
+export type NewTeamInvite = typeof teamInvites.$inferInsert;
 export type PaymentProvider = 'stripe' | 'square' | 'paypal';

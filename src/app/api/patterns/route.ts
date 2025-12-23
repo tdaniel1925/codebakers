@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiKeyService } from '@/services/api-key-service';
 import { ContentService } from '@/services/content-service';
 import { TeamService } from '@/services/team-service';
+import { AnalyticsService } from '@/services/analytics-service';
 import { handleApiError, autoRateLimit } from '@/lib/api-utils';
 import { deobfuscateContent } from '@/services/obfuscation-service';
 
@@ -17,7 +18,9 @@ export async function GET(req: NextRequest) {
     const validation = await validateRequest(req);
     if (validation.error) return validation.error;
 
-    const content = await ContentService.getEncodedContent();
+    // Use team's pinned version if set, otherwise use latest
+    const pinnedVersion = validation.team?.pinnedPatternVersion;
+    const content = await ContentService.getEncodedContent(pinnedVersion || undefined);
 
     // Return list of available patterns (without content)
     const patterns = Object.keys(content.modules || {}).map(name => ({
@@ -65,7 +68,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const content = await ContentService.getEncodedContent();
+    // Use team's pinned version if set, otherwise use latest
+    const pinnedVersion = validation.team?.pinnedPatternVersion;
+    const content = await ContentService.getEncodedContent(pinnedVersion || undefined);
     const result: Record<string, string> = {};
 
     for (const pattern of requestedPatterns) {
@@ -81,6 +86,18 @@ export async function POST(req: NextRequest) {
     // Also include router/CLAUDE.md if requested
     if (requestedPatterns.includes('router') || requestedPatterns.includes('CLAUDE')) {
       result['router'] = content.router || content.claudeMd || '';
+    }
+
+    // Log pattern usage for analytics (non-blocking)
+    const fetchedPatterns = Object.keys(result);
+    if (fetchedPatterns.length > 0 && validation.team) {
+      AnalyticsService.logPatternFetches(
+        validation.team.id,
+        fetchedPatterns,
+        validation.apiKeyId
+      ).catch((err) => {
+        console.error('Failed to log pattern usage:', err);
+      });
     }
 
     return NextResponse.json({
@@ -114,7 +131,7 @@ async function validateRequest(req: NextRequest) {
     };
   }
 
-  const { team, ownerName } = validation;
+  const { team, ownerName, apiKeyId } = validation;
 
   // Check access - no project ID for this endpoint (backwards compatible)
   const accessCheck = TeamService.canAccessProject(team, null);
@@ -135,5 +152,5 @@ async function validateRequest(req: NextRequest) {
     };
   }
 
-  return { team, ownerName };
+  return { team, ownerName, apiKeyId };
 }
