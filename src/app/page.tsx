@@ -7,7 +7,6 @@ import { Code2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { InteractiveDemo } from '@/components/interactive-demo';
 // Premium Hugeicons - distinctive stroke-based icons with 9 unique styles
 import {
   CheckmarkCircle02Icon,
@@ -109,20 +108,6 @@ const audiences = [
     icon: AiMagicIcon,
     highlight: "Pure creativity",
   },
-];
-
-// Time savings comparison data
-const timeSavings = [
-  { task: 'Authentication System (Login, Signup, Password Reset, 2FA)', without: '4-6 hours', with: '30 min', savings: '90%' },
-  { task: 'CRUD API Endpoint with Validation', without: '45 min', with: '10 min', savings: '78%' },
-  { task: 'Form with Validation & Error Handling', without: '45 min', with: '5 min', savings: '89%' },
-  { task: 'Stripe Subscription Integration', without: '3-4 hours', with: '30 min', savings: '85%' },
-  { task: 'Database Schema + Migrations', without: '1 hour', with: '15 min', savings: '75%' },
-  { task: 'Real-time WebSocket Feature', without: '2-3 hours', with: '20 min', savings: '87%' },
-  { task: 'Email Integration (Transactional)', without: '1-2 hours', with: '15 min', savings: '83%' },
-  { task: 'File Upload with S3', without: '1-2 hours', with: '20 min', savings: '80%' },
-  { task: 'Automated Tests (Playwright)', without: '1 hour/feature', with: '0 min (auto)', savings: '100%' },
-  { task: 'Multi-tenant Team System', without: '4-6 hours', with: '45 min', savings: '88%' },
 ];
 
 // Module breakdown data - v5.1 (34 modules, 45,474 lines)
@@ -254,42 +239,6 @@ const vsCompetitors = [
     feature: 'Price',
     codebakers: '$149-999/mo',
     others: 'Free (DIY assembly)',
-  },
-];
-
-// What's covered comprehensively - v5.0
-const coverageAreas = [
-  {
-    category: 'Code Modules (15)',
-    items: ['Auth & 2FA/OAuth', 'Database & Migrations', 'API & Webhooks', 'Forms & Validation', 'Stripe Billing', 'Email/SMS/VAPI', 'Caching & Performance', 'Testing & CI/CD', 'Design & Accessibility', 'AI/LLM Integration'],
-  },
-  {
-    category: 'Business Modules (6)',
-    items: ['Market Research', 'Competitive Analysis', 'User Personas', 'MVP Planning', 'Launch Checklists', 'Incident Response', 'Support Tickets', 'Feature Flags', 'Monitoring (Sentry)'],
-  },
-  {
-    category: 'Expert Modules (5)',
-    items: ['Core Team (7 experts)', 'Health/HIPAA', 'Finance/PCI-DSS', 'Legal/GDPR/CCPA', 'Industry-specific'],
-  },
-  {
-    category: 'Compliance Coverage',
-    items: ['HIPAA (18 identifiers)', 'PCI-DSS (SAQ-A)', 'GDPR Data Export', 'CCPA Rights', 'COPPA Age Gates', 'KYC/AML Screening', 'Fraud Detection', 'BAA Requirements', 'Privacy Policies'],
-  },
-  {
-    category: 'Marketing Prompts',
-    items: ['30-day Social Calendar', '7-10 Email Sequences', '10 Blog Articles', '5 Video Scripts', '3 Ad Campaigns', 'Press Releases', 'Launch Strategy', 'SEO Checklist', 'Conversion Copy'],
-  },
-  {
-    category: 'Extended Modules (7)',
-    items: ['Analytics & Tracking', 'Search & Autocomplete', 'Email Templates', 'Data Visualization', 'Motion & Animation', 'Iconography', 'PDF & Print'],
-  },
-  {
-    category: 'Project Deliverables',
-    items: ['Technical Specs', 'Architecture Docs', 'Handoff Guides', 'API Documentation', 'Roadmap Templates', 'Risk Assessments', 'Go-live Playbooks', 'Rollback Procedures', '100-point Audits'],
-  },
-  {
-    category: 'Security & Infrastructure',
-    items: ['Rate Limiting', 'CSRF Protection', 'Input Sanitization', 'Secure Headers', 'Session Management', 'API Key Rotation', 'Webhook Verification', 'Audit Logging', 'Error Boundaries'],
   },
 ];
 
@@ -812,102 +761,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Interactive Demo Section */}
-      <section className="py-16 px-4" style={{ background: 'var(--section-features)' }} id="demo-comparison">
-        <InteractiveDemo />
-      </section>
-
-      {/* Two Big Problems We Solve */}
-      <section id="smart-prompts" className="py-20 px-4" style={{ background: 'var(--section-compare)' }}>
-        <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">
-              Two Problems, One Solution
-            </Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Most prompts are <span className="text-red-600 dark:text-red-500">bad</span> or take <span className="text-red-600 dark:text-red-500">forever</span> to type
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              We solve both problems.
-            </p>
-          </div>
-
-          <div className="max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-8 mb-12">
-              {/* Problem 1: Bad prompts */}
-              <div className="rounded-2xl bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-900/50 p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                    <Cancel01Icon className="h-6 w-6 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground">Problem 1</h3>
-                    <p className="text-red-600 dark:text-red-400 font-medium">Bad prompts = bad code</p>
-                  </div>
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  &quot;Add a login form&quot; gives you demo garbage. Missing validation, no error handling, no tests, not accessible.
-                </p>
-                <div className="px-4 py-3 rounded-lg bg-muted font-mono text-sm text-muted-foreground">
-                  → 5-10 revision prompts later, still not production-ready
-                </div>
-              </div>
-
-              {/* Problem 2: Long prompts */}
-              <div className="rounded-2xl bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-900/50 p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                    <Clock01Icon className="h-6 w-6 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground">Problem 2</h3>
-                    <p className="text-red-600 dark:text-red-400 font-medium">Good prompts take forever</p>
-                  </div>
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  To get good output, you&apos;d need to specify validation, error handling, loading states, tests, accessibility...
-                </p>
-                <div className="px-4 py-3 rounded-lg bg-muted font-mono text-sm text-muted-foreground">
-                  → 200+ word prompts for every feature
-                </div>
-              </div>
-            </div>
-
-            {/* The Solution */}
-            <div className="rounded-2xl bg-green-50 dark:bg-green-950/20 border-2 border-green-200 dark:border-green-800 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center">
-                  <MagicWand02Icon className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-foreground">CodeBakers Solution</h3>
-                  <p className="text-green-600 dark:text-green-400 font-medium">Short prompts → Production-ready code</p>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-2">You type:</div>
-                  <div className="px-4 py-3 rounded-lg bg-white dark:bg-card border border-border font-mono text-foreground">
-                    add login form
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-green-600 dark:text-green-400 mb-2">AI receives:</div>
-                  <div className="px-4 py-3 rounded-lg bg-white dark:bg-card border-2 border-green-300 dark:border-green-700 text-sm text-foreground">
-                    Build login with React Hook Form + Zod, loading states, error handling, toast notifications, ARIA accessibility, Playwright tests...
-                  </div>
-                </div>
-              </div>
-
-              <p className="mt-6 text-center text-green-700 dark:text-green-400 font-medium">
-                ✓ 5-word prompt → Complete, tested, production-ready code
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Who This Is For Section */}
       <section className="py-16 px-4" style={{ background: 'var(--section-features)' }}>
         <div className="container mx-auto">
@@ -1178,58 +1031,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Time Savings Comparison */}
-      <section id="compare" className="py-20 px-4 relative" style={{ background: 'var(--section-compare)' }}>
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-secondary text-secondary-foreground border-border">Task Breakdown</Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Time saved on every&nbsp;task
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Real time savings measured across common development&nbsp;tasks.
-            </p>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-border bg-card">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-4 px-4 text-muted-foreground font-medium">Task</th>
-                  <th className="text-center py-4 px-4 text-red-600 dark:text-red-400 font-medium">Without CodeBakers</th>
-                  <th className="text-center py-4 px-4 text-green-600 dark:text-green-400 font-medium">With CodeBakers</th>
-                  <th className="text-center py-4 px-4 text-blue-600 dark:text-blue-400 font-medium">Time Saved</th>
-                </tr>
-              </thead>
-              <tbody>
-                {timeSavings.map((row, index) => (
-                  <tr key={index} className="border-b border-border/50">
-                    <td className="py-4 px-4 text-foreground">{row.task}</td>
-                    <td className="py-4 px-4 text-center">
-                      <span className="text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/30 px-3 py-1 rounded-full text-sm">
-                        {row.without}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      <span className="text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-950/30 px-3 py-1 rounded-full text-sm">
-                        {row.with}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">{row.savings}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <p className="text-center text-muted-foreground/70 mt-8 text-sm">
-            * Based on average development times across 50+ production projects
-          </p>
-        </div>
-      </section>
-
       {/* Why Not Just Cursor Rules - Comparison Section */}
       <section className="py-20 px-4" style={{ background: 'var(--section-coverage)' }}>
         <div className="container mx-auto">
@@ -1332,37 +1133,6 @@ export default function HomePage() {
                 </div>
               );
             })}
-          </div>
-        </div>
-      </section>
-
-      {/* Coverage Section */}
-      <section className="py-20 px-4" style={{ background: 'var(--section-coverage)' }}>
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-secondary text-secondary-foreground border-border">Coverage</Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Complete product&nbsp;development
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Code, business, marketing, compliance — everything you need from discovery to&nbsp;launch.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {coverageAreas.map((area) => (
-              <div key={area.category} className="p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow">
-                <h3 className="text-lg font-semibold text-foreground mb-4">{area.category}</h3>
-                <ul className="space-y-2">
-                  {area.items.map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-muted-foreground">
-                      <Tick02Icon className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                      <span className="text-sm">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
           </div>
         </div>
       </section>
