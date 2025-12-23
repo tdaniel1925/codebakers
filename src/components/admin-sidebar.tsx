@@ -14,6 +14,7 @@ import {
   Menu,
   Sparkles,
   Building2,
+  FileUp,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/admin/enterprise', label: 'Enterprise Leads', icon: Building2 },
   { href: '/admin/content', label: 'Content', icon: FileText },
   { href: '/admin/module-builder', label: 'AI Module Builder', icon: Sparkles },
+  { href: '/admin/submissions', label: 'Pattern Submissions', icon: FileUp },
   { href: '/admin/reports', label: 'Reports', icon: FileWarning },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];

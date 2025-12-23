@@ -174,6 +174,43 @@ export const moduleReports = pgTable('module_reports', {
   fixedAt: timestamp('fixed_at'),
 });
 
+// Pattern Submissions - AI-generated patterns submitted for admin review
+export const patternSubmissions = pgTable('pattern_submissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Pattern details
+  name: text('name').notNull(), // e.g., "email-sendgrid"
+  content: text('content').notNull(), // The full pattern markdown
+  description: text('description'), // Brief description of what it does
+  basePattern: text('base_pattern'), // Which existing pattern it's based on (if any)
+  category: text('category'), // e.g., "integrations", "auth", "payments"
+
+  // Why the AI submitted this
+  reason: text('reason'), // AI's explanation of why this pattern is useful
+  userContext: text('user_context'), // What the user was trying to do
+
+  // AI Analysis (generated on submission)
+  aiSummary: text('ai_summary'), // AI-generated summary for admin review
+  aiRating: integer('ai_rating'), // 1-10 rating of pattern quality
+  aiRecommendation: text('ai_recommendation'), // "approve", "review", "reject"
+  aiAnalysis: text('ai_analysis'), // Detailed analysis JSON
+
+  // Who submitted
+  submittedByTeamId: uuid('submitted_by_team_id').references(() => teams.id, { onDelete: 'set null' }),
+
+  // Review status: pending, approved, rejected
+  status: text('status').default('pending'),
+  adminNotes: text('admin_notes'),
+  reviewedBy: uuid('reviewed_by').references(() => profiles.id, { onDelete: 'set null' }),
+
+  // If approved, which version it was added to
+  addedToVersion: text('added_to_version'),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow(),
+  reviewedAt: timestamp('reviewed_at'),
+});
+
 // Relations
 export const profilesRelations = relations(profiles, ({ many }) => ({
   ownedTeams: many(teams),
@@ -224,4 +261,6 @@ export type SubscriptionPricing = typeof subscriptionPricing.$inferSelect;
 export type NewSubscriptionPricing = typeof subscriptionPricing.$inferInsert;
 export type EnterpriseInquiry = typeof enterpriseInquiries.$inferSelect;
 export type NewEnterpriseInquiry = typeof enterpriseInquiries.$inferInsert;
+export type PatternSubmission = typeof patternSubmissions.$inferSelect;
+export type NewPatternSubmission = typeof patternSubmissions.$inferInsert;
 export type PaymentProvider = 'stripe' | 'square' | 'paypal';

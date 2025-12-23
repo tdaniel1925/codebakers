@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
       version: content.version,
       patterns,
       total: patterns.length,
+      user: validation.ownerName ? { name: validation.ownerName } : undefined,
     });
   } catch (error) {
     return handleApiError(error);
@@ -113,7 +114,7 @@ async function validateRequest(req: NextRequest) {
     };
   }
 
-  const { team } = validation;
+  const { team, ownerName } = validation;
 
   // Check access - no project ID for this endpoint (backwards compatible)
   const accessCheck = TeamService.canAccessProject(team, null);
@@ -134,5 +135,5 @@ async function validateRequest(req: NextRequest) {
     };
   }
 
-  return { team };
+  return { team, ownerName };
 }

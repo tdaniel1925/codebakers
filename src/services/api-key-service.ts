@@ -1,4 +1,4 @@
-import { db, apiKeys, teams } from '@/db';
+import { db, apiKeys, teams, profiles } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { createHash, randomBytes } from 'crypto';
 
@@ -58,14 +58,16 @@ export class ApiKeyService {
           suspendedAt: teams.suspendedAt,
           suspendedReason: teams.suspendedReason,
         },
+        ownerName: profiles.fullName,
       })
       .from(apiKeys)
       .innerJoin(teams, eq(apiKeys.teamId, teams.id))
+      .leftJoin(profiles, eq(teams.ownerId, profiles.id))
       .where(eq(apiKeys.keyHash, keyHash))
       .limit(1);
 
     if (!key || !key.isActive) {
-      return { valid: false, team: null };
+      return { valid: false, team: null, ownerName: null };
     }
 
     // Update last used timestamp
@@ -74,7 +76,7 @@ export class ApiKeyService {
       .set({ lastUsedAt: new Date() })
       .where(eq(apiKeys.id, key.id));
 
-    return { valid: true, team: key.team };
+    return { valid: true, team: key.team, ownerName: key.ownerName };
   }
 
   static async listByTeam(teamId: string) {
