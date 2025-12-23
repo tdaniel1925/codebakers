@@ -5,9 +5,9 @@ export const dynamic = 'force-dynamic';
 
 // CLI version info - update these when publishing new CLI versions
 const CLI_VERSION_INFO = {
-  latest: '1.1.4',
+  latest: '1.1.5',
   minSupported: '1.0.0',
-  changelog: 'Added CLAUDE.md installation and existing project detection.',
+  changelog: 'Added /design and /commands to setup tutorial.',
   downloadUrl: 'https://www.npmjs.com/package/@codebakers/cli',
   releaseDate: '2024-12-23',
 };
