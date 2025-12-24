@@ -104,7 +104,7 @@ function showFinalInstructions(): void {
       console.log(chalk.yellow('  ⚠️  Could not auto-install MCP server.\n'));
       console.log(chalk.white('  Run this command manually in your terminal:\n'));
       console.log(chalk.bgBlue.white('\n  ' + mcpCmd + '  \n'));
-      console.log(chalk.gray('\n  Then restart Claude Code.\n'));
+      console.log(chalk.yellow('\n  ⚠️  Then close this terminal and open a new one in your project.\n'));
       return;
     }
   }

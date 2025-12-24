@@ -158,8 +158,9 @@ function installGlobalConfig(): void {
     console.log(chalk.green('  MCP configuration installed!\n'));
     console.log(chalk.gray('  Config written to:'));
     console.log(chalk.cyan(`    ${configPath}\n`));
-    console.log(chalk.white('  Next step:\n'));
-    console.log(chalk.gray('  Restart Claude Code to activate the MCP server.\n'));
+    console.log(chalk.yellow('  ⚠️  Next step: Restart required\n'));
+    console.log(chalk.white('  Close this terminal and open a new one in your project folder.\n'));
+    console.log(chalk.gray('  Then the MCP server will be active!\n'));
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.log(chalk.red(`\n  Error: ${message}\n`));
@@ -221,7 +222,8 @@ export async function mcpUninstall(): Promise<void> {
       delete config.mcpServers.codebakers;
       writeFileSync(configPath, JSON.stringify(config, null, 2));
       console.log(chalk.green('  Removed from global config.\n'));
-      console.log(chalk.gray('  Restart Claude Code to apply changes.\n'));
+      console.log(chalk.yellow('  ⚠️  Next step: Restart required\n'));
+      console.log(chalk.white('  Close this terminal and open a new one in your project folder.\n'));
     } else {
       console.log(chalk.gray('  CodeBakers not found in global config.\n'));
       console.log(chalk.gray('  To remove from Claude Code, run:\n'));

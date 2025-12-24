@@ -1,6 +1,6 @@
 {
   "name": "@codebakers/cli",
-  "version": "1.4.1",
+  "version": "1.4.3",
   "description": "CodeBakers CLI - Production patterns for AI-assisted development",
   "main": "dist/index.js",
   "bin": {
@@ -29,8 +29,7 @@
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "conf": "^13.0.1",
-    "ora": "^8.1.1",
-    "openai": "^4.77.0"
+    "ora": "^8.1.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
