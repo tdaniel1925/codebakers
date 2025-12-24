@@ -1285,7 +1285,7 @@ phase: development
 ## Connection Status
 - **MCP Server:** Running
 - **API Connected:** Yes
-- **Version:** 1.4.6
+- **Version:** 1.5.0
 
 ## Current Settings
 - **Experience Level:** ${level.charAt(0).toUpperCase() + level.slice(1)}

@@ -6,6 +6,7 @@ import { join } from 'path';
 import { execSync } from 'child_process';
 import * as templates from '../templates/nextjs-supabase.js';
 import { getApiKey, getApiUrl } from '../config.js';
+import { provisionAll, type ProvisionResult } from './provision.js';
 
 // Cursor IDE configuration templates
 const CURSORRULES_TEMPLATE = `# CODEBAKERS CURSOR RULES
@@ -520,6 +521,41 @@ export async function scaffold(): Promise<void> {
       }
     } else {
       console.log(chalk.yellow('  ⚠️  Not logged in - run `codebakers setup` first to get patterns\n'));
+    }
+
+    // Ask about auto-provisioning
+    console.log(chalk.white('\n  Would you like to auto-provision your infrastructure?\n'));
+    console.log(chalk.gray('    This can create GitHub repo, Supabase database, and Vercel project automatically.'));
+    console.log(chalk.gray('    You\'ll need API keys for each service (one-time setup).\n'));
+
+    const wantProvision = await confirm('  Auto-provision services?');
+    let provisionResult: ProvisionResult = {};
+
+    if (wantProvision) {
+      // Initialize git first if not already
+      try {
+        execSync('git init', { cwd, stdio: 'pipe' });
+        execSync('git add .', { cwd, stdio: 'pipe' });
+        execSync('git commit -m "Initial commit from CodeBakers scaffold"', { cwd, stdio: 'pipe' });
+      } catch {
+        // Git might already be initialized or have issues
+      }
+
+      provisionResult = await provisionAll(projectName, `${projectName} - Built with CodeBakers`);
+
+      // Update .env.local with Supabase credentials if available
+      if (provisionResult.supabase) {
+        const envPath = join(cwd, '.env.local');
+        let envContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : '';
+
+        // Replace placeholder values with actual credentials
+        envContent = envContent
+          .replace('your-project-id.supabase.co', provisionResult.supabase.apiUrl.replace('https://', ''))
+          .replace('your-anon-key', provisionResult.supabase.anonKey || 'your-anon-key');
+
+        writeFileSync(envPath, envContent);
+        console.log(chalk.green('  ✅ Updated .env.local with Supabase credentials!\n'));
+      }
     }
 
     // Success message
