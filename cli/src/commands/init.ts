@@ -271,20 +271,13 @@ async function confirm(question: string): Promise<boolean> {
 
 async function selectProjectType(): Promise<{ type: ProjectType; name: string }> {
   console.log(chalk.white('\n  What kind of project is this?\n'));
-  console.log(chalk.gray('    0. ') + chalk.magenta('You Decide') + chalk.gray(' - Let AI pick the best option'));
   console.log(chalk.gray('    1. ') + chalk.cyan('PERSONAL') + chalk.gray(' - Just building for myself'));
   console.log(chalk.gray('    2. ') + chalk.cyan('CLIENT') + chalk.gray('   - Building for someone else'));
   console.log(chalk.gray('    3. ') + chalk.cyan('BUSINESS') + chalk.gray(' - My own product/startup\n'));
 
   let typeChoice = '';
-  while (!['0', '1', '2', '3'].includes(typeChoice)) {
-    typeChoice = await prompt('  Enter 0, 1, 2, or 3: ');
-  }
-
-  // "You Decide" defaults to Personal (most common)
-  if (typeChoice === '0') {
-    console.log(chalk.magenta('  → AI chose: Personal (most flexible)\n'));
-    typeChoice = '1';
+  while (!['1', '2', '3'].includes(typeChoice)) {
+    typeChoice = await prompt('  Enter 1, 2, or 3: ');
   }
 
   const typeMap: Record<string, ProjectType> = {

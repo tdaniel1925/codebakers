@@ -288,22 +288,15 @@ export async function scaffold(): Promise<void> {
     }
   }
 
-  // Ask about experience level
+  // Ask about experience level (user must decide - AI can't know this)
   console.log(chalk.white('\n  What\'s your experience level?\n'));
-  console.log(chalk.gray('    0. ') + chalk.magenta('You Decide') + chalk.gray(' - Let AI pick the best option'));
   console.log(chalk.gray('    1. ') + chalk.cyan('Beginner') + chalk.gray(' - New to coding, explain everything'));
   console.log(chalk.gray('    2. ') + chalk.cyan('Intermediate') + chalk.gray(' - Know some coding, brief explanations'));
   console.log(chalk.gray('    3. ') + chalk.cyan('Advanced') + chalk.gray(' - Skip explanations, just build\n'));
 
   let experienceLevel = '';
-  while (!['0', '1', '2', '3'].includes(experienceLevel)) {
-    experienceLevel = await prompt('  Enter 0, 1, 2, or 3: ');
-  }
-
-  // "You Decide" defaults to Intermediate (balanced)
-  if (experienceLevel === '0') {
-    console.log(chalk.magenta('  → AI chose: Intermediate (balanced explanations)\n'));
-    experienceLevel = '2';
+  while (!['1', '2', '3'].includes(experienceLevel)) {
+    experienceLevel = await prompt('  Enter 1, 2, or 3: ');
   }
 
   const isBeginnerMode = experienceLevel === '1';
