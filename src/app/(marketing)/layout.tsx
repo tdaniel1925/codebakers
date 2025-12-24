@@ -23,6 +23,12 @@ export default function MarketingLayout({
                 Smart Prompts
               </Link>
               <Link
+                href="/#demo"
+                className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
+              >
+                Demo
+              </Link>
+              <Link
                 href="/pricing"
                 className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
               >
@@ -68,6 +74,11 @@ export default function MarketingLayout({
                 <li>
                   <Link href="/#smart-prompts" className="hover:text-gray-900 transition-colors">
                     Smart Prompts
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/#demo" className="hover:text-gray-900 transition-colors">
+                    Demo
                   </Link>
                 </li>
                 <li>

@@ -521,7 +521,6 @@ export default function HomePage() {
                     ref={videoRef}
                     className="absolute inset-0 w-full h-full object-cover"
                     playsInline
-                    loop
                     onClick={() => {
                       if (videoRef.current) {
                         if (isPlaying) {
@@ -530,6 +529,12 @@ export default function HomePage() {
                           videoRef.current.play();
                         }
                         setIsPlaying(!isPlaying);
+                      }
+                    }}
+                    onEnded={() => {
+                      if (videoRef.current) {
+                        videoRef.current.currentTime = 0;
+                        setIsPlaying(false);
                       }
                     }}
                   >
