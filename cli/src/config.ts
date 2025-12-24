@@ -1,8 +1,11 @@
 import Conf from 'conf';
 
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
+
 interface ConfigSchema {
   apiKey: string | null;
   apiUrl: string;
+  experienceLevel: ExperienceLevel;
 }
 
 const config = new Conf<ConfigSchema>({
@@ -10,6 +13,7 @@ const config = new Conf<ConfigSchema>({
   defaults: {
     apiKey: null,
     apiUrl: 'https://codebakers.ai',
+    experienceLevel: 'intermediate',
   },
 });
 
@@ -31,4 +35,12 @@ export function getApiUrl(): string {
 
 export function setApiUrl(url: string): void {
   config.set('apiUrl', url);
+}
+
+export function getExperienceLevel(): ExperienceLevel {
+  return config.get('experienceLevel');
+}
+
+export function setExperienceLevel(level: ExperienceLevel): void {
+  config.set('experienceLevel', level);
 }

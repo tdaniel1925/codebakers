@@ -19,9 +19,9 @@ export default async function DashboardPage() {
   const stats = await DashboardService.getStats(user.id);
   const apiKey = await DashboardService.getPrimaryKey(user.id);
 
-  // Redirect new users to onboarding if they haven't set up yet
+  // Redirect new users to quick start if they haven't set up yet
   if (!stats.lastApiCall && !apiKey) {
-    redirect('/onboarding');
+    redirect('/quickstart');
   }
 
   return <DashboardContent stats={stats} apiKey={apiKey} />;

@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { createInterface } from 'readline';
+import { execSync } from 'child_process';
 import { setApiKey, getApiKey, getApiUrl } from '../config.js';
 
 function prompt(question: string): Promise<string> {
@@ -83,29 +84,36 @@ function showFinalInstructions(): void {
 
   console.log(chalk.green('\n  ✅ API key saved!\n'));
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════'));
-  console.log(chalk.white.bold('\n  STEP 2: Connect CodeBakers to Claude\n'));
+  console.log(chalk.white.bold('\n  STEP 2: Connecting CodeBakers to Claude...\n'));
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════\n'));
 
-  console.log(chalk.white('  Open a NEW terminal window and run this command:\n'));
-
-  const terminalCmd = isWindows
+  // Auto-install MCP server
+  const mcpCmd = isWindows
     ? 'claude mcp add --transport stdio codebakers -- cmd /c npx -y @codebakers/cli serve'
     : 'claude mcp add --transport stdio codebakers -- npx -y @codebakers/cli serve';
 
-  console.log(chalk.bgBlue.white('\n  ' + terminalCmd + '  \n'));
-
-  console.log(chalk.gray('\n  ┌─────────────────────────────────────────────────────────┐'));
-  console.log(chalk.gray('  │') + chalk.yellow(' ⚠️  IMPORTANT:                                          ') + chalk.gray('│'));
-  console.log(chalk.gray('  │') + chalk.white('  • Run this in a TERMINAL, not in Claude Code chat     ') + chalk.gray('│'));
-  console.log(chalk.gray('  │') + chalk.white('  • You only need to do this ONCE                       ') + chalk.gray('│'));
-  console.log(chalk.gray('  │') + chalk.white('  • After running, restart Claude Code                  ') + chalk.gray('│'));
-  console.log(chalk.gray('  └─────────────────────────────────────────────────────────┘\n'));
+  try {
+    execSync(mcpCmd, { stdio: 'pipe' });
+    console.log(chalk.green('  ✅ CodeBakers MCP server installed!\n'));
+  } catch (error) {
+    // Check if it's already installed (command might fail if already exists)
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('already exists') || errorMessage.includes('already registered')) {
+      console.log(chalk.green('  ✅ CodeBakers MCP server already installed!\n'));
+    } else {
+      console.log(chalk.yellow('  ⚠️  Could not auto-install MCP server.\n'));
+      console.log(chalk.white('  Run this command manually in your terminal:\n'));
+      console.log(chalk.bgBlue.white('\n  ' + mcpCmd + '  \n'));
+      console.log(chalk.gray('\n  Then restart Claude Code.\n'));
+      return;
+    }
+  }
 
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════'));
-  console.log(chalk.white.bold('\n  STEP 3: Test it!\n'));
+  console.log(chalk.white.bold('\n  🎉 Setup Complete!\n'));
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════\n'));
 
-  console.log(chalk.white('  After restarting Claude Code, try this prompt:\n'));
+  console.log(chalk.white('  CodeBakers is now ready. Try this prompt:\n'));
   console.log(chalk.cyan('    "Build a login form with email validation"\n'));
 
   console.log(chalk.gray('  Claude will now use CodeBakers patterns automatically.\n'));

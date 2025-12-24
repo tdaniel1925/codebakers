@@ -318,7 +318,7 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
           </Card>
         </Link>
 
-        <Link href="/onboarding" className="group">
+        <Link href="/quickstart" className="group">
           <Card className="bg-neutral-900/80 border-neutral-800 hover:border-red-500/50 transition-colors h-full">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center">
@@ -326,9 +326,9 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
               </div>
               <div>
                 <p className="font-medium text-white group-hover:text-red-400 transition-colors">
-                  IDE Setup
+                  Quick Start
                 </p>
-                <p className="text-sm text-neutral-400">Configure your IDE</p>
+                <p className="text-sm text-neutral-400">Setup guide & commands</p>
               </div>
             </CardContent>
           </Card>

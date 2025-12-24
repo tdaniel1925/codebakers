@@ -4,70 +4,39 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from
 import { join } from 'path';
 import { homedir } from 'os';
 
-// Enhanced hook with pre-flight checks and self-review automation
+// Enhanced hook with visible feedback and concise instructions
 const HOOK_TEMPLATE = {
   hooks: {
     UserPromptSubmit: [
       {
         type: "command",
-        command: `echo '════════════════════════════════════════════════════════════════
-🚀 CODEBAKERS ZERO-FRICTION PROTOCOL
-════════════════════════════════════════════════════════════════
-
-AUTOMATIC WORKFLOW - Execute silently, output only the acknowledgment:
-
-▸ PHASE 1: CONTEXT LOAD
-  Read these files (if they exist):
-  - CLAUDE.md → Router & module instructions
-  - PRD.md → What we are building (requirements!)
-  - PROJECT-CONTEXT.md → Codebase knowledge
-  - PROJECT-STATE.md → What is in progress
-  - DECISIONS.md → Past architectural choices
-
-▸ PHASE 2: PRE-FLIGHT CHECK (before writing code)
-  □ What existing code does this touch?
-  □ Is similar code in the codebase? (copy that pattern!)
-  □ Whats the data model?
-  □ What are the error cases?
-  □ Is someone else working on this? (check In Progress)
-
-  If PROJECT-CONTEXT.md is empty/stale, SCAN PROJECT FIRST:
-  - Read package.json
-  - Check file structure
-  - Find existing patterns
-  - Update PROJECT-CONTEXT.md
-
-▸ PHASE 3: ACKNOWLEDGE & EXECUTE
-  Output: 📋 CodeBakers | [Type] | Modules: [list]
-  Then: Follow patterns from .claude/ folder EXACTLY
-
-▸ PHASE 4: SELF-REVIEW (before saying done)
-  □ TypeScript compiles? (npx tsc --noEmit)
-  □ Imports resolve?
-  □ Error handling exists?
-  □ Matches existing patterns?
-  □ Tests written?
-
-  If ANY fails → FIX before responding
-
-▸ PHASE 5: UPDATE STATE
-  - Update PROJECT-STATE.md (move to Completed)
-  - Add to DECISIONS.md if architectural choice made
-
-════════════════════════════════════════════════════════════════
-🔄 MULTI-AGENT MODE
-════════════════════════════════════════════════════════════════
-- Check PROJECT-STATE.md "In Progress" - dont duplicate work
-- Add YOUR task to In Progress when starting
-- If conflict → STOP and ask user
-
-════════════════════════════════════════════════════════════════
-💡 REMEMBER: Check existing code FIRST. Copy patterns. Validate.
-════════════════════════════════════════════════════════════════'`
+        command: `echo '[CodeBakers] Loading project context...'`
+      }
+    ],
+    PostToolUse: [
+      {
+        type: "command",
+        matcher: "Write|Edit",
+        command: `echo '[CodeBakers] Code written - remember to self-review before marking done'`
       }
     ]
   }
 };
+
+// Instructions that get injected into the system prompt
+const CODEBAKERS_INSTRUCTIONS = `
+<user-prompt-submit-hook>
+[CodeBakers] Active - Follow these steps for EVERY request:
+
+1. CONTEXT: Read CLAUDE.md, PROJECT-CONTEXT.md, PROJECT-STATE.md
+2. PRE-FLIGHT: Check existing code patterns before writing new code
+3. EXECUTE: Use patterns from .claude/ folder
+4. SELF-REVIEW: Verify TypeScript compiles, imports resolve, error handling exists
+5. UPDATE: Mark tasks complete in PROJECT-STATE.md
+
+Output format: "[CodeBakers] Building [feature] using [patterns]"
+</user-prompt-submit-hook>
+`;
 
 /**
  * Install the CodeBakers hook into ~/.claude/settings.json
@@ -117,23 +86,25 @@ export async function installHook(): Promise<void> {
       }
     }
 
-    // Merge hook into settings
+    // Merge hooks into settings
     settings.hooks = settings.hooks || {};
     (settings.hooks as Record<string, unknown>).UserPromptSubmit = HOOK_TEMPLATE.hooks.UserPromptSubmit;
+    (settings.hooks as Record<string, unknown>).PostToolUse = HOOK_TEMPLATE.hooks.PostToolUse;
 
     // Write back
     writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 
     spinner.succeed('Hook installed successfully!');
 
-    console.log(chalk.white('\n  What happens automatically on EVERY message:\n'));
-    console.log(chalk.gray('    ✓ Loads project context (CLAUDE.md, PROJECT-CONTEXT.md)'));
-    console.log(chalk.gray('    ✓ Checks what\'s in progress (PROJECT-STATE.md)'));
-    console.log(chalk.gray('    ✓ Runs pre-flight checks before coding'));
-    console.log(chalk.gray('    ✓ Copies existing patterns from your codebase'));
-    console.log(chalk.gray('    ✓ Self-reviews code before outputting'));
-    console.log(chalk.gray('    ✓ Updates project state when done'));
-    console.log(chalk.gray('    ✓ Logs architectural decisions\n'));
+    console.log(chalk.white('\n  You\'ll see [CodeBakers] feedback in terminal:\n'));
+    console.log(chalk.cyan('    [CodeBakers] Loading project context...'));
+    console.log(chalk.cyan('    [CodeBakers] Code written - remember to self-review\n'));
+
+    console.log(chalk.white('  What happens automatically:\n'));
+    console.log(chalk.gray('    ✓ Loads project context before every response'));
+    console.log(chalk.gray('    ✓ Pre-flight checks before writing code'));
+    console.log(chalk.gray('    ✓ Self-review reminders after code changes'));
+    console.log(chalk.gray('    ✓ Pattern-based development from .claude/ folder\n'));
 
     console.log(chalk.yellow('  ⚠️  Restart Claude Code for changes to take effect.\n'));
   } catch (error) {
@@ -162,13 +133,18 @@ export async function uninstallHook(): Promise<void> {
 
     const settings = JSON.parse(readFileSync(settingsPath, 'utf-8'));
 
-    if (!settings.hooks?.UserPromptSubmit) {
-      spinner.info('No UserPromptSubmit hook found. Nothing to remove.');
+    if (!settings.hooks?.UserPromptSubmit && !settings.hooks?.PostToolUse) {
+      spinner.info('No CodeBakers hooks found. Nothing to remove.');
       return;
     }
 
-    // Remove the hook
-    delete settings.hooks.UserPromptSubmit;
+    // Remove both hooks
+    if (settings.hooks?.UserPromptSubmit) {
+      delete settings.hooks.UserPromptSubmit;
+    }
+    if (settings.hooks?.PostToolUse) {
+      delete settings.hooks.PostToolUse;
+    }
 
     // Clean up empty hooks object
     if (Object.keys(settings.hooks).length === 0) {

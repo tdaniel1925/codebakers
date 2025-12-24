@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/onboarding', label: 'IDE Setup', icon: Plug },
+  { href: '/quickstart', label: 'Quick Start', icon: Zap },
   { href: '/account', label: 'Account', icon: UserCircle },
   { href: '/billing', label: 'Billing', icon: CreditCard },
   { href: '/team', label: 'Team', icon: Users },
