@@ -106,9 +106,11 @@ export async function installHook(): Promise<void> {
     console.log(chalk.gray('    ✓ Self-review reminders after code changes'));
     console.log(chalk.gray('    ✓ Pattern-based development from .claude/ folder\n'));
 
-    console.log(chalk.yellow('  ⚠️  Next step: Restart required\n'));
-    console.log(chalk.white('  Close this terminal and open a new one in your project folder.\n'));
-    console.log(chalk.gray('  Then just start chatting - CodeBakers is now active!\n'));
+    console.log(chalk.yellow.bold('  ⚠️  RESTART REQUIRED:\n'));
+    console.log(chalk.gray('    1. Type ') + chalk.cyan('exit') + chalk.gray(' to close this terminal'));
+    console.log(chalk.gray('    2. Open a NEW terminal window'));
+    console.log(chalk.gray('    3. Navigate to your project and run ') + chalk.cyan('claude\n'));
+    console.log(chalk.white('  To verify it\'s working, ask: ') + chalk.green('"Are you using CodeBakers?"\n'));
   } catch (error) {
     spinner.fail('Hook installation failed');
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -156,8 +158,8 @@ export async function uninstallHook(): Promise<void> {
     writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 
     spinner.succeed('Hook removed successfully!');
-    console.log(chalk.yellow('\n  ⚠️  Next step: Restart required\n'));
-    console.log(chalk.white('  Close this terminal and open a new one in your project folder.\n'));
+    console.log(chalk.yellow('\n  ⚠️  RESTART REQUIRED:\n'));
+    console.log(chalk.gray('    Type ') + chalk.cyan('exit') + chalk.gray(' and open a new terminal to apply changes.\n'));
   } catch (error) {
     spinner.fail('Hook removal failed');
     const message = error instanceof Error ? error.message : 'Unknown error';

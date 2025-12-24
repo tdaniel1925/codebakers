@@ -113,13 +113,24 @@ function showFinalInstructions(): void {
   console.log(chalk.white.bold('\n  🎉 Setup Complete!\n'));
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════\n'));
 
-  console.log(chalk.white.bold('  👉 NEXT: Close this terminal and open your AI:\n'));
-  console.log(chalk.cyan('     • Claude Code') + chalk.gray(' - Open any project folder'));
-  console.log(chalk.cyan('     • Cursor') + chalk.gray(' - Open Composer (Cmd+I / Ctrl+I)\n'));
+  console.log(chalk.yellow.bold('  ⚠️  RESTART REQUIRED - Follow these steps:\n'));
 
-  console.log(chalk.white('  Then just describe what you want to build:\n'));
-  console.log(chalk.green('    "Build me a todo app with user authentication"\n'));
+  console.log(chalk.white('  For Claude Code:\n'));
+  console.log(chalk.gray('    1. Close this terminal completely (type ') + chalk.cyan('exit') + chalk.gray(')'));
+  console.log(chalk.gray('    2. Open a NEW terminal window'));
+  console.log(chalk.gray('    3. Navigate to your project folder'));
+  console.log(chalk.gray('    4. Run ') + chalk.cyan('claude') + chalk.gray(' to start Claude Code\n'));
 
-  console.log(chalk.gray('  The AI will use CodeBakers patterns automatically.'));
+  console.log(chalk.white('  For Cursor:\n'));
+  console.log(chalk.gray('    1. Close Cursor completely (Cmd+Q / Alt+F4)'));
+  console.log(chalk.gray('    2. Reopen Cursor'));
+  console.log(chalk.gray('    3. Open Composer (Cmd+I / Ctrl+I)\n'));
+
+  console.log(chalk.blue('  ──────────────────────────────────────────────────────────\n'));
+
+  console.log(chalk.white('  ✅ To verify CodeBakers is working, ask the AI:\n'));
+  console.log(chalk.green('    "Are you using CodeBakers?"\n'));
+
+  console.log(chalk.gray('  The AI should respond with its CodeBakers status.'));
   console.log(chalk.gray('  Need help? https://codebakers.ai/docs\n'));
 }

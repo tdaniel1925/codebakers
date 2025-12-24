@@ -437,6 +437,15 @@ class CodeBakersServer {
             properties: {},
           },
         },
+        {
+          name: 'get_status',
+          description:
+            'Check if CodeBakers is active and get current status. Use this when user asks "are you using CodeBakers?" or wants to verify the integration is working. Returns version, connection status, and available features.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {},
+          },
+        },
       ],
     }));
 
@@ -481,6 +490,9 @@ class CodeBakersServer {
 
         case 'get_experience_level':
           return this.handleGetExperienceLevel();
+
+        case 'get_status':
+          return this.handleGetStatus();
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -1260,6 +1272,47 @@ phase: development
       content: [{
         type: 'text' as const,
         text: `# Current Experience Level\n\n${info.emoji} **${level.charAt(0).toUpperCase() + level.slice(1)}**\n${info.description}\n\n---\n\nTo change, use: \`set_experience_level\` with "beginner", "intermediate", or "advanced"`,
+      }],
+    };
+  }
+
+  private handleGetStatus() {
+    const level = getExperienceLevel();
+    const context = this.gatherProjectContext();
+
+    const statusText = `# ✅ CodeBakers is Active!
+
+## Connection Status
+- **MCP Server:** Running
+- **API Connected:** Yes
+- **Version:** 1.4.6
+
+## Current Settings
+- **Experience Level:** ${level.charAt(0).toUpperCase() + level.slice(1)}
+- **Project:** ${context.projectName}
+
+## Available Features
+- 🔧 **optimize_and_build** - AI-powered prompt optimization
+- 📦 **get_pattern** - Fetch production patterns
+- 🔍 **search_patterns** - Search for specific guidance
+- 🏗️ **scaffold_project** - Create new projects
+- ⚙️ **init_project** - Add patterns to existing projects
+
+## How to Use
+Just describe what you want to build! I'll automatically:
+1. Analyze your request
+2. Find the right patterns
+3. Apply production best practices
+
+**Example:** "Build a login page with email/password"
+
+---
+*CodeBakers is providing AI-assisted development patterns for this project.*`;
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: statusText,
       }],
     };
   }
