@@ -398,12 +398,14 @@ export default function HomePage() {
         {/* Grid Background Pattern */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div
-            className="absolute inset-0 opacity-[0.03]"
+            className="absolute inset-0"
             style={{
-              backgroundImage: `linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)`,
+              backgroundImage: `linear-gradient(to right, #e5e7eb 1px, transparent 1px), linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)`,
               backgroundSize: '80px 80px'
             }}
           />
+          {/* Fade overlay for edges */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-white" />
         </div>
         <motion.div
           className="container mx-auto text-center relative z-10"
