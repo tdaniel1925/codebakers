@@ -79,30 +79,36 @@ export async function setup(): Promise<void> {
 }
 
 function showFinalInstructions(): void {
-  console.log(chalk.white('  Step 2: Add MCP Server\n'));
-
-  // Detect platform
   const isWindows = process.platform === 'win32';
 
-  console.log(chalk.yellow('  Run this command in your TERMINAL:\n'));
+  console.log(chalk.green('\n  ✅ API key saved!\n'));
+  console.log(chalk.blue('  ══════════════════════════════════════════════════════════'));
+  console.log(chalk.white.bold('\n  STEP 2: Connect CodeBakers to Claude\n'));
+  console.log(chalk.blue('  ══════════════════════════════════════════════════════════\n'));
+
+  console.log(chalk.white('  Open a NEW terminal window and run this command:\n'));
 
   const terminalCmd = isWindows
     ? 'claude mcp add --transport stdio codebakers -- cmd /c npx -y @codebakers/cli serve'
     : 'claude mcp add --transport stdio codebakers -- npx -y @codebakers/cli serve';
 
-  console.log(chalk.cyan('  ' + terminalCmd + '\n'));
+  console.log(chalk.bgBlue.white('\n  ' + terminalCmd + '  \n'));
 
-  console.log(chalk.gray('  This only needs to be done once.\n'));
+  console.log(chalk.gray('\n  ┌─────────────────────────────────────────────────────────┐'));
+  console.log(chalk.gray('  │') + chalk.yellow(' ⚠️  IMPORTANT:                                          ') + chalk.gray('│'));
+  console.log(chalk.gray('  │') + chalk.white('  • Run this in a TERMINAL, not in Claude Code chat     ') + chalk.gray('│'));
+  console.log(chalk.gray('  │') + chalk.white('  • You only need to do this ONCE                       ') + chalk.gray('│'));
+  console.log(chalk.gray('  │') + chalk.white('  • After running, restart Claude Code                  ') + chalk.gray('│'));
+  console.log(chalk.gray('  └─────────────────────────────────────────────────────────┘\n'));
 
-  console.log(chalk.blue('  ══════════════════════════════════════\n'));
-  console.log(chalk.green('  Almost done! 🎉\n'));
-  console.log(chalk.white('  After running that command:\n'));
-  console.log(chalk.gray('  • Claude will have access to 34 production patterns'));
-  console.log(chalk.gray('  • Patterns are fetched on-demand (never stored locally)'));
-  console.log(chalk.gray('  • Works across all your projects\n'));
+  console.log(chalk.blue('  ══════════════════════════════════════════════════════════'));
+  console.log(chalk.white.bold('\n  STEP 3: Test it!\n'));
+  console.log(chalk.blue('  ══════════════════════════════════════════════════════════\n'));
 
-  console.log(chalk.white('  Example prompt to try:\n'));
+  console.log(chalk.white('  After restarting Claude Code, try this prompt:\n'));
   console.log(chalk.cyan('    "Build a login form with email validation"\n'));
+
+  console.log(chalk.gray('  Claude will now use CodeBakers patterns automatically.\n'));
 
   console.log(chalk.gray('  Need help? https://codebakers.ai/docs\n'));
 }
