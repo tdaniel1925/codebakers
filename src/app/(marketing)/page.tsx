@@ -395,17 +395,17 @@ export default function HomePage() {
     <div className="overflow-hidden">
       {/* Hero Section */}
       <section className="relative pt-20 pb-24 px-4">
-        {/* Grid Background Pattern */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Grid Background Pattern - Light mode only */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none dark:hidden">
           <div
             className="absolute inset-0"
             style={{
-              backgroundImage: `linear-gradient(to right, #e5e7eb 1px, transparent 1px), linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)`,
-              backgroundSize: '80px 80px'
+              backgroundImage: `linear-gradient(to right, #d1d5db 1px, transparent 1px), linear-gradient(to bottom, #d1d5db 1px, transparent 1px)`,
+              backgroundSize: '60px 60px'
             }}
           />
-          {/* Fade overlay for edges */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-white" />
+          {/* Subtle fade at bottom only */}
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white to-transparent" />
         </div>
         <motion.div
           className="container mx-auto text-center relative z-10"
