@@ -92,6 +92,7 @@ export default function QuickStartPage() {
   };
 
   const displayKey = newKey || data?.apiKey;
+  const isKeyMasked = !newKey && displayKey?.includes('•');
 
   if (isLoading) {
     return (
@@ -148,18 +149,32 @@ export default function QuickStartPage() {
             <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">1</div>
             <div>
               <CardTitle className="text-white">Your API Key</CardTitle>
-              <CardDescription className="text-neutral-400">Copy this - you'll paste it in the next step</CardDescription>
+              <CardDescription className="text-neutral-400">
+                {isKeyMasked
+                  ? 'Generate a new key to copy it (keys are only shown once for security)'
+                  : 'Copy this - you\'ll paste it in the next step'}
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {isKeyMasked && (
+            <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-3 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+              <p className="text-yellow-200 text-sm">
+                Your key is hidden for security. Click <strong>Generate New Key</strong> below to get a copyable key.
+              </p>
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-green-400 border border-neutral-800 overflow-x-auto select-all">
+            <code className={`flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm border border-neutral-800 overflow-x-auto ${isKeyMasked ? 'text-neutral-500' : 'text-green-400 select-all'}`}>
               {displayKey || 'Loading...'}
             </code>
             <Button
-              onClick={() => displayKey && copyToClipboard(displayKey, 'apiKey')}
-              className="bg-red-600 hover:bg-red-700 shrink-0"
+              onClick={() => displayKey && !isKeyMasked && copyToClipboard(displayKey, 'apiKey')}
+              disabled={isKeyMasked}
+              className={isKeyMasked ? 'bg-neutral-700 cursor-not-allowed shrink-0' : 'bg-red-600 hover:bg-red-700 shrink-0'}
             >
               {copied === 'apiKey' ? (
                 <>
@@ -177,11 +192,13 @@ export default function QuickStartPage() {
 
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
+              variant={isKeyMasked ? 'default' : 'outline'}
               size="sm"
               onClick={regenerateKey}
               disabled={isRegenerating}
-              className="border-neutral-700 text-neutral-400 hover:text-white"
+              className={isKeyMasked
+                ? 'bg-red-600 hover:bg-red-700 text-white'
+                : 'border-neutral-700 text-neutral-400 hover:text-white'}
             >
               {isRegenerating ? (
                 <>
