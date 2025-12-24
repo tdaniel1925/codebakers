@@ -113,7 +113,7 @@ export default function QuickStartPage() {
       </div>
 
       {/* The Simple Flow */}
-      <Card className="bg-gradient-to-r from-red-900/30 to-purple-900/30 border-red-600/30">
+      <Card className="bg-neutral-900/80 border-red-600/30">
         <CardContent className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <Sparkles className="w-6 h-6 text-red-400" />
@@ -321,7 +321,7 @@ export default function QuickStartPage() {
       </Card>
 
       {/* Step 3: Start Building */}
-      <Card className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 border-green-600/30">
+      <Card className="bg-neutral-900/80 border-green-600/30">
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">✓</div>
