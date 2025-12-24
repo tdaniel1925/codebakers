@@ -554,7 +554,6 @@ export default function HomePage() {
                     ref={videoRef}
                     className="absolute inset-0 w-full h-full object-cover"
                     playsInline
-                    loop
                     onClick={() => {
                       if (videoRef.current) {
                         if (isPlaying) {
@@ -563,6 +562,12 @@ export default function HomePage() {
                           videoRef.current.play();
                         }
                         setIsPlaying(!isPlaying);
+                      }
+                    }}
+                    onEnded={() => {
+                      if (videoRef.current) {
+                        videoRef.current.currentTime = 0;
+                        setIsPlaying(false);
                       }
                     }}
                   >
@@ -604,7 +609,7 @@ export default function HomePage() {
       </section>
 
       {/* How It Works - 3 Step Visual */}
-      <section className="py-20 px-4" style={{ background: 'var(--section-hero)' }} id="how-it-works">
+      <section className="py-20 px-4" style={{ background: 'var(--section-hero)' }} id="smart-prompts">
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <Badge className="mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800">
@@ -1032,7 +1037,7 @@ export default function HomePage() {
       </section>
 
       {/* Why Not Just Cursor Rules - Comparison Section */}
-      <section className="py-20 px-4" style={{ background: 'var(--section-coverage)' }}>
+      <section id="compare" className="py-20 px-4" style={{ background: 'var(--section-coverage)' }}>
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">vs Alternatives</Badge>
