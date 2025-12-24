@@ -271,13 +271,20 @@ async function confirm(question: string): Promise<boolean> {
 
 async function selectProjectType(): Promise<{ type: ProjectType; name: string }> {
   console.log(chalk.white('\n  What kind of project is this?\n'));
+  console.log(chalk.gray('    0. ') + chalk.magenta('You Decide') + chalk.gray(' - Let AI pick the best option'));
   console.log(chalk.gray('    1. ') + chalk.cyan('PERSONAL') + chalk.gray(' - Just building for myself'));
   console.log(chalk.gray('    2. ') + chalk.cyan('CLIENT') + chalk.gray('   - Building for someone else'));
   console.log(chalk.gray('    3. ') + chalk.cyan('BUSINESS') + chalk.gray(' - My own product/startup\n'));
 
   let typeChoice = '';
-  while (!['1', '2', '3'].includes(typeChoice)) {
-    typeChoice = await prompt('  Enter 1, 2, or 3: ');
+  while (!['0', '1', '2', '3'].includes(typeChoice)) {
+    typeChoice = await prompt('  Enter 0, 1, 2, or 3: ');
+  }
+
+  // "You Decide" defaults to Personal (most common)
+  if (typeChoice === '0') {
+    console.log(chalk.magenta('  → AI chose: Personal (most flexible)\n'));
+    typeChoice = '1';
   }
 
   const typeMap: Record<string, ProjectType> = {
@@ -743,13 +750,20 @@ export async function init(): Promise<void> {
   } else {
     console.log(chalk.gray('  A PRD helps the AI understand what you\'re building.\n'));
     console.log(chalk.white('  How would you like to set up your PRD?\n'));
+    console.log(chalk.gray('    0. ') + chalk.magenta('You Decide') + chalk.gray(' - Let AI pick the best option'));
     console.log(chalk.gray('    1. ') + chalk.cyan('CREATE TEMPLATE') + chalk.gray(' - I\'ll fill it out'));
     console.log(chalk.gray('    2. ') + chalk.cyan('PASTE CONTENT') + chalk.gray('   - I have requirements ready'));
     console.log(chalk.gray('    3. ') + chalk.cyan('SKIP FOR NOW') + chalk.gray('    - I\'ll add it later\n'));
 
     let prdChoice = '';
-    while (!['1', '2', '3'].includes(prdChoice)) {
-      prdChoice = await prompt('  Enter 1, 2, or 3: ');
+    while (!['0', '1', '2', '3'].includes(prdChoice)) {
+      prdChoice = await prompt('  Enter 0, 1, 2, or 3: ');
+    }
+
+    // "You Decide" defaults to creating a template (most helpful)
+    if (prdChoice === '0') {
+      console.log(chalk.magenta('  → AI chose: Create Template (recommended)\n'));
+      prdChoice = '1';
     }
 
     if (prdChoice === '1') {

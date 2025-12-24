@@ -290,13 +290,20 @@ export async function scaffold(): Promise<void> {
 
   // Ask about experience level
   console.log(chalk.white('\n  What\'s your experience level?\n'));
+  console.log(chalk.gray('    0. ') + chalk.magenta('You Decide') + chalk.gray(' - Let AI pick the best option'));
   console.log(chalk.gray('    1. ') + chalk.cyan('Beginner') + chalk.gray(' - New to coding, explain everything'));
   console.log(chalk.gray('    2. ') + chalk.cyan('Intermediate') + chalk.gray(' - Know some coding, brief explanations'));
   console.log(chalk.gray('    3. ') + chalk.cyan('Advanced') + chalk.gray(' - Skip explanations, just build\n'));
 
   let experienceLevel = '';
-  while (!['1', '2', '3'].includes(experienceLevel)) {
-    experienceLevel = await prompt('  Enter 1, 2, or 3: ');
+  while (!['0', '1', '2', '3'].includes(experienceLevel)) {
+    experienceLevel = await prompt('  Enter 0, 1, 2, or 3: ');
+  }
+
+  // "You Decide" defaults to Intermediate (balanced)
+  if (experienceLevel === '0') {
+    console.log(chalk.magenta('  → AI chose: Intermediate (balanced explanations)\n'));
+    experienceLevel = '2';
   }
 
   const isBeginnerMode = experienceLevel === '1';
@@ -304,6 +311,7 @@ export async function scaffold(): Promise<void> {
   // Select stack with explanations for beginners
   console.log(chalk.white('\n  Select your stack:\n'));
 
+  console.log(chalk.gray('    0. ') + chalk.magenta('You Decide') + chalk.gray(' - Let AI pick the best option'));
   if (isBeginnerMode) {
     console.log(chalk.gray('    1. ') + chalk.cyan('Next.js + Supabase + Drizzle') + chalk.green(' (Recommended)'));
     console.log(chalk.gray('       ') + chalk.dim('Next.js = Framework for building websites with React'));
@@ -317,14 +325,20 @@ export async function scaffold(): Promise<void> {
     console.log(chalk.gray('       ') + chalk.dim('Express = Lightweight server, good for APIs without a frontend'));
     console.log('');
   } else {
-    console.log(chalk.gray('    1. ') + chalk.cyan('Next.js + Supabase + Drizzle') + chalk.gray(' (Recommended)'));
+    console.log(chalk.gray('    1. ') + chalk.cyan('Next.js + Supabase + Drizzle') + chalk.green(' (Recommended)'));
     console.log(chalk.gray('    2. ') + chalk.cyan('Next.js + Prisma') + chalk.gray(' (Coming soon)'));
     console.log(chalk.gray('    3. ') + chalk.cyan('Express API') + chalk.gray(' (Coming soon)\n'));
   }
 
   let stackChoice = '';
-  while (!['1', '2', '3'].includes(stackChoice)) {
-    stackChoice = await prompt('  Enter 1, 2, or 3: ');
+  while (!['0', '1', '2', '3'].includes(stackChoice)) {
+    stackChoice = await prompt('  Enter 0, 1, 2, or 3: ');
+  }
+
+  // "You Decide" defaults to recommended stack
+  if (stackChoice === '0') {
+    console.log(chalk.magenta('  → AI chose: Next.js + Supabase + Drizzle (recommended)\n'));
+    stackChoice = '1';
   }
 
   if (stackChoice !== '1') {

@@ -517,14 +517,21 @@ export async function generate(options: GenerateOptions): Promise<void> {
   // If type not provided, ask
   if (!type) {
     console.log(chalk.white('  What would you like to generate?\n'));
+    console.log(chalk.gray('    0. ') + chalk.magenta('You Decide') + chalk.gray(' - Let AI pick based on context'));
     for (const gen of generators) {
       console.log(chalk.gray(`    ${gen.key}. `) + chalk.cyan(gen.name) + chalk.gray(` - ${gen.desc}`));
     }
     console.log('');
 
     let choice = '';
-    while (!['1', '2', '3', '4', '5', '6', '7'].includes(choice)) {
-      choice = await prompt('  Enter 1-7: ');
+    while (!['0', '1', '2', '3', '4', '5', '6', '7'].includes(choice)) {
+      choice = await prompt('  Enter 0-7: ');
+    }
+
+    // "You Decide" defaults to component (most common)
+    if (choice === '0') {
+      console.log(chalk.magenta('  → AI chose: component (most common)\n'));
+      choice = '1';
     }
 
     type = generators.find(g => g.key === choice)?.name;
