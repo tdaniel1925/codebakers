@@ -24,12 +24,12 @@ export class ApiKeyService {
         teamId,
         keyHash,
         keyPrefix: prefix,
+        keyPlain: key, // Store full key so user can always copy it
         name,
         isActive: true,
       })
       .returning();
 
-    // Return the full key only once (it can't be retrieved again)
     return {
       id: apiKey.id,
       key,
@@ -85,6 +85,7 @@ export class ApiKeyService {
       .select({
         id: apiKeys.id,
         keyPrefix: apiKeys.keyPrefix,
+        keyPlain: apiKeys.keyPlain,
         name: apiKeys.name,
         isActive: apiKeys.isActive,
         lastUsedAt: apiKeys.lastUsedAt,

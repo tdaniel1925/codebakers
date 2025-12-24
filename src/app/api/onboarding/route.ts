@@ -21,21 +21,18 @@ export async function GET(req: NextRequest) {
       return successResponse({ error: 'No team found' }, 404);
     }
 
-    // Get existing keys
+    // Get existing keys or create first one
     const keys = await ApiKeyService.listByTeam(team.id);
     let apiKey: string | null = null;
 
     if (keys.length === 0) {
-      // Create first API key during onboarding
+      // First time - create API key
       const result = await ApiKeyService.create(team.id, 'Default');
       apiKey = result.key;
     } else {
-      // User already has a key - show prefix only
-      // They can see it in Settings if needed
+      // Return stored full key
       const activeKey = keys.find(k => k.isActive);
-      if (activeKey) {
-        apiKey = `${activeKey.keyPrefix}${'•'.repeat(20)}`;
-      }
+      apiKey = activeKey?.keyPlain || null;
     }
 
     return successResponse({

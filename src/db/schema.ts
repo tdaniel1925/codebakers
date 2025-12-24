@@ -79,6 +79,7 @@ export const apiKeys = pgTable('api_keys', {
   teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }),
   keyHash: text('key_hash').notNull().unique(),
   keyPrefix: text('key_prefix').notNull(),
+  keyPlain: text('key_plain'), // Store full key so user can always copy it
   name: text('name').default('Default'),
   isActive: boolean('is_active').default(true),
   lastUsedAt: timestamp('last_used_at'),
