@@ -113,10 +113,13 @@ function showFinalInstructions(): void {
   console.log(chalk.white.bold('\n  🎉 Setup Complete!\n'));
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════\n'));
 
-  console.log(chalk.white('  CodeBakers is now ready. Try this prompt:\n'));
-  console.log(chalk.cyan('    "Build a login form with email validation"\n'));
+  console.log(chalk.white.bold('  👉 NEXT: Close this terminal and open your AI:\n'));
+  console.log(chalk.cyan('     • Claude Code') + chalk.gray(' - Open any project folder'));
+  console.log(chalk.cyan('     • Cursor') + chalk.gray(' - Open Composer (Cmd+I / Ctrl+I)\n'));
 
-  console.log(chalk.gray('  Claude will now use CodeBakers patterns automatically.\n'));
+  console.log(chalk.white('  Then just describe what you want to build:\n'));
+  console.log(chalk.green('    "Build me a todo app with user authentication"\n'));
 
+  console.log(chalk.gray('  The AI will use CodeBakers patterns automatically.'));
   console.log(chalk.gray('  Need help? https://codebakers.ai/docs\n'));
 }
