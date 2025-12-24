@@ -36,7 +36,7 @@ export async function setup(): Promise<void> {
 
   // Step 1: Get API key
   console.log(chalk.white('  Step 1: Enter your API key\n'));
-  console.log(chalk.gray('  Find it at: https://codebakers.dev/dashboard\n'));
+  console.log(chalk.gray('  Find it at: https://codebakers.ai/dashboard\n'));
 
   const apiKey = await prompt(chalk.cyan('  API Key: '));
 
@@ -100,5 +100,5 @@ function showFinalInstructions(): void {
   console.log(chalk.white('  Example prompt to try:\n'));
   console.log(chalk.cyan('    "Build a login form with email validation"\n'));
 
-  console.log(chalk.gray('  Need help? https://codebakers.dev/docs\n'));
+  console.log(chalk.gray('  Need help? https://codebakers.ai/docs\n'));
 }

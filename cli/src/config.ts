@@ -9,7 +9,7 @@ const config = new Conf<ConfigSchema>({
   projectName: 'codebakers',
   defaults: {
     apiKey: null,
-    apiUrl: 'https://codebakers.dev',
+    apiUrl: 'https://codebakers.ai',
   },
 });
 

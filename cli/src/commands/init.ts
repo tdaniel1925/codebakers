@@ -560,14 +560,14 @@ export async function init(): Promise<void> {
   // Step 3: Login if needed
   if (!apiKey) {
     console.log(chalk.white('\n  Step 1: Get your API key\n'));
-    console.log(chalk.gray('  Go to: ') + chalk.cyan('https://codebakers.dev/dashboard'));
+    console.log(chalk.gray('  Go to: ') + chalk.cyan('https://codebakers.ai/dashboard'));
     console.log(chalk.gray('  Copy your API key (starts with cb_)\n'));
 
     apiKey = await prompt('  Paste your API key: ');
 
     if (!apiKey || !apiKey.startsWith('cb_')) {
       console.log(chalk.red('\n  ✗ Invalid API key. Keys start with "cb_"\n'));
-      console.log(chalk.gray('  Get your key at https://codebakers.dev/dashboard\n'));
+      console.log(chalk.gray('  Get your key at https://codebakers.ai/dashboard\n'));
       process.exit(1);
     }
 

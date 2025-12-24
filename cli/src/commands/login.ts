@@ -19,7 +19,7 @@ async function prompt(question: string): Promise<string> {
 
 export async function login(): Promise<void> {
   console.log(chalk.blue('\n  CodeBakers Login\n'));
-  console.log(chalk.gray('  Get your API key at https://codebakers.dev/setup\n'));
+  console.log(chalk.gray('  Get your API key at https://codebakers.ai/dashboard\n'));
 
   const apiKey = await prompt('  Enter your API key: ');
 
