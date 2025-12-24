@@ -32,7 +32,16 @@ export async function GET(req: NextRequest) {
     } else {
       // Return stored full key
       const activeKey = keys.find(k => k.isActive);
-      apiKey = activeKey?.keyPlain || null;
+      if (activeKey?.keyPlain) {
+        apiKey = activeKey.keyPlain;
+      } else {
+        // Old key without keyPlain - delete and create new one
+        for (const key of keys) {
+          await ApiKeyService.delete(key.id, team.id);
+        }
+        const result = await ApiKeyService.create(team.id, 'Default');
+        apiKey = result.key;
+      }
     }
 
     return successResponse({
