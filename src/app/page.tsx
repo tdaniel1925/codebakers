@@ -542,7 +542,7 @@ export default function HomePage() {
                   <div className="flex-1 flex justify-center">
                     <div className="px-4 py-1.5 rounded-lg bg-gray-900/60 border border-gray-700/50 text-sm text-gray-400 flex items-center gap-2">
                       <LockIcon className="w-3 h-3" />
-                      codebakers.dev
+                      codebakers.ai
                     </div>
                   </div>
                   <div className="w-16" />
