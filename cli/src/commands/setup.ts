@@ -79,22 +79,24 @@ export async function setup(): Promise<void> {
 }
 
 function showFinalInstructions(): void {
-  console.log(chalk.white('  Step 2: Enable in Claude Code\n'));
-  console.log(chalk.yellow('  ⚠️  This is a Claude Code command, NOT a terminal command!\n'));
-  console.log(chalk.gray('  1. Open Claude Code (the AI chat in VS Code or terminal)'));
-  console.log(chalk.gray('  2. Type or paste this command in the chat:\n'));
+  console.log(chalk.white('  Step 2: Add MCP Server\n'));
 
-  // Box around the command for easy copying
-  const command = '/mcp add codebakers npx -y @codebakers/cli serve';
-  console.log(chalk.cyan('  ┌─────────────────────────────────────────────────────┐'));
-  console.log(chalk.cyan('  │ ') + chalk.white(command) + chalk.cyan(' │'));
-  console.log(chalk.cyan('  └─────────────────────────────────────────────────────┘\n'));
+  // Detect platform
+  const isWindows = process.platform === 'win32';
 
-  console.log(chalk.gray('  This only needs to be done once. No restart needed!\n'));
+  console.log(chalk.yellow('  Run this command in your TERMINAL:\n'));
+
+  const terminalCmd = isWindows
+    ? 'claude mcp add --transport stdio codebakers -- cmd /c npx -y @codebakers/cli serve'
+    : 'claude mcp add --transport stdio codebakers -- npx -y @codebakers/cli serve';
+
+  console.log(chalk.cyan('  ' + terminalCmd + '\n'));
+
+  console.log(chalk.gray('  This only needs to be done once.\n'));
 
   console.log(chalk.blue('  ══════════════════════════════════════\n'));
   console.log(chalk.green('  Almost done! 🎉\n'));
-  console.log(chalk.white('  After running that command in Claude Code chat:\n'));
+  console.log(chalk.white('  After running that command:\n'));
   console.log(chalk.gray('  • Claude will have access to 34 production patterns'));
   console.log(chalk.gray('  • Patterns are fetched on-demand (never stored locally)'));
   console.log(chalk.gray('  • Works across all your projects\n'));
