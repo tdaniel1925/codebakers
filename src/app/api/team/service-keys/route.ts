@@ -6,14 +6,12 @@ import { NotFoundError, ValidationError } from '@/lib/errors';
 import { db } from '@/db';
 import { teams } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { SERVICE_KEYS, SERVICE_KEY_CONFIGS, type ServiceKeyName } from '@/lib/contracts/service-keys';
 
 export const dynamic = 'force-dynamic';
 
-interface ServiceKeys {
-  github?: string;
-  supabase?: string;
-  vercel?: string;
-}
+// Type for stored keys
+type ServiceKeysRecord = Partial<Record<ServiceKeyName, string>>;
 
 /**
  * Mask a key for display (show first 4 and last 4 chars)
@@ -26,7 +24,8 @@ function maskKey(key: string | undefined): string | null {
 
 /**
  * GET /api/team/service-keys
- * Get service keys (masked for security)
+ * Get ALL service keys (masked for security)
+ * Returns all 14 supported keys with their configuration status
  */
 export async function GET(req: NextRequest) {
   try {
@@ -39,30 +38,40 @@ export async function GET(req: NextRequest) {
     }
 
     // Parse stored keys
-    let keys: ServiceKeys = {};
+    let storedKeys: ServiceKeysRecord = {};
     if (team.serviceKeys) {
       try {
-        keys = JSON.parse(team.serviceKeys);
+        storedKeys = JSON.parse(team.serviceKeys);
       } catch {
-        keys = {};
+        storedKeys = {};
       }
     }
 
-    // Return masked keys (for display) and whether each is configured
-    return successResponse({
-      github: {
-        configured: !!keys.github,
-        masked: maskKey(keys.github),
-      },
-      supabase: {
-        configured: !!keys.supabase,
-        masked: maskKey(keys.supabase),
-      },
-      vercel: {
-        configured: !!keys.vercel,
-        masked: maskKey(keys.vercel),
-      },
-    });
+    // Build response with ALL service keys from the contract
+    const response: Record<ServiceKeyName, {
+      configured: boolean;
+      masked: string | null;
+      label: string;
+      category: string;
+      helpUrl: string;
+      cliSync: boolean;
+    }> = {} as any;
+
+    for (const keyName of SERVICE_KEYS) {
+      const config = SERVICE_KEY_CONFIGS[keyName];
+      const value = storedKeys[keyName];
+
+      response[keyName] = {
+        configured: !!value,
+        masked: maskKey(value),
+        label: config.label,
+        category: config.category,
+        helpUrl: config.helpUrl,
+        cliSync: config.cliSync,
+      };
+    }
+
+    return successResponse(response);
   } catch (error) {
     return handleApiError(error);
   }
@@ -70,7 +79,7 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/team/service-keys
- * Update service keys
+ * Update service keys (supports all 14 keys)
  */
 export async function POST(req: NextRequest) {
   try {
@@ -83,15 +92,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { github, supabase, vercel } = body;
 
-    // Validate - at least one key must be provided
-    if (!github && !supabase && !vercel) {
+    // Validate that at least one valid key is provided
+    const providedKeys = SERVICE_KEYS.filter(keyName => keyName in body);
+    if (providedKeys.length === 0) {
       throw new ValidationError('At least one service key must be provided');
     }
 
     // Parse existing keys to merge (so we don't overwrite unset keys)
-    let existingKeys: ServiceKeys = {};
+    let existingKeys: ServiceKeysRecord = {};
     if (team.serviceKeys) {
       try {
         existingKeys = JSON.parse(team.serviceKeys);
@@ -101,16 +110,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Merge - only update keys that were explicitly provided
-    const updatedKeys: ServiceKeys = {
-      github: github !== undefined ? github : existingKeys.github,
-      supabase: supabase !== undefined ? supabase : existingKeys.supabase,
-      vercel: vercel !== undefined ? vercel : existingKeys.vercel,
-    };
+    const updatedKeys: ServiceKeysRecord = { ...existingKeys };
 
-    // Remove null/empty keys
-    if (!updatedKeys.github) delete updatedKeys.github;
-    if (!updatedKeys.supabase) delete updatedKeys.supabase;
-    if (!updatedKeys.vercel) delete updatedKeys.vercel;
+    for (const keyName of SERVICE_KEYS) {
+      if (keyName in body) {
+        const value = body[keyName];
+        if (value === null || value === '') {
+          delete updatedKeys[keyName];
+        } else if (typeof value === 'string') {
+          updatedKeys[keyName] = value;
+        }
+      }
+    }
 
     // Save to database
     await db.update(teams)
@@ -120,11 +131,15 @@ export async function POST(req: NextRequest) {
       })
       .where(eq(teams.id, team.id));
 
+    // Build response showing which keys are now configured
+    const response: Record<string, { configured: boolean }> = {};
+    for (const keyName of SERVICE_KEYS) {
+      response[keyName] = { configured: !!updatedKeys[keyName] };
+    }
+
     return successResponse({
       message: 'Service keys updated',
-      github: { configured: !!updatedKeys.github },
-      supabase: { configured: !!updatedKeys.supabase },
-      vercel: { configured: !!updatedKeys.vercel },
+      keys: response,
     });
   } catch (error) {
     return handleApiError(error);
@@ -133,7 +148,7 @@ export async function POST(req: NextRequest) {
 
 /**
  * DELETE /api/team/service-keys
- * Clear specific service keys
+ * Clear specific service keys or all keys
  */
 export async function DELETE(req: NextRequest) {
   try {
@@ -146,10 +161,10 @@ export async function DELETE(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const service = searchParams.get('service'); // github, supabase, vercel, or 'all'
+    const service = searchParams.get('service'); // any key name, or 'all'
 
     if (!service) {
-      throw new ValidationError('Service parameter required (github, supabase, vercel, or all)');
+      throw new ValidationError('Service parameter required (key name or "all")');
     }
 
     if (service === 'all') {
@@ -161,8 +176,13 @@ export async function DELETE(req: NextRequest) {
         })
         .where(eq(teams.id, team.id));
     } else {
+      // Validate service name
+      if (!SERVICE_KEYS.includes(service as ServiceKeyName)) {
+        throw new ValidationError(`Invalid service name: ${service}. Valid names: ${SERVICE_KEYS.join(', ')}`);
+      }
+
       // Clear specific key
-      let existingKeys: ServiceKeys = {};
+      let existingKeys: ServiceKeysRecord = {};
       if (team.serviceKeys) {
         try {
           existingKeys = JSON.parse(team.serviceKeys);
@@ -171,7 +191,7 @@ export async function DELETE(req: NextRequest) {
         }
       }
 
-      delete existingKeys[service as keyof ServiceKeys];
+      delete existingKeys[service as ServiceKeyName];
 
       await db.update(teams)
         .set({

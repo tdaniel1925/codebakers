@@ -5,14 +5,14 @@ import { eq } from 'drizzle-orm';
 import { handleApiError, successResponse, applyRateLimit } from '@/lib/api-utils';
 import { AuthenticationError, NotFoundError } from '@/lib/errors';
 import crypto from 'crypto';
+import { SERVICE_KEYS, type ServiceKeyName } from '@/lib/contracts/service-keys';
 
 export const dynamic = 'force-dynamic';
 
-interface ServiceKeys {
-  github?: string;
-  supabase?: string;
-  vercel?: string;
-}
+// Type for all service keys
+type ServiceKeysResponse = {
+  [K in ServiceKeyName]?: string | null;
+};
 
 /**
  * Hash API key for lookup
@@ -69,8 +69,16 @@ async function verifyApiKeyAndGetTeam(req: NextRequest) {
 
 /**
  * GET /api/cli/service-keys
- * Get service keys for CLI sync (requires API key auth)
+ * Get ALL service keys for CLI sync (requires API key auth)
  * Returns actual keys (not masked) for local storage
+ *
+ * Response includes all 14 supported service keys:
+ * - Infrastructure: github, supabase, vercel
+ * - AI: openai, anthropic
+ * - Payments: stripe
+ * - Communication: twilio_sid, twilio_auth, resend, vapi
+ * - Monitoring: sentry
+ * - Media: cloudinary, pexels, midjourney
  */
 export async function GET(req: NextRequest) {
   try {
@@ -79,21 +87,22 @@ export async function GET(req: NextRequest) {
     const team = await verifyApiKeyAndGetTeam(req);
 
     // Parse stored keys
-    let keys: ServiceKeys = {};
+    let storedKeys: Record<string, string> = {};
     if (team.serviceKeys) {
       try {
-        keys = JSON.parse(team.serviceKeys);
+        storedKeys = JSON.parse(team.serviceKeys);
       } catch {
-        keys = {};
+        storedKeys = {};
       }
     }
 
-    // Return actual keys for CLI to store locally
-    return successResponse({
-      github: keys.github || null,
-      supabase: keys.supabase || null,
-      vercel: keys.vercel || null,
-    });
+    // Build response with ALL service keys from the contract
+    const response: ServiceKeysResponse = {};
+    for (const keyName of SERVICE_KEYS) {
+      response[keyName] = storedKeys[keyName] || null;
+    }
+
+    return successResponse(response);
   } catch (error) {
     return handleApiError(error);
   }

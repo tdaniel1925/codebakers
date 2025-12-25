@@ -14,6 +14,10 @@ import { mcpConfig, mcpUninstall } from './commands/mcp-config.js';
 import { setup } from './commands/setup.js';
 import { scaffold } from './commands/scaffold.js';
 import { generate } from './commands/generate.js';
+import { upgrade } from './commands/upgrade.js';
+import { config } from './commands/config.js';
+import { audit } from './commands/audit.js';
+import { heal, healWatch } from './commands/heal.js';
 
 // Show welcome message when no command is provided
 function showWelcome(): void {
@@ -34,7 +38,9 @@ function showWelcome(): void {
 
   console.log(chalk.white('  Development:\n'));
   console.log(chalk.cyan('    codebakers generate') + chalk.gray('   Generate components, APIs, services'));
-  console.log(chalk.cyan('    codebakers status') + chalk.gray('     Check what\'s installed\n'));
+  console.log(chalk.cyan('    codebakers upgrade') + chalk.gray('    Update patterns to latest version'));
+  console.log(chalk.cyan('    codebakers status') + chalk.gray('     Check what\'s installed'));
+  console.log(chalk.cyan('    codebakers config') + chalk.gray('     View or modify configuration\n'));
 
   console.log(chalk.white('  Examples:\n'));
   console.log(chalk.gray('    $ ') + chalk.cyan('codebakers scaffold'));
@@ -44,8 +50,13 @@ function showWelcome(): void {
   console.log(chalk.gray('    $ ') + chalk.cyan('codebakers g api users'));
   console.log(chalk.gray('      Generate a Next.js API route with validation\n'));
 
+  console.log(chalk.white('  Quality:\n'));
+  console.log(chalk.cyan('    codebakers audit') + chalk.gray('      Run automated code quality checks'));
+  console.log(chalk.cyan('    codebakers heal') + chalk.gray('       Auto-detect and fix common issues'));
+  console.log(chalk.cyan('    codebakers doctor') + chalk.gray('     Check CodeBakers setup\n'));
+
   console.log(chalk.white('  All Commands:\n'));
-  console.log(chalk.gray('    setup, scaffold, init, generate, status, doctor, login'));
+  console.log(chalk.gray('    setup, scaffold, init, generate, upgrade, status, audit, heal, doctor, config, login'));
   console.log(chalk.gray('    install, uninstall, install-hook, uninstall-hook'));
   console.log(chalk.gray('    serve, mcp-config, mcp-uninstall\n'));
 
@@ -57,7 +68,7 @@ const program = new Command();
 program
   .name('codebakers')
   .description('CodeBakers CLI - Production patterns for AI-assisted development')
-  .version('1.6.0');
+  .version('1.7.0');
 
 // Primary command - one-time setup
 program
@@ -81,6 +92,16 @@ program
   .alias('g')
   .description('Generate code from templates (component, api, service, hook, page, schema, form)')
   .action((type, name) => generate({ type, name }));
+
+program
+  .command('upgrade')
+  .description('Update patterns to the latest version')
+  .action(upgrade);
+
+program
+  .command('config [action]')
+  .description('View or modify CLI configuration (show, path, keys, clear-keys, set-url, reset)')
+  .action((action) => config(action));
 
 program
   .command('login')
@@ -116,6 +137,30 @@ program
   .command('doctor')
   .description('Check if CodeBakers is set up correctly')
   .action(doctor);
+
+program
+  .command('audit')
+  .description('Run automated code quality and security checks')
+  .action(async () => { await audit(); });
+
+program
+  .command('heal')
+  .description('Auto-detect and fix common issues (TypeScript, deps, security)')
+  .option('--auto', 'Automatically apply safe fixes')
+  .option('--watch', 'Watch mode - continuously monitor and fix')
+  .option('--dry-run', 'Show what would be fixed without applying')
+  .option('--severity <level>', 'Filter by severity (critical, high, medium, low)')
+  .action(async (options) => {
+    if (options.watch) {
+      await healWatch();
+    } else {
+      await heal({
+        auto: options.auto,
+        dryRun: options.dryRun,
+        severity: options.severity
+      });
+    }
+  });
 
 // MCP Server commands
 program

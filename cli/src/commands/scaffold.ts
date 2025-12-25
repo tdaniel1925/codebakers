@@ -5,19 +5,25 @@ import { writeFileSync, mkdirSync, existsSync, readdirSync, readFileSync } from 
 import { join } from 'path';
 import { execSync } from 'child_process';
 import * as templates from '../templates/nextjs-supabase.js';
-import { getApiKey, getApiUrl, setServiceKey, getServiceKey } from '../config.js';
+import {
+  getApiKey,
+  getApiUrl,
+  syncServiceKeys,
+  clearAllServiceKeys,
+  getConfiguredServiceKeys,
+  writeKeysToEnvFile,
+  SERVICE_KEYS,
+  SERVICE_KEY_LABELS,
+  PROVISIONABLE_KEYS,
+  type ServiceName,
+  type SyncResult,
+} from '../config.js';
 import { provisionAll, type ProvisionResult } from './provision.js';
 
-interface ServerServiceKeys {
-  github: string | null;
-  supabase: string | null;
-  vercel: string | null;
-}
-
 /**
- * Fetch service keys from CodeBakers server
+ * Fetch ALL service keys from CodeBakers server
  */
-async function fetchServerKeys(): Promise<ServerServiceKeys | null> {
+async function fetchServerKeys(): Promise<Partial<Record<ServiceName, string>> | null> {
   const apiKey = getApiKey();
   if (!apiKey) return null;
 
@@ -30,21 +36,14 @@ async function fetchServerKeys(): Promise<ServerServiceKeys | null> {
     });
 
     if (response.ok) {
-      return await response.json();
+      const data = await response.json();
+      // Handle wrapped response { data: {...} } or direct response
+      return data.data || data;
     }
   } catch {
     // Server unreachable or error
   }
   return null;
-}
-
-/**
- * Sync server keys to local storage
- */
-function syncKeysToLocal(keys: ServerServiceKeys): void {
-  if (keys.github) setServiceKey('github', keys.github);
-  if (keys.supabase) setServiceKey('supabase', keys.supabase);
-  if (keys.vercel) setServiceKey('vercel', keys.vercel);
 }
 
 // Cursor IDE configuration templates
@@ -302,6 +301,58 @@ async function confirm(question: string): Promise<boolean> {
 }
 
 /**
+ * Display configured keys summary
+ */
+function displayKeysSummary(_source: 'server' | 'local' | 'both'): void {
+  const configuredKeys = getConfiguredServiceKeys();
+
+  if (configuredKeys.length === 0) {
+    console.log(chalk.gray('    No service keys configured\n'));
+    return;
+  }
+
+  // Group by provisionable vs other
+  const provisionable = configuredKeys.filter(k => PROVISIONABLE_KEYS.includes(k));
+  const other = configuredKeys.filter(k => !PROVISIONABLE_KEYS.includes(k));
+
+  if (provisionable.length > 0) {
+    console.log(chalk.gray('    Infrastructure (can auto-provision):'));
+    for (const key of provisionable) {
+      console.log(chalk.green(`      ✓ ${SERVICE_KEY_LABELS[key]}`));
+    }
+  }
+
+  if (other.length > 0) {
+    console.log(chalk.gray('    Other services:'));
+    for (const key of other) {
+      console.log(chalk.green(`      ✓ ${SERVICE_KEY_LABELS[key]}`));
+    }
+  }
+
+  console.log('');
+}
+
+/**
+ * Display sync results
+ */
+function displaySyncResults(result: SyncResult): void {
+  if (result.added.length > 0) {
+    console.log(chalk.green(`    + ${result.added.length} keys synced from server`));
+    for (const key of result.added) {
+      console.log(chalk.gray(`      + ${SERVICE_KEY_LABELS[key]}`));
+    }
+  }
+
+  if (result.updated.length > 0) {
+    console.log(chalk.yellow(`    ~ ${result.updated.length} keys updated from server`));
+  }
+
+  if (result.added.length === 0 && result.updated.length === 0) {
+    console.log(chalk.gray('    All keys already in sync'));
+  }
+}
+
+/**
  * Scaffold a new project with full structure
  */
 export async function scaffold(): Promise<void> {
@@ -482,8 +533,6 @@ export async function scaffold(): Promise<void> {
       }
     }
 
-    spinner.succeed('Project structure created!');
-
     // Auto-install CodeBakers patterns
     console.log(chalk.white('\n  Installing CodeBakers patterns...\n'));
 
@@ -573,28 +622,25 @@ export async function scaffold(): Promise<void> {
     if (wantProvision) {
       // Check for saved keys in CodeBakers back office
       const serverKeys = await fetchServerKeys();
-      const hasServerKeys = serverKeys && (serverKeys.github || serverKeys.supabase || serverKeys.vercel);
-      const localGithub = getServiceKey('github');
-      const localSupabase = getServiceKey('supabase');
-      const localVercel = getServiceKey('vercel');
-      const hasLocalKeys = localGithub || localSupabase || localVercel;
+      const serverKeyCount = serverKeys ? Object.values(serverKeys).filter(v => v).length : 0;
+      const localKeyCount = getConfiguredServiceKeys().length;
 
-      if (hasServerKeys || hasLocalKeys) {
+      if (serverKeyCount > 0 || localKeyCount > 0) {
         // Show which keys are available
         console.log(chalk.white('\n  Available service keys:\n'));
 
-        if (hasServerKeys) {
-          console.log(chalk.gray('    From CodeBakers account:'));
-          if (serverKeys?.github) console.log(chalk.green('      ✓ GitHub'));
-          if (serverKeys?.supabase) console.log(chalk.green('      ✓ Supabase'));
-          if (serverKeys?.vercel) console.log(chalk.green('      ✓ Vercel'));
+        if (serverKeyCount > 0) {
+          console.log(chalk.gray(`    From CodeBakers account (${serverKeyCount} keys):`));
+          for (const key of SERVICE_KEYS) {
+            if (serverKeys && serverKeys[key]) {
+              console.log(chalk.green(`      ✓ ${SERVICE_KEY_LABELS[key]}`));
+            }
+          }
         }
 
-        if (hasLocalKeys) {
-          console.log(chalk.gray('    Stored locally:'));
-          if (localGithub) console.log(chalk.green('      ✓ GitHub'));
-          if (localSupabase) console.log(chalk.green('      ✓ Supabase'));
-          if (localVercel) console.log(chalk.green('      ✓ Vercel'));
+        if (localKeyCount > 0) {
+          console.log(chalk.gray(`    Stored locally (${localKeyCount} keys):`));
+          displayKeysSummary('local');
         }
 
         console.log('');
@@ -602,7 +648,7 @@ export async function scaffold(): Promise<void> {
         // Ask which keys to use
         console.log(chalk.white('  Which keys would you like to use?\n'));
         console.log(chalk.gray('    1. ') + chalk.cyan('Use saved keys') + chalk.gray(' - Use keys from your account/local storage'));
-        console.log(chalk.gray('    2. ') + chalk.cyan('Enter new keys') + chalk.gray(' - For a client project or different account'));
+        console.log(chalk.gray('    2. ') + chalk.cyan('Start fresh') + chalk.gray(' - Clear local keys, enter new ones (for client projects)'));
         console.log(chalk.gray('    3. ') + chalk.cyan('Skip') + chalk.gray(' - Don\'t provision, I\'ll do it manually\n'));
 
         let keyChoice = '';
@@ -612,23 +658,42 @@ export async function scaffold(): Promise<void> {
 
         if (keyChoice === '3') {
           console.log(chalk.gray('\n  Skipping auto-provisioning.\n'));
-        } else {
-          if (keyChoice === '1' && hasServerKeys) {
-            // Sync server keys to local storage for this session
-            syncKeysToLocal(serverKeys!);
-            console.log(chalk.green('\n  ✓ Using saved keys from CodeBakers account\n'));
-          } else if (keyChoice === '2') {
-            // Clear local keys so provision.ts will prompt for new ones
-            console.log(chalk.gray('\n  You\'ll be prompted to enter keys for each service.\n'));
-          }
+        } else if (keyChoice === '2') {
+          // FIX: Actually clear keys for client projects
+          console.log(chalk.yellow('\n  Clearing local keys for fresh start...\n'));
+          clearAllServiceKeys();
+          console.log(chalk.green('  ✓ Local keys cleared'));
+          console.log(chalk.gray('  You\'ll be prompted to enter keys for each service.\n'));
 
-          // Initialize git first if not already
+          // Initialize git first
           try {
             execSync('git init', { cwd, stdio: 'pipe' });
             execSync('git add .', { cwd, stdio: 'pipe' });
             execSync('git commit -m "Initial commit from CodeBakers scaffold"', { cwd, stdio: 'pipe' });
           } catch {
-            // Git might already be initialized or have issues
+            // Git might already be initialized
+          }
+
+          provisionResult = await provisionAll(projectName, `${projectName} - Built with CodeBakers`);
+        } else {
+          // Option 1: Use saved keys
+          if (serverKeyCount > 0 && serverKeys) {
+            // Sync server keys to local storage
+            console.log(chalk.white('\n  Syncing keys from CodeBakers account...\n'));
+            const syncResult = syncServiceKeys(serverKeys);
+            displaySyncResults(syncResult);
+            console.log(chalk.green('\n  ✓ Keys synced from CodeBakers account\n'));
+          } else {
+            console.log(chalk.green('\n  ✓ Using locally stored keys\n'));
+          }
+
+          // Initialize git first
+          try {
+            execSync('git init', { cwd, stdio: 'pipe' });
+            execSync('git add .', { cwd, stdio: 'pipe' });
+            execSync('git commit -m "Initial commit from CodeBakers scaffold"', { cwd, stdio: 'pipe' });
+          } catch {
+            // Git might already be initialized
           }
 
           provisionResult = await provisionAll(projectName, `${projectName} - Built with CodeBakers`);
@@ -638,30 +703,41 @@ export async function scaffold(): Promise<void> {
         console.log(chalk.gray('\n  No saved keys found. You\'ll be prompted to enter keys for each service.\n'));
         console.log(chalk.gray('  Tip: Save keys in your CodeBakers dashboard to auto-provision future projects!\n'));
 
-        // Initialize git first if not already
+        // Initialize git first
         try {
           execSync('git init', { cwd, stdio: 'pipe' });
           execSync('git add .', { cwd, stdio: 'pipe' });
           execSync('git commit -m "Initial commit from CodeBakers scaffold"', { cwd, stdio: 'pipe' });
         } catch {
-          // Git might already be initialized or have issues
+          // Git might already be initialized
         }
 
         provisionResult = await provisionAll(projectName, `${projectName} - Built with CodeBakers`);
       }
 
-      // Update .env.local with Supabase credentials if available
+      // Write ALL service keys to .env.local
+      const additionalVars: Record<string, string> = {};
+
+      // Add Supabase project-specific vars if provisioned
       if (provisionResult.supabase) {
-        const envPath = join(cwd, '.env.local');
-        let envContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : '';
+        additionalVars['NEXT_PUBLIC_SUPABASE_URL'] = provisionResult.supabase.apiUrl;
+        additionalVars['NEXT_PUBLIC_SUPABASE_ANON_KEY'] = provisionResult.supabase.anonKey;
+        additionalVars['SUPABASE_PROJECT_ID'] = provisionResult.supabase.projectId;
+      }
 
-        // Replace placeholder values with actual credentials
-        envContent = envContent
-          .replace('your-project-id.supabase.co', provisionResult.supabase.apiUrl.replace('https://', ''))
-          .replace('your-anon-key', provisionResult.supabase.anonKey || 'your-anon-key');
+      // Add Vercel project-specific vars if provisioned
+      if (provisionResult.vercel) {
+        additionalVars['VERCEL_PROJECT_ID'] = provisionResult.vercel.projectId;
+      }
 
-        writeFileSync(envPath, envContent);
-        console.log(chalk.green('  ✅ Updated .env.local with Supabase credentials!\n'));
+      // Write all keys to .env.local
+      const { written } = writeKeysToEnvFile(cwd, {
+        includeEmpty: false,
+        additionalVars,
+      });
+
+      if (written > 0 || Object.keys(additionalVars).length > 0) {
+        console.log(chalk.green(`\n  ✅ Wrote ${written} service keys and ${Object.keys(additionalVars).length} project configs to .env.local\n`));
       }
     }
 
@@ -704,32 +780,63 @@ export async function scaffold(): Promise<void> {
     console.log('');
 
     console.log(chalk.white('  Next steps:\n'));
-    if (isBeginnerMode) {
-      console.log(chalk.cyan('    1. ') + chalk.white('Set up Supabase (free database + login):'));
-      console.log(chalk.gray('       Go to https://supabase.com → Create free account → New Project'));
-      console.log('');
-      console.log(chalk.cyan('    2. ') + chalk.white('Connect your project:'));
-      console.log(chalk.gray('       Open .env.local file and paste your Supabase credentials'));
-      console.log(chalk.gray('       (Found in Supabase: Settings → API)'));
-      console.log('');
-      console.log(chalk.cyan('    3. ') + chalk.white('Start your app:'));
-      console.log(chalk.gray('       Run: npm run dev'));
-      console.log(chalk.gray('       Open: http://localhost:3000 in your browser'));
-      console.log('');
-      console.log(chalk.cyan('    4. ') + chalk.white('Start building!'));
-      console.log(chalk.gray('       Tell your AI: "Build me a [feature]"'));
-      console.log(chalk.gray('       The AI already has all the patterns loaded!\n'));
-    } else {
-      console.log(chalk.cyan('    1. ') + chalk.gray('Update .env.local with your Supabase credentials'));
-      console.log(chalk.cyan('    2. ') + chalk.gray('Run `npm run dev` to start development'));
-      console.log(chalk.cyan('    3. ') + chalk.gray('Tell your AI what to build - patterns are already loaded!\n'));
 
-      console.log(chalk.white('  Supabase setup:\n'));
-      console.log(chalk.gray('    1. Create a project at https://supabase.com'));
-      console.log(chalk.gray('    2. Go to Settings → API'));
-      console.log(chalk.gray('    3. Copy URL and anon key to .env.local'));
-      console.log(chalk.gray('    4. Go to Settings → Database → Connection string'));
-      console.log(chalk.gray('    5. Copy DATABASE_URL to .env.local\n'));
+    // Show appropriate next steps based on what was provisioned
+    let stepNum = 1;
+
+    if (!provisionResult.supabase) {
+      if (isBeginnerMode) {
+        console.log(chalk.cyan(`    ${stepNum}. `) + chalk.white('Set up Supabase (free database + login):'));
+        console.log(chalk.gray('       Go to https://supabase.com → Create free account → New Project'));
+        console.log('');
+        stepNum++;
+        console.log(chalk.cyan(`    ${stepNum}. `) + chalk.white('Connect your project:'));
+        console.log(chalk.gray('       Open .env.local file and paste your Supabase credentials'));
+        console.log(chalk.gray('       (Found in Supabase: Settings → API)'));
+        console.log('');
+        stepNum++;
+      } else {
+        console.log(chalk.cyan(`    ${stepNum}. `) + chalk.gray('Create Supabase project at https://supabase.com'));
+        stepNum++;
+        console.log(chalk.cyan(`    ${stepNum}. `) + chalk.gray('Update .env.local with Supabase credentials'));
+        stepNum++;
+      }
+    }
+
+    // CRITICAL: Add db:push step
+    console.log(chalk.cyan(`    ${stepNum}. `) + chalk.white('Push database schema:'));
+    console.log(chalk.gray('       npx drizzle-kit db:push'));
+    console.log('');
+    stepNum++;
+
+    console.log(chalk.cyan(`    ${stepNum}. `) + chalk.white('Start your app:'));
+    console.log(chalk.gray('       npm run dev'));
+    if (isBeginnerMode) {
+      console.log(chalk.gray('       Open: http://localhost:3000 in your browser'));
+    }
+    console.log('');
+    stepNum++;
+
+    console.log(chalk.cyan(`    ${stepNum}. `) + chalk.white('Start building!'));
+    console.log(chalk.gray('       Tell your AI: "Build me a [feature]"'));
+    if (isBeginnerMode) {
+      console.log(chalk.gray('       The AI already has all the patterns loaded!'));
+    }
+    console.log('');
+
+    // Show provisioning summary if any services were created
+    if (provisionResult.github || provisionResult.supabase || provisionResult.vercel) {
+      console.log(chalk.white('  Provisioned services:\n'));
+      if (provisionResult.github) {
+        console.log(chalk.green('    ✅ GitHub: ') + chalk.gray(provisionResult.github.repoUrl));
+      }
+      if (provisionResult.supabase) {
+        console.log(chalk.green('    ✅ Supabase: ') + chalk.gray(provisionResult.supabase.projectUrl));
+      }
+      if (provisionResult.vercel) {
+        console.log(chalk.green('    ✅ Vercel: ') + chalk.gray(provisionResult.vercel.projectUrl));
+      }
+      console.log('');
     }
 
   } catch (error) {

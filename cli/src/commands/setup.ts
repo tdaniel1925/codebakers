@@ -2,7 +2,8 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { createInterface } from 'readline';
 import { execSync } from 'child_process';
-import { setApiKey, getApiKey, getApiUrl } from '../config.js';
+import { setApiKey, getApiKey, getApiUrl, syncServiceKeys, SERVICE_KEY_LABELS, type ServiceName } from '../config.js';
+import { validateApiKey, formatApiError, checkForUpdates, getCliVersion, type ApiError } from '../lib/api.js';
 
 function prompt(question: string): Promise<string> {
   const rl = createInterface({
@@ -22,6 +23,17 @@ export async function setup(): Promise<void> {
   console.log(chalk.blue('\n  ╔══════════════════════════════════════╗'));
   console.log(chalk.blue('  ║') + chalk.white('     CodeBakers One-Time Setup        ') + chalk.blue('║'));
   console.log(chalk.blue('  ╚══════════════════════════════════════╝\n'));
+
+  // Check CLI version
+  const version = getCliVersion();
+  console.log(chalk.gray(`  CLI Version: ${version}\n`));
+
+  // Check for updates
+  const updateInfo = await checkForUpdates();
+  if (updateInfo?.updateAvailable) {
+    console.log(chalk.yellow(`  ⚠️  Update available: ${updateInfo.currentVersion} → ${updateInfo.latestVersion}`));
+    console.log(chalk.gray('  Run: npm install -g @codebakers/cli@latest\n'));
+  }
 
   // Check if already set up
   const existingKey = getApiKey();
@@ -46,29 +58,22 @@ export async function setup(): Promise<void> {
     process.exit(1);
   }
 
-  // Validate API key
+  // Validate API key using shared validation
   const spinner = ora('Validating API key...').start();
 
   try {
-    const apiUrl = getApiUrl();
-    const response = await fetch(`${apiUrl}/api/patterns`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    });
+    await validateApiKey(apiKey);
+    spinner.succeed('API key validated');
+  } catch (error) {
+    spinner.fail('Invalid API key');
 
-    if (!response.ok) {
-      spinner.fail('Invalid API key');
-      const error = await response.json().catch(() => ({}));
-      console.log(chalk.red(`\n  ${error.error || 'API key validation failed'}\n`));
-      process.exit(1);
+    if (error && typeof error === 'object' && 'recoverySteps' in error) {
+      console.log(chalk.red(`\n  ${formatApiError(error as ApiError)}\n`));
+    } else {
+      const message = error instanceof Error ? error.message : 'API key validation failed';
+      console.log(chalk.red(`\n  ${message}\n`));
     }
 
-    spinner.succeed('API key validated');
-  } catch {
-    spinner.fail('Could not connect to CodeBakers');
-    console.log(chalk.red('\n  Check your internet connection and try again.\n'));
     process.exit(1);
   }
 
@@ -76,15 +81,55 @@ export async function setup(): Promise<void> {
   setApiKey(apiKey);
   console.log(chalk.green('  ✓ API key saved\n'));
 
+  // Step 2: Sync service keys from server
+  console.log(chalk.white('  Step 2: Syncing service keys...\n'));
+
+  const syncSpinner = ora('Fetching service keys from your account...').start();
+
+  try {
+    const apiUrl = getApiUrl();
+    const response = await fetch(`${apiUrl}/api/cli/service-keys`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const serverKeys = data.data || data;
+
+      const result = syncServiceKeys(serverKeys);
+      const totalSynced = result.added.length + result.updated.length;
+
+      if (totalSynced > 0) {
+        syncSpinner.succeed(`Synced ${totalSynced} service keys`);
+
+        // Show which keys were synced
+        for (const keyName of [...result.added, ...result.updated]) {
+          console.log(chalk.green(`    ✓ ${SERVICE_KEY_LABELS[keyName as ServiceName]}`));
+        }
+        console.log('');
+      } else if (result.unchanged.length > 0) {
+        syncSpinner.succeed(`${result.unchanged.length} service keys already in sync`);
+      } else {
+        syncSpinner.succeed('No service keys configured in your account');
+        console.log(chalk.gray('  Tip: Add keys at https://codebakers.ai/settings\n'));
+      }
+    } else {
+      syncSpinner.warn('Could not sync service keys');
+      console.log(chalk.gray('  You can add keys later in the scaffold wizard.\n'));
+    }
+  } catch {
+    syncSpinner.warn('Could not sync service keys');
+    console.log(chalk.gray('  You can add keys later in the scaffold wizard.\n'));
+  }
+
   showFinalInstructions();
 }
 
 function showFinalInstructions(): void {
   const isWindows = process.platform === 'win32';
 
-  console.log(chalk.green('\n  ✅ API key saved!\n'));
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════'));
-  console.log(chalk.white.bold('\n  STEP 2: Connecting CodeBakers to Claude...\n'));
+  console.log(chalk.white.bold('\n  STEP 3: Connecting CodeBakers to Claude...\n'));
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════\n'));
 
   // Auto-install MCP server

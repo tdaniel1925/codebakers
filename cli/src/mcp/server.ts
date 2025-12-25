@@ -9,6 +9,8 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { getApiKey, getApiUrl, getExperienceLevel, setExperienceLevel, type ExperienceLevel } from '../config.js';
+import { audit as runAudit } from '../commands/audit.js';
+import { heal as runHeal } from '../commands/heal.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
@@ -446,6 +448,38 @@ class CodeBakersServer {
             properties: {},
           },
         },
+        {
+          name: 'run_audit',
+          description:
+            'Run automated code quality and security checks on the current project. Checks TypeScript, ESLint, secrets in code, npm vulnerabilities, console.log usage, API validation, error boundaries, and more. Returns a score and list of issues to fix.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {},
+          },
+        },
+        {
+          name: 'heal',
+          description:
+            'Run the self-healing system to auto-detect and fix common issues. Scans for TypeScript errors, missing dependencies, environment issues, security vulnerabilities, and database problems. Can automatically apply safe fixes with high confidence.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              auto: {
+                type: 'boolean',
+                description: 'Automatically apply safe fixes without prompting (default: false)',
+              },
+              dryRun: {
+                type: 'boolean',
+                description: 'Show what would be fixed without applying changes (default: false)',
+              },
+              severity: {
+                type: 'string',
+                enum: ['critical', 'high', 'medium', 'low'],
+                description: 'Filter issues by severity level',
+              },
+            },
+          },
+        },
       ],
     }));
 
@@ -493,6 +527,12 @@ class CodeBakersServer {
 
         case 'get_status':
           return this.handleGetStatus();
+
+        case 'run_audit':
+          return this.handleRunAudit();
+
+        case 'heal':
+          return this.handleHeal(args as { auto?: boolean; dryRun?: boolean; severity?: string });
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -1274,6 +1314,126 @@ phase: development
         text: `# Current Experience Level\n\n${info.emoji} **${level.charAt(0).toUpperCase() + level.slice(1)}**\n${info.description}\n\n---\n\nTo change, use: \`set_experience_level\` with "beginner", "intermediate", or "advanced"`,
       }],
     };
+  }
+
+  private async handleRunAudit() {
+    try {
+      const result = await runAudit();
+
+      const passedChecks = result.checks.filter(c => c.passed);
+      const failedChecks = result.checks.filter(c => !c.passed);
+
+      let response = `# 🔍 Code Audit Results\n\n`;
+      response += `**Score:** ${result.score}% (${passedChecks.length}/${result.checks.length} checks passed)\n\n`;
+
+      if (result.passed) {
+        response += `## ✅ Status: PASSED\n\nYour project is in good shape!\n\n`;
+      } else {
+        response += `## ⚠️ Status: NEEDS ATTENTION\n\nSome issues need to be fixed before deployment.\n\n`;
+      }
+
+      // Show passed checks
+      if (passedChecks.length > 0) {
+        response += `### Passed Checks\n`;
+        for (const check of passedChecks) {
+          response += `- ✅ ${check.message}\n`;
+        }
+        response += '\n';
+      }
+
+      // Show failed checks
+      if (failedChecks.length > 0) {
+        response += `### Issues Found\n`;
+        for (const check of failedChecks) {
+          const icon = check.severity === 'error' ? '❌' : '⚠️';
+          response += `- ${icon} **${check.message}**\n`;
+          if (check.details && check.details.length > 0) {
+            for (const detail of check.details.slice(0, 3)) {
+              response += `  - ${detail}\n`;
+            }
+          }
+        }
+        response += '\n';
+      }
+
+      response += `---\n\n*Tip: Run \`/audit\` in Claude for a full 100-point inspection.*`;
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: response,
+        }],
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `# ❌ Audit Failed\n\nError: ${message}`,
+        }],
+      };
+    }
+  }
+
+  private async handleHeal(args: { auto?: boolean; dryRun?: boolean; severity?: string }) {
+    try {
+      const result = await runHeal({
+        auto: args.auto || false,
+        dryRun: args.dryRun || false,
+        severity: args.severity
+      });
+
+      let response = `# 🏥 Self-Healing Results\n\n`;
+
+      if (result.errors.length === 0) {
+        response += `## ✅ No Issues Found\n\nYour project is healthy!\n`;
+      } else {
+        response += `## Found ${result.errors.length} Issue(s)\n\n`;
+        response += `**Fixed:** ${result.fixed} | **Remaining:** ${result.remaining}\n\n`;
+
+        // Group by category
+        const byCategory = new Map<string, typeof result.errors>();
+        for (const error of result.errors) {
+          const cat = error.category;
+          if (!byCategory.has(cat)) byCategory.set(cat, []);
+          byCategory.get(cat)!.push(error);
+        }
+
+        for (const [category, errors] of byCategory) {
+          response += `### ${category.toUpperCase()}\n`;
+          for (const error of errors) {
+            const icon = error.fixed ? '✅' : (error.autoFixable ? '🔧' : '⚠️');
+            response += `- ${icon} ${error.message}\n`;
+            if (error.file) {
+              response += `  - File: ${error.file}${error.line ? `:${error.line}` : ''}\n`;
+            }
+            if (error.suggestedFixes.length > 0 && !error.fixed) {
+              response += `  - Fix: ${error.suggestedFixes[0].description}\n`;
+            }
+          }
+          response += '\n';
+        }
+      }
+
+      if (!args.auto && result.errors.some(e => e.autoFixable && !e.fixed)) {
+        response += `---\n\n*Run with \`auto: true\` to automatically apply safe fixes.*`;
+      }
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: response,
+        }],
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `# ❌ Healing Failed\n\nError: ${message}`,
+        }],
+      };
+    }
   }
 
   private handleGetStatus() {

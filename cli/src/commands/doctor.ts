@@ -3,6 +3,8 @@ import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { isHookInstalled } from './install-hook.js';
+import { getApiKey } from '../config.js';
+import { checkApiKeyValidity, checkForUpdates, getCliVersion } from '../lib/api.js';
 
 interface CheckResult {
   ok: boolean;
@@ -15,10 +17,16 @@ interface CheckResult {
  */
 export async function doctor(): Promise<void> {
   console.log(chalk.blue('\n  CodeBakers Doctor\n'));
-  console.log(chalk.gray('  Checking your setup...\n'));
+
+  // Show version
+  const version = getCliVersion();
+  console.log(chalk.gray(`  CLI Version: ${version}\n`));
+
+  console.log(chalk.gray('  Running health checks...\n'));
 
   const projectChecks = checkProject();
   const systemChecks = checkSystem();
+  const authChecks = await checkAuth();
 
   // Display project checks
   console.log(chalk.white('  Project:'));
@@ -39,8 +47,17 @@ export async function doctor(): Promise<void> {
     }
   }
 
+  console.log(chalk.white('\n  Authentication:'));
+  for (const check of authChecks) {
+    const icon = check.ok ? chalk.green('✓') : chalk.red('✗');
+    console.log(`    ${icon} ${check.message}`);
+    if (check.details && !check.ok) {
+      console.log(chalk.gray(`      └─ ${check.details}`));
+    }
+  }
+
   // Summary
-  const allChecks = [...projectChecks, ...systemChecks];
+  const allChecks = [...projectChecks, ...systemChecks, ...authChecks];
   const passed = allChecks.filter(c => c.ok).length;
   const total = allChecks.length;
 
@@ -63,7 +80,19 @@ export async function doctor(): Promise<void> {
       console.log(chalk.gray('    • Run: codebakers install-hook'));
     }
 
+    const apiKeyCheck = authChecks.find(c => c.message.includes('API key'));
+    if (apiKeyCheck && !apiKeyCheck.ok) {
+      console.log(chalk.gray('    • Run: codebakers setup'));
+    }
+
     console.log('');
+  }
+
+  // Check for updates
+  const updateInfo = await checkForUpdates();
+  if (updateInfo?.updateAvailable) {
+    console.log(chalk.yellow(`  ⚠️  Update available: ${updateInfo.currentVersion} → ${updateInfo.latestVersion}`));
+    console.log(chalk.gray('  Run: npm install -g @codebakers/cli@latest\n'));
   }
 }
 
@@ -111,7 +140,7 @@ function checkProject(): CheckResult[] {
         results.push({
           ok: false,
           message: `Only ${moduleCount} modules found (expected 10+)`,
-          details: 'Run: codebakers install to add missing modules'
+          details: 'Run: codebakers upgrade to get all modules'
         });
       } else {
         results.push({
@@ -218,6 +247,41 @@ function checkSystem(): CheckResult[] {
 }
 
 /**
+ * Check authentication status
+ */
+async function checkAuth(): Promise<CheckResult[]> {
+  const results: CheckResult[] = [];
+
+  // Check if API key is configured
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    results.push({
+      ok: false,
+      message: 'API key not configured',
+      details: 'Run: codebakers setup'
+    });
+    return results;
+  }
+
+  results.push({ ok: true, message: 'API key configured' });
+
+  // Validate API key against server
+  const validity = await checkApiKeyValidity();
+
+  if (validity.valid) {
+    results.push({ ok: true, message: 'API key is valid' });
+  } else {
+    results.push({
+      ok: false,
+      message: 'API key is invalid or expired',
+      details: validity.error?.recoverySteps?.[0] || 'Run: codebakers setup'
+    });
+  }
+
+  return results;
+}
+
+/**
  * Quick check - returns true if basic setup is complete
  */
 export function isSetupComplete(): boolean {
@@ -226,6 +290,7 @@ export function isSetupComplete(): boolean {
   const hasClaudeMd = existsSync(join(cwd, 'CLAUDE.md'));
   const hasClaudeDir = existsSync(join(cwd, '.claude'));
   const hasHook = isHookInstalled();
+  const hasApiKey = !!getApiKey();
 
-  return hasClaudeMd && hasClaudeDir && hasHook;
+  return hasClaudeMd && hasClaudeDir && hasHook && hasApiKey;
 }

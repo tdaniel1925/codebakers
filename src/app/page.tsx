@@ -1,370 +1,108 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Code2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/theme-toggle';
-// Premium Hugeicons - distinctive stroke-based icons with 9 unique styles
 import {
-  CheckmarkCircle02Icon,
-  CancelCircleIcon,
   FlashIcon,
-  SecurityCheckIcon,
-  TestTube01Icon,
-  CodeIcon,
   ArrowRight02Icon,
   AiMagicIcon,
-  Clock01Icon,
-  CodeFolderIcon,
-  Layers01Icon,
-  Database02Icon,
-  CreditCardIcon,
-  Mail01Icon,
-  SmartPhone01Icon,
-  Globe02Icon,
   LockIcon,
-  DashboardSpeed01Icon,
-  ArrowDown01Icon,
-  Building03Icon,
-  Rocket01Icon,
-  Search01Icon,
-  Target02Icon,
-  Megaphone01Icon,
-  PlayIcon,
-  ClipboardIcon,
-  Settings02Icon,
-  UserGroupIcon,
-  HealthIcon,
-  Wallet02Icon,
-  JusticeScale01Icon,
-  Store02Icon,
-  Briefcase01Icon,
-  CommandLineIcon,
-  ArrowReloadHorizontalIcon,
-  AiBrain02Icon,
-  StarIcon,
-  CustomerService01Icon,
-  PlayCircleIcon,
-  Cancel01Icon,
   Tick02Icon,
   SparklesIcon,
-  MagicWand02Icon,
+  StarIcon,
+  Calendar03Icon,
+  Rocket01Icon,
+  Idea01Icon,
+  Target02Icon,
 } from 'hugeicons-react';
 
-// Supported AI IDEs
-const supportedIDEs = [
-  { name: 'Cursor', logo: '/logos/cursor.svg', primary: true },
-  { name: 'Claude Code', logo: '/logos/claude.svg', primary: true },
-];
-
-// Social proof testimonials
+// Just 3 testimonials - keep it light
 const testimonials = [
   {
-    quote: "Went from 6 hours of prompting to 30 minutes. This is how AI coding should work.",
-    author: "Jason Jennings",
+    quote: "I just describe what I want. The AI handles everything else - security, tests, the works.",
+    author: "Alex Rivera",
+    role: "Vibe Coder",
+    avatar: "AR",
+  },
+  {
+    quote: "It suggested a security review right after I added auth. Didn't even ask. That's the future.",
+    author: "Jordan Lee",
     role: "Indie Hacker",
-    avatar: "JJ",
-  },
-  {
-    quote: "My AI finally writes production code instead of demo garbage. Game changer for client work.",
-    author: "Melissa Starke",
-    role: "Freelance Developer",
-    avatar: "MS",
-  },
-  {
-    quote: "We shipped our MVP in 2 weeks instead of 2 months. The compliance patterns alone saved us $10K in legal.",
-    author: "William Benoit",
-    role: "Startup Founder",
-    avatar: "WB",
-  },
-];
-
-// Who this is for
-const audiences = [
-  {
-    title: "Indie Hackers",
-    description: "Ship your SaaS faster. Stop wasting weekends on auth and payments.",
-    icon: Rocket01Icon,
-    highlight: "Ship 10x faster",
-  },
-  {
-    title: "Freelancers & Agencies",
-    description: "Deliver production-quality code to clients. Include professional handoff docs.",
-    icon: Briefcase01Icon,
-    highlight: "Impress every client",
-  },
-  {
-    title: "Startup Teams",
-    description: "Move fast without breaking things. Built-in compliance from day one.",
-    icon: Building03Icon,
-    highlight: "Scale confidently",
-  },
-  {
-    title: "Vibe Coders",
-    description: "You have the vision. Let AI handle the implementation details perfectly.",
-    icon: AiMagicIcon,
-    highlight: "Pure creativity",
-  },
-];
-
-// Module breakdown data - v5.1 (34 modules, 45,474 lines)
-const modules = [
-  // Code Modules (00-14) - 22,356 lines
-  { name: '00-core', lines: 2131, description: 'Standards, types, error handling, logging', icon: CodeFolderIcon, required: true, category: 'code' },
-  { name: '01-database', lines: 651, description: 'Drizzle ORM, migrations, soft deletes', icon: Database02Icon, category: 'code' },
-  { name: '02-auth', lines: 1239, description: 'Supabase Auth, OAuth, 2FA, RBAC', icon: LockIcon, category: 'code' },
-  { name: '03-api', lines: 1641, description: 'Routes, webhooks, rate limiting', icon: Globe02Icon, category: 'code' },
-  { name: '04-frontend', lines: 1772, description: 'React Hook Form, React Query, Zustand', icon: Layers01Icon, category: 'code' },
-  { name: '05-payments', lines: 1571, description: 'Stripe, usage billing, invoices', icon: CreditCardIcon, category: 'code' },
-  { name: '06-integrations', lines: 3439, description: 'Email, SMS, VAPI, S3, cron jobs', icon: Mail01Icon, category: 'code' },
-  { name: '07-performance', lines: 709, description: 'Redis caching, optimization, CDN', icon: DashboardSpeed01Icon, category: 'code' },
-  { name: '08-testing', lines: 818, description: 'Playwright, Vitest, CI/CD, coverage', icon: TestTube01Icon, category: 'code' },
-  { name: '09-design', lines: 3205, description: 'Dark mode, 50+ shadcn, WCAG a11y', icon: AiMagicIcon, category: 'code' },
-  { name: '10-generators', lines: 2920, description: 'CRUD scaffolding, admin generators', icon: Rocket01Icon, category: 'code' },
-  { name: '11-realtime', lines: 1938, description: 'WebSockets, presence, live cursors', icon: FlashIcon, category: 'code' },
-  { name: '12-saas', lines: 1265, description: 'Multi-tenant, feature flags, GDPR', icon: Building03Icon, category: 'code' },
-  { name: '13-mobile', lines: 1057, description: 'React Native, PWA, offline-first', icon: SmartPhone01Icon, category: 'code' },
-  { name: '14-ai', lines: 888, description: 'OpenAI, Anthropic, RAG, embeddings', icon: AiBrain02Icon, category: 'code' },
-  // Business Modules (15-20) - 4,341 lines
-  { name: '15-research', lines: 517, description: 'Market research, personas, interviews', icon: Search01Icon, category: 'business' },
-  { name: '16-planning', lines: 565, description: 'MVP scope, roadmap, architecture', icon: Target02Icon, category: 'business' },
-  { name: '17-marketing', lines: 791, description: 'Campaigns, AI prompts, launch strategy', icon: Megaphone01Icon, category: 'business' },
-  { name: '18-launch', lines: 691, description: 'Pre-launch checklist, go-live playbook', icon: PlayCircleIcon, category: 'business' },
-  { name: '19-audit', lines: 450, description: '100-point inspection, security audit', icon: ClipboardIcon, category: 'business' },
-  { name: '20-operations', lines: 1327, description: 'Sentry, incident response, support', icon: Settings02Icon, category: 'business' },
-  // Expert Modules (21-25) - 8,784 lines
-  { name: '21-experts-core', lines: 879, description: 'Backend, Frontend, Security, QA, DevOps', icon: UserGroupIcon, category: 'expert' },
-  { name: '22-experts-health', lines: 778, description: 'HIPAA, PHI logging, WCAG 2.1 AA', icon: HealthIcon, category: 'expert' },
-  { name: '23-experts-finance', lines: 1090, description: 'PCI-DSS, KYC/AML, fraud detection', icon: Wallet02Icon, category: 'expert' },
-  { name: '24-experts-legal', lines: 2508, description: 'ToS, Privacy Policy, GDPR, CCPA', icon: JusticeScale01Icon, category: 'expert' },
-  { name: '25-experts-industry', lines: 3529, description: 'E-commerce, Education, B2B, COPPA', icon: Store02Icon, category: 'expert' },
-  // Extended Modules (26-33) - 7,105 lines
-  { name: '26-analytics', lines: 918, description: 'PostHog, Mixpanel, funnels, cohorts', icon: DashboardSpeed01Icon, category: 'extended' },
-  { name: '27-search', lines: 1130, description: 'Full-text, Algolia, autocomplete', icon: Search01Icon, category: 'extended' },
-  { name: '28-email-design', lines: 796, description: 'HTML emails, MJML, React Email', icon: Mail01Icon, category: 'extended' },
-  { name: '29-data-viz', lines: 948, description: 'Charts, Recharts, D3, dashboards', icon: DashboardSpeed01Icon, category: 'extended' },
-  { name: '30-motion', lines: 877, description: 'Framer Motion, GSAP, animations', icon: PlayCircleIcon, category: 'extended' },
-  { name: '31-iconography', lines: 628, description: 'Lucide, Heroicons, SVG systems', icon: AiMagicIcon, category: 'extended' },
-  { name: '32-print', lines: 988, description: 'PDF generation, print stylesheets', icon: ClipboardIcon, category: 'extended' },
-  { name: '33-cicd', lines: 820, description: 'GitHub Actions, Vercel, Netlify, Docker', icon: Rocket01Icon, category: 'extended' },
-];
-
-// Features with more detail - v4.1
-const features = [
-  {
-    icon: FlashIcon,
-    title: 'Production-Ready First Prompt',
-    description: 'Your AI writes senior-level code from the start. Auth, payments, forms, APIs—all with proper error handling, types, and tests included.',
-    stats: 'Near-perfect first output',
-  },
-  {
-    icon: DashboardSpeed01Icon,
-    title: '90% Token Savings',
-    description: 'Smart router loads only relevant modules (max 4). Ask for "login form" and it loads ~5K lines, not all 44K. Better responses, lower costs.',
-    stats: '90% context savings',
-  },
-  {
-    icon: Briefcase01Icon,
-    title: 'Business-in-a-Box for SaaS',
-    description: 'Not just code—full business modules: market research, launch playbooks, marketing prompts, compliance docs. Everything to ship a SaaS.',
-    stats: '3 project types',
-  },
-  {
-    icon: UserGroupIcon,
-    title: '30+ Expert Perspectives',
-    description: 'Your AI becomes a team: Backend, Frontend, Security, QA, DevOps, Legal, HIPAA, PCI-DSS specialists. Domain expertise built-in.',
-    stats: '30+ virtual experts',
-  },
-  {
-    icon: SecurityCheckIcon,
-    title: 'Compliance From Day One',
-    description: 'HIPAA, PCI-DSS, GDPR, CCPA, COPPA patterns baked in. Stop retrofitting security—start with it.',
-    stats: '100+ compliance patterns',
-  },
-  {
-    icon: CommandLineIcon,
-    title: 'Works With Your IDE',
-    description: 'Cursor and Claude Code—the two leading AI coding tools. One install, instant upgrade to your entire workflow.',
-    stats: 'All major AI IDEs',
-  },
-];
-
-// Why CodeBakers vs other "Cursor helpers"
-// Based on research of: cursor.directory, awesome-cursorrules, dotcursorrules.com, awesome-claude-code
-const vsCompetitors = [
-  {
-    feature: 'Total lines of patterns',
-    codebakers: '45,474 lines',
-    others: '~500 lines per rule',
-  },
-  {
-    feature: 'Production patterns (auth, payments, APIs)',
-    codebakers: true,
-    others: 'Basic snippets only',
-  },
-  {
-    feature: 'Smart routing (loads only what you need)',
-    codebakers: '90% token savings',
-    others: false,
-  },
-  {
-    feature: 'Business modules (research, marketing, launch)',
-    codebakers: '6 modules',
-    others: false,
-  },
-  {
-    feature: 'Expert perspectives (Security, Legal, HIPAA, etc.)',
-    codebakers: '30+ experts',
-    others: false,
-  },
-  {
-    feature: 'Compliance patterns (HIPAA, PCI-DSS, GDPR, CCPA)',
-    codebakers: '100+ patterns',
-    others: false,
-  },
-  {
-    feature: 'Auto-generated tests with every feature',
-    codebakers: 'Playwright + Vitest',
-    others: false,
-  },
-  {
-    feature: 'Works across AI IDEs',
-    codebakers: 'Cursor, Claude Code',
-    others: 'Cursor only (mostly)',
-  },
-  {
-    feature: 'Price',
-    codebakers: '$149-999/mo',
-    others: 'Free (DIY assembly)',
-  },
-];
-
-// FAQ data - v5.0
-const faqs = [
-  {
-    question: 'How easy is it to install?',
-    answer: 'Two steps, under 2 minutes: 1) Run "npx @codebakers/cli setup" in your terminal and enter your API key. 2) Paste one command into Claude Code. That\'s it! No restart needed, works across all your projects instantly.',
-  },
-  {
-    question: 'What AI tools does CodeBakers work with?',
-    answer: 'Cursor IDE and Claude Code CLI—the two most popular AI coding tools. Our CLI configures everything with MCP (Model Context Protocol) for secure, on-demand pattern access.',
-  },
-  {
-    question: 'How is this different from other Cursor rules?',
-    answer: 'Other tools give you basic snippets. CodeBakers provides 45,474 lines of production patterns across 34 modules with smart module loading (90% token savings), 30+ expert perspectives, business modules, compliance patterns, and auto-generated tests. It\'s a complete system, not just prompts.',
-  },
-  {
-    question: 'What do you mean by "production-ready first prompt"?',
-    answer: 'Vanilla AI writes demo code that needs 5-10 revisions. With CodeBakers patterns loaded, your AI outputs code with proper error handling, types, validation, loading states, tests, and security from the first prompt. Near-perfect output, minimal revision.',
-  },
-  {
-    question: 'How does smart module loading save tokens?',
-    answer: 'The router loads only relevant modules (max 4 at a time). Ask for "login form" and it loads core + auth + frontend (~5K lines) instead of all 45K. This saves 90% context usage and produces better, more focused responses.',
-  },
-  {
-    question: 'What are the 3 project types?',
-    answer: 'Personal: Just code + tests, jump straight to building. Client: Code + handoff docs for freelance/agency work (technical specs, API docs). Business: Full product team with market research, business docs, marketing prompts, and launch planning.',
-  },
-  {
-    question: 'What compliance patterns are included?',
-    answer: 'HIPAA (18 identifiers, PHI logging), PCI-DSS (SAQ-A with Stripe), GDPR/CCPA (data export, consent), COPPA (age gates, parental consent), KYC/AML (screening rules), plus ToS and Privacy Policy generators. Built-in from day one.',
-  },
-  {
-    question: 'Are patterns stored on my computer?',
-    answer: 'No. Patterns are fetched on-demand via our MCP server and delivered directly to your AI. Nothing is stored locally, which means instant updates and better security. Your AI gets the patterns it needs, when it needs them.',
-  },
-  {
-    question: 'What if I already have custom Cursor rules?',
-    answer: 'CodeBakers works alongside your existing rules. Our patterns load dynamically based on what you\'re building, so they complement rather than replace your custom setup. You get the best of both.',
-  },
-];
-
-// Pricing tiers - v5.0
-const pricingTiers = [
-  {
-    name: 'Pro',
-    price: 149,
-    description: 'For individual developers',
-    features: ['1 developer seat', 'All 34 modules', '45,474 lines of patterns', '30+ expert perspectives', 'CLI access', 'Discord community'],
-    cta: 'Start Building',
-    popular: true,
-  },
-  {
-    name: 'Team',
-    price: 299,
-    description: 'For small teams',
-    features: ['5 developer seats', 'Everything in Pro', 'Team management', 'Shared API keys', 'Priority support', 'Slack channel'],
-    cta: 'Start Free',
-  },
-  {
-    name: 'Agency',
-    price: 499,
-    description: 'For agencies & consultancies',
-    features: ['Unlimited seats', 'Everything in Team', 'White-label option', 'Custom patterns', 'Dedicated support', '1:1 onboarding'],
-    cta: 'Contact Sales',
-  },
-  {
-    name: 'Enterprise',
-    price: 999,
-    description: 'Unlimited teams & custom SLA',
-    features: ['Unlimited teams', 'Everything in Agency', 'Custom SLA (99.9%)', 'SSO/SAML', 'Invoice billing', 'Dedicated account manager'],
-    cta: 'Contact Sales',
+    avatar: "JL",
   },
 ];
 
 export default function HomePage() {
-  const totalLines = modules.reduce((sum, m) => sum + m.lines, 0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  // Load Cal.com embed script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.innerHTML = `
+      (function (C, A, L) {
+        let p = function (a, ar) { a.q.push(ar); };
+        let d = C.document;
+        C.Cal = C.Cal || function () {
+          let cal = C.Cal;
+          let ar = arguments;
+          if (!cal.loaded) {
+            cal.ns = {};
+            cal.q = cal.q || [];
+            d.head.appendChild(d.createElement("script")).src = A;
+            cal.loaded = true;
+          }
+          if (ar[0] === L) {
+            const api = function () { p(api, arguments); };
+            const namespace = ar[1];
+            api.q = api.q || [];
+            if(typeof namespace === "string"){
+              cal.ns[namespace] = cal.ns[namespace] || api;
+              p(cal.ns[namespace], ar);
+              p(cal, ["initNamespace", namespace]);
+            } else p(cal, ar);
+            return;
+          }
+          p(cal, ar);
+        };
+      })(window, "https://app.cal.com/embed/embed.js", "init");
+      Cal("init", "30min", {origin:"https://app.cal.com"});
+      Cal.ns["30min"]("ui", {"hideEventTypeDetails":false,"layout":"month_view"});
+    `;
+    document.head.appendChild(script);
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-950 border-b border-gray-800">
+      {/* Simple Nav */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-red-600 flex items-center justify-center">
-              <Code2 className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center">
+              <Code2 className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-white">CodeBakers</span>
+            <span className="text-xl font-bold">CodeBakers</span>
           </Link>
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="#smart-prompts" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Smart Prompts
-            </Link>
-            <Link href="#features" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Features
-            </Link>
-            <Link href="#compare" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Compare
-            </Link>
-            <Link href="#modules" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Modules
-            </Link>
-            <Link href="#pricing" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Pricing
-            </Link>
+          <div className="flex items-center gap-4">
             <ThemeToggle />
+            <button
+              data-cal-link="botmakers/30min"
+              data-cal-namespace="30min"
+              data-cal-config='{"layout":"month_view"}'
+              className="hidden sm:inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Calendar03Icon className="w-4 h-4" />
+              Book Demo
+            </button>
             <Link href="/login">
-              <Button variant="ghost" className="text-gray-400 hover:text-white text-sm">
-                Login
-              </Button>
+              <Button variant="ghost" size="sm">Login</Button>
             </Link>
             <Link href="/signup">
-              <Button className="bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/20 text-sm">
-                Start Free
-                <ArrowRight02Icon className="ml-1 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          {/* Mobile nav */}
-          <div className="flex md:hidden items-center gap-2">
-            <ThemeToggle />
-            <Link href="/signup">
-              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-sm">
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
                 Start Free
               </Button>
             </Link>
@@ -372,142 +110,49 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero Section - Clear Value Prop */}
-      <section className="pt-24 pb-12 px-4 min-h-[calc(100vh-4rem)] flex items-center relative overflow-hidden" style={{ background: 'var(--section-hero)' }}>
-        {/* Grid Background Pattern */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div
-            className="absolute inset-0 opacity-[0.18] dark:opacity-[0.12]"
-            style={{
-              backgroundImage: `linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)`,
-              backgroundSize: '80px 80px'
-            }}
-          />
-          {/* Fade out at bottom */}
-          <div
-            className="absolute inset-x-0 bottom-0 h-40"
-            style={{ background: 'linear-gradient(to bottom, transparent, var(--section-hero))' }}
-          />
-        </div>
+      {/* Hero - Simple, Bold */}
+      <section className="pt-32 pb-20 px-4">
+        <div className="container mx-auto text-center max-w-4xl">
+          <Badge className="mb-6 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">
+            <SparklesIcon className="w-3 h-3 mr-1" />
+            Now with Smart Triggers
+          </Badge>
 
-        <div className="container mx-auto text-center relative z-10">
-          {/* MAIN HEADLINE - The Problem & Solution */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-[1] tracking-tight mt-8">
-            <span className="text-muted-foreground">Your </span>
-            {/* Handwriting annotation floating above the space between Your and prompts */}
-            <span className="relative inline-block">
-              <span className="text-muted-foreground">prompts</span>
-              {/* Proofreader-style insertion: handwriting above with caret pointing UP */}
-              <span className="absolute -top-4 sm:-top-5 md:-top-6 lg:-top-8 -left-4 sm:-left-16 md:-left-24 lg:-left-28 flex flex-col items-center pointer-events-none select-none">
-                <span
-                  className="text-red-500 text-xl sm:text-2xl md:text-3xl lg:text-4xl whitespace-nowrap rotate-[-3deg]"
-                  style={{ fontFamily: "'Caveat', cursive" }}
-                >
-                  Cursor / Claude Code
-                </span>
-                {/* Caret pointing UP (^) */}
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-red-500 -mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 19V5M5 12l7-7 7 7" />
-                </svg>
-              </span>
-            </span>
-            <span className="text-red-600 dark:text-red-500"> suck.</span>
-            <br />
-            <span className="text-foreground">We fix&nbsp;them.</span>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black mb-6 leading-[1.1] tracking-tight">
+            Your AI finally
+            <span className="text-red-600 dark:text-red-500"> gets it.</span>
           </h1>
 
-          {/* Clear explanation - what we actually do */}
-          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto font-medium">
-            <span className="text-foreground font-bold">Get production-ready code on the first try.</span>
+          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Stop typing long prompts. Stop asking for tests.
+            <span className="text-foreground font-semibold"> Just vibe.</span>
+            <br />Your AI knows what production code needs.
           </p>
 
-          {/* Visual: Before → After in IDE context */}
-          <div className="max-w-3xl mx-auto mb-8">
-            <div className="rounded-2xl border-2 border-border bg-card/80 backdrop-blur-sm overflow-hidden shadow-2xl">
-              {/* IDE-style header */}
-              <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center gap-3">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                </div>
-                <span className="text-sm text-muted-foreground font-mono">cursor / claude code</span>
-              </div>
-
-              <div className="p-6">
-                <div className="grid md:grid-cols-2 gap-6 items-start">
-                  {/* What you type */}
-                  <div className="text-left">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-6 h-6 rounded bg-muted flex items-center justify-center">
-                        <span className="text-xs font-bold text-muted-foreground">1</span>
-                      </div>
-                      <span className="text-sm font-medium text-muted-foreground">What you type</span>
-                    </div>
-                    <div className="px-4 py-3 rounded-lg bg-muted font-mono text-base text-foreground">
-                      add login form
-                    </div>
-                  </div>
-
-                  {/* What AI receives */}
-                  <div className="text-left">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-6 h-6 rounded bg-green-500 flex items-center justify-center">
-                        <MagicWand02Icon className="h-3 w-3 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-green-600 dark:text-green-400">What AI receives</span>
-                    </div>
-                    <div className="px-4 py-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-sm text-foreground leading-relaxed">
-                      Build login with <strong>React Hook Form + Zod</strong>, loading states, error handling, toast notifications, <strong>accessibility</strong>, keyboard nav, and <strong>Playwright tests</strong>...
-                    </div>
-                  </div>
-                </div>
-
-                {/* Result */}
-                <div className="mt-6 pt-6 border-t border-border text-center">
-                  <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm font-medium">
-                    <Tick02Icon className="h-4 w-4" />
-                    Production-ready code. First prompt. No revisions.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Works with */}
-          <div className="flex flex-wrap justify-center items-center gap-4 mb-8">
-            <span className="text-sm text-muted-foreground">Works inside:</span>
-            <div className="flex items-center gap-4">
-              <span className="font-semibold text-foreground">Cursor</span>
-              <span className="text-muted-foreground">•</span>
-              <span className="font-semibold text-foreground">Claude Code</span>
-            </div>
-          </div>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row justify-center gap-3 mb-6">
+          {/* Two CTAs */}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             <Link href="/signup">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-14 px-8 text-lg font-semibold w-full sm:w-auto shadow-xl shadow-red-500/30 transition-all hover:shadow-2xl hover:shadow-red-500/40 hover:-translate-y-1 rounded-xl">
-                Upgrade My Prompts
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-14 px-8 text-lg font-semibold w-full sm:w-auto shadow-xl shadow-red-500/25 rounded-xl">
+                Start Building Free
                 <ArrowRight02Icon className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="#how-it-works">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-2 border-border hover:bg-accent h-14 px-8 text-lg font-semibold w-full sm:w-auto group rounded-xl"
-              >
-                <PlayIcon className="mr-2 h-5 w-5 group-hover:text-red-500 transition-colors" />
-                See How It Works
+            <button
+              data-cal-link="botmakers/30min"
+              data-cal-namespace="30min"
+              data-cal-config='{"layout":"month_view"}'
+            >
+              <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-semibold w-full sm:w-auto rounded-xl border-2">
+                <Calendar03Icon className="mr-2 h-5 w-5" />
+                Book a Demo
               </Button>
-            </Link>
+            </button>
           </div>
 
-          {/* Trust indicators */}
-          <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 text-sm text-muted-foreground">
+          {/* Trust signals */}
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <SecurityCheckIcon className="h-4 w-4 text-green-500" />
+              <Tick02Icon className="h-4 w-4 text-green-500" />
               <span>1 free project forever</span>
             </div>
             <div className="flex items-center gap-2">
@@ -515,821 +160,303 @@ export default function HomePage() {
               <span>2-minute setup</span>
             </div>
             <div className="flex items-center gap-2">
-              <Tick02Icon className="h-4 w-4 text-blue-500" />
-              <span>No credit card</span>
+              <LockIcon className="h-4 w-4 text-blue-500" />
+              <span>Works in Cursor & Claude Code</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Video Demo Section */}
-      <section className="py-16 px-4" style={{ background: 'var(--section-hero)' }}>
-        <div className="container mx-auto">
-          <div className="max-w-5xl mx-auto">
-            <div className="relative group">
-              {/* Glow Effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-red-600 via-red-500 to-orange-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
-
-              {/* Browser Chrome */}
-              <div className="relative rounded-2xl overflow-hidden bg-gray-900 shadow-2xl shadow-black/40 border border-gray-800">
-                {/* Browser Header */}
-                <div className="flex items-center gap-2 px-4 py-3 bg-gray-800/80 border-b border-gray-700/50">
-                  <div className="flex gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <div className="w-3 h-3 rounded-full bg-green-500" />
-                  </div>
-                  <div className="flex-1 flex justify-center">
-                    <div className="px-4 py-1.5 rounded-lg bg-gray-900/60 border border-gray-700/50 text-sm text-gray-400 flex items-center gap-2">
-                      <LockIcon className="w-3 h-3" />
-                      codebakers.ai
-                    </div>
-                  </div>
-                  <div className="w-16" />
-                </div>
-
-                {/* Video Container */}
-                <div className="relative aspect-video bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-                  <video
-                    ref={videoRef}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    playsInline
-                    onClick={() => {
-                      if (videoRef.current) {
-                        if (isPlaying) {
-                          videoRef.current.pause();
-                        } else {
-                          videoRef.current.play();
-                        }
-                        setIsPlaying(!isPlaying);
-                      }
-                    }}
-                    onEnded={() => {
-                      if (videoRef.current) {
-                        videoRef.current.currentTime = 0;
-                        setIsPlaying(false);
-                      }
-                    }}
-                  >
-                    <source src="/demo.mp4" type="video/mp4" />
-                  </video>
-
-                  {/* Overlay with play button */}
-                  <div
-                    className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
-                      isPlaying ? 'opacity-0 pointer-events-none' : 'opacity-100'
-                    }`}
-                  >
-                    <div className="absolute inset-0 bg-black/40" />
-                    <button
-                      onClick={() => {
-                        if (videoRef.current) {
-                          videoRef.current.play();
-                          setIsPlaying(true);
-                        }
-                      }}
-                      className="relative z-10 group/play"
-                    >
-                      <div className="absolute inset-0 bg-red-600 rounded-full blur-xl opacity-40 group-hover/play:opacity-60 transition-opacity" />
-                      <div className="relative w-20 h-20 rounded-full bg-red-600 hover:bg-red-500 transition-colors flex items-center justify-center shadow-lg shadow-red-600/30">
-                        <PlayIcon className="w-8 h-8 text-white ml-1" />
-                      </div>
-                    </button>
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center">
-                      <p className="text-white/80 text-sm font-medium">
-                        Watch how CodeBakers transforms your AI workflow
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works - 3 Step Visual */}
-      <section className="py-20 px-4" style={{ background: 'var(--section-hero)' }} id="smart-prompts">
-        <div className="container mx-auto">
-          <div className="text-center mb-12">
+      {/* The Magic - Smart Triggers */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-16">
             <Badge className="mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800">
-              <CommandLineIcon className="h-3 w-3 mr-1" />
-              Works Inside Your IDE
+              <AiMagicIcon className="w-3 h-3 mr-1" />
+              The Magic
             </Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              How it works
+            <h2 className="text-4xl font-bold mb-4">
+              AI that thinks ahead
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              CodeBakers enhances your prompts <strong className="text-foreground">inside</strong> Cursor, Claude Code, or any AI IDE.
-              <br />Not a separate app. Not an app builder.
+              No commands to memorize. Your AI proactively suggests what you need, exactly when you need it.
             </p>
           </div>
 
-          {/* 3 Steps */}
-          <div className="max-w-5xl mx-auto">
-            <div className="grid md:grid-cols-3 gap-8">
-              {/* Step 1 */}
-              <div className="relative">
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center">
-                    <span className="text-2xl font-black text-muted-foreground">1</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-foreground mb-2">You type a simple prompt</h3>
-                  <p className="text-muted-foreground mb-4">In Cursor, Claude Code, or your favorite AI IDE</p>
-                  <div className="p-4 rounded-xl bg-muted font-mono text-sm text-foreground">
-                    &quot;add stripe checkout&quot;
-                  </div>
-                </div>
-                {/* Arrow */}
-                <div className="hidden md:block absolute top-12 -right-4 w-8">
-                  <ArrowRight02Icon className="h-8 w-8 text-muted-foreground/30" />
-                </div>
+          {/* 3 Smart Features */}
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Smart Triggers */}
+            <div className="p-8 rounded-2xl bg-card border border-border hover:border-red-500/50 transition-all">
+              <div className="w-14 h-14 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-6">
+                <Target02Icon className="h-7 w-7 text-red-600 dark:text-red-400" />
               </div>
-
-              {/* Step 2 */}
-              <div className="relative">
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 mx-auto mb-4 flex items-center justify-center">
-                    <MagicWand02Icon className="h-8 w-8 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <h3 className="text-xl font-bold text-foreground mb-2">CodeBakers enhances it</h3>
-                  <p className="text-muted-foreground mb-4">AI adds 15+ production requirements automatically</p>
-                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm text-foreground text-left">
-                    Build Stripe checkout with <strong>webhook verification</strong>, error handling, <strong>idempotency keys</strong>, database sync, loading states, <strong>Playwright tests</strong>...
-                  </div>
-                </div>
-                {/* Arrow */}
-                <div className="hidden md:block absolute top-12 -right-4 w-8">
-                  <ArrowRight02Icon className="h-8 w-8 text-muted-foreground/30" />
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="text-center">
-                <div className="w-16 h-16 rounded-2xl bg-green-100 dark:bg-green-900/30 mx-auto mb-4 flex items-center justify-center">
-                  <Tick02Icon className="h-8 w-8 text-green-600 dark:text-green-400" />
-                </div>
-                <h3 className="text-xl font-bold text-foreground mb-2">Get production-ready code</h3>
-                <p className="text-muted-foreground mb-4">Complete, tested, secure — on the first try</p>
-                <div className="p-4 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-sm text-foreground text-left">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Tick02Icon className="h-4 w-4 text-green-500" />
-                    <span>Webhook handlers</span>
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Tick02Icon className="h-4 w-4 text-green-500" />
-                    <span>Error recovery</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Tick02Icon className="h-4 w-4 text-green-500" />
-                    <span>Playwright tests</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Key point callout */}
-            <div className="mt-12 p-6 rounded-2xl bg-foreground text-center">
-              <p className="text-background text-lg font-medium">
-                <span className="text-amber-400">💡</span> CodeBakers is <strong>not</strong> an app builder.
-                It makes your <em>existing</em> AI IDE write better code.
+              <h3 className="text-xl font-bold mb-3">Smart Triggers</h3>
+              <p className="text-muted-foreground mb-4">
+                Modified auth code? AI suggests a security review. Created a component? It offers an accessibility check.
               </p>
+              <div className="p-4 rounded-xl bg-muted/50 text-sm font-mono">
+                <span className="text-muted-foreground">[TRIGGER]</span>
+                <br />
+                <span className="text-foreground">Security-sensitive code detected.</span>
+                <br />
+                <span className="text-green-600 dark:text-green-400">Want a quick review?</span>
+              </div>
+            </div>
+
+            {/* Auto-Learning */}
+            <div className="p-8 rounded-2xl bg-card border border-border hover:border-amber-500/50 transition-all">
+              <div className="w-14 h-14 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-6">
+                <Idea01Icon className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">/learn Mode</h3>
+              <p className="text-muted-foreground mb-4">
+                When AI catches a mistake, it doesn't just fix it—it offers to teach you why. Level up while you build.
+              </p>
+              <div className="p-4 rounded-xl bg-muted/50 text-sm font-mono">
+                <span className="text-amber-600 dark:text-amber-400">Caught: API key in client code</span>
+                <br />
+                <span className="text-foreground">Fixed. Want to learn why?</span>
+                <br />
+                <span className="text-muted-foreground">/learn</span>
+              </div>
+            </div>
+
+            {/* Production First */}
+            <div className="p-8 rounded-2xl bg-card border border-border hover:border-green-500/50 transition-all">
+              <div className="w-14 h-14 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-6">
+                <Rocket01Icon className="h-7 w-7 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Production First</h3>
+              <p className="text-muted-foreground mb-4">
+                Tests, error handling, loading states, accessibility—all included automatically. No asking required.
+              </p>
+              <div className="p-4 rounded-xl bg-muted/50 text-sm font-mono">
+                <span className="text-muted-foreground">You type:</span> add login
+                <br />
+                <span className="text-green-600 dark:text-green-400">AI adds:</span> + tests + a11y + errors
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Works With Section */}
-      <section className="py-10 px-4 border-y border-border" style={{ background: 'var(--section-stats)' }}>
-        <div className="container mx-auto">
-          <p className="text-center text-muted-foreground mb-6 text-sm uppercase tracking-wider">
-            Make your AI IDE the best it can be
-          </p>
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
-            {/* Cursor */}
-            <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
-              <Image
-                src="/logos/cursor-light.svg"
-                alt="Cursor IDE"
-                width={120}
-                height={40}
-                className="h-8 w-auto hidden dark:block"
-              />
-              <Image
-                src="/logos/cursor-dark.svg"
-                alt="Cursor IDE"
-                width={120}
-                height={40}
-                className="h-8 w-auto dark:hidden"
-              />
+      {/* Before/After - Quick Visual */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="rounded-2xl border-2 border-border bg-card overflow-hidden shadow-2xl">
+            {/* IDE Header */}
+            <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center gap-3">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+              </div>
+              <span className="text-sm text-muted-foreground font-mono">your-project</span>
             </div>
-            {/* Claude Code */}
-            <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity">
-              <Image
-                src="/logos/claude.svg"
-                alt="Claude"
-                width={40}
-                height={40}
-                className="h-10 w-10 rounded-lg"
-              />
-              <span className="text-lg font-semibold text-foreground">Claude Code</span>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Stats Bar */}
-      <section className="py-8 px-4 border-b border-border bg-card">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold text-foreground">34</div>
-              <div className="text-muted-foreground text-sm">Modules</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-foreground">{totalLines.toLocaleString()}</div>
-              <div className="text-muted-foreground text-sm">Lines of Patterns</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-foreground">30+</div>
-              <div className="text-muted-foreground text-sm">Expert Perspectives</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-foreground">90%</div>
-              <div className="text-muted-foreground text-sm">Token Savings</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400">1st</div>
-              <div className="text-muted-foreground text-sm">Prompt Success</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Who This Is For Section */}
-      <section className="py-16 px-4" style={{ background: 'var(--section-features)' }}>
-        <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">Built For You</Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Whether you&apos;re solo or&nbsp;scaling
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              CodeBakers adapts to how you build. Choose your project type and get exactly what you&nbsp;need.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
-            {audiences.map((audience) => {
-              const Icon = audience.icon;
-              return (
-                <div
-                  key={audience.title}
-                  className="p-6 rounded-xl bg-card border border-border hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/5 transition-all group"
-                >
-                  <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 w-fit mb-4 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
-                    <Icon className="h-6 w-6 text-red-600 dark:text-red-400" />
+            <div className="p-8">
+              <div className="grid md:grid-cols-2 gap-8 items-center">
+                {/* What you type */}
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-3">What you type:</p>
+                  <div className="p-4 rounded-xl bg-muted font-mono text-lg">
+                    add stripe checkout
                   </div>
-                  <Badge className="mb-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800 text-xs">
-                    {audience.highlight}
-                  </Badge>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">
-                    {audience.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm">{audience.description}</p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4" style={{ background: 'var(--section-compare)' }}>
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">What You Get</Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Your AI writes senior-level code from&nbsp;day&nbsp;one
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              {totalLines.toLocaleString()} lines of production patterns enhance every prompt you type in your&nbsp;IDE.
-            </p>
-          </div>
-
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <div
-                  key={feature.title}
-                  className="p-6 rounded-xl bg-card border border-border hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/5 transition-all"
-                >
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30">
-                      <Icon className="h-6 w-6 text-red-600 dark:text-red-400" />
+                {/* What you get */}
+                <div>
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400 mb-3">What you get:</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Tick02Icon className="h-4 w-4 text-green-500" />
+                      <span>Webhook handlers with signature verification</span>
                     </div>
-                    <Badge variant="outline" className="text-muted-foreground border-border">
-                      {feature.stats}
-                    </Badge>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Tick02Icon className="h-4 w-4 text-green-500" />
+                      <span>Error recovery & idempotency</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Tick02Icon className="h-4 w-4 text-green-500" />
+                      <span>Database sync & loading states</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Tick02Icon className="h-4 w-4 text-green-500" />
+                      <span>Playwright tests included</span>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-muted-foreground">{feature.description}</p>
                 </div>
-              );
-            })}
+              </div>
+
+              {/* Result badge */}
+              <div className="mt-8 pt-6 border-t border-border text-center">
+                <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800 text-sm px-4 py-2">
+                  <Tick02Icon className="h-4 w-4 mr-2" />
+                  Production-ready. First prompt. No revisions.
+                </Badge>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Social Proof / Testimonials */}
-      <section className="py-20 px-4" style={{ background: 'var(--section-examples)' }}>
+      {/* Quick Stats */}
+      <section className="py-12 px-4 bg-foreground text-background">
         <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800">
-              <StarIcon className="h-3 w-3 mr-1 fill-current" />
-              Loved by Developers
-            </Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Real developers. Real&nbsp;results.
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              See what happens when your AI actually knows what it&apos;s&nbsp;doing.
-            </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-4xl font-bold text-red-400">39</div>
+              <div className="text-background/70 text-sm">Pattern Modules</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-amber-400">9</div>
+              <div className="text-background/70 text-sm">Smart Triggers</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-green-400">90%</div>
+              <div className="text-background/70 text-sm">Less Prompting</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-cyan-400">1st</div>
+              <div className="text-background/70 text-sm">Prompt Success</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials - Just 2 */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Developers love it</h2>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
-            {testimonials.map((testimonial, index) => (
-              <div
-                key={index}
-                className="p-6 rounded-xl bg-card border border-border hover:border-primary/30 transition-all"
-              >
+          <div className="grid md:grid-cols-2 gap-8">
+            {testimonials.map((t, i) => (
+              <div key={i} className="p-6 rounded-2xl bg-card border border-border">
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, i) => (
                     <StarIcon key={i} className="h-4 w-4 text-yellow-500 fill-current" />
                   ))}
                 </div>
-                <p className="text-foreground mb-4 italic">&quot;{testimonial.quote}&quot;</p>
+                <p className="text-lg mb-4 italic">&quot;{t.quote}&quot;</p>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-sm">
-                    {testimonial.avatar}
+                    {t.avatar}
                   </div>
                   <div>
-                    <p className="text-foreground font-medium text-sm">{testimonial.author}</p>
-                    <p className="text-muted-foreground text-xs">{testimonial.role}</p>
+                    <p className="font-medium text-sm">{t.author}</p>
+                    <p className="text-muted-foreground text-xs">{t.role}</p>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      </section>
 
-          {/* Mid-page CTA */}
-          <div className="mt-16 text-center p-8 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
-            <h3 className="text-2xl font-bold text-foreground mb-2">Ready to ship&nbsp;faster?</h3>
-            <p className="text-muted-foreground mb-6">Join 1,200+ developers who&apos;ve upgraded their AI.</p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
+      {/* Simple Pricing */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-4xl text-center">
+          <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
+            Simple Pricing
+          </Badge>
+          <h2 className="text-4xl font-bold mb-4">Start free. Scale when ready.</h2>
+          <p className="text-xl text-muted-foreground mb-12">
+            1 free project forever. No credit card required.
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Free */}
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <h3 className="text-xl font-bold mb-2">Free</h3>
+              <div className="text-3xl font-bold mb-4">$0</div>
+              <p className="text-muted-foreground text-sm mb-6">1 project forever</p>
               <Link href="/signup">
-                <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/30">
-                  Start Building Now
-                  <ArrowRight02Icon className="ml-2 h-5 w-5" />
-                </Button>
+                <Button variant="outline" className="w-full">Start Free</Button>
+              </Link>
+            </div>
+
+            {/* Pro */}
+            <div className="p-6 rounded-2xl bg-red-50 dark:bg-red-950/30 border-2 border-red-400 dark:border-red-700 ring-2 ring-red-500/20">
+              <Badge className="mb-2 bg-red-600 text-white">Most Popular</Badge>
+              <h3 className="text-xl font-bold mb-2">Pro</h3>
+              <div className="text-3xl font-bold mb-4">$149<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
+              <p className="text-muted-foreground text-sm mb-6">Unlimited projects</p>
+              <Link href="/signup">
+                <Button className="w-full bg-red-600 hover:bg-red-700 text-white">Get Pro</Button>
+              </Link>
+            </div>
+
+            {/* Team */}
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <h3 className="text-xl font-bold mb-2">Team</h3>
+              <div className="text-3xl font-bold mb-4">$299<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
+              <p className="text-muted-foreground text-sm mb-6">5 developers</p>
+              <Link href="/signup">
+                <Button variant="outline" className="w-full">Get Team</Button>
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ROI Calculator Section - With vs Without */}
-      <section className="py-20 px-4" style={{ background: 'var(--section-stats)' }}>
-        <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
-              ROI Calculator
-            </Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              The math is simple
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Save 20+ hours per month. CodeBakers pays for itself in your first project.
-            </p>
-          </div>
-
-          <div className="max-w-5xl mx-auto">
-            {/* ROI Comparison Cards */}
-            <div className="grid md:grid-cols-2 gap-8 mb-12">
-              {/* Without CodeBakers */}
-              <div className="rounded-2xl bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-900/50 p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                    <Cancel01Icon className="h-6 w-6 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground">Without CodeBakers</h3>
-                    <p className="text-red-600 dark:text-red-400 text-sm">Standard AI prompting</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
-                    <span className="text-muted-foreground">Auth system</span>
-                    <span className="text-red-600 dark:text-red-400 font-medium">4-6 hours</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
-                    <span className="text-muted-foreground">Payment integration</span>
-                    <span className="text-red-600 dark:text-red-400 font-medium">3-4 hours</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
-                    <span className="text-muted-foreground">Forms & validation</span>
-                    <span className="text-red-600 dark:text-red-400 font-medium">2-3 hours</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
-                    <span className="text-muted-foreground">Database + API</span>
-                    <span className="text-red-600 dark:text-red-400 font-medium">3-4 hours</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
-                    <span className="text-muted-foreground">Testing</span>
-                    <span className="text-red-600 dark:text-red-400 font-medium">2-4 hours</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-red-200 dark:border-red-900/30">
-                    <span className="text-muted-foreground">Error handling</span>
-                    <span className="text-red-600 dark:text-red-400 font-medium">1-2 hours</span>
-                  </div>
-                </div>
-                <div className="mt-6 pt-4 border-t border-red-300 dark:border-red-800">
-                  <div className="flex justify-between items-center">
-                    <span className="text-foreground font-semibold">Total per project</span>
-                    <span className="text-2xl font-bold text-red-600 dark:text-red-400">15-23 hours</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">@ $100/hr = <span className="text-red-600 dark:text-red-400 font-medium">$1,500-$2,300</span></p>
-                </div>
-              </div>
-
-              {/* With CodeBakers */}
-              <div className="rounded-2xl bg-green-50 dark:bg-green-950/20 border-2 border-green-200 dark:border-green-800 p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center">
-                    <Tick02Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground">With CodeBakers</h3>
-                    <p className="text-green-600 dark:text-green-400 text-sm">Enhanced AI prompting</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
-                    <span className="text-muted-foreground">Auth system</span>
-                    <span className="text-green-600 dark:text-green-400 font-medium">30 min</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
-                    <span className="text-muted-foreground">Payment integration</span>
-                    <span className="text-green-600 dark:text-green-400 font-medium">30 min</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
-                    <span className="text-muted-foreground">Forms & validation</span>
-                    <span className="text-green-600 dark:text-green-400 font-medium">10 min</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
-                    <span className="text-muted-foreground">Database + API</span>
-                    <span className="text-green-600 dark:text-green-400 font-medium">25 min</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
-                    <span className="text-muted-foreground">Testing</span>
-                    <span className="text-green-600 dark:text-green-400 font-medium">Auto-included</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-green-200 dark:border-green-800">
-                    <span className="text-muted-foreground">Error handling</span>
-                    <span className="text-green-600 dark:text-green-400 font-medium">Auto-included</span>
-                  </div>
-                </div>
-                <div className="mt-6 pt-4 border-t border-green-300 dark:border-green-700">
-                  <div className="flex justify-between items-center">
-                    <span className="text-foreground font-semibold">Total per project</span>
-                    <span className="text-2xl font-bold text-green-600 dark:text-green-400">~2 hours</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">@ $100/hr = <span className="text-green-600 dark:text-green-400 font-medium">$200</span></p>
-                </div>
-              </div>
-            </div>
-
-            {/* ROI Summary */}
-            <div className="rounded-2xl bg-foreground p-8 text-center">
-              <div className="grid md:grid-cols-3 gap-8">
-                <div>
-                  <div className="text-4xl font-bold text-green-400 mb-2">90%</div>
-                  <p className="text-background/80">Time saved per project</p>
-                </div>
-                <div>
-                  <div className="text-4xl font-bold text-amber-400 mb-2">$1,500+</div>
-                  <p className="text-background/80">Saved per project</p>
-                </div>
-                <div>
-                  <div className="text-4xl font-bold text-cyan-400 mb-2">10x</div>
-                  <p className="text-background/80">ROI on subscription</p>
-                </div>
-              </div>
-              <p className="text-background mt-6 text-lg">
-                <span className="text-amber-400 font-semibold">$149/month</span> saves you <span className="text-green-400 font-semibold">$1,500+</span> on your first project alone.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Why Not Just Cursor Rules - Comparison Section */}
-      <section id="compare" className="py-20 px-4" style={{ background: 'var(--section-coverage)' }}>
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">vs Alternatives</Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Why not free Cursor&nbsp;rules?
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              cursor.directory, awesome-cursorrules, and awesome-claude-code are great starting points. But they&apos;re just snippets you have to assemble&nbsp;yourself.
-            </p>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-border bg-card max-w-4xl mx-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-4 px-6 text-muted-foreground font-medium">Feature</th>
-                  <th className="text-center py-4 px-6 text-foreground font-medium">
-                    <span className="text-red-600 dark:text-red-400">CodeBakers</span>
-                  </th>
-                  <th className="text-center py-4 px-6 text-muted-foreground font-medium">Free Alternatives</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vsCompetitors.map((row, index) => (
-                  <tr key={index} className="border-b border-border/50">
-                    <td className="py-4 px-6 text-foreground">{row.feature}</td>
-                    <td className="py-4 px-6 text-center">
-                      {row.codebakers === true ? (
-                        <Tick02Icon className="h-5 w-5 text-green-600 dark:text-green-400 mx-auto" />
-                      ) : (
-                        <span className="text-muted-foreground">{row.codebakers}</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      {row.others === false ? (
-                        <Cancel01Icon className="h-5 w-5 text-red-500 dark:text-red-400 mx-auto" />
-                      ) : (
-                        <span className="text-muted-foreground text-sm">{row.others}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="text-center mt-12">
-            <p className="text-lg text-muted-foreground mb-6">
-              <span className="text-foreground font-medium">Bottom line:</span> CodeBakers makes Cursor and Claude Code the best they can be.
-            </p>
-            <Link href="/signup">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/25">
-                Upgrade Your AI Today
-                <ArrowRight02Icon className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Modules Section */}
-      <section id="modules" className="py-20 px-4 relative" style={{ background: 'var(--section-modules)' }}>
-
-        <div className="container mx-auto relative z-10">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700">34 Modules</Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              {totalLines.toLocaleString()} lines of production&nbsp;patterns
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Smart module loading means AI only loads what&apos;s relevant. Ask for a login form and it loads auth + frontend patterns, not all {totalLines.toLocaleString()}&nbsp;lines.
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {modules.map((module) => {
-              const Icon = module.icon;
-              return (
-                <div
-                  key={module.name}
-                  className={`p-4 rounded-lg border transition-all hover:shadow-lg ${
-                    module.required
-                      ? 'bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800 hover:border-red-400 dark:hover:border-red-700'
-                      : 'bg-card border-border hover:border-red-500/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <Icon className={`h-5 w-5 ${module.required ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`} />
-                    <span className="font-mono text-sm text-foreground">{module.name}</span>
-                    {module.required && (
-                      <Badge className="text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700 ml-auto">
-                        Always loaded
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2">{module.description}</p>
-                  <p className="text-xs text-muted-foreground/70">{module.lines.toLocaleString()} lines</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 relative" style={{ background: 'var(--section-pricing)' }}>
-        {/* Decorative elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl" />
-        </div>
-
-        <div className="container mx-auto relative z-10">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700">Pricing</Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Pays for itself in one&nbsp;project
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Save 20+ hours per project. 10x ROI on your first&nbsp;build.
-            </p>
-            <div className="flex flex-wrap justify-center items-center gap-4 mt-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <SecurityCheckIcon className="h-4 w-4 text-green-500" />
-                <span>1 free project forever</span>
-              </div>
-              <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-              <div className="flex items-center gap-1">
-                <Tick02Icon className="h-4 w-4 text-green-500" />
-                <span>Cancel anytime</span>
-              </div>
-              <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-              <div className="flex items-center gap-1">
-                <FlashIcon className="h-4 w-4 text-yellow-500" />
-                <span>Instant access</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Free Trial Banner */}
-          <div className="max-w-2xl mx-auto mb-12 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-center">
-            <Badge className="bg-red-600 text-white border-red-500 mb-2">Try Free</Badge>
-            <p className="text-foreground font-medium">
-              Start with 1 free project — no credit card required
-            </p>
-            <p className="text-muted-foreground text-sm mt-1">
-              Upgrade anytime to unlock unlimited projects
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
-            {pricingTiers.map((tier) => (
-              <div
-                key={tier.name}
-                className={`p-6 rounded-xl border transition-all hover:shadow-xl ${
-                  tier.popular
-                    ? 'bg-red-50 dark:bg-red-950/30 border-red-400 dark:border-red-700 ring-2 ring-red-500 dark:ring-red-600 shadow-lg shadow-red-500/10'
-                    : 'bg-card border-border'
-                }`}
-              >
-                {tier.popular && (
-                  <Badge className="mb-4 bg-red-600 text-white border-red-500">
-                    Most Popular
-                  </Badge>
-                )}
-                <h3 className="text-xl font-bold text-foreground mb-1">{tier.name}</h3>
-                <p className="text-muted-foreground text-sm mb-4">{tier.description}</p>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-foreground">${tier.price}</span>
-                  <span className="text-muted-foreground">/month</span>
-                </div>
-                <ul className="space-y-3 mb-6">
-                  {tier.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-foreground">
-                      <Tick02Icon className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/signup">
-                  <Button
-                    className={`w-full ${
-                      tier.popular
-                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/25'
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                    }`}
-                  >
-                    {tier.cta}
-                  </Button>
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section id="faq" className="py-20 px-4" style={{ background: 'var(--section-faq)' }}>
-        <div className="container mx-auto max-w-3xl">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-secondary text-secondary-foreground border-border">FAQ</Badge>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Frequently asked&nbsp;questions
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {faqs.map((faq, index) => (
-              <details
-                key={index}
-                className="group p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors"
-              >
-                <summary className="flex items-center justify-between cursor-pointer list-none">
-                  <span className="text-foreground font-medium pr-4">{faq.question}</span>
-                  <ArrowDown01Icon className="h-5 w-5 text-muted-foreground group-open:rotate-180 transition-transform flex-shrink-0" />
-                </summary>
-                <p className="mt-4 text-muted-foreground leading-relaxed">{faq.answer}</p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-24 px-4 relative overflow-hidden" style={{ background: 'var(--section-cta)' }}>
-
-        <div className="container mx-auto text-center relative z-10">
-          {/* Featured quote */}
-          <div className="mb-10 max-w-2xl mx-auto">
-            <p className="text-2xl md:text-3xl font-medium text-foreground italic leading-relaxed">
-              &quot;I type 5 words in Cursor. I get production-ready code with tests. This is what AI coding should be.&quot;
-            </p>
-            <p className="text-muted-foreground mt-4">— Sarah Chen, Indie Hacker</p>
-          </div>
-
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Stop typing long prompts. Start shipping&nbsp;faster.
+      {/* Final CTA with Demo Booking */}
+      <section className="py-24 px-4">
+        <div className="container mx-auto max-w-3xl text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            Ready to vibe?
           </h2>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Your prompts get enhanced automatically. Your AI writes better code. You ship&nbsp;faster.
+          <p className="text-xl text-muted-foreground mb-8">
+            Stop wrestling with prompts. Let your AI handle the details.
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             <Link href="/signup">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-16 px-10 text-xl w-full sm:w-auto shadow-xl shadow-red-500/30 transition-all hover:shadow-2xl hover:shadow-red-500/40 hover:-translate-y-1">
-                Upgrade My Prompts
-                <ArrowRight02Icon className="ml-2 h-6 w-6" />
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-14 px-10 text-lg font-semibold w-full sm:w-auto shadow-xl shadow-red-500/25 rounded-xl">
+                Start Building Free
+                <ArrowRight02Icon className="ml-2 h-5 w-5" />
               </Button>
             </Link>
+            <button
+              data-cal-link="botmakers/30min"
+              data-cal-namespace="30min"
+              data-cal-config='{"layout":"month_view"}'
+            >
+              <Button size="lg" variant="outline" className="h-14 px-10 text-lg font-semibold w-full sm:w-auto rounded-xl border-2">
+                <Calendar03Icon className="mr-2 h-5 w-5" />
+                Book a Demo
+              </Button>
+            </button>
           </div>
 
-          <div className="flex flex-wrap justify-center items-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <SecurityCheckIcon className="h-5 w-5 text-green-500" />
-              <span>1 free project forever</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <FlashIcon className="h-5 w-5 text-yellow-500" />
-              <span>Setup in 2 minutes</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CustomerService01Icon className="h-5 w-5 text-blue-500" />
-              <span>Discord support included</span>
-            </div>
-          </div>
-
-          <p className="text-xs text-muted-foreground/50 mt-8">
-            Works inside Cursor & Claude Code • Not an app builder — enhances your existing tools
+          <p className="text-sm text-muted-foreground">
+            Works inside Cursor & Claude Code • 2-minute setup • Cancel anytime
           </p>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-4 border-t border-border" style={{ background: 'var(--section-footer)' }}>
-        <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="text-muted-foreground text-sm">
-              &copy; {new Date().getFullYear()} CodeBakers. All rights reserved.
-            </div>
-            <div className="flex gap-6">
-              <Link href="/pricing" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                Pricing
-              </Link>
-              <Link href="/compare" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                Compare
-              </Link>
-              <Link href="/login" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                Login
-              </Link>
-              <Link href="/signup" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                Sign Up
-              </Link>
-            </div>
+      {/* Simple Footer */}
+      <footer className="py-8 px-4 border-t border-border">
+        <div className="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="text-muted-foreground text-sm">
+            &copy; {new Date().getFullYear()} CodeBakers
+          </div>
+          <div className="flex gap-6 text-sm">
+            <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+              Pricing
+            </Link>
+            <Link href="/login" className="text-muted-foreground hover:text-foreground transition-colors">
+              Login
+            </Link>
+            <button
+              data-cal-link="botmakers/30min"
+              data-cal-namespace="30min"
+              data-cal-config='{"layout":"month_view"}'
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Book Demo
+            </button>
           </div>
         </div>
       </footer>
