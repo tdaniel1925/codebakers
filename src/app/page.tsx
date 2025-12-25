@@ -18,6 +18,9 @@ import {
   Rocket01Icon,
   Idea01Icon,
   Target02Icon,
+  MagicWand02Icon,
+  PlayIcon,
+  SecurityCheckIcon,
 } from 'hugeicons-react';
 
 // Just 3 testimonials - keep it light
@@ -78,108 +81,173 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Nav with section links */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-950 border-b border-gray-800">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center">
-              <Code2 className="w-5 h-5 text-white" />
+            <div className="w-11 h-11 rounded-xl bg-red-600 flex items-center justify-center">
+              <Code2 className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold">CodeBakers</span>
+            <span className="text-xl font-bold text-white">CodeBakers</span>
           </Link>
           <div className="hidden md:flex items-center gap-6">
-            <Link href="#smart-prompts" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Smart Prompts</Link>
-            <Link href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</Link>
-            <Link href="#compare" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Compare</Link>
-            <Link href="#modules" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Modules</Link>
-            <Link href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
-          </div>
-          <div className="flex items-center gap-4">
+            <Link href="#smart-prompts" className="text-gray-400 hover:text-white transition-colors text-sm">
+              Smart Prompts
+            </Link>
+            <Link href="#features" className="text-gray-400 hover:text-white transition-colors text-sm">
+              Features
+            </Link>
+            <Link href="#compare" className="text-gray-400 hover:text-white transition-colors text-sm">
+              Compare
+            </Link>
+            <Link href="#modules" className="text-gray-400 hover:text-white transition-colors text-sm">
+              Modules
+            </Link>
+            <Link href="#pricing" className="text-gray-400 hover:text-white transition-colors text-sm">
+              Pricing
+            </Link>
             <ThemeToggle />
             <Link href="/login">
-              <Button variant="ghost" size="sm">Login</Button>
+              <Button variant="ghost" className="text-gray-400 hover:text-white text-sm">
+                Login
+              </Button>
             </Link>
             <Link href="/signup">
-              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
+              <Button className="bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/20 text-sm">
                 Start Free
                 <ArrowRight02Icon className="ml-1 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+          {/* Mobile nav */}
+          <div className="flex md:hidden items-center gap-2">
+            <ThemeToggle />
+            <Link href="/signup">
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-sm">
+                Start Free
               </Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero - Original Style */}
-      <section id="smart-prompts" className="pt-32 pb-16 px-4">
-        <div className="container mx-auto text-center max-w-4xl">
-          {/* Cursive label */}
-          <p className="text-red-500 text-2xl md:text-3xl mb-2 font-serif italic">
-            Cursor / Claude Code
-          </p>
-          <p className="text-red-500 text-sm mb-4">↑</p>
+      {/* Hero Section - Clear Value Prop */}
+      <section id="smart-prompts" className="pt-24 pb-12 px-4 min-h-[calc(100vh-4rem)] flex items-center relative overflow-hidden bg-gray-950">
+        {/* Grid Background Pattern */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div
+            className="absolute inset-0 opacity-[0.12]"
+            style={{
+              backgroundImage: `linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)`,
+              backgroundSize: '80px 80px'
+            }}
+          />
+          {/* Fade out at bottom */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-40"
+            style={{ background: 'linear-gradient(to bottom, transparent, rgb(3 7 18))' }}
+          />
+        </div>
 
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black mb-2 leading-[1.1] tracking-tight">
-            Your prompts <span className="text-red-600 dark:text-red-500">suck.</span>
+        <div className="container mx-auto text-center relative z-10">
+          {/* MAIN HEADLINE - The Problem & Solution */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-[1] tracking-tight mt-8 text-white">
+            <span className="text-gray-400">Your </span>
+            {/* Handwriting annotation floating above the space between Your and prompts */}
+            <span className="relative inline-block">
+              <span className="text-gray-400">prompts</span>
+              {/* Proofreader-style insertion: handwriting above with caret pointing UP */}
+              <span className="absolute -top-4 sm:-top-5 md:-top-6 lg:-top-8 -left-4 sm:-left-16 md:-left-24 lg:-left-28 flex flex-col items-center pointer-events-none select-none">
+                <span
+                  className="text-red-500 text-xl sm:text-2xl md:text-3xl lg:text-4xl whitespace-nowrap rotate-[-3deg]"
+                  style={{ fontFamily: "'Caveat', cursive" }}
+                >
+                  Cursor / Claude Code
+                </span>
+                {/* Caret pointing UP (^) */}
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-red-500 -mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 19V5M5 12l7-7 7 7" />
+                </svg>
+              </span>
+            </span>
+            <span className="text-red-600"> suck.</span>
+            <br />
+            <span className="text-white">We fix&nbsp;them.</span>
           </h1>
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-8 leading-[1.1] tracking-tight text-muted-foreground">
-            We fix them.
-          </h2>
 
-          <p className="text-xl md:text-2xl text-muted-foreground mb-12">
-            Get production-ready code on the first try.
+          {/* Clear explanation - what we actually do */}
+          <p className="text-lg md:text-xl lg:text-2xl text-gray-400 mb-8 max-w-3xl mx-auto font-medium">
+            <span className="text-white font-bold">Get production-ready code on the first try.</span>
           </p>
 
-          {/* Interactive Demo */}
-          <div className="max-w-3xl mx-auto bg-slate-900 rounded-2xl p-6 mb-8 text-left border border-slate-700">
-            {/* Window controls */}
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="ml-4 text-slate-400 text-sm">cursor / claude code</span>
-            </div>
-
-            {/* Two columns */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* What you type */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-slate-500 text-xs bg-slate-800 px-2 py-1 rounded">1</span>
-                  <span className="text-slate-400 text-sm">What you type</span>
+          {/* Visual: Before → After in IDE context */}
+          <div className="max-w-3xl mx-auto mb-8">
+            <div className="rounded-2xl border-2 border-gray-700 bg-gray-900/80 backdrop-blur-sm overflow-hidden shadow-2xl">
+              {/* IDE-style header */}
+              <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700 flex items-center gap-3">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
                 </div>
-                <div className="bg-slate-800 rounded-lg p-4">
-                  <p className="text-slate-300 text-lg">add login form</p>
-                </div>
+                <span className="text-sm text-gray-400 font-mono">cursor / claude code</span>
               </div>
 
-              {/* What AI receives */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <SparklesIcon className="w-4 h-4 text-green-500" />
-                  <span className="text-green-500 text-sm">What AI receives</span>
-                </div>
-                <div className="bg-slate-800/50 rounded-lg p-4 border border-green-500/30">
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    Build login with <span className="text-white font-semibold">React Hook Form + Zod</span>, loading states, error handling, toast notifications, <span className="text-white font-semibold">accessibility</span>, keyboard nav, and <span className="text-white font-semibold">Playwright tests</span>...
-                  </p>
-                </div>
-              </div>
-            </div>
+              <div className="p-6">
+                <div className="grid md:grid-cols-2 gap-6 items-start">
+                  {/* What you type */}
+                  <div className="text-left">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded bg-gray-700 flex items-center justify-center">
+                        <span className="text-xs font-bold text-gray-400">1</span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-400">What you type</span>
+                    </div>
+                    <div className="px-4 py-3 rounded-lg bg-gray-800 font-mono text-base text-gray-200">
+                      add login form
+                    </div>
+                  </div>
 
-            {/* Bottom badge */}
-            <div className="flex justify-center mt-6">
-              <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2">
-                <Tick02Icon className="w-4 h-4 text-green-500" />
-                <span className="text-green-400 text-sm">Production-ready code. First prompt. No revisions.</span>
+                  {/* What AI receives */}
+                  <div className="text-left">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded bg-green-500 flex items-center justify-center">
+                        <MagicWand02Icon className="h-3 w-3 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-green-400">What AI receives</span>
+                    </div>
+                    <div className="px-4 py-3 rounded-lg bg-green-950/30 border border-green-800 text-sm text-gray-200 leading-relaxed">
+                      Build login with <strong className="text-white">React Hook Form + Zod</strong>, loading states, error handling, toast notifications, <strong className="text-white">accessibility</strong>, keyboard nav, and <strong className="text-white">Playwright tests</strong>...
+                    </div>
+                  </div>
+                </div>
+
+                {/* Result */}
+                <div className="mt-6 pt-6 border-t border-gray-700 text-center">
+                  <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-green-900/30 text-green-300 text-sm font-medium">
+                    <Tick02Icon className="h-4 w-4" />
+                    Production-ready code. First prompt. No revisions.
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+          {/* Works with */}
+          <div className="flex flex-wrap justify-center items-center gap-4 mb-8">
+            <span className="text-sm text-gray-400">Works inside:</span>
+            <div className="flex items-center gap-4">
+              <span className="font-semibold text-white">Cursor</span>
+              <span className="text-gray-500">•</span>
+              <span className="font-semibold text-white">Claude Code</span>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row justify-center gap-3 mb-6">
             <Link href="/signup">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-14 px-8 text-lg font-semibold w-full sm:w-auto shadow-xl shadow-red-500/25 rounded-xl">
-                Start Building Free
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-14 px-8 text-lg font-semibold w-full sm:w-auto shadow-xl shadow-red-500/30 transition-all hover:shadow-2xl hover:shadow-red-500/40 hover:-translate-y-1 rounded-xl">
+                Upgrade My Prompts
                 <ArrowRight02Icon className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -188,11 +256,31 @@ export default function HomePage() {
               data-cal-namespace="30min"
               data-cal-config='{"layout":"month_view"}'
             >
-              <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-semibold w-full sm:w-auto rounded-xl border-2">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-2 border-gray-600 hover:bg-gray-800 text-white h-14 px-8 text-lg font-semibold w-full sm:w-auto group rounded-xl"
+              >
                 <Calendar03Icon className="mr-2 h-5 w-5" />
                 Book a Demo
               </Button>
             </button>
+          </div>
+
+          {/* Trust indicators */}
+          <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 text-sm text-gray-400">
+            <div className="flex items-center gap-2">
+              <SecurityCheckIcon className="h-4 w-4 text-green-500" />
+              <span>1 free project forever</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FlashIcon className="h-4 w-4 text-yellow-500" />
+              <span>2-minute setup</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Tick02Icon className="h-4 w-4 text-blue-500" />
+              <span>No credit card</span>
+            </div>
           </div>
         </div>
       </section>
