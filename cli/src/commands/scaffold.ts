@@ -5,8 +5,47 @@ import { writeFileSync, mkdirSync, existsSync, readdirSync, readFileSync } from 
 import { join } from 'path';
 import { execSync } from 'child_process';
 import * as templates from '../templates/nextjs-supabase.js';
-import { getApiKey, getApiUrl } from '../config.js';
+import { getApiKey, getApiUrl, setServiceKey, getServiceKey } from '../config.js';
 import { provisionAll, type ProvisionResult } from './provision.js';
+
+interface ServerServiceKeys {
+  github: string | null;
+  supabase: string | null;
+  vercel: string | null;
+}
+
+/**
+ * Fetch service keys from CodeBakers server
+ */
+async function fetchServerKeys(): Promise<ServerServiceKeys | null> {
+  const apiKey = getApiKey();
+  if (!apiKey) return null;
+
+  try {
+    const apiUrl = getApiUrl();
+    const response = await fetch(`${apiUrl}/api/cli/service-keys`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch {
+    // Server unreachable or error
+  }
+  return null;
+}
+
+/**
+ * Sync server keys to local storage
+ */
+function syncKeysToLocal(keys: ServerServiceKeys): void {
+  if (keys.github) setServiceKey('github', keys.github);
+  if (keys.supabase) setServiceKey('supabase', keys.supabase);
+  if (keys.vercel) setServiceKey('vercel', keys.vercel);
+}
 
 // Cursor IDE configuration templates
 const CURSORRULES_TEMPLATE = `# CODEBAKERS CURSOR RULES
@@ -532,16 +571,84 @@ export async function scaffold(): Promise<void> {
     let provisionResult: ProvisionResult = {};
 
     if (wantProvision) {
-      // Initialize git first if not already
-      try {
-        execSync('git init', { cwd, stdio: 'pipe' });
-        execSync('git add .', { cwd, stdio: 'pipe' });
-        execSync('git commit -m "Initial commit from CodeBakers scaffold"', { cwd, stdio: 'pipe' });
-      } catch {
-        // Git might already be initialized or have issues
-      }
+      // Check for saved keys in CodeBakers back office
+      const serverKeys = await fetchServerKeys();
+      const hasServerKeys = serverKeys && (serverKeys.github || serverKeys.supabase || serverKeys.vercel);
+      const localGithub = getServiceKey('github');
+      const localSupabase = getServiceKey('supabase');
+      const localVercel = getServiceKey('vercel');
+      const hasLocalKeys = localGithub || localSupabase || localVercel;
 
-      provisionResult = await provisionAll(projectName, `${projectName} - Built with CodeBakers`);
+      if (hasServerKeys || hasLocalKeys) {
+        // Show which keys are available
+        console.log(chalk.white('\n  Available service keys:\n'));
+
+        if (hasServerKeys) {
+          console.log(chalk.gray('    From CodeBakers account:'));
+          if (serverKeys?.github) console.log(chalk.green('      ✓ GitHub'));
+          if (serverKeys?.supabase) console.log(chalk.green('      ✓ Supabase'));
+          if (serverKeys?.vercel) console.log(chalk.green('      ✓ Vercel'));
+        }
+
+        if (hasLocalKeys) {
+          console.log(chalk.gray('    Stored locally:'));
+          if (localGithub) console.log(chalk.green('      ✓ GitHub'));
+          if (localSupabase) console.log(chalk.green('      ✓ Supabase'));
+          if (localVercel) console.log(chalk.green('      ✓ Vercel'));
+        }
+
+        console.log('');
+
+        // Ask which keys to use
+        console.log(chalk.white('  Which keys would you like to use?\n'));
+        console.log(chalk.gray('    1. ') + chalk.cyan('Use saved keys') + chalk.gray(' - Use keys from your account/local storage'));
+        console.log(chalk.gray('    2. ') + chalk.cyan('Enter new keys') + chalk.gray(' - For a client project or different account'));
+        console.log(chalk.gray('    3. ') + chalk.cyan('Skip') + chalk.gray(' - Don\'t provision, I\'ll do it manually\n'));
+
+        let keyChoice = '';
+        while (!['1', '2', '3'].includes(keyChoice)) {
+          keyChoice = await prompt('  Enter 1, 2, or 3: ');
+        }
+
+        if (keyChoice === '3') {
+          console.log(chalk.gray('\n  Skipping auto-provisioning.\n'));
+        } else {
+          if (keyChoice === '1' && hasServerKeys) {
+            // Sync server keys to local storage for this session
+            syncKeysToLocal(serverKeys!);
+            console.log(chalk.green('\n  ✓ Using saved keys from CodeBakers account\n'));
+          } else if (keyChoice === '2') {
+            // Clear local keys so provision.ts will prompt for new ones
+            console.log(chalk.gray('\n  You\'ll be prompted to enter keys for each service.\n'));
+          }
+
+          // Initialize git first if not already
+          try {
+            execSync('git init', { cwd, stdio: 'pipe' });
+            execSync('git add .', { cwd, stdio: 'pipe' });
+            execSync('git commit -m "Initial commit from CodeBakers scaffold"', { cwd, stdio: 'pipe' });
+          } catch {
+            // Git might already be initialized or have issues
+          }
+
+          provisionResult = await provisionAll(projectName, `${projectName} - Built with CodeBakers`);
+        }
+      } else {
+        // No saved keys - proceed with provisioning (will prompt for keys)
+        console.log(chalk.gray('\n  No saved keys found. You\'ll be prompted to enter keys for each service.\n'));
+        console.log(chalk.gray('  Tip: Save keys in your CodeBakers dashboard to auto-provision future projects!\n'));
+
+        // Initialize git first if not already
+        try {
+          execSync('git init', { cwd, stdio: 'pipe' });
+          execSync('git add .', { cwd, stdio: 'pipe' });
+          execSync('git commit -m "Initial commit from CodeBakers scaffold"', { cwd, stdio: 'pipe' });
+        } catch {
+          // Git might already be initialized or have issues
+        }
+
+        provisionResult = await provisionAll(projectName, `${projectName} - Built with CodeBakers`);
+      }
 
       // Update .env.local with Supabase credentials if available
       if (provisionResult.supabase) {

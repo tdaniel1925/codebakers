@@ -13,6 +13,7 @@ import {
   Zap,
   Plug,
   UserCircle,
+  Settings,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ const navItems = [
   { href: '/account', label: 'Account', icon: UserCircle },
   { href: '/billing', label: 'Billing', icon: CreditCard },
   { href: '/team', label: 'Team', icon: Users },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 interface DashboardSidebarProps {

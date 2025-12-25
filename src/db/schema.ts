@@ -61,6 +61,9 @@ export const teams = pgTable('teams', {
   // Pattern versioning - allow teams to pin to a specific version
   pinnedPatternVersion: text('pinned_pattern_version'),
 
+  // Service API keys for auto-provisioning (JSON: { github, supabase, vercel })
+  serviceKeys: text('service_keys'),
+
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
