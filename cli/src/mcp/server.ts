@@ -480,6 +480,131 @@ class CodeBakersServer {
             },
           },
         },
+        {
+          name: 'design',
+          description:
+            'Clone and implement designs from mockups, screenshots, or website references. Analyzes visual designs and generates pixel-perfect matching code with extracted design tokens (colors, typography, spacing). Use when user says "clone this design", "make it look like...", or "copy this UI".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              source: {
+                type: 'string',
+                description: 'Path to mockup image, folder of images, URL to clone, or reference style (e.g., "./mockups", "https://linear.app", "like Notion")',
+              },
+              outputDir: {
+                type: 'string',
+                description: 'Directory to output generated components (default: src/components)',
+              },
+            },
+            required: ['source'],
+          },
+        },
+        {
+          name: 'upgrade',
+          description:
+            'Upgrade an existing project to CodeBakers patterns WITHOUT changing the user\'s tech stack. Preserves their existing ORM (Prisma/Drizzle), auth (NextAuth/Clerk), UI library (Chakra/MUI), etc. Only upgrades code quality patterns like error handling, validation, tests, and security. Use when user says "upgrade this project", "improve my code", or "make this production ready".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              areas: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Specific areas to upgrade: "api", "components", "testing", "security", "all" (default: all)',
+              },
+              severity: {
+                type: 'string',
+                enum: ['critical', 'high', 'medium', 'low', 'all'],
+                description: 'Filter upgrades by severity (default: all)',
+              },
+              dryRun: {
+                type: 'boolean',
+                description: 'Show what would be upgraded without making changes (default: false)',
+              },
+            },
+          },
+        },
+        {
+          name: 'project_status',
+          description:
+            'Show project build progress, completed features, and what\'s next. Different from get_status which shows CodeBakers connection status. Use when user asks "where am I?", "what\'s built?", "show progress", or "what\'s next?".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {},
+          },
+        },
+        {
+          name: 'run_tests',
+          description:
+            'Run the project test suite (npm test or configured test command). Use after completing a feature to verify everything works. Returns test results with pass/fail status.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              filter: {
+                type: 'string',
+                description: 'Optional filter to run specific tests (passed to test runner)',
+              },
+              watch: {
+                type: 'boolean',
+                description: 'Run in watch mode (default: false)',
+              },
+            },
+          },
+        },
+        {
+          name: 'report_pattern_gap',
+          description:
+            'Report when a user request cannot be fully handled by existing patterns. This helps improve CodeBakers by tracking what patterns are missing. The AI should automatically call this when it encounters something outside pattern coverage.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              category: {
+                type: 'string',
+                description: 'Category of the gap (e.g., "third-party-apis", "mobile", "blockchain", "iot")',
+              },
+              request: {
+                type: 'string',
+                description: 'What the user asked for',
+              },
+              context: {
+                type: 'string',
+                description: 'Additional context about what was needed',
+              },
+              handledWith: {
+                type: 'string',
+                description: 'Which existing patterns were used as fallback',
+              },
+              wasSuccessful: {
+                type: 'boolean',
+                description: 'Whether the request was handled successfully despite the gap',
+              },
+            },
+            required: ['category', 'request'],
+          },
+        },
+        {
+          name: 'track_analytics',
+          description:
+            'Track CLI usage analytics for improving smart triggers and recommendations. Called automatically by the system for key events.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              eventType: {
+                type: 'string',
+                enum: ['trigger_fired', 'trigger_accepted', 'trigger_dismissed', 'topic_learned', 'command_used', 'pattern_fetched', 'build_started', 'build_completed', 'feature_added', 'audit_run', 'design_cloned'],
+                description: 'Type of event to track',
+              },
+              eventData: {
+                type: 'object',
+                description: 'Additional data specific to the event',
+              },
+              projectHash: {
+                type: 'string',
+                description: 'Hash of project path for grouping analytics',
+              },
+            },
+            required: ['eventType'],
+          },
+        },
       ],
     }));
 
@@ -533,6 +658,24 @@ class CodeBakersServer {
 
         case 'heal':
           return this.handleHeal(args as { auto?: boolean; dryRun?: boolean; severity?: string });
+
+        case 'design':
+          return this.handleDesign(args as { source: string; outputDir?: string });
+
+        case 'upgrade':
+          return this.handleUpgrade(args as { areas?: string[]; severity?: string; dryRun?: boolean });
+
+        case 'project_status':
+          return this.handleProjectStatus();
+
+        case 'run_tests':
+          return this.handleRunTests(args as { filter?: string; watch?: boolean });
+
+        case 'report_pattern_gap':
+          return this.handleReportPatternGap(args as { category: string; request: string; context?: string; handledWith?: string; wasSuccessful?: boolean });
+
+        case 'track_analytics':
+          return this.handleTrackAnalytics(args as { eventType: string; eventData?: Record<string, unknown>; projectHash?: string });
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -1445,7 +1588,7 @@ phase: development
 ## Connection Status
 - **MCP Server:** Running
 - **API Connected:** Yes
-- **Version:** 1.5.0
+- **Version:** 2.2.0
 
 ## Current Settings
 - **Experience Level:** ${level.charAt(0).toUpperCase() + level.slice(1)}
@@ -1457,6 +1600,9 @@ phase: development
 - 🔍 **search_patterns** - Search for specific guidance
 - 🏗️ **scaffold_project** - Create new projects
 - ⚙️ **init_project** - Add patterns to existing projects
+- 🎨 **design** - Clone designs from mockups/websites
+- ⬆️ **upgrade** - Upgrade project patterns (preserves your stack)
+- 📊 **project_status** - Show build progress
 
 ## How to Use
 Just describe what you want to build! I'll automatically:
@@ -1475,6 +1621,522 @@ Just describe what you want to build! I'll automatically:
         text: statusText,
       }],
     };
+  }
+
+  private async handleDesign(args: { source: string; outputDir?: string }) {
+    const { source, outputDir = 'src/components' } = args;
+    const cwd = process.cwd();
+
+    // Detect source type
+    let sourceType: 'folder' | 'file' | 'url' | 'reference' = 'reference';
+    if (source.startsWith('http://') || source.startsWith('https://')) {
+      sourceType = 'url';
+    } else if (source.startsWith('./') || source.startsWith('/') || source.includes('\\')) {
+      const fullPath = path.join(cwd, source);
+      if (fs.existsSync(fullPath)) {
+        const stat = fs.statSync(fullPath);
+        sourceType = stat.isDirectory() ? 'folder' : 'file';
+      }
+    } else if (source.toLowerCase().startsWith('like ')) {
+      sourceType = 'reference';
+    }
+
+    // Fetch design pattern from API
+    const patternResult = await this.fetchPatterns(['33-design-clone', '09-design']);
+
+    let response = `# 🎨 Design Clone Tool\n\n`;
+    response += `**Source:** ${source}\n`;
+    response += `**Type:** ${sourceType}\n`;
+    response += `**Output:** ${outputDir}\n\n`;
+
+    switch (sourceType) {
+      case 'folder':
+        const folderPath = path.join(cwd, source);
+        const images = fs.readdirSync(folderPath).filter(f =>
+          /\.(png|jpg|jpeg|webp|svg|gif)$/i.test(f)
+        );
+        response += `## Found ${images.length} Design Files\n\n`;
+        images.forEach(img => {
+          response += `- ${img}\n`;
+        });
+        response += `\n## Next Steps\n\n`;
+        response += `1. I'll analyze each image for design tokens\n`;
+        response += `2. Extract colors, typography, spacing\n`;
+        response += `3. Generate Tailwind config with your design system\n`;
+        response += `4. Create matching components\n\n`;
+        response += `**Note:** For best results, provide screenshots of:\n`;
+        response += `- Color palette / brand guidelines\n`;
+        response += `- Typography samples\n`;
+        response += `- Key UI components (buttons, cards, forms)\n`;
+        break;
+
+      case 'file':
+        response += `## Analyzing Single Design\n\n`;
+        response += `I'll extract design tokens from this image and generate matching components.\n\n`;
+        response += `**Tip:** For a complete design system, provide a folder with multiple mockups.\n`;
+        break;
+
+      case 'url':
+        response += `## Cloning Website Design\n\n`;
+        response += `I'll analyze the visual design at ${source} and extract:\n`;
+        response += `- Color palette\n`;
+        response += `- Typography (fonts, sizes, weights)\n`;
+        response += `- Spacing system\n`;
+        response += `- Component patterns\n\n`;
+        response += `**Note:** This creates inspired-by components, not exact copies.\n`;
+        break;
+
+      case 'reference':
+        const refStyle = source.replace(/^like\s+/i, '').toLowerCase();
+        const knownStyles: Record<string, string> = {
+          'linear': 'Dark theme, purple accents, minimal, clean',
+          'notion': 'Light theme, black/white, content-focused, lots of whitespace',
+          'stripe': 'Professional, purple gradients, polished shadows',
+          'vercel': 'Black/white, developer-focused, geometric',
+          'github': 'Blue accents, familiar, dev-tool aesthetic',
+          'figma': 'Purple accents, collaborative, modern',
+        };
+        const matchedStyle = Object.entries(knownStyles).find(([key]) =>
+          refStyle.includes(key)
+        );
+        if (matchedStyle) {
+          response += `## Reference Style: ${matchedStyle[0]}\n\n`;
+          response += `**Characteristics:** ${matchedStyle[1]}\n\n`;
+        } else {
+          response += `## Reference Style: "${source}"\n\n`;
+          response += `I'll apply a design language inspired by this reference.\n\n`;
+        }
+        response += `I'll generate components matching this aesthetic.\n`;
+        break;
+    }
+
+    response += `\n---\n\n`;
+    response += `## Design Pattern Loaded\n\n`;
+    response += `The design-clone pattern (33-design-clone) is now active.\n`;
+    response += `Proceed with specific component requests like:\n`;
+    response += `- "Create the navigation bar"\n`;
+    response += `- "Build the hero section"\n`;
+    response += `- "Generate the card components"\n`;
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: response,
+      }],
+    };
+  }
+
+  private async handleUpgrade(args: { areas?: string[]; severity?: string; dryRun?: boolean }) {
+    const { areas = ['all'], severity = 'all', dryRun = false } = args;
+    const context = this.gatherProjectContext();
+
+    let response = `# ⬆️ Project Upgrade Analysis\n\n`;
+
+    // Stack detection
+    response += `## Your Stack (Preserving As-Is)\n\n`;
+    response += `| Layer | Detected | Status |\n`;
+    response += `|-------|----------|--------|\n`;
+
+    // ORM detection
+    let orm = 'None';
+    if (context.dependencies.includes('drizzle-orm')) orm = 'Drizzle';
+    else if (context.dependencies.includes('@prisma/client')) orm = 'Prisma';
+    else if (context.dependencies.includes('typeorm')) orm = 'TypeORM';
+    else if (context.dependencies.includes('mongoose')) orm = 'Mongoose';
+    response += `| ORM | ${orm} | ✓ Keeping |\n`;
+
+    // Auth detection
+    let auth = 'None';
+    if (context.dependencies.includes('@supabase/supabase-js')) auth = 'Supabase';
+    else if (context.dependencies.includes('next-auth')) auth = 'NextAuth';
+    else if (context.dependencies.includes('@clerk/nextjs')) auth = 'Clerk';
+    else if (context.dependencies.includes('firebase')) auth = 'Firebase';
+    response += `| Auth | ${auth} | ✓ Keeping |\n`;
+
+    // UI detection
+    response += `| UI | ${context.uiLibrary || 'Tailwind'} | ✓ Keeping |\n`;
+
+    // Framework (always Next.js for now)
+    const hasNext = context.dependencies.includes('next');
+    response += `| Framework | ${hasNext ? 'Next.js' : 'Unknown'} | ✓ Keeping |\n`;
+
+    response += `\n---\n\n`;
+
+    // Scan for upgrade opportunities
+    response += `## Upgrade Opportunities\n\n`;
+
+    const upgrades: Array<{ area: string; issue: string; severity: string; count: number }> = [];
+
+    // Check API routes
+    if (context.existingApiRoutes.length > 0) {
+      upgrades.push({
+        area: 'API Routes',
+        issue: 'Add error handling, validation, rate limiting',
+        severity: 'HIGH',
+        count: context.existingApiRoutes.length,
+      });
+    }
+
+    // Check components
+    if (context.existingComponents.length > 0) {
+      upgrades.push({
+        area: 'Components',
+        issue: 'Add loading states, error boundaries, accessibility',
+        severity: 'MEDIUM',
+        count: context.existingComponents.length,
+      });
+    }
+
+    // Check for tests
+    const hasTests = context.dependencies.includes('@playwright/test') ||
+      context.dependencies.includes('jest') ||
+      context.dependencies.includes('vitest');
+    if (!hasTests) {
+      upgrades.push({
+        area: 'Testing',
+        issue: 'No test framework detected',
+        severity: 'HIGH',
+        count: 0,
+      });
+    }
+
+    // Check for Zod
+    const hasZod = context.dependencies.includes('zod');
+    if (!hasZod && context.existingApiRoutes.length > 0) {
+      upgrades.push({
+        area: 'Validation',
+        issue: 'No Zod validation detected for API routes',
+        severity: 'HIGH',
+        count: context.existingApiRoutes.length,
+      });
+    }
+
+    // Display upgrades
+    for (const upgrade of upgrades) {
+      const icon = upgrade.severity === 'HIGH' ? '🔴' :
+        upgrade.severity === 'MEDIUM' ? '🟡' : '🟢';
+      response += `### ${icon} ${upgrade.area}\n`;
+      response += `- **Issue:** ${upgrade.issue}\n`;
+      if (upgrade.count > 0) {
+        response += `- **Affected:** ${upgrade.count} files\n`;
+      }
+      response += `- **Severity:** ${upgrade.severity}\n\n`;
+    }
+
+    if (upgrades.length === 0) {
+      response += `✅ No major upgrade opportunities detected!\n\n`;
+    }
+
+    // Recommendations
+    response += `---\n\n`;
+    response += `## Recommended Actions\n\n`;
+
+    if (dryRun) {
+      response += `**(Dry Run Mode - No changes will be made)**\n\n`;
+    }
+
+    response += `1. Run \`run_audit\` for detailed code quality check\n`;
+    response += `2. Use \`heal\` to auto-fix common issues\n`;
+    response += `3. Request specific upgrades like:\n`;
+    response += `   - "Add Zod validation to my API routes"\n`;
+    response += `   - "Add error boundaries to components"\n`;
+    response += `   - "Set up Playwright testing"\n\n`;
+
+    response += `---\n\n`;
+    response += `**Key Principle:** Your stack stays the same. Only code quality patterns are upgraded.\n`;
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: response,
+      }],
+    };
+  }
+
+  private handleProjectStatus() {
+    const cwd = process.cwd();
+    const context = this.gatherProjectContext();
+
+    let response = `# 📊 Project Status\n\n`;
+    response += `**Project:** ${context.projectName}\n\n`;
+
+    // Check for .codebakers.json state
+    let state: Record<string, unknown> | null = null;
+    try {
+      const statePath = path.join(cwd, '.codebakers.json');
+      if (fs.existsSync(statePath)) {
+        state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+      }
+    } catch {
+      // No state file
+    }
+
+    // Check for PRD
+    const prdPath = path.join(cwd, 'PRD.md');
+    const hasPrd = fs.existsSync(prdPath);
+
+    // Check for PROJECT-STATE.md
+    const projectStatePath = path.join(cwd, 'PROJECT-STATE.md');
+    const hasProjectState = fs.existsSync(projectStatePath);
+
+    if (state && typeof state === 'object') {
+      const s = state as Record<string, unknown>;
+
+      // Build progress
+      if (s.build && typeof s.build === 'object') {
+        const build = s.build as Record<string, unknown>;
+        response += `## Build Progress\n\n`;
+        const currentPhase = build.currentPhase as number || 0;
+        const totalPhases = build.totalPhases as number || 1;
+        const percent = Math.round((currentPhase / totalPhases) * 100);
+        response += `**Phase ${currentPhase}/${totalPhases}** (${percent}%)\n\n`;
+
+        // Progress bar
+        const filled = Math.round(percent / 10);
+        const empty = 10 - filled;
+        response += `[${'█'.repeat(filled)}${'░'.repeat(empty)}] ${percent}%\n\n`;
+
+        if (build.status) {
+          response += `**Status:** ${build.status}\n\n`;
+        }
+      }
+
+      // Current work
+      if (s.currentWork && typeof s.currentWork === 'object') {
+        const work = s.currentWork as Record<string, unknown>;
+        response += `## Current Work\n\n`;
+        if (work.activeFeature) {
+          response += `**In Progress:** ${work.activeFeature}\n`;
+        }
+        if (work.summary) {
+          response += `**Summary:** ${work.summary}\n`;
+        }
+        if (work.lastUpdated) {
+          response += `**Last Updated:** ${work.lastUpdated}\n`;
+        }
+        response += `\n`;
+      }
+
+      // Stack
+      if (s.stack && typeof s.stack === 'object') {
+        const stack = s.stack as Record<string, unknown>;
+        response += `## Stack\n\n`;
+        for (const [key, value] of Object.entries(stack)) {
+          if (value) {
+            response += `- **${key}:** ${value}\n`;
+          }
+        }
+        response += `\n`;
+      }
+    } else {
+      response += `## Project Overview\n\n`;
+      response += `- **PRD:** ${hasPrd ? '✅ Found' : '❌ Not found'}\n`;
+      response += `- **State Tracking:** ${hasProjectState ? '✅ Found' : '❌ Not found'}\n`;
+      response += `- **CodeBakers State:** ${state ? '✅ Found' : '❌ Not initialized'}\n\n`;
+    }
+
+    // What's built
+    response += `## What's Built\n\n`;
+    response += `- **Components:** ${context.existingComponents.length}\n`;
+    response += `- **API Routes:** ${context.existingApiRoutes.length}\n`;
+    response += `- **Services:** ${context.existingServices.length}\n`;
+
+    if (context.hasAuth) response += `- ✅ Authentication\n`;
+    if (context.hasDatabase) response += `- ✅ Database\n`;
+    if (context.hasPayments) response += `- ✅ Payments\n`;
+
+    response += `\n`;
+
+    // Recent components
+    if (context.existingComponents.length > 0) {
+      response += `### Recent Components\n`;
+      context.existingComponents.slice(0, 10).forEach(comp => {
+        response += `- ${comp}\n`;
+      });
+      if (context.existingComponents.length > 10) {
+        response += `- ... and ${context.existingComponents.length - 10} more\n`;
+      }
+      response += `\n`;
+    }
+
+    response += `---\n\n`;
+    response += `*Run \`upgrade\` to improve code quality or \`run_audit\` for detailed analysis.*`;
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: response,
+      }],
+    };
+  }
+
+  private handleRunTests(args: { filter?: string; watch?: boolean }) {
+    const { filter, watch = false } = args;
+    const cwd = process.cwd();
+
+    // Detect test runner from package.json
+    let testCommand = 'npm test';
+    try {
+      const pkgPath = path.join(cwd, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+        const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+
+        if (deps['@playwright/test']) {
+          testCommand = 'npx playwright test';
+        } else if (deps['vitest']) {
+          testCommand = 'npx vitest run';
+        } else if (deps['jest']) {
+          testCommand = 'npx jest';
+        }
+      }
+    } catch {
+      // Use default
+    }
+
+    // Add filter if provided
+    if (filter) {
+      testCommand += ` ${filter}`;
+    }
+
+    // Add watch mode
+    if (watch) {
+      testCommand = testCommand.replace(' run', ''); // Remove 'run' for vitest watch
+      if (testCommand.includes('vitest')) {
+        testCommand = testCommand.replace('vitest run', 'vitest');
+      }
+    }
+
+    let response = `# 🧪 Running Tests\n\n`;
+    response += `**Command:** \`${testCommand}\`\n\n`;
+
+    try {
+      const output = execSync(testCommand, {
+        cwd,
+        encoding: 'utf-8',
+        timeout: 120000, // 2 minute timeout
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      response += `## ✅ Tests Passed\n\n`;
+      response += '```\n' + output.slice(-2000) + '\n```\n';
+    } catch (error) {
+      const execError = error as { stdout?: string; stderr?: string; status?: number };
+      response += `## ❌ Tests Failed\n\n`;
+
+      if (execError.stdout) {
+        response += '### Output\n```\n' + execError.stdout.slice(-2000) + '\n```\n\n';
+      }
+      if (execError.stderr) {
+        response += '### Errors\n```\n' + execError.stderr.slice(-1000) + '\n```\n\n';
+      }
+
+      response += `**Exit Code:** ${execError.status || 1}\n\n`;
+      response += `---\n\n*Fix the failing tests and run again.*`;
+    }
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: response,
+      }],
+    };
+  }
+
+  private async handleReportPatternGap(args: { category: string; request: string; context?: string; handledWith?: string; wasSuccessful?: boolean }) {
+    const { category, request, context, handledWith, wasSuccessful = true } = args;
+
+    try {
+      const response = await fetch(`${this.apiUrl}/api/pattern-gaps`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          category,
+          request,
+          context,
+          handledWith,
+          wasSuccessful,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to report pattern gap');
+      }
+
+      const result = await response.json();
+
+      if (result.deduplicated) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: `📊 Pattern gap already reported recently (category: ${category}). No duplicate created.`,
+          }],
+        };
+      }
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `✅ Pattern gap reported successfully.\n\n**Category:** ${category}\n**Request:** ${request}\n\nThis helps improve CodeBakers for everyone!`,
+        }],
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `⚠️ Could not report pattern gap: ${message}\n\n(This doesn't affect your current work)`,
+        }],
+      };
+    }
+  }
+
+  private async handleTrackAnalytics(args: { eventType: string; eventData?: Record<string, unknown>; projectHash?: string }) {
+    const { eventType, eventData, projectHash } = args;
+
+    try {
+      const response = await fetch(`${this.apiUrl}/api/cli/analytics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          eventType,
+          eventData,
+          projectHash,
+        }),
+      });
+
+      if (!response.ok) {
+        // Silently fail - analytics shouldn't interrupt user workflow
+        return {
+          content: [{
+            type: 'text' as const,
+            text: `📊 Analytics tracked: ${eventType}`,
+          }],
+        };
+      }
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `📊 Analytics tracked: ${eventType}`,
+        }],
+      };
+    } catch {
+      // Silently fail
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `📊 Analytics tracked: ${eventType}`,
+        }],
+      };
+    }
   }
 
   async run(): Promise<void> {

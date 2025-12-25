@@ -298,3 +298,51 @@ export type NewPatternUsage = typeof patternUsage.$inferInsert;
 export type TeamInvite = typeof teamInvites.$inferSelect;
 export type NewTeamInvite = typeof teamInvites.$inferInsert;
 export type PaymentProvider = 'stripe' | 'square' | 'paypal';
+
+// Pattern Gaps - track when AI encounters missing patterns
+export const patternGaps = pgTable('pattern_gaps', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // What was requested
+  category: text('category').notNull(), // e.g., "third-party-apis", "mobile", "blockchain"
+  request: text('request').notNull(), // What the user asked for
+  context: text('context'), // Additional context about the request
+
+  // How it was handled
+  handledWith: text('handled_with'), // Which patterns were used as fallback
+  wasSuccessful: boolean('was_successful').default(true),
+
+  // Who reported (optional - CLI might not have auth context)
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'set null' }),
+
+  // Admin review
+  status: text('status').default('new'), // new, reviewed, pattern_added, dismissed
+  adminNotes: text('admin_notes'),
+  reviewedBy: uuid('reviewed_by').references(() => profiles.id, { onDelete: 'set null' }),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow(),
+  reviewedAt: timestamp('reviewed_at'),
+});
+
+export type PatternGap = typeof patternGaps.$inferSelect;
+export type NewPatternGap = typeof patternGaps.$inferInsert;
+
+// CLI Analytics - track CLI usage patterns for learning
+export const cliAnalytics = pgTable('cli_analytics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Event type
+  eventType: text('event_type').notNull(), // e.g., "trigger_fired", "trigger_accepted", "topic_learned"
+  eventData: text('event_data'), // JSON with event-specific data
+
+  // Source
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'set null' }),
+  projectHash: text('project_hash'), // Hash of project path for grouping
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export type CliAnalytics = typeof cliAnalytics.$inferSelect;
+export type NewCliAnalytics = typeof cliAnalytics.$inferInsert;
