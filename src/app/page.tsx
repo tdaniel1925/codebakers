@@ -78,7 +78,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Simple Nav */}
+      {/* Nav with section links */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
@@ -87,49 +87,95 @@ export default function HomePage() {
             </div>
             <span className="text-xl font-bold">CodeBakers</span>
           </Link>
+          <div className="hidden md:flex items-center gap-6">
+            <Link href="#smart-prompts" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Smart Prompts</Link>
+            <Link href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</Link>
+            <Link href="#compare" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Compare</Link>
+            <Link href="#modules" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Modules</Link>
+            <Link href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+          </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <button
-              data-cal-link="botmakers/30min"
-              data-cal-namespace="30min"
-              data-cal-config='{"layout":"month_view"}'
-              className="hidden sm:inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Calendar03Icon className="w-4 h-4" />
-              Book Demo
-            </button>
             <Link href="/login">
               <Button variant="ghost" size="sm">Login</Button>
             </Link>
             <Link href="/signup">
               <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
                 Start Free
+                <ArrowRight02Icon className="ml-1 h-4 w-4" />
               </Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero - Simple, Bold */}
-      <section className="pt-32 pb-20 px-4">
+      {/* Hero - Original Style */}
+      <section id="smart-prompts" className="pt-32 pb-16 px-4">
         <div className="container mx-auto text-center max-w-4xl">
-          <Badge className="mb-6 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">
-            <SparklesIcon className="w-3 h-3 mr-1" />
-            Now with Smart Triggers
-          </Badge>
+          {/* Cursive label */}
+          <p className="text-red-500 text-2xl md:text-3xl mb-2 font-serif italic">
+            Cursor / Claude Code
+          </p>
+          <p className="text-red-500 text-sm mb-4">↑</p>
 
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black mb-6 leading-[1.1] tracking-tight">
-            Your AI finally
-            <span className="text-red-600 dark:text-red-500"> gets it.</span>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black mb-2 leading-[1.1] tracking-tight">
+            Your prompts <span className="text-red-600 dark:text-red-500">suck.</span>
           </h1>
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-8 leading-[1.1] tracking-tight text-muted-foreground">
+            We fix them.
+          </h2>
 
-          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Stop typing long prompts. Stop asking for tests.
-            <span className="text-foreground font-semibold"> Just vibe.</span>
-            <br />Your AI knows what production code needs.
+          <p className="text-xl md:text-2xl text-muted-foreground mb-12">
+            Get production-ready code on the first try.
           </p>
 
-          {/* Two CTAs */}
+          {/* Interactive Demo */}
+          <div className="max-w-3xl mx-auto bg-slate-900 rounded-2xl p-6 mb-8 text-left border border-slate-700">
+            {/* Window controls */}
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="ml-4 text-slate-400 text-sm">cursor / claude code</span>
+            </div>
+
+            {/* Two columns */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* What you type */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-slate-500 text-xs bg-slate-800 px-2 py-1 rounded">1</span>
+                  <span className="text-slate-400 text-sm">What you type</span>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-4">
+                  <p className="text-slate-300 text-lg">add login form</p>
+                </div>
+              </div>
+
+              {/* What AI receives */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <SparklesIcon className="w-4 h-4 text-green-500" />
+                  <span className="text-green-500 text-sm">What AI receives</span>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-green-500/30">
+                  <p className="text-slate-300 text-sm leading-relaxed">
+                    Build login with <span className="text-white font-semibold">React Hook Form + Zod</span>, loading states, error handling, toast notifications, <span className="text-white font-semibold">accessibility</span>, keyboard nav, and <span className="text-white font-semibold">Playwright tests</span>...
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom badge */}
+            <div className="flex justify-center mt-6">
+              <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2">
+                <Tick02Icon className="w-4 h-4 text-green-500" />
+                <span className="text-green-400 text-sm">Production-ready code. First prompt. No revisions.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* CTAs */}
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             <Link href="/signup">
               <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-14 px-8 text-lg font-semibold w-full sm:w-auto shadow-xl shadow-red-500/25 rounded-xl">
@@ -147,22 +193,6 @@ export default function HomePage() {
                 Book a Demo
               </Button>
             </button>
-          </div>
-
-          {/* Trust signals */}
-          <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Tick02Icon className="h-4 w-4 text-green-500" />
-              <span>1 free project forever</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <FlashIcon className="h-4 w-4 text-yellow-500" />
-              <span>2-minute setup</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <LockIcon className="h-4 w-4 text-blue-500" />
-              <span>Works in Cursor & Claude Code</span>
-            </div>
           </div>
         </div>
       </section>
