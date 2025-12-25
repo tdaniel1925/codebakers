@@ -1729,6 +1729,7 @@ Just describe what you want to build! I'll automatically:
   private async handleUpgrade(args: { areas?: string[]; severity?: string; dryRun?: boolean }) {
     const { areas = ['all'], severity = 'all', dryRun = false } = args;
     const context = this.gatherProjectContext();
+    const cwd = process.cwd();
 
     let response = `# ⬆️ Project Upgrade Analysis\n\n`;
 
@@ -1761,6 +1762,104 @@ Just describe what you want to build! I'll automatically:
     response += `| Framework | ${hasNext ? 'Next.js' : 'Unknown'} | ✓ Keeping |\n`;
 
     response += `\n---\n\n`;
+
+    // Git Analysis Section
+    response += `## Deep Analysis\n\n`;
+
+    // Check if git repo
+    const isGitRepo = fs.existsSync(path.join(cwd, '.git'));
+
+    if (isGitRepo) {
+      response += `### Git Hot Spots (Most Changed Files)\n\n`;
+      try {
+        // Get files with most commits
+        const gitLog = execSync(
+          'git log --pretty=format: --name-only --since="6 months ago" 2>/dev/null | sort | uniq -c | sort -rg | head -10',
+          { cwd, encoding: 'utf-8', timeout: 10000 }
+        ).trim();
+
+        if (gitLog) {
+          const hotSpots = gitLog.split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.includes('node_modules'))
+            .slice(0, 5);
+
+          if (hotSpots.length > 0) {
+            hotSpots.forEach((line, i) => {
+              const match = line.match(/^\s*(\d+)\s+(.+)$/);
+              if (match) {
+                const [, count, file] = match;
+                response += `${i + 1}. \`${file}\` - ${count} changes\n`;
+              }
+            });
+            response += `\n`;
+          }
+        }
+
+        // Count fix commits
+        const fixCount = execSync(
+          'git log --oneline --since="6 months ago" 2>/dev/null | grep -i "fix" | wc -l',
+          { cwd, encoding: 'utf-8', timeout: 5000 }
+        ).trim();
+
+        if (parseInt(fixCount) > 0) {
+          response += `**Bug Fix Commits:** ${fixCount} (in last 6 months)\n\n`;
+        }
+      } catch {
+        response += `*(Git analysis unavailable)*\n\n`;
+      }
+    } else {
+      response += `*(Not a git repository - skipping git analysis)*\n\n`;
+    }
+
+    // TODO/FIXME Scan
+    response += `### Developer Notes (TODO/FIXME)\n\n`;
+    try {
+      const todoScan = execSync(
+        'grep -r "TODO\\|FIXME\\|HACK\\|XXX\\|BUG" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" -l 2>/dev/null | head -20',
+        { cwd, encoding: 'utf-8', timeout: 10000 }
+      ).trim();
+
+      if (todoScan) {
+        const todoFiles = todoScan.split('\n').filter(f => !f.includes('node_modules'));
+        const todoCount = todoFiles.length;
+
+        if (todoCount > 0) {
+          response += `Found developer notes in **${todoCount} files**:\n\n`;
+
+          // Count by type
+          try {
+            const todoTypes = execSync(
+              'grep -roh "TODO\\|FIXME\\|HACK\\|XXX\\|BUG" --include="*.ts" --include="*.tsx" 2>/dev/null | sort | uniq -c | sort -rg',
+              { cwd, encoding: 'utf-8', timeout: 10000 }
+            ).trim();
+
+            if (todoTypes) {
+              todoTypes.split('\n').forEach(line => {
+                const match = line.trim().match(/^\s*(\d+)\s+(.+)$/);
+                if (match) {
+                  const [, count, type] = match;
+                  const icon = type === 'FIXME' || type === 'BUG' ? '🔴' :
+                    type === 'HACK' ? '🟡' : '📝';
+                  response += `- ${icon} ${count} ${type}s\n`;
+                }
+              });
+              response += `\n`;
+            }
+          } catch {
+            // Ignore count errors
+          }
+
+          response += `*I can implement these TODOs and fix FIXMEs during upgrade.*\n\n`;
+        }
+      } else {
+        response += `✅ No TODO/FIXME comments found - clean codebase!\n\n`;
+      }
+    } catch {
+      response += `*(TODO scan unavailable)*\n\n`;
+    }
+
+    response += `---\n\n`;
 
     // Scan for upgrade opportunities
     response += `## Upgrade Opportunities\n\n`;
@@ -1827,6 +1926,17 @@ Just describe what you want to build! I'll automatically:
       response += `✅ No major upgrade opportunities detected!\n\n`;
     }
 
+    // Review mode options
+    response += `---\n\n`;
+    response += `## Review Modes\n\n`;
+    response += `Pick a focus for the upgrade:\n\n`;
+    response += `- **Security Audit** - Auth, secrets, injections, OWASP top 10\n`;
+    response += `- **Performance Review** - Bundle size, queries, caching\n`;
+    response += `- **Code Quality** - Patterns, DRY, complexity\n`;
+    response += `- **Pre-Launch** - Everything for production\n`;
+    response += `- **Quick Scan** - Top 5 issues only\n`;
+    response += `- **Comprehensive** - All of the above\n\n`;
+
     // Recommendations
     response += `---\n\n`;
     response += `## Recommended Actions\n\n`;
@@ -1835,12 +1945,10 @@ Just describe what you want to build! I'll automatically:
       response += `**(Dry Run Mode - No changes will be made)**\n\n`;
     }
 
-    response += `1. Run \`run_audit\` for detailed code quality check\n`;
-    response += `2. Use \`heal\` to auto-fix common issues\n`;
-    response += `3. Request specific upgrades like:\n`;
-    response += `   - "Add Zod validation to my API routes"\n`;
-    response += `   - "Add error boundaries to components"\n`;
-    response += `   - "Set up Playwright testing"\n\n`;
+    response += `1. Tell me your main concerns (security, performance, etc.)\n`;
+    response += `2. I'll prioritize fixes based on your needs\n`;
+    response += `3. Hot spot files get fixed first (where bugs live)\n`;
+    response += `4. I'll implement your TODOs and fix FIXMEs along the way\n\n`;
 
     response += `---\n\n`;
     response += `**Key Principle:** Your stack stays the same. Only code quality patterns are upgraded.\n`;
