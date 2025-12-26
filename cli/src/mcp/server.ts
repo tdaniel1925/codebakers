@@ -1859,6 +1859,251 @@ Just describe what you want to build! I'll automatically:
       response += `*(TODO scan unavailable)*\n\n`;
     }
 
+    // Dependency Security Scan (npm audit)
+    response += `### 🔒 Dependency Security Scan\n\n`;
+    try {
+      const auditOutput = execSync('npm audit --json 2>/dev/null', {
+        cwd,
+        encoding: 'utf-8',
+        timeout: 30000,
+      });
+      const audit = JSON.parse(auditOutput);
+      const vulns = audit.metadata?.vulnerabilities || {};
+      const total = (vulns.critical || 0) + (vulns.high || 0) + (vulns.moderate || 0) + (vulns.low || 0);
+
+      if (total > 0) {
+        response += `Found **${total} vulnerabilities**:\n\n`;
+        if (vulns.critical > 0) response += `- 🔴 **${vulns.critical} Critical**\n`;
+        if (vulns.high > 0) response += `- 🟠 **${vulns.high} High**\n`;
+        if (vulns.moderate > 0) response += `- 🟡 **${vulns.moderate} Moderate**\n`;
+        if (vulns.low > 0) response += `- 🟢 **${vulns.low} Low**\n`;
+        response += `\n*Run \`npm audit fix\` to auto-fix, or \`npm audit\` for details.*\n\n`;
+      } else {
+        response += `✅ No known vulnerabilities in dependencies!\n\n`;
+      }
+    } catch (error) {
+      // npm audit exits with non-zero if vulnerabilities found
+      const execError = error as { stdout?: string };
+      if (execError.stdout) {
+        try {
+          const audit = JSON.parse(execError.stdout);
+          const vulns = audit.metadata?.vulnerabilities || {};
+          const total = (vulns.critical || 0) + (vulns.high || 0) + (vulns.moderate || 0) + (vulns.low || 0);
+
+          if (total > 0) {
+            response += `Found **${total} vulnerabilities**:\n\n`;
+            if (vulns.critical > 0) response += `- 🔴 **${vulns.critical} Critical**\n`;
+            if (vulns.high > 0) response += `- 🟠 **${vulns.high} High**\n`;
+            if (vulns.moderate > 0) response += `- 🟡 **${vulns.moderate} Moderate**\n`;
+            if (vulns.low > 0) response += `- 🟢 **${vulns.low} Low**\n`;
+            response += `\n*Run \`npm audit fix\` to auto-fix, or \`npm audit\` for details.*\n\n`;
+          }
+        } catch {
+          response += `*(Dependency scan unavailable)*\n\n`;
+        }
+      } else {
+        response += `*(Dependency scan unavailable)*\n\n`;
+      }
+    }
+
+    // TypeScript Strictness Check
+    response += `### 📝 TypeScript Configuration\n\n`;
+    try {
+      const tsconfigPath = path.join(cwd, 'tsconfig.json');
+      if (fs.existsSync(tsconfigPath)) {
+        const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf-8'));
+        const compilerOptions = tsconfig.compilerOptions || {};
+
+        const checks = [
+          { name: 'strict', value: compilerOptions.strict, recommended: true },
+          { name: 'noImplicitAny', value: compilerOptions.noImplicitAny, recommended: true },
+          { name: 'strictNullChecks', value: compilerOptions.strictNullChecks, recommended: true },
+          { name: 'noUnusedLocals', value: compilerOptions.noUnusedLocals, recommended: true },
+          { name: 'noUnusedParameters', value: compilerOptions.noUnusedParameters, recommended: true },
+        ];
+
+        const enabled = checks.filter(c => c.value === true);
+        const missing = checks.filter(c => c.value !== true && c.recommended);
+
+        if (compilerOptions.strict === true) {
+          response += `✅ **Strict mode enabled** - Good!\n\n`;
+        } else {
+          response += `⚠️ **Strict mode not enabled**\n\n`;
+          if (missing.length > 0) {
+            response += `Missing recommended options:\n`;
+            missing.forEach(m => {
+              response += `- \`${m.name}: true\`\n`;
+            });
+            response += `\n`;
+          }
+        }
+
+        // Check for any types
+        try {
+          const anyCount = execSync(
+            'grep -r ": any" --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v node_modules | wc -l',
+            { cwd, encoding: 'utf-8', timeout: 10000 }
+          ).trim();
+          const count = parseInt(anyCount);
+          if (count > 10) {
+            response += `⚠️ Found **${count}** uses of \`: any\` - consider typing these\n\n`;
+          } else if (count > 0) {
+            response += `📝 Found **${count}** uses of \`: any\`\n\n`;
+          }
+        } catch {
+          // Ignore
+        }
+      } else {
+        response += `⚠️ No tsconfig.json found - not a TypeScript project?\n\n`;
+      }
+    } catch {
+      response += `*(TypeScript check unavailable)*\n\n`;
+    }
+
+    // Environment Variable Audit
+    response += `### 🔐 Environment Variable Audit\n\n`;
+    try {
+      const envExamplePath = path.join(cwd, '.env.example');
+      const envLocalPath = path.join(cwd, '.env.local');
+      const envPath = path.join(cwd, '.env');
+
+      const hasEnvExample = fs.existsSync(envExamplePath);
+      const hasEnvLocal = fs.existsSync(envLocalPath);
+      const hasEnv = fs.existsSync(envPath);
+
+      if (hasEnvExample) {
+        response += `✅ \`.env.example\` exists - good for documentation\n`;
+      } else {
+        response += `⚠️ No \`.env.example\` - add one for team onboarding\n`;
+      }
+
+      // Check for hardcoded secrets in code
+      try {
+        const secretPatterns = [
+          'sk-[a-zA-Z0-9]{20,}',  // OpenAI keys
+          'sk_live_[a-zA-Z0-9]+', // Stripe live keys
+          'pk_live_[a-zA-Z0-9]+', // Stripe public live keys
+          'ghp_[a-zA-Z0-9]+',     // GitHub tokens
+          'AKIA[A-Z0-9]{16}',     // AWS access keys
+        ];
+
+        let secretsFound = 0;
+        for (const pattern of secretPatterns) {
+          try {
+            const matches = execSync(
+              `grep -rE "${pattern}" --include="*.ts" --include="*.tsx" --include="*.js" 2>/dev/null | grep -v node_modules | grep -v ".env" | wc -l`,
+              { cwd, encoding: 'utf-8', timeout: 5000 }
+            ).trim();
+            secretsFound += parseInt(matches) || 0;
+          } catch {
+            // Pattern not found
+          }
+        }
+
+        if (secretsFound > 0) {
+          response += `\n🔴 **CRITICAL: Found ${secretsFound} potential hardcoded secrets in code!**\n`;
+          response += `*These should be moved to environment variables immediately.*\n`;
+        } else {
+          response += `\n✅ No hardcoded secrets detected in code\n`;
+        }
+      } catch {
+        // Ignore
+      }
+
+      // Check if .env is gitignored
+      try {
+        const gitignorePath = path.join(cwd, '.gitignore');
+        if (fs.existsSync(gitignorePath)) {
+          const gitignore = fs.readFileSync(gitignorePath, 'utf-8');
+          if (!gitignore.includes('.env')) {
+            response += `\n⚠️ \`.env\` not in .gitignore - secrets could be committed!\n`;
+          }
+        }
+      } catch {
+        // Ignore
+      }
+
+      response += `\n`;
+    } catch {
+      response += `*(Environment audit unavailable)*\n\n`;
+    }
+
+    // Test Coverage Analysis
+    response += `### 🧪 Test Coverage\n\n`;
+    try {
+      const hasPlaywright = context.dependencies.includes('@playwright/test');
+      const hasVitest = context.dependencies.includes('vitest');
+      const hasJest = context.dependencies.includes('jest');
+
+      if (hasPlaywright || hasVitest || hasJest) {
+        const framework = hasPlaywright ? 'Playwright' : hasVitest ? 'Vitest' : 'Jest';
+        response += `✅ Test framework detected: **${framework}**\n\n`;
+
+        // Count test files
+        try {
+          const testFiles = execSync(
+            'find . -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" -o -name "*.spec.tsx" 2>/dev/null | grep -v node_modules | wc -l',
+            { cwd, encoding: 'utf-8', timeout: 10000 }
+          ).trim();
+          const count = parseInt(testFiles);
+          if (count > 0) {
+            response += `Found **${count} test files**\n\n`;
+          } else {
+            response += `⚠️ No test files found - add tests!\n\n`;
+          }
+        } catch {
+          // Ignore
+        }
+      } else {
+        response += `⚠️ **No test framework detected**\n\n`;
+        response += `Recommended: Add \`vitest\` or \`@playwright/test\`\n\n`;
+      }
+    } catch {
+      response += `*(Test analysis unavailable)*\n\n`;
+    }
+
+    // API Endpoint Inventory
+    response += `### 🔌 API Endpoint Inventory\n\n`;
+    if (context.existingApiRoutes.length > 0) {
+      response += `Found **${context.existingApiRoutes.length} API routes**:\n\n`;
+
+      // Check for auth protection on routes
+      let protectedCount = 0;
+      let unprotectedCount = 0;
+
+      for (const route of context.existingApiRoutes.slice(0, 10)) {
+        try {
+          const routePath = path.join(cwd, route);
+          if (fs.existsSync(routePath)) {
+            const content = fs.readFileSync(routePath, 'utf-8');
+            const hasAuth = content.includes('getServerSession') ||
+                           content.includes('auth(') ||
+                           content.includes('requireAuth') ||
+                           content.includes('Authorization') ||
+                           content.includes('authenticate');
+            if (hasAuth) {
+              protectedCount++;
+            } else {
+              unprotectedCount++;
+            }
+          }
+        } catch {
+          // Ignore
+        }
+      }
+
+      if (protectedCount > 0 || unprotectedCount > 0) {
+        response += `- 🔒 **${protectedCount}** routes with auth checks\n`;
+        response += `- 🔓 **${unprotectedCount}** routes without visible auth\n\n`;
+
+        if (unprotectedCount > protectedCount) {
+          response += `⚠️ *Many routes lack visible auth - review if intentional*\n\n`;
+        }
+      }
+    } else {
+      response += `No API routes detected yet.\n\n`;
+    }
+
     response += `---\n\n`;
 
     // Scan for upgrade opportunities
