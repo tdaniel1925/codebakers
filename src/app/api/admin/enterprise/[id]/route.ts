@@ -4,6 +4,7 @@ import { isAdmin } from '@/lib/auth';
 import { db, enterpriseInquiries } from '@/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    autoRateLimit(req);
     const supabase = await createClient();
     const {
       data: { user },

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PricingService } from '@/services/pricing-service';
+import { autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +8,7 @@ export const dynamic = 'force-dynamic';
 // Protected by checking for admin email or a secret
 export async function POST(req: NextRequest) {
   try {
+    autoRateLimit(req);
     // Check for admin secret
     const { secret } = await req.json();
     if (secret !== process.env.ENCODER_KEY) {

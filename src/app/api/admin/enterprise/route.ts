@@ -3,11 +3,13 @@ import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/auth';
 import { db, enterpriseInquiries } from '@/db';
 import { desc, eq, sql } from 'drizzle-orm';
+import { autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    autoRateLimit(req);
     const supabase = await createClient();
     const {
       data: { user },
