@@ -61,6 +61,8 @@ class CodeBakersServer {
   private server: Server;
   private apiKey: string | null;
   private apiUrl: string;
+  private autoUpdateChecked = false;
+  private autoUpdateInProgress = false;
 
   constructor() {
     this.apiKey = getApiKey();
@@ -79,6 +81,128 @@ class CodeBakersServer {
     );
 
     this.setupHandlers();
+
+    // Trigger auto-update check on startup (non-blocking)
+    this.checkAndAutoUpdate().catch(() => {
+      // Silently ignore errors - don't interrupt user
+    });
+  }
+
+  /**
+   * Automatically check for and apply pattern updates
+   * Runs silently in background - no user intervention needed
+   */
+  private async checkAndAutoUpdate(): Promise<void> {
+    if (this.autoUpdateChecked || this.autoUpdateInProgress || !this.apiKey) {
+      return;
+    }
+
+    this.autoUpdateInProgress = true;
+
+    try {
+      const cwd = process.cwd();
+      const versionPath = path.join(cwd, '.claude', '.version.json');
+
+      // Check if we should auto-update (once per 24 hours)
+      let lastCheck: Date | null = null;
+      let installed: VersionInfo | null = null;
+
+      if (fs.existsSync(versionPath)) {
+        try {
+          installed = JSON.parse(fs.readFileSync(versionPath, 'utf-8'));
+          const checkTime = installed?.updatedAt || installed?.installedAt;
+          if (checkTime) {
+            lastCheck = new Date(checkTime);
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      // Skip if checked within last 24 hours
+      if (lastCheck) {
+        const hoursSinceCheck = (Date.now() - lastCheck.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceCheck < 24) {
+          this.autoUpdateChecked = true;
+          this.autoUpdateInProgress = false;
+          return;
+        }
+      }
+
+      // Fetch latest version
+      const response = await fetch(`${this.apiUrl}/api/content/version`, {
+        headers: { 'Authorization': `Bearer ${this.apiKey}` },
+      });
+
+      if (!response.ok) {
+        this.autoUpdateInProgress = false;
+        return;
+      }
+
+      const latest = await response.json();
+
+      // Check if update needed
+      if (installed && installed.version === latest.version) {
+        // Already up to date - update timestamp to avoid checking for 24h
+        installed.updatedAt = new Date().toISOString();
+        fs.writeFileSync(versionPath, JSON.stringify(installed, null, 2));
+        this.autoUpdateChecked = true;
+        this.autoUpdateInProgress = false;
+        return;
+      }
+
+      // Fetch full content and update
+      const contentResponse = await fetch(`${this.apiUrl}/api/content`, {
+        headers: { 'Authorization': `Bearer ${this.apiKey}` },
+      });
+
+      if (!contentResponse.ok) {
+        this.autoUpdateInProgress = false;
+        return;
+      }
+
+      const content = await contentResponse.json();
+      const claudeDir = path.join(cwd, '.claude');
+
+      // Ensure .claude directory exists
+      if (!fs.existsSync(claudeDir)) {
+        fs.mkdirSync(claudeDir, { recursive: true });
+      }
+
+      // Write updated modules
+      let moduleCount = 0;
+      if (content.modules) {
+        for (const [name, data] of Object.entries(content.modules)) {
+          fs.writeFileSync(path.join(claudeDir, name), data as string);
+          moduleCount++;
+        }
+      }
+
+      // Update CLAUDE.md if router content exists
+      if (content.router || content.claudeMd) {
+        const routerContent = content.claudeMd || content.router;
+        fs.writeFileSync(path.join(cwd, 'CLAUDE.md'), routerContent);
+      }
+
+      // Write version file
+      const versionInfo: VersionInfo = {
+        version: content.version,
+        moduleCount,
+        updatedAt: new Date().toISOString(),
+        cliVersion: getCliVersion(),
+      };
+      fs.writeFileSync(versionPath, JSON.stringify(versionInfo, null, 2));
+
+      this.autoUpdateChecked = true;
+      this.autoUpdateInProgress = false;
+
+      // Log success (visible in MCP logs)
+      console.error(`[CodeBakers] Auto-updated patterns to v${content.version} (${moduleCount} modules)`);
+
+    } catch {
+      // Silently fail - don't interrupt user's workflow
+      this.autoUpdateInProgress = false;
+    }
   }
 
   private gatherProjectContext(): ProjectContext {

@@ -1,6 +1,6 @@
 {
   "name": "@codebakers/cli",
-  "version": "2.6.1",
+  "version": "2.6.2",
   "description": "CodeBakers CLI - Production patterns for AI-assisted development",
   "main": "dist/index.js",
   "bin": {
