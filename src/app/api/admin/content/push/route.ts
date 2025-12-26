@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { ContentManagementService } from '@/services/content-management-service';
 import { handleApiError, successResponse, autoRateLimit } from '@/lib/api-utils';
 import { db } from '@/db';
-import { users, apiKeys, teamMembers } from '@/db/schema';
+import { profiles, apiKeys, teamMembers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -20,14 +20,11 @@ function hashApiKey(key: string): string {
  * Supports both Bearer token and x-admin-api-key header
  */
 async function verifyAdminAuth(req: NextRequest): Promise<{ id: string } | null> {
-  // Try Bearer token first
-  let apiKey = req.headers.get('authorization')?.replace('Bearer ', '');
+  // Try Bearer token first, fall back to x-admin-api-key header
+  const authHeader = req.headers.get('authorization');
+  const adminKeyHeader = req.headers.get('x-admin-api-key');
 
-  // Fall back to x-admin-api-key header
-  if (!apiKey) {
-    apiKey = req.headers.get('x-admin-api-key');
-  }
-
+  const apiKey = authHeader?.replace('Bearer ', '') || adminKeyHeader;
   if (!apiKey) return null;
 
   const keyHash = hashApiKey(apiKey);
@@ -60,22 +57,22 @@ async function verifyAdminAuth(req: NextRequest): Promise<{ id: string } | null>
     .where(eq(teamMembers.teamId, foundKey.teamId))
     .limit(1);
 
-  if (!member) {
+  if (!member || !member.userId) {
     return null;
   }
 
   // Check if user is admin
-  const [user] = await db
-    .select({ id: users.id, isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, member.userId))
+  const [profile] = await db
+    .select({ id: profiles.id, isAdmin: profiles.isAdmin })
+    .from(profiles)
+    .where(eq(profiles.id, member.userId))
     .limit(1);
 
-  if (!user || !user.isAdmin) {
+  if (!profile || !profile.isAdmin) {
     return null;
   }
 
-  return { id: user.id };
+  return { id: profile.id };
 }
 
 // POST - Push patterns from CLI
@@ -110,7 +107,7 @@ export async function POST(req: NextRequest) {
     // Create the version
     const newVersion = await ContentManagementService.createVersion(admin.id, {
       version,
-      routerContent: null,
+      routerContent: undefined,
       cursorRulesContent,
       claudeMdContent,
       modulesContent: modulesContent || {},

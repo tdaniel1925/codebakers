@@ -18,7 +18,7 @@ async function pushV45() {
   console.log('CLAUDE.md size:', (claudeMdContent.length / 1024).toFixed(1), 'KB');
   console.log('.cursorrules size:', (cursorRulesContent.length / 1024).toFixed(1), 'KB');
 
-  const changelog = `v4.5 Enforcement Rules: Added MANDATORY COMPLIANCE section preventing AI from skipping patterns. Added SESSION CONTEXT CHECK for proper session resumption. Added TASK SIZE DETECTION (TRIVIAL/SMALL/MEDIUM/LARGE) for appropriate process scaling. Added DEBUG/QUICK MODE for faster iteration. Added ANNOUNCE YOUR CLASSIFICATION with escalation triggers for security, payments, and compliance-sensitive tasks.`;
+  const changelog = `v4.6 Visible Branding + Enforcement: Added visible "🍪 CodeBakers Active" header on session start. Added "🍪 CodeBakers | Patterns: [...] | v4.6" footer on every code response. Added MANDATORY COMPLIANCE section preventing AI from skipping patterns. Added SESSION CONTEXT CHECK, TASK SIZE DETECTION (TRIVIAL/SMALL/MEDIUM/LARGE), DEBUG/QUICK MODE, and ANNOUNCE YOUR CLASSIFICATION with escalation triggers.`;
 
   console.log('\nPushing to', apiUrl + '/api/admin/content/push');
 
@@ -30,7 +30,7 @@ async function pushV45() {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        version: '4.5',
+        version: '4.6',
         claudeMdContent,
         cursorRulesContent,
         changelog,
