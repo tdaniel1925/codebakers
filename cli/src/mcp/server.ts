@@ -8,7 +8,7 @@ import {
   ErrorCode,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { getApiKey, getApiUrl, getExperienceLevel, setExperienceLevel, type ExperienceLevel } from '../config.js';
+import { getApiKey, getApiUrl, getExperienceLevel, setExperienceLevel, getServiceKey, setServiceKey, type ExperienceLevel } from '../config.js';
 import { audit as runAudit } from '../commands/audit.js';
 import { heal as runHeal } from '../commands/heal.js';
 import { getCliVersion } from '../lib/api.js';
@@ -787,6 +787,85 @@ class CodeBakersServer {
             required: ['eventType'],
           },
         },
+        {
+          name: 'vercel_logs',
+          description:
+            'Fetch runtime logs from Vercel for the current project. Use when user asks about errors, API failures, production issues, or wants to debug their deployed app. Requires VERCEL_TOKEN env var or vercel login. Examples: "show me errors from yesterday", "what API calls are failing", "why is my app crashing".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              hours: {
+                type: 'number',
+                description: 'How many hours of logs to fetch (default: 24, max: 168)',
+              },
+              level: {
+                type: 'string',
+                enum: ['error', 'warn', 'info', 'all'],
+                description: 'Filter by log level (default: error)',
+              },
+              route: {
+                type: 'string',
+                description: 'Filter logs by API route path (e.g., "/api/auth", "/api/payments")',
+              },
+              limit: {
+                type: 'number',
+                description: 'Maximum number of log entries to return (default: 50, max: 500)',
+              },
+            },
+          },
+        },
+        {
+          name: 'vercel_analyze_errors',
+          description:
+            'Analyze Vercel logs and suggest fixes using CodeBakers patterns. Fetches recent errors, classifies them, and provides actionable fixes. Use when user says "fix my production errors", "why is X failing", or "help me debug".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              hours: {
+                type: 'number',
+                description: 'How many hours of logs to analyze (default: 24)',
+              },
+              autoFix: {
+                type: 'boolean',
+                description: 'Automatically apply safe fixes with high confidence (default: false)',
+              },
+            },
+          },
+        },
+        {
+          name: 'vercel_deployments',
+          description:
+            'List recent Vercel deployments and their status. Use when user asks "what was deployed", "show deployment history", or "why did the last deploy fail".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              limit: {
+                type: 'number',
+                description: 'Number of deployments to show (default: 10)',
+              },
+              state: {
+                type: 'string',
+                enum: ['READY', 'ERROR', 'BUILDING', 'QUEUED', 'CANCELED', 'all'],
+                description: 'Filter by deployment state',
+              },
+            },
+          },
+        },
+        {
+          name: 'vercel_connect',
+          description:
+            'Connect to Vercel using an API token. Required before using other Vercel tools. Token is stored securely in config. Use when user says "connect to vercel", "setup vercel", or before any vercel_* tool if not connected.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              token: {
+                type: 'string',
+                description: 'Vercel API token from https://vercel.com/account/tokens',
+              },
+            },
+            required: ['token'],
+          },
+        },
       ],
     }));
 
@@ -858,6 +937,18 @@ class CodeBakersServer {
 
         case 'track_analytics':
           return this.handleTrackAnalytics(args as { eventType: string; eventData?: Record<string, unknown>; projectHash?: string });
+
+        case 'vercel_logs':
+          return this.handleVercelLogs(args as { hours?: number; level?: string; route?: string; limit?: number });
+
+        case 'vercel_analyze_errors':
+          return this.handleVercelAnalyzeErrors(args as { hours?: number; autoFix?: boolean });
+
+        case 'vercel_deployments':
+          return this.handleVercelDeployments(args as { limit?: number; state?: string });
+
+        case 'vercel_connect':
+          return this.handleVercelConnect(args as { token: string });
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -2684,6 +2775,461 @@ Just describe what you want to build! I'll automatically:
           type: 'text' as const,
           text: `📊 Analytics tracked: ${eventType}`,
         }],
+      };
+    }
+  }
+
+  // ========== VERCEL INTEGRATION ==========
+
+  private getVercelToken(): string | null {
+    // Check config first, then env var
+    return getServiceKey('vercel') || process.env.VERCEL_TOKEN || null;
+  }
+
+  private async handleVercelConnect(args: { token: string }) {
+    const { token } = args;
+
+    // Validate the token by making a test API call
+    try {
+      const response = await fetch('https://api.vercel.com/v2/user', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: `❌ Invalid Vercel token. Please check your token and try again.\n\nGet a new token at: https://vercel.com/account/tokens`,
+          }],
+          isError: true,
+        };
+      }
+
+      const user = await response.json();
+
+      // Store the token securely
+      setServiceKey('vercel', token);
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `✅ Connected to Vercel as ${user.user?.username || user.user?.email || 'unknown user'}\n\nYou can now use:\n- vercel_logs: Fetch runtime logs\n- vercel_analyze_errors: Analyze and fix errors\n- vercel_deployments: View deployment history`,
+        }],
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❌ Failed to connect to Vercel: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        }],
+        isError: true,
+      };
+    }
+  }
+
+  private async handleVercelLogs(args: { hours?: number; level?: string; route?: string; limit?: number }) {
+    const token = this.getVercelToken();
+    if (!token) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❌ Not connected to Vercel.\n\nTo connect, either:\n1. Use the vercel_connect tool with your API token\n2. Set VERCEL_TOKEN environment variable\n\nGet a token at: https://vercel.com/account/tokens`,
+        }],
+        isError: true,
+      };
+    }
+
+    const hours = Math.min(args.hours || 24, 168); // Max 7 days
+    const level = args.level || 'error';
+    const limit = Math.min(args.limit || 50, 500);
+    const since = Date.now() - (hours * 60 * 60 * 1000);
+
+    try {
+      // First, get the team/user's projects
+      const projectsRes = await fetch('https://api.vercel.com/v9/projects?limit=10', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!projectsRes.ok) {
+        throw new Error(`Failed to fetch projects: ${projectsRes.statusText}`);
+      }
+
+      const projectsData = await projectsRes.json();
+      const projects = projectsData.projects || [];
+
+      if (projects.length === 0) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: `❌ No Vercel projects found. Make sure your token has access to your projects.`,
+          }],
+          isError: true,
+        };
+      }
+
+      // Try to match current project by name
+      const cwd = process.cwd();
+      const packageJsonPath = `${cwd}/package.json`;
+      let currentProjectName = '';
+      try {
+        const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+        currentProjectName = pkg.name?.replace(/^@[^/]+\//, '') || '';
+      } catch {
+        // Ignore
+      }
+
+      // Find matching project or use first one
+      const project = projects.find((p: { name: string }) =>
+        p.name.toLowerCase() === currentProjectName.toLowerCase()
+      ) || projects[0];
+
+      // Fetch logs for the project
+      // Note: Vercel's logs API varies by plan. Using runtime logs endpoint
+      const logsUrl = new URL(`https://api.vercel.com/v1/projects/${project.id}/logs`);
+      logsUrl.searchParams.set('since', since.toString());
+      logsUrl.searchParams.set('limit', limit.toString());
+      if (level !== 'all') {
+        logsUrl.searchParams.set('level', level);
+      }
+      if (args.route) {
+        logsUrl.searchParams.set('path', args.route);
+      }
+
+      const logsRes = await fetch(logsUrl.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!logsRes.ok) {
+        // Try alternative endpoint for edge/serverless logs
+        const altLogsRes = await fetch(
+          `https://api.vercel.com/v2/deployments/${project.latestDeployments?.[0]?.id}/events?limit=${limit}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (!altLogsRes.ok) {
+          throw new Error(`Failed to fetch logs: ${logsRes.statusText}. Your Vercel plan may not support log access via API.`);
+        }
+
+        const altLogs = await altLogsRes.json();
+        return this.formatVercelLogs(altLogs, project.name, hours, level);
+      }
+
+      const logs = await logsRes.json();
+      return this.formatVercelLogs(logs, project.name, hours, level);
+
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❌ Failed to fetch Vercel logs: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        }],
+        isError: true,
+      };
+    }
+  }
+
+  private formatVercelLogs(logs: unknown, projectName: string, hours: number, level: string) {
+    const logEntries = Array.isArray(logs) ? logs : (logs as { logs?: unknown[] })?.logs || [];
+
+    if (logEntries.length === 0) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `📋 No ${level === 'all' ? '' : level + ' '}logs found for **${projectName}** in the last ${hours} hours.\n\nThis could mean:\n- No matching log entries exist\n- Your Vercel plan may have limited log retention\n- Logs may still be processing`,
+        }],
+      };
+    }
+
+    const formattedLogs = logEntries.slice(0, 50).map((log: Record<string, unknown>) => {
+      const timestamp = log.timestamp || log.created || log.createdAt;
+      const date = timestamp ? new Date(timestamp as number).toISOString() : 'Unknown';
+      const logLevel = (log.level || log.type || 'info') as string;
+      const message = log.message || log.text || log.payload || JSON.stringify(log);
+      const path = log.path || log.route || '';
+
+      return `[${date}] ${logLevel.toUpperCase()}${path ? ` ${path}` : ''}\n${message}`;
+    }).join('\n\n---\n\n');
+
+    const summary = this.summarizeErrors(logEntries);
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `# Vercel Logs: ${projectName}\n\n**Period:** Last ${hours} hours\n**Filter:** ${level}\n**Found:** ${logEntries.length} entries\n\n${summary}\n\n## Log Entries\n\n${formattedLogs}`,
+      }],
+    };
+  }
+
+  private summarizeErrors(logs: Record<string, unknown>[]) {
+    const errorCounts: Record<string, number> = {};
+    const routeCounts: Record<string, number> = {};
+
+    logs.forEach((log) => {
+      const message = String(log.message || log.text || '');
+      const path = String(log.path || log.route || 'unknown');
+
+      // Extract error type from message
+      const errorMatch = message.match(/^(\w+Error):|Error:\s*(\w+)/);
+      if (errorMatch) {
+        const errorType = errorMatch[1] || errorMatch[2];
+        errorCounts[errorType] = (errorCounts[errorType] || 0) + 1;
+      }
+
+      // Count by route
+      if (path !== 'unknown') {
+        routeCounts[path] = (routeCounts[path] || 0) + 1;
+      }
+    });
+
+    const topErrors = Object.entries(errorCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5);
+
+    const topRoutes = Object.entries(routeCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5);
+
+    let summary = '## Summary\n\n';
+
+    if (topErrors.length > 0) {
+      summary += '**Top Error Types:**\n';
+      topErrors.forEach(([error, count]) => {
+        summary += `- ${error}: ${count} occurrences\n`;
+      });
+      summary += '\n';
+    }
+
+    if (topRoutes.length > 0) {
+      summary += '**Most Affected Routes:**\n';
+      topRoutes.forEach(([route, count]) => {
+        summary += `- ${route}: ${count} errors\n`;
+      });
+    }
+
+    return summary || 'No patterns detected in logs.';
+  }
+
+  private async handleVercelAnalyzeErrors(args: { hours?: number; autoFix?: boolean }) {
+    const token = this.getVercelToken();
+    if (!token) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❌ Not connected to Vercel. Use vercel_connect first.`,
+        }],
+        isError: true,
+      };
+    }
+
+    const hours = args.hours || 24;
+
+    try {
+      // Fetch error logs
+      const logsResult = await this.handleVercelLogs({ hours, level: 'error', limit: 100 });
+      const logsText = logsResult.content?.[0]?.text || '';
+
+      if (logsText.includes('No') && logsText.includes('logs found')) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: `✅ No errors found in the last ${hours} hours! Your app is running smoothly.`,
+          }],
+        };
+      }
+
+      // Classify errors and suggest fixes
+      const analysis = this.classifyAndSuggestFixes(logsText);
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `# Error Analysis\n\n${analysis}`,
+        }],
+      };
+
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❌ Failed to analyze errors: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        }],
+        isError: true,
+      };
+    }
+  }
+
+  private classifyAndSuggestFixes(logsText: string): string {
+    const issues: Array<{ type: string; severity: string; count: number; fix: string; pattern?: string }> = [];
+
+    // Common error patterns and their fixes
+    const errorPatterns = [
+      {
+        pattern: /TypeError.*undefined|Cannot read propert/gi,
+        type: 'Null/Undefined Access',
+        severity: 'HIGH',
+        fix: 'Add null checks or optional chaining (?.) before accessing properties.',
+        codePattern: '02-auth',
+      },
+      {
+        pattern: /ECONNREFUSED|ETIMEDOUT|fetch failed/gi,
+        type: 'Network/Connection Error',
+        severity: 'HIGH',
+        fix: 'Add retry logic with exponential backoff. Check if external services are available.',
+        codePattern: '03-api',
+      },
+      {
+        pattern: /401|Unauthorized|invalid.*token/gi,
+        type: 'Authentication Error',
+        severity: 'CRITICAL',
+        fix: 'Check token expiration and refresh logic. Verify auth middleware is properly configured.',
+        codePattern: '02-auth',
+      },
+      {
+        pattern: /500|Internal Server Error/gi,
+        type: 'Server Error',
+        severity: 'CRITICAL',
+        fix: 'Add proper error boundaries and try-catch blocks. Check server logs for stack traces.',
+        codePattern: '00-core',
+      },
+      {
+        pattern: /429|Too Many Requests|rate limit/gi,
+        type: 'Rate Limiting',
+        severity: 'MEDIUM',
+        fix: 'Implement request throttling and caching. Add rate limit headers handling.',
+        codePattern: '03-api',
+      },
+      {
+        pattern: /CORS|cross-origin|Access-Control/gi,
+        type: 'CORS Error',
+        severity: 'MEDIUM',
+        fix: 'Configure CORS headers in next.config.js or API routes. Check allowed origins.',
+        codePattern: '03-api',
+      },
+      {
+        pattern: /prisma|drizzle|database|sql/gi,
+        type: 'Database Error',
+        severity: 'HIGH',
+        fix: 'Check database connection string. Verify migrations are applied. Add connection pooling.',
+        codePattern: '01-database',
+      },
+      {
+        pattern: /stripe|payment|charge failed/gi,
+        type: 'Payment Error',
+        severity: 'CRITICAL',
+        fix: 'Check Stripe webhook configuration. Verify API keys. Add idempotency keys.',
+        codePattern: '05-payments',
+      },
+      {
+        pattern: /hydration|Minified React|client.*server/gi,
+        type: 'React Hydration Error',
+        severity: 'MEDIUM',
+        fix: 'Ensure server and client render the same content. Use useEffect for client-only code.',
+        codePattern: '04-frontend',
+      },
+    ];
+
+    errorPatterns.forEach(({ pattern, type, severity, fix, codePattern }) => {
+      const matches = logsText.match(pattern);
+      if (matches) {
+        issues.push({ type, severity, count: matches.length, fix, pattern: codePattern });
+      }
+    });
+
+    if (issues.length === 0) {
+      return `No common error patterns detected. Review the raw logs for custom application errors.`;
+    }
+
+    // Sort by severity
+    const severityOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+    issues.sort((a, b) => severityOrder[a.severity as keyof typeof severityOrder] - severityOrder[b.severity as keyof typeof severityOrder]);
+
+    let output = `Found **${issues.length}** error patterns:\n\n`;
+
+    issues.forEach((issue, i) => {
+      const emoji = issue.severity === 'CRITICAL' ? '🔴' : issue.severity === 'HIGH' ? '🟠' : '🟡';
+      output += `### ${i + 1}. ${emoji} ${issue.type}\n`;
+      output += `**Severity:** ${issue.severity} | **Occurrences:** ${issue.count}\n\n`;
+      output += `**Fix:** ${issue.fix}\n\n`;
+      if (issue.pattern) {
+        output += `**Pattern:** Load \`${issue.pattern}.md\` for detailed implementation guidance.\n\n`;
+      }
+    });
+
+    output += `\n---\n\n**Next Steps:**\n`;
+    output += `1. Address CRITICAL issues first\n`;
+    output += `2. Use \`get_pattern\` to load relevant CodeBakers patterns\n`;
+    output += `3. Run \`heal\` to auto-fix safe issues\n`;
+
+    return output;
+  }
+
+  private async handleVercelDeployments(args: { limit?: number; state?: string }) {
+    const token = this.getVercelToken();
+    if (!token) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❌ Not connected to Vercel. Use vercel_connect first.`,
+        }],
+        isError: true,
+      };
+    }
+
+    const limit = args.limit || 10;
+    const stateFilter = args.state;
+
+    try {
+      // Get deployments
+      const url = new URL('https://api.vercel.com/v6/deployments');
+      url.searchParams.set('limit', limit.toString());
+      if (stateFilter && stateFilter !== 'all') {
+        url.searchParams.set('state', stateFilter);
+      }
+
+      const response = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch deployments: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const deployments = data.deployments || [];
+
+      if (deployments.length === 0) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: `No deployments found${stateFilter ? ` with state: ${stateFilter}` : ''}.`,
+          }],
+        };
+      }
+
+      const formatted = deployments.map((d: Record<string, unknown>) => {
+        const created = new Date(d.created as number).toLocaleString();
+        const state = d.state || d.readyState || 'UNKNOWN';
+        const emoji = state === 'READY' ? '✅' : state === 'ERROR' ? '❌' : state === 'BUILDING' ? '🔨' : '⏳';
+        const url = d.url ? `https://${d.url}` : 'N/A';
+        const commit = (d.meta as Record<string, unknown>)?.githubCommitMessage || (d.meta as Record<string, unknown>)?.gitlabCommitMessage || 'No commit message';
+
+        return `${emoji} **${state}** - ${created}\n   URL: ${url}\n   Commit: ${commit}`;
+      }).join('\n\n');
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `# Recent Deployments\n\n${formatted}`,
+        }],
+      };
+
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❌ Failed to fetch deployments: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        }],
+        isError: true,
       };
     }
   }

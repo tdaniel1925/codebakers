@@ -18,6 +18,7 @@ import { upgrade } from './commands/upgrade.js';
 import { config } from './commands/config.js';
 import { audit } from './commands/audit.js';
 import { heal, healWatch } from './commands/heal.js';
+import { pushPatterns, pushPatternsInteractive } from './commands/push-patterns.js';
 
 // Show welcome message when no command is provided
 function showWelcome(): void {
@@ -159,6 +160,27 @@ program
         dryRun: options.dryRun,
         severity: options.severity
       });
+    }
+  });
+
+// Admin commands
+program
+  .command('push-patterns')
+  .description('Push pattern files to the server (admin only)')
+  .option('-v, --version <version>', 'Version number (e.g., 4.5)')
+  .option('-c, --changelog <message>', 'Changelog message')
+  .option('-p, --publish', 'Auto-publish after push')
+  .option('-s, --source <path>', 'Source directory (default: current directory)')
+  .action(async (options) => {
+    if (options.version) {
+      await pushPatterns({
+        version: options.version,
+        changelog: options.changelog,
+        autoPublish: options.publish,
+        sourcePath: options.source,
+      });
+    } else {
+      await pushPatternsInteractive();
     }
   });
 

@@ -56,7 +56,7 @@ I want to make sure I help you the right way. Are you looking to:
 **On first interaction with a new user, show this welcome:**
 
 ```
-Welcome to CodeBakers! I'm your AI development assistant with 39 production-ready modules.
+Welcome to CodeBakers! I'm your AI development assistant with 40 production-ready modules.
 
 Just tell me what you want in plain English. No commands needed!
 
@@ -242,7 +242,7 @@ At the START of every new chat:
 | 30-motion | 880 | Framer Motion, GSAP, animations |
 | 31-iconography | 630 | Lucide, Heroicons, SVG icons |
 | 32-print | 990 | PDF generation, print stylesheets |
-| 33-design-clone | 1,100 | Clone designs from mockups/websites |
+| 33-cicd | 1,100 | CI/CD pipelines, GitHub Actions, deployment |
 | 34-integration-contracts | 650 | Cross-system integration patterns |
 | 35-environment | 1,200 | Environment vars, secrets, .env management |
 | 36-pre-launch | 1,400 | Comprehensive pre-launch checklist |
@@ -609,7 +609,7 @@ After user approves:
    - Quote → Apply known style reference
 
 2. **Load pattern module**
-   - Load `33-design-clone.md` for analysis workflow
+   - Load `09-design.md` for design clone analysis workflow
 
 3. **Analyze the design**
 
