@@ -42,7 +42,71 @@ interface ContentVersion {
   publishedBy: string | null;
   publisherEmail: string | null;
   publisherName: string | null;
+  // Stats from API
+  moduleCount?: number;
+  cursorModuleCount?: number;
+  totalLines?: number;
+  hasClaudeMd?: boolean;
+  hasCursorRules?: boolean;
 }
+
+// Helper to count lines
+const countLines = (content: string) => content.split('\n').length;
+
+// Helper to format file size
+const formatSize = (content: string) => {
+  const bytes = new Blob([content]).size;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+// Helper to extract module description from content
+const getModuleDescription = (name: string, content: string): string => {
+  const descriptions: Record<string, string> = {
+    '00-core.md': 'Standards, types, error handling',
+    '01-database.md': 'Drizzle ORM, queries, migrations',
+    '02-auth.md': 'Authentication, 2FA, OAuth',
+    '03-api.md': 'API routes, validation, rate limits',
+    '04-frontend.md': 'React, forms, state management',
+    '05-payments.md': 'Stripe, subscriptions, billing',
+    '06-integrations.md': 'Email, files, background jobs',
+    '07-performance.md': 'Caching, optimization',
+    '08-testing.md': 'Tests, CI/CD, monitoring',
+    '09-design.md': 'UI patterns, accessibility',
+    '10-generators.md': 'Code scaffolding, templates',
+    '11-realtime.md': 'WebSockets, live updates',
+    '12-saas.md': 'Multi-tenant, feature flags',
+    '13-mobile.md': 'React Native, Expo',
+    '14-ai.md': 'OpenAI, Anthropic, RAG',
+    '15-research.md': 'Market research, analysis',
+    '16-planning.md': 'PRD, roadmap, specs',
+    '17-marketing.md': 'Growth, campaigns',
+    '18-launch.md': 'Launch playbook',
+    '19-audit.md': 'Code audits, upgrades',
+    '20-operations.md': 'Monitoring, incidents',
+    '21-experts-core.md': 'Backend/frontend experts',
+    '22-experts-health.md': 'Healthcare, HIPAA',
+    '23-experts-finance.md': 'Fintech, PCI',
+    '24-experts-legal.md': 'Legal tech, privacy',
+    '25-experts-industry.md': 'Industry verticals',
+    '26-analytics.md': 'PostHog, Mixpanel',
+    '27-search.md': 'Full-text, Algolia',
+    '28-email-design.md': 'HTML emails, MJML',
+    '29-data-viz.md': 'Charts, dashboards',
+    '30-motion.md': 'Animations, transitions',
+    '31-iconography.md': 'Icons, SVG',
+    '32-print.md': 'PDF generation',
+    '33-cicd.md': 'CI/CD, GitHub Actions',
+    '34-integration-contracts.md': 'Cross-system patterns',
+    '35-environment.md': 'Env vars, secrets',
+    '36-pre-launch.md': 'Pre-launch checklist',
+    '37-quality-gates.md': 'Code quality, linting',
+    '38-troubleshooting.md': 'Debugging, fixes',
+    '39-self-healing.md': 'Auto-fix with AI',
+  };
+  return descriptions[name] || `${countLines(content)} lines`;
+};
 
 interface VersionDetail {
   id: string;
@@ -437,9 +501,14 @@ export default function AdminContentPage() {
               {/* 1. CLAUDE.md */}
               <div className="bg-slate-900/50 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">1. CLAUDE.md</p>
-                    <p className="text-slate-400 text-xs">The main instructions file</p>
+                  <div className="flex-1">
+                    <p className="text-white font-medium flex items-center gap-2">
+                      1. CLAUDE.md
+                      <Badge variant="outline" className="text-xs border-blue-500 text-blue-400">Required</Badge>
+                    </p>
+                    <p className="text-slate-400 text-xs mt-1">
+                      Main router file with commands, intent detection, and module reference table
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -470,14 +539,40 @@ export default function AdminContentPage() {
                     </Button>
                   </div>
                 </div>
+                {claudeMdContent && (
+                  <div className="mt-3 pt-3 border-t border-slate-700">
+                    <div className="grid grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <span className="text-slate-500">Lines:</span>
+                        <span className="text-green-400 ml-2">{countLines(claudeMdContent).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Size:</span>
+                        <span className="text-green-400 ml-2">{formatSize(claudeMdContent)}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Sections:</span>
+                        <span className="text-green-400 ml-2">{(claudeMdContent.match(/^##\s/gm) || []).length}</span>
+                      </div>
+                    </div>
+                    <div className="mt-2 p-2 bg-slate-800 rounded text-xs text-slate-400 font-mono max-h-20 overflow-hidden">
+                      {claudeMdContent.split('\n').slice(0, 5).join('\n')}...
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 2. .cursorrules */}
               <div className="bg-slate-900/50 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">2. .cursorrules</p>
-                    <p className="text-slate-400 text-xs">Cursor IDE rules file</p>
+                  <div className="flex-1">
+                    <p className="text-white font-medium flex items-center gap-2">
+                      2. .cursorrules
+                      <Badge variant="outline" className="text-xs border-purple-500 text-purple-400">Cursor IDE</Badge>
+                    </p>
+                    <p className="text-slate-400 text-xs mt-1">
+                      Rules file for Cursor IDE users - similar to CLAUDE.md but formatted for Cursor
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -508,14 +603,37 @@ export default function AdminContentPage() {
                     </Button>
                   </div>
                 </div>
+                {cursorRulesContent && (
+                  <div className="mt-3 pt-3 border-t border-slate-700">
+                    <div className="grid grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <span className="text-slate-500">Lines:</span>
+                        <span className="text-purple-400 ml-2">{countLines(cursorRulesContent).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Size:</span>
+                        <span className="text-purple-400 ml-2">{formatSize(cursorRulesContent)}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Sections:</span>
+                        <span className="text-purple-400 ml-2">{(cursorRulesContent.match(/^##\s/gm) || []).length}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 3. .claude folder */}
               <div className="bg-slate-900/50 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">3. .claude/ folder</p>
-                    <p className="text-slate-400 text-xs">Folder with all module files (00-core.md, 01-database.md, etc.)</p>
+                  <div className="flex-1">
+                    <p className="text-white font-medium flex items-center gap-2">
+                      3. .claude/ folder
+                      <Badge variant="outline" className="text-xs border-blue-500 text-blue-400">Required</Badge>
+                    </p>
+                    <p className="text-slate-400 text-xs mt-1">
+                      Pattern modules for Claude Code (00-core.md through 39-self-healing.md)
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -551,20 +669,43 @@ export default function AdminContentPage() {
                 </div>
                 {Object.keys(modulesContent).length > 0 && (
                   <div className="mt-3 pt-3 border-t border-slate-700">
+                    {/* Summary stats */}
+                    <div className="grid grid-cols-3 gap-4 text-xs mb-3">
+                      <div>
+                        <span className="text-slate-500">Modules:</span>
+                        <span className="text-green-400 ml-2">{Object.keys(modulesContent).length}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Total Lines:</span>
+                        <span className="text-green-400 ml-2">
+                          {Object.values(modulesContent).reduce((acc, c) => acc + countLines(c), 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Total Size:</span>
+                        <span className="text-green-400 ml-2">
+                          {formatSize(Object.values(modulesContent).join(''))}
+                        </span>
+                      </div>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setExpandedModules(!expandedModules)}
                       className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-300"
                     >
                       {expandedModules ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                      {expandedModules ? 'Hide' : 'Show'} files
+                      {expandedModules ? 'Hide' : 'Show'} module details
                     </button>
                     {expandedModules && (
-                      <div className="mt-2 space-y-1">
-                        {Object.keys(modulesContent).sort().map((name) => (
-                          <div key={name} className="text-xs text-slate-500 flex items-center gap-1">
-                            <FileCode className="h-3 w-3" />
-                            {name}
+                      <div className="mt-2 space-y-1 max-h-60 overflow-y-auto">
+                        {Object.entries(modulesContent).sort(([a], [b]) => a.localeCompare(b)).map(([name, content]) => (
+                          <div key={name} className="text-xs flex items-center justify-between py-1 px-2 rounded bg-slate-800/50">
+                            <div className="flex items-center gap-2">
+                              <FileCode className="h-3 w-3 text-blue-400" />
+                              <span className="text-white font-mono">{name}</span>
+                              <span className="text-slate-500">{getModuleDescription(name, content)}</span>
+                            </div>
+                            <span className="text-slate-400">{countLines(content).toLocaleString()} lines</span>
                           </div>
                         ))}
                       </div>
@@ -576,9 +717,14 @@ export default function AdminContentPage() {
               {/* 4. .cursorrules-modules folder */}
               <div className="bg-slate-900/50 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">4. .cursorrules-modules/ folder</p>
-                    <p className="text-slate-400 text-xs">Folder with Cursor module files (00-core.md, 01-database.md, etc.)</p>
+                  <div className="flex-1">
+                    <p className="text-white font-medium flex items-center gap-2">
+                      4. .cursorrules-modules/ folder
+                      <Badge variant="outline" className="text-xs border-purple-500 text-purple-400">Cursor IDE</Badge>
+                    </p>
+                    <p className="text-slate-400 text-xs mt-1">
+                      Pattern modules for Cursor IDE users (same modules, formatted for Cursor)
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -614,20 +760,43 @@ export default function AdminContentPage() {
                 </div>
                 {Object.keys(cursorModulesContent).length > 0 && (
                   <div className="mt-3 pt-3 border-t border-slate-700">
+                    {/* Summary stats */}
+                    <div className="grid grid-cols-3 gap-4 text-xs mb-3">
+                      <div>
+                        <span className="text-slate-500">Modules:</span>
+                        <span className="text-purple-400 ml-2">{Object.keys(cursorModulesContent).length}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Total Lines:</span>
+                        <span className="text-purple-400 ml-2">
+                          {Object.values(cursorModulesContent).reduce((acc, c) => acc + countLines(c), 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Total Size:</span>
+                        <span className="text-purple-400 ml-2">
+                          {formatSize(Object.values(cursorModulesContent).join(''))}
+                        </span>
+                      </div>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setExpandedCursorModules(!expandedCursorModules)}
                       className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-300"
                     >
                       {expandedCursorModules ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                      {expandedCursorModules ? 'Hide' : 'Show'} files
+                      {expandedCursorModules ? 'Hide' : 'Show'} module details
                     </button>
                     {expandedCursorModules && (
-                      <div className="mt-2 space-y-1">
-                        {Object.keys(cursorModulesContent).sort().map((name) => (
-                          <div key={name} className="text-xs text-slate-500 flex items-center gap-1">
-                            <FileCode className="h-3 w-3" />
-                            {name}
+                      <div className="mt-2 space-y-1 max-h-60 overflow-y-auto">
+                        {Object.entries(cursorModulesContent).sort(([a], [b]) => a.localeCompare(b)).map(([name, content]) => (
+                          <div key={name} className="text-xs flex items-center justify-between py-1 px-2 rounded bg-slate-800/50">
+                            <div className="flex items-center gap-2">
+                              <FileCode className="h-3 w-3 text-purple-400" />
+                              <span className="text-white font-mono">{name}</span>
+                              <span className="text-slate-500">{getModuleDescription(name, content)}</span>
+                            </div>
+                            <span className="text-slate-400">{countLines(content).toLocaleString()} lines</span>
                           </div>
                         ))}
                       </div>
