@@ -91,6 +91,16 @@ export async function upgrade(): Promise<void> {
       console.log(chalk.green(`  ✓ Updated ${moduleCount} modules in .claude/`));
     }
 
+    // Write version file for tracking
+    const versionInfo = {
+      version: content.version,
+      moduleCount,
+      updatedAt: new Date().toISOString(),
+      cliVersion: getCliVersion(),
+    };
+    writeFileSync(join(claudeDir, '.version.json'), JSON.stringify(versionInfo, null, 2));
+    console.log(chalk.green('  ✓ Version info saved'));
+
     console.log(chalk.green(`\n  ✅ Upgraded to patterns v${content.version}!\n`));
 
     // Show what's new if available

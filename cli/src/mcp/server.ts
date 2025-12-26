@@ -11,10 +11,20 @@ import {
 import { getApiKey, getApiUrl, getExperienceLevel, setExperienceLevel, type ExperienceLevel } from '../config.js';
 import { audit as runAudit } from '../commands/audit.js';
 import { heal as runHeal } from '../commands/heal.js';
+import { getCliVersion } from '../lib/api.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import * as templates from '../templates/nextjs-supabase.js';
+
+// Version info type
+interface VersionInfo {
+  version: string;
+  moduleCount: number;
+  installedAt?: string;
+  updatedAt?: string;
+  cliVersion: string;
+}
 
 // Pattern cache to avoid repeated API calls
 const patternCache = new Map<string, { content: string; timestamp: number }>();
@@ -241,6 +251,54 @@ class CodeBakersServer {
     }
 
     return context;
+  }
+
+  private async checkPatternVersion(): Promise<{
+    installed: VersionInfo | null;
+    latest: { version: string; moduleCount: number } | null;
+    updateAvailable: boolean;
+    message: string | null;
+  }> {
+    const cwd = process.cwd();
+    const versionPath = path.join(cwd, '.claude', '.version.json');
+
+    // Read local version
+    let installed: VersionInfo | null = null;
+    if (fs.existsSync(versionPath)) {
+      try {
+        installed = JSON.parse(fs.readFileSync(versionPath, 'utf-8'));
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    // Fetch latest version from API
+    let latest: { version: string; moduleCount: number } | null = null;
+    try {
+      const response = await fetch(`${this.apiUrl}/api/content/version`, {
+        headers: this.apiKey ? { 'Authorization': `Bearer ${this.apiKey}` } : {},
+      });
+      if (response.ok) {
+        latest = await response.json();
+      }
+    } catch {
+      // Ignore fetch errors
+    }
+
+    // Compare versions
+    let updateAvailable = false;
+    let message: string | null = null;
+
+    if (installed && latest) {
+      if (installed.version !== latest.version) {
+        updateAvailable = true;
+        message = `⚠️ Pattern update available: v${installed.version} → v${latest.version} (${latest.moduleCount - installed.moduleCount} new modules)\n   Run \`codebakers upgrade\` to update`;
+      }
+    } else if (!installed && latest) {
+      message = `ℹ️ No version tracking found. Run \`codebakers upgrade\` to sync patterns`;
+    }
+
+    return { installed, latest, updateAvailable, message };
   }
 
   private formatContextForPrompt(context: ProjectContext): string {
@@ -651,7 +709,7 @@ class CodeBakersServer {
           return this.handleGetExperienceLevel();
 
         case 'get_status':
-          return this.handleGetStatus();
+          return await this.handleGetStatus();
 
         case 'run_audit':
           return this.handleRunAudit();
@@ -1579,17 +1637,31 @@ phase: development
     }
   }
 
-  private handleGetStatus() {
+  private async handleGetStatus() {
     const level = getExperienceLevel();
     const context = this.gatherProjectContext();
+    const versionCheck = await this.checkPatternVersion();
+    const cliVersion = getCliVersion();
+
+    // Build version status section
+    let versionSection = `- **CLI Version:** ${cliVersion}`;
+    if (versionCheck.installed) {
+      versionSection += `\n- **Patterns Version:** ${versionCheck.installed.version} (${versionCheck.installed.moduleCount} modules)`;
+    }
+
+    // Build update alert if needed
+    let updateAlert = '';
+    if (versionCheck.message) {
+      updateAlert = `\n\n## ${versionCheck.updateAvailable ? '⚠️ Update Available' : 'ℹ️ Version Info'}\n${versionCheck.message}\n`;
+    }
 
     const statusText = `# ✅ CodeBakers is Active!
 
 ## Connection Status
 - **MCP Server:** Running
 - **API Connected:** Yes
-- **Version:** 2.2.0
-
+${versionSection}
+${updateAlert}
 ## Current Settings
 - **Experience Level:** ${level.charAt(0).toUpperCase() + level.slice(1)}
 - **Project:** ${context.projectName}

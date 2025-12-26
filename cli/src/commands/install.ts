@@ -3,6 +3,7 @@ import ora from 'ora';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { getApiKey, getApiUrl } from '../config.js';
+import { getCliVersion } from '../lib/api.js';
 
 interface ContentResponse {
   version: string;
@@ -51,8 +52,8 @@ export async function install(): Promise<void> {
     }
 
     // Write modules
+    const modulesDir = join(cwd, '.claude');
     if (content.modules && Object.keys(content.modules).length > 0) {
-      const modulesDir = join(cwd, '.claude');
       if (!existsSync(modulesDir)) {
         mkdirSync(modulesDir, { recursive: true });
       }
@@ -60,6 +61,15 @@ export async function install(): Promise<void> {
       for (const [name, data] of Object.entries(content.modules)) {
         writeFileSync(join(modulesDir, name), data);
       }
+
+      // Write version file for tracking
+      const versionInfo = {
+        version: content.version,
+        moduleCount: Object.keys(content.modules).length,
+        installedAt: new Date().toISOString(),
+        cliVersion: getCliVersion(),
+      };
+      writeFileSync(join(modulesDir, '.version.json'), JSON.stringify(versionInfo, null, 2));
     }
 
     // Add to .gitignore if not present
