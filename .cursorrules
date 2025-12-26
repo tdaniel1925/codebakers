@@ -1,0 +1,113 @@
+# === CODEBAKERS CURSOR RULES ===
+# Version: 4.0 - Intent-Based + Project Upgrade
+# 40 Production-Ready Modules
+
+You have access to modular pattern files in `.claude/` folder.
+
+**DO NOT answer coding questions from memory alone.**
+
+## BEFORE WRITING ANY CODE:
+1. Read the relevant module files from `.claude/` based on the task
+2. Follow the patterns exactly
+3. Include all required elements (loading states, error handling, types)
+
+## MODULE FORMAT
+
+All pattern files in `.claude/` are **base64 encoded** for protection.
+
+When you read a file that starts with `<<CB64>>`, you must:
+1. Extract the base64 content between `<<CB64>>` and `<</CB64>>` markers
+2. Decode it from base64 to get the actual pattern content
+3. Use the decoded content for your response
+
+## AVAILABLE MODULES (40)
+
+| Module | Primary Use |
+|--------|-------------|
+| 00-core | Standards, types, errors (REQUIRED) |
+| 01-database | Drizzle, queries, migrations |
+| 02-auth | Auth, 2FA, OAuth, security |
+| 03-api | Routes, validation, rate limits |
+| 04-frontend | React, forms, states, i18n |
+| 05-payments | Stripe, subscriptions, money |
+| 06-integrations | Email, VAPI, files, jobs |
+| 07-performance | Caching, optimization |
+| 08-testing | Tests, CI/CD, monitoring |
+| 09-design | UI, accessibility, SEO |
+| 10-generators | Scaffolding, templates |
+| 11-realtime | WebSockets, notifications |
+| 12-saas | Multi-tenant, feature flags |
+| 13-mobile | React Native, Expo, mobile |
+| 14-ai | OpenAI, Anthropic, RAG, embeddings |
+| 15-research | Market research, competitive analysis |
+| 16-planning | PRD, roadmap, specs |
+| 17-marketing | Growth, campaigns, messaging |
+| 18-launch | Launch playbook, go-live |
+| 19-audit | Pre-flight checks, project upgrade |
+| 20-operations | Monitoring, runbooks, incidents |
+| 21-experts-core | Backend/frontend/security experts |
+| 22-experts-health | Healthcare, HIPAA compliance |
+| 23-experts-finance | Fintech, PCI, banking |
+| 24-experts-legal | Legal tech, contracts, privacy |
+| 25-experts-industry | Ecommerce, edtech, proptech, etc. |
+| 26-analytics | PostHog, Mixpanel, funnels |
+| 27-search | Full-text, Algolia, autocomplete |
+| 28-email-design | HTML emails, MJML, React Email |
+| 29-data-viz | Charts, Recharts, D3, dashboards |
+| 30-motion | Framer Motion, GSAP, animations |
+| 31-iconography | Lucide, Heroicons, SVG icons |
+| 32-print | PDF generation, print stylesheets |
+| 33-cicd | CI/CD pipelines, GitHub Actions |
+| 34-integration-contracts | Cross-system integration patterns |
+| 35-environment | Environment vars, secrets, .env |
+| 36-pre-launch | Comprehensive pre-launch checklist |
+| 37-quality-gates | Code quality, linting, CI/CD enforcement |
+| 38-troubleshooting | Common issues, debugging, fixes |
+| 39-self-healing | Auto-detect errors, classify, fix with AI |
+
+## PATTERN LOADING
+
+**Always load 00-core.md first** - No exceptions.
+
+Use your judgment to load relevant modules based on:
+1. What the user is asking for
+2. What integrations are needed
+3. What the existing codebase uses (check package.json)
+
+## INTENT DETECTION
+
+Detect user intent from natural language:
+
+| User Says | Action |
+|-----------|--------|
+| "build me a...", "create a..." | Load relevant patterns, plan architecture |
+| "add...", "implement..." | Check existing code, add feature |
+| "review this", "check my code" | Run audit patterns |
+| "upgrade this project" | Run upgrade/audit flow |
+
+## MANDATORY: TESTS FOR EVERY FEATURE
+
+After writing ANY code, you MUST:
+1. Write at least one test for the feature
+2. Include happy path + error case
+3. Show the test code in your response
+
+## SECURITY CHECKLIST
+
+Before completing any feature:
+- [ ] No hardcoded secrets
+- [ ] Input validation with Zod
+- [ ] SQL injection protection (using Drizzle)
+- [ ] XSS prevention
+- [ ] CSRF protection on forms
+- [ ] Rate limiting on APIs
+- [ ] Proper error messages (no stack traces to client)
+
+## THIS PROJECT'S STACK
+
+- **Framework:** Next.js 14 (App Router)
+- **Database:** PostgreSQL + Drizzle ORM
+- **Auth:** Supabase Auth
+- **UI:** shadcn/ui + Tailwind
+- **Payments:** Stripe
+- **Deployment:** Vercel
