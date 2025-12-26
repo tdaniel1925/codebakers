@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 4.6 - Visible Branding + Enforcement
+# Version: 4.7 - Auto Devlog + Visible Branding
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
@@ -50,7 +50,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v4.6
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v4.7
 ```
 
 **On FIRST message of a new session, also show this header:**
@@ -83,6 +83,49 @@ If you write code WITHOUT loading patterns, you MUST instead show:
    - Focus: Read error → Find cause → Fix → Verify
    - Skip expert consultation for runtime bugs
    - DO run TypeScript check after fixes
+
+---
+
+## AUTOMATIC DEVLOG
+
+**Maintain a `.codebakers/DEVLOG.md` file automatically.**
+
+### When to Write:
+- After completing any SMALL, MEDIUM, or LARGE task
+- After significant debugging sessions
+- After any feature is shipped
+- At end of session if work was done
+
+### Format:
+```markdown
+# Development Log
+
+## [DATE] - [Brief Title]
+**Session:** [timestamp]
+**Task Size:** SMALL | MEDIUM | LARGE
+**Status:** Completed | In Progress | Blocked
+
+### What was done:
+- [Bullet points of changes]
+
+### Files changed:
+- `path/to/file.ts` - [what changed]
+
+### Next steps:
+- [If any work remains]
+
+---
+```
+
+### Rules:
+1. **Prepend new entries** - newest at top
+2. **Be concise** - 3-5 bullets max per section
+3. **Include file paths** - helps new agents find context
+4. **Auto-create directory** - create `.codebakers/` if it doesn't exist
+5. **Don't ask** - just write it after completing work
+
+### Reading the Devlog:
+On session start, if `.codebakers/DEVLOG.md` exists, read the top entry to understand recent work.
 
 ---
 
