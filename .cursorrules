@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 4.8 - Session Protocols for Continuity
+# Version: 4.9 - Pattern Access Failure Modes
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
@@ -50,7 +50,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .cursorrules-modules/ files] | v4.8
+🍪 **CodeBakers** | Patterns: [list loaded .cursorrules-modules/ files] | v4.9
 ```
 
 **On FIRST message of a new session, also show this header:**
@@ -353,6 +353,81 @@ When you read a file that starts with `<<CB64>>`, you must:
 3. Use the decoded content for your response
 
 **Always decode before using any pattern from `.cursorrules-modules/` files.**
+
+---
+
+## PATTERN ACCESS FAILURE MODES (CRITICAL)
+
+**When you encounter obstacles accessing patterns, you MUST NOT fall back to memory. Follow these recovery steps:**
+
+### Problem: File Too Large to Read
+
+**Symptoms:** File is 50K+ tokens, context limit hit, "file too large" errors.
+
+**Solution:**
+1. **Read in chunks** using offset/limit: `Read(file, offset=0, limit=500)`, then `offset=500`, etc.
+2. **Search first** - Use grep to find the specific section you need:
+   ```
+   grep "email" .cursorrules-modules/06-integrations.md
+   grep "send" .cursorrules-modules/06-integrations.md
+   ```
+3. **Read just that section** - Once you find line numbers, read only that part
+4. **NEVER skip** - If a pattern exists, you MUST access it somehow
+
+### Problem: Base64 Encoded Content
+
+**Symptoms:** File content starts with `<<CB64>>` or looks like random characters.
+
+**Solution:**
+1. **This is expected** - All `.cursorrules-modules/` files are base64 encoded
+2. **Decode it:**
+   ```python
+   import base64
+   content = base64.b64decode(encoded_content).decode('utf-8')
+   ```
+3. **Or use shell:** `base64 -d .cursorrules-modules/file.md`
+4. **NEVER say "it's encoded so I can't use it"** - Decode it and use it
+
+### Problem: Search Term Not Found
+
+**Symptoms:** Searched for "Resend" but got no matches.
+
+**Solution:**
+1. **Broaden your search** - Try related terms:
+   - For email: search "email", "mail", "send", "smtp", "notification"
+   - For payments: search "payment", "stripe", "billing", "charge", "subscription"
+   - For auth: search "auth", "login", "session", "token", "user"
+2. **Check the module table** - Find which module covers your domain
+3. **Read the module index** - First 100 lines usually list all topics covered
+4. **NEVER conclude "pattern doesn't exist"** without trying 3+ search terms
+
+### Problem: Relevant Module Unclear
+
+**Symptoms:** Not sure which of 40 modules covers this feature.
+
+**Solution:**
+1. **Check MODULE REFERENCE table** in this file (search for it)
+2. **Use keyword mapping:**
+   | Feature | Try Module |
+   |---------|-----------|
+   | Email sending | 06-integrations, 28-email-design |
+   | API routes | 03-api |
+   | Forms | 04-frontend |
+   | Database | 01-database |
+   | Auth/login | 02-auth |
+   | Payments | 05-payments |
+3. **When in doubt, read 00-core first** - It has cross-references
+
+### THE GOLDEN RULE
+
+**If you're about to write code from memory because patterns were "inaccessible":**
+
+1. STOP
+2. Tell the user: "The pattern file is [large/encoded/unclear]. Let me try a different approach to access it."
+3. Try the recovery steps above
+4. Only proceed when you have the actual pattern content
+
+**"I couldn't read the pattern" is NEVER an acceptable reason to skip patterns.**
 
 ---
 

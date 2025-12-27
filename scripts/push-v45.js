@@ -18,7 +18,7 @@ async function pushV45() {
   console.log('CLAUDE.md size:', (claudeMdContent.length / 1024).toFixed(1), 'KB');
   console.log('.cursorrules size:', (cursorRulesContent.length / 1024).toFixed(1), 'KB');
 
-  const changelog = `v4.8 Session Protocols for Continuity: Added SESSION START PROTOCOL - reads devlog, git log, currentWork, and blockers on session start. Added SESSION END PROTOCOL - updates devlog, creates BLOCKED.md if stuck, commits changes. Added .codebakers/BLOCKED.md format for seamless handoffs between AI sessions. Ensures no context is ever lost between chats.`;
+  const changelog = `v4.9 Pattern Access Failure Modes: Added CRITICAL section preventing AI from falling back to memory when patterns are hard to access. Covers: large files (read in chunks/grep first), base64 encoding (decode it!), search misses (broaden terms), unclear modules (keyword mapping). Golden Rule: "I couldn't read the pattern" is NEVER acceptable.`;
 
   console.log('\nPushing to', apiUrl + '/api/admin/content/push');
 
@@ -30,7 +30,7 @@ async function pushV45() {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        version: '4.8',
+        version: '4.9',
         claudeMdContent,
         cursorRulesContent,
         changelog,

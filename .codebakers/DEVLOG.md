@@ -1,5 +1,26 @@
 # Development Log
 
+## 2025-12-26 - Pattern Access Failure Modes v4.9
+**Session:** 2025-12-26T15:30:00Z
+**Task Size:** MEDIUM
+**Status:** Completed
+
+### What was done:
+- Added PATTERN ACCESS FAILURE MODES section to prevent AI fallback to memory
+- Covers: large files (chunk reading), base64 (decode it!), search misses (broaden terms)
+- Added keyword mapping table for finding correct modules
+- Added THE GOLDEN RULE: "I couldn't read the pattern" is NEVER acceptable
+
+### Files changed:
+- `CLAUDE.md` - Added failure modes section, updated to v4.9
+- `.cursorrules` - Added failure modes section, updated to v4.9
+- `scripts/push-v45.js` - Updated to push v4.9
+
+### Trigger:
+- User reported AI admitted to not following CodeBakers due to "file too large" and "base64 encoded"
+
+---
+
 ## 2025-12-26 - Session Protocols v4.8
 **Session:** 2025-12-26T15:00:00Z
 **Task Size:** MEDIUM
