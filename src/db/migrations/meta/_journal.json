@@ -43,6 +43,13 @@
       "when": 1766685887235,
       "tag": "0005_add_pattern_gaps_and_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1766825132574,
+      "tag": "0006_add_trial_fingerprints",
+      "breakpoints": true
     }
   ]
 }

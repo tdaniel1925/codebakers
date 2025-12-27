@@ -38,14 +38,14 @@ const fallbackPlans: PlanData[] = [
     plan: 'pro',
     name: 'Pro',
     description: null,
-    priceMonthly: 4900,
+    priceMonthly: 4900, // $49
     priceYearly: null,
     seats: 1,
     features: [
-      '114 production patterns',
+      '40 production modules',
+      '50,000+ lines of patterns',
       'Auto-testing included',
       'Full stack coverage',
-      'Auth, API, DB, payments',
       '1 seat',
     ],
     providers: { stripe: true, square: true, paypal: true },
@@ -54,7 +54,7 @@ const fallbackPlans: PlanData[] = [
     plan: 'team',
     name: 'Team',
     description: null,
-    priceMonthly: 14900,
+    priceMonthly: 14900, // $149
     priceYearly: null,
     seats: 5,
     features: [
@@ -70,7 +70,7 @@ const fallbackPlans: PlanData[] = [
     plan: 'agency',
     name: 'Agency',
     description: null,
-    priceMonthly: 34900,
+    priceMonthly: 34900, // $349
     priceYearly: null,
     seats: 999,
     features: [

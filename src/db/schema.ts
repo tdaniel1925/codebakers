@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm';
 
 export const subscriptionPlanEnum = pgEnum('subscription_plan', ['beta', 'pro', 'team', 'agency', 'enterprise']);
 export const paymentProviderEnum = pgEnum('payment_provider', ['stripe', 'square', 'paypal']);
+export const trialStageEnum = pgEnum('trial_stage', ['anonymous', 'extended', 'expired', 'converted']);
 
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey(),
@@ -346,3 +347,46 @@ export const cliAnalytics = pgTable('cli_analytics', {
 
 export type CliAnalytics = typeof cliAnalytics.$inferSelect;
 export type NewCliAnalytics = typeof cliAnalytics.$inferInsert;
+
+// Trial Fingerprints - device-based trial tracking for zero-friction onboarding
+export const trialFingerprints = pgTable('trial_fingerprints', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Device identification (hashed for privacy)
+  deviceHash: text('device_hash').notNull().unique(),
+  machineId: text('machine_id'),
+
+  // User identification (progressive - starts anonymous, may add GitHub later)
+  githubId: text('github_id').unique(),
+  githubUsername: text('github_username'),
+  email: text('email'),
+
+  // Network info (soft signal for abuse detection)
+  ipAddress: text('ip_address'),
+
+  // Trial state
+  trialStage: trialStageEnum('trial_stage').default('anonymous'),
+  trialStartedAt: timestamp('trial_started_at').defaultNow(),
+  trialExtendedAt: timestamp('trial_extended_at'),
+  trialExpiresAt: timestamp('trial_expires_at'),
+
+  // Project lock (same as existing team-based trial)
+  projectId: text('project_id'),
+  projectName: text('project_name'),
+
+  // Conversion tracking
+  convertedToTeamId: uuid('converted_to_team_id').references(() => teams.id, { onDelete: 'set null' }),
+  convertedAt: timestamp('converted_at'),
+
+  // Anti-abuse flags
+  flagged: boolean('flagged').default(false),
+  flagReason: text('flag_reason'),
+
+  // Metadata
+  platform: text('platform'), // win32, darwin, linux
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type TrialFingerprint = typeof trialFingerprints.$inferSelect;
+export type NewTrialFingerprint = typeof trialFingerprints.$inferInsert;

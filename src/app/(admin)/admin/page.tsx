@@ -13,9 +13,24 @@ import {
   ArrowRight,
   Ban,
   Star,
+  Clock,
+  Github,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+
+interface TrialStats {
+  totalTrials: number;
+  activeAnonymous: number;
+  activeExtended: number;
+  expiredTrials: number;
+  convertedTrials: number;
+  flaggedDevices: number;
+  expiringToday: number;
+  expiringThisWeek: number;
+  conversionRate: number;
+  extensionRate: number;
+}
 
 interface Stats {
   users: {
@@ -30,6 +45,7 @@ interface Stats {
     pending: number;
     recentCount: number;
   };
+  trials?: TrialStats;
 }
 
 export default function AdminDashboardPage() {
@@ -42,10 +58,21 @@ export default function AdminDashboardPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/admin/stats');
-      if (!response.ok) throw new Error('Failed to fetch stats');
-      const data = await response.json();
-      setStats(data.data);
+      // Fetch main stats and trial stats in parallel
+      const [statsRes, trialsRes] = await Promise.all([
+        fetch('/api/admin/stats'),
+        fetch('/api/admin/trials/stats'),
+      ]);
+
+      if (!statsRes.ok) throw new Error('Failed to fetch stats');
+
+      const statsData = await statsRes.json();
+      const trialsData = trialsRes.ok ? await trialsRes.json() : null;
+
+      setStats({
+        ...statsData.data,
+        trials: trialsData?.data?.stats || null,
+      });
     } catch (error) {
       console.error('Failed to load stats:', error);
     } finally {
@@ -199,6 +226,78 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Trial Stats */}
+      {stats?.trials && (
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-blue-400" />
+                  Device Trials
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Zero-friction trial tracking
+                </CardDescription>
+              </div>
+              <Link href="/admin/trials">
+                <Button variant="outline" size="sm" className="border-slate-700">
+                  Manage Trials
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs">Active Anonymous</p>
+                <p className="text-xl font-bold text-blue-400 mt-1">
+                  {stats.trials.activeAnonymous}
+                </p>
+              </div>
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs flex items-center gap-1">
+                  <Github className="h-3 w-3" /> Extended
+                </p>
+                <p className="text-xl font-bold text-green-400 mt-1">
+                  {stats.trials.activeExtended}
+                </p>
+                <p className="text-xs text-slate-500">{stats.trials.extensionRate}% rate</p>
+              </div>
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs">Converted</p>
+                <p className="text-xl font-bold text-purple-400 mt-1">
+                  {stats.trials.convertedTrials}
+                </p>
+                <p className="text-xs text-slate-500">{stats.trials.conversionRate}% rate</p>
+              </div>
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs">Flagged</p>
+                <p className="text-xl font-bold text-red-400 mt-1">
+                  {stats.trials.flaggedDevices}
+                </p>
+              </div>
+            </div>
+            {(stats.trials.expiringToday > 0 || stats.trials.expiringThisWeek > 0) && (
+              <div className="mt-4 pt-4 border-t border-slate-700 flex gap-4">
+                {stats.trials.expiringToday > 0 && (
+                  <span className="text-amber-400 text-sm flex items-center gap-1">
+                    <AlertTriangle className="h-4 w-4" />
+                    {stats.trials.expiringToday} expiring today
+                  </span>
+                )}
+                {stats.trials.expiringThisWeek > 0 && (
+                  <span className="text-slate-400 text-sm">
+                    {stats.trials.expiringThisWeek} this week
+                  </span>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2">

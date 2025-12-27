@@ -271,11 +271,11 @@ export default function HomePage() {
           <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 text-sm text-gray-400">
             <div className="flex items-center gap-2">
               <SecurityCheckIcon className="h-4 w-4 text-green-500" />
-              <span>1 free project forever</span>
+              <span>7-day free trial</span>
             </div>
             <div className="flex items-center gap-2">
               <FlashIcon className="h-4 w-4 text-yellow-500" />
-              <span>2-minute setup</span>
+              <span>No signup required</span>
             </div>
             <div className="flex items-center gap-2">
               <Tick02Icon className="h-4 w-4 text-blue-500" />
@@ -481,26 +481,24 @@ export default function HomePage() {
           </Badge>
           <h2 className="text-4xl font-bold mb-4">Start free. Scale when ready.</h2>
           <p className="text-xl text-muted-foreground mb-12">
-            1 free project forever. No credit card required.
+            7-day free trial. No credit card required.
           </p>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {/* Free */}
+            {/* Trial */}
             <div className="p-6 rounded-2xl bg-card border border-border">
-              <h3 className="text-xl font-bold mb-2">Free</h3>
+              <h3 className="text-xl font-bold mb-2">Trial</h3>
               <div className="text-3xl font-bold mb-4">$0</div>
-              <p className="text-muted-foreground text-sm mb-6">1 project forever</p>
-              <Link href="/signup">
-                <Button variant="outline" className="w-full">Start Free</Button>
-              </Link>
+              <p className="text-muted-foreground text-sm mb-6">7 days free, no signup</p>
+              <code className="block text-sm bg-muted px-3 py-2 rounded mb-4 text-red-500">npx @codebakers/cli go</code>
             </div>
 
             {/* Pro */}
             <div className="p-6 rounded-2xl bg-red-50 dark:bg-red-950/30 border-2 border-red-400 dark:border-red-700 ring-2 ring-red-500/20">
               <Badge className="mb-2 bg-red-600 text-white">Most Popular</Badge>
               <h3 className="text-xl font-bold mb-2">Pro</h3>
-              <div className="text-3xl font-bold mb-4">$149<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
-              <p className="text-muted-foreground text-sm mb-6">Unlimited projects</p>
+              <div className="text-3xl font-bold mb-4">$49<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
+              <p className="text-muted-foreground text-sm mb-6">1 seat, unlimited projects</p>
               <Link href="/signup">
                 <Button className="w-full bg-red-600 hover:bg-red-700 text-white">Get Pro</Button>
               </Link>
@@ -509,8 +507,8 @@ export default function HomePage() {
             {/* Team */}
             <div className="p-6 rounded-2xl bg-card border border-border">
               <h3 className="text-xl font-bold mb-2">Team</h3>
-              <div className="text-3xl font-bold mb-4">$299<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
-              <p className="text-muted-foreground text-sm mb-6">5 developers</p>
+              <div className="text-3xl font-bold mb-4">$149<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
+              <p className="text-muted-foreground text-sm mb-6">5 seats, shared keys</p>
               <Link href="/signup">
                 <Button variant="outline" className="w-full">Get Team</Button>
               </Link>

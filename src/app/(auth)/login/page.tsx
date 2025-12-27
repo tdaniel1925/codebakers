@@ -203,6 +203,19 @@ function LoginForm() {
             Sign up
           </Link>
         </div>
+
+        {/* CLI Trial Option */}
+        <div className="mt-6 pt-6 border-t border-neutral-800">
+          <p className="text-center text-xs text-neutral-500 mb-2">
+            Want to try first? No signup needed:
+          </p>
+          <code className="block w-full text-center text-sm bg-neutral-800/50 border border-neutral-700 rounded-lg px-4 py-2 text-red-400 font-mono">
+            npx @codebakers/cli go
+          </code>
+          <p className="text-center text-xs text-neutral-500 mt-2">
+            7-day free trial, instant access
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

@@ -94,12 +94,28 @@ type ServiceKeys = {
   [K in ServiceName]: string | null;
 };
 
+export type TrialStage = 'anonymous' | 'extended' | 'expired' | 'converted';
+
+export interface TrialState {
+  trialId: string;
+  stage: TrialStage;
+  deviceHash: string;
+  expiresAt: string;  // ISO date
+  startedAt: string;  // ISO date
+  extendedAt?: string;  // ISO date
+  githubUsername?: string;
+  projectId?: string;
+  projectName?: string;
+}
+
 interface ConfigSchema {
   apiKey: string | null;
   apiUrl: string;
   experienceLevel: ExperienceLevel;
   serviceKeys: ServiceKeys;
   lastKeySync: string | null;  // ISO date of last sync with server
+  // Trial state (for zero-friction onboarding)
+  trial: TrialState | null;
 }
 
 // Create default service keys object with all keys set to null
@@ -109,13 +125,14 @@ const defaultServiceKeys: ServiceKeys = Object.fromEntries(
 
 const config = new Conf<ConfigSchema>({
   projectName: 'codebakers',
-  projectVersion: '1.7.0',
+  projectVersion: '1.8.0',
   defaults: {
     apiKey: null,
     apiUrl: 'https://codebakers.ai',
     experienceLevel: 'intermediate',
     serviceKeys: defaultServiceKeys,
     lastKeySync: null,
+    trial: null,
   },
   // Migration to add new keys when upgrading from old version
   migrations: {
@@ -131,6 +148,12 @@ const config = new Conf<ConfigSchema>({
       }
 
       store.set('serviceKeys', newKeys);
+    },
+    '1.8.0': (store) => {
+      // Add trial field if not present
+      if (!store.has('trial')) {
+        store.set('trial', null);
+      }
     },
   },
 });
@@ -388,4 +411,81 @@ export function getConfigPath(): string {
 
 export function getConfigStore(): ConfigSchema {
   return config.store;
+}
+
+// ============================================================
+// Trial State Management (Zero-Friction Onboarding)
+// ============================================================
+
+export function getTrialState(): TrialState | null {
+  return config.get('trial');
+}
+
+export function setTrialState(trial: TrialState): void {
+  config.set('trial', trial);
+}
+
+export function clearTrialState(): void {
+  config.set('trial', null);
+}
+
+export function updateTrialState(updates: Partial<TrialState>): void {
+  const current = config.get('trial');
+  if (current) {
+    config.set('trial', { ...current, ...updates });
+  }
+}
+
+/**
+ * Check if the current trial has expired
+ */
+export function isTrialExpired(): boolean {
+  const trial = config.get('trial');
+  if (!trial) return true;
+
+  const expiresAt = new Date(trial.expiresAt);
+  return new Date() > expiresAt;
+}
+
+/**
+ * Get the number of days remaining in the trial
+ */
+export function getTrialDaysRemaining(): number {
+  const trial = config.get('trial');
+  if (!trial) return 0;
+
+  const expiresAt = new Date(trial.expiresAt);
+  const now = new Date();
+  const diffMs = expiresAt.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  return Math.max(0, diffDays);
+}
+
+/**
+ * Check if user has any valid access (API key OR active trial)
+ */
+export function hasValidAccess(): boolean {
+  // Paid users always have access
+  const apiKey = config.get('apiKey');
+  if (apiKey) return true;
+
+  // Check trial
+  const trial = config.get('trial');
+  if (!trial) return false;
+
+  return !isTrialExpired();
+}
+
+/**
+ * Get authentication mode: 'apiKey', 'trial', or 'none'
+ */
+export function getAuthMode(): 'apiKey' | 'trial' | 'none' {
+  const apiKey = config.get('apiKey');
+  if (apiKey) return 'apiKey';
+
+  const trial = config.get('trial');
+  if (trial && !isTrialExpired()) return 'trial';
+
+  return 'none';
 }

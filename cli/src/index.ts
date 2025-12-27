@@ -19,6 +19,9 @@ import { config } from './commands/config.js';
 import { audit } from './commands/audit.js';
 import { heal, healWatch } from './commands/heal.js';
 import { pushPatterns, pushPatternsInteractive } from './commands/push-patterns.js';
+import { go } from './commands/go.js';
+import { extend } from './commands/extend.js';
+import { billing } from './commands/billing.js';
 
 // Show welcome message when no command is provided
 function showWelcome(): void {
@@ -33,7 +36,7 @@ function showWelcome(): void {
   `));
 
   console.log(chalk.white('  Getting Started:\n'));
-  console.log(chalk.cyan('    codebakers setup') + chalk.gray('      One-time setup (recommended first step)'));
+  console.log(chalk.cyan('    codebakers go') + chalk.gray('         Start free trial instantly (no signup!)'));
   console.log(chalk.cyan('    codebakers scaffold') + chalk.gray('   Create a new project from scratch'));
   console.log(chalk.cyan('    codebakers init') + chalk.gray('       Add patterns to existing project\n'));
 
@@ -57,9 +60,9 @@ function showWelcome(): void {
   console.log(chalk.cyan('    codebakers doctor') + chalk.gray('     Check CodeBakers setup\n'));
 
   console.log(chalk.white('  All Commands:\n'));
-  console.log(chalk.gray('    setup, scaffold, init, generate, upgrade, status, audit, heal, doctor, config, login'));
-  console.log(chalk.gray('    install, uninstall, install-hook, uninstall-hook'));
-  console.log(chalk.gray('    serve, mcp-config, mcp-uninstall\n'));
+  console.log(chalk.gray('    go, extend, billing, setup, scaffold, init, generate, upgrade, status'));
+  console.log(chalk.gray('    audit, heal, doctor, config, login, install, uninstall'));
+  console.log(chalk.gray('    install-hook, uninstall-hook, serve, mcp-config, mcp-uninstall\n'));
 
   console.log(chalk.gray('  Run ') + chalk.cyan('codebakers <command> --help') + chalk.gray(' for more info\n'));
 }
@@ -71,7 +74,25 @@ program
   .description('CodeBakers CLI - Production patterns for AI-assisted development')
   .version('2.9.0');
 
-// Primary command - one-time setup
+// Zero-friction trial entry (no signup required)
+program
+  .command('go')
+  .alias('start')
+  .description('Start using CodeBakers instantly (no signup required)')
+  .action(go);
+
+program
+  .command('extend')
+  .description('Extend your free trial with GitHub')
+  .action(extend);
+
+program
+  .command('billing')
+  .alias('subscribe')
+  .description('Manage subscription or upgrade to paid plan')
+  .action(billing);
+
+// Primary command - one-time setup (for paid users)
 program
   .command('setup')
   .description('One-time setup: login + configure Claude Code (recommended)')

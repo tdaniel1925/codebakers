@@ -312,14 +312,14 @@ const pricingPlans = [
     period: '/month',
     description: 'For individual developers',
     features: [
-      'All 34 modules',
+      'All 40 modules',
       '1 API key',
       'Unlimited projects',
       'Pattern updates',
-      'Community support',
+      'Email support',
     ],
     cta: 'Get Started',
-    popular: false,
+    popular: true,
   },
   {
     name: 'Team',
@@ -334,7 +334,7 @@ const pricingPlans = [
       'Private Slack channel',
     ],
     cta: 'Get Started',
-    popular: true,
+    popular: false,
   },
   {
     name: 'Agency',
@@ -376,7 +376,7 @@ const faqs = [
   },
   {
     question: 'Is there a free tier?',
-    answer: 'Yes! You get one free project with unlimited time. No credit card required. Upgrade anytime for more projects and features.',
+    answer: 'Yes! Run `npx @codebakers/cli go` to start a 7-day free trial instantly. No signup required, no credit card. Connect GitHub for 7 more days free, then upgrade to Pro ($49/mo) for unlimited access.',
   },
 ];
 
@@ -1104,7 +1104,7 @@ export default function HomePage() {
               Simple, transparent&nbsp;pricing
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              One free project, forever. No credit card&nbsp;required.
+              7-day free trial. No signup required. No credit&nbsp;card.
             </p>
           </motion.div>
 
@@ -1216,7 +1216,7 @@ export default function HomePage() {
             </h2>
             <p className="text-gray-300 mb-8 max-w-xl mx-auto text-lg">
               Join developers building production apps in days, not&nbsp;weeks.
-              Start with one free project,&nbsp;forever.
+              Start your 7-day free trial&nbsp;now.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link href="/signup">
@@ -1236,7 +1236,7 @@ export default function HomePage() {
               </Link>
             </div>
             <p className="text-sm text-gray-500 mt-6">
-              No credit card required. One free project, forever.
+              No credit card required. Run <code className="bg-gray-800 px-2 py-0.5 rounded text-red-400">npx @codebakers/cli go</code> to start.
             </p>
           </motion.div>
         </div>

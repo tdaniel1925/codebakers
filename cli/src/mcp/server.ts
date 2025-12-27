@@ -8,7 +8,7 @@ import {
   ErrorCode,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { getApiKey, getApiUrl, getExperienceLevel, setExperienceLevel, getServiceKey, setServiceKey, type ExperienceLevel } from '../config.js';
+import { getApiKey, getApiUrl, getExperienceLevel, setExperienceLevel, getServiceKey, setServiceKey, getTrialState, isTrialExpired, getTrialDaysRemaining, hasValidAccess, getAuthMode, type ExperienceLevel, type TrialState } from '../config.js';
 import { audit as runAudit } from '../commands/audit.js';
 import { heal as runHeal } from '../commands/heal.js';
 import { getCliVersion } from '../lib/api.js';
@@ -61,12 +61,16 @@ class CodeBakersServer {
   private server: Server;
   private apiKey: string | null;
   private apiUrl: string;
+  private trialState: TrialState | null;
+  private authMode: 'apiKey' | 'trial' | 'none';
   private autoUpdateChecked = false;
   private autoUpdateInProgress = false;
 
   constructor() {
     this.apiKey = getApiKey();
     this.apiUrl = getApiUrl();
+    this.trialState = getTrialState();
+    this.authMode = getAuthMode();
 
     this.server = new Server(
       {
@@ -89,11 +93,27 @@ class CodeBakersServer {
   }
 
   /**
+   * Get authorization headers for API requests
+   * Supports both API key (paid users) and trial ID (free users)
+   */
+  private getAuthHeaders(): Record<string, string> {
+    if (this.apiKey) {
+      return { 'Authorization': `Bearer ${this.apiKey}` };
+    }
+
+    if (this.trialState?.trialId) {
+      return { 'X-Trial-Id': this.trialState.trialId };
+    }
+
+    return {};
+  }
+
+  /**
    * Automatically check for and apply pattern updates
    * Runs silently in background - no user intervention needed
    */
   private async checkAndAutoUpdate(): Promise<void> {
-    if (this.autoUpdateChecked || this.autoUpdateInProgress || !this.apiKey) {
+    if (this.autoUpdateChecked || this.autoUpdateInProgress || this.authMode === 'none') {
       return;
     }
 
@@ -131,7 +151,7 @@ class CodeBakersServer {
 
       // Fetch latest version
       const response = await fetch(`${this.apiUrl}/api/content/version`, {
-        headers: { 'Authorization': `Bearer ${this.apiKey}` },
+        headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -153,7 +173,7 @@ class CodeBakersServer {
 
       // Fetch full content and update
       const contentResponse = await fetch(`${this.apiUrl}/api/content`, {
-        headers: { 'Authorization': `Bearer ${this.apiKey}` },
+        headers: this.getAuthHeaders(),
       });
 
       if (!contentResponse.ok) {
@@ -400,7 +420,7 @@ class CodeBakersServer {
     let latest: { version: string; moduleCount: number } | null = null;
     try {
       const response = await fetch(`${this.apiUrl}/api/content/version`, {
-        headers: this.apiKey ? { 'Authorization': `Bearer ${this.apiKey}` } : {},
+        headers: this.getAuthHeaders(),
       });
       if (response.ok) {
         latest = await response.json();
@@ -879,11 +899,36 @@ class CodeBakersServer {
 
     // Handle tool calls
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      if (!this.apiKey) {
+      // Check access: API key OR valid trial
+      if (this.authMode === 'none') {
         throw new McpError(
           ErrorCode.InvalidRequest,
-          'Not logged in. Run `codebakers login` first.'
+          'Not logged in. Run `codebakers go` to start a free trial, or `codebakers setup` if you have an account.'
         );
+      }
+
+      // Check if trial expired
+      if (this.authMode === 'trial' && isTrialExpired()) {
+        const trialState = getTrialState();
+        if (trialState?.stage === 'anonymous') {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            'Trial expired. Run `codebakers extend` to add 7 more days with GitHub, or `codebakers billing` to upgrade.'
+          );
+        } else {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            'Trial expired. Run `codebakers billing` to upgrade to a paid plan.'
+          );
+        }
+      }
+
+      // Show warning if trial expiring soon
+      if (this.authMode === 'trial') {
+        const daysRemaining = getTrialDaysRemaining();
+        if (daysRemaining <= 2) {
+          console.error(`[CodeBakers] Trial expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}. Run 'codebakers extend' or 'codebakers billing'.`);
+        }
       }
 
       const { name, arguments: args } = request.params;
@@ -977,7 +1022,7 @@ class CodeBakersServer {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
+        ...this.getAuthHeaders(),
       },
       body: JSON.stringify({
         prompt: userRequest,
@@ -1103,9 +1148,7 @@ Show the user what their simple request was expanded into, then proceed with the
   private async handleListPatterns() {
     const response = await fetch(`${this.apiUrl}/api/patterns`, {
       method: 'GET',
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-      },
+      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -1164,7 +1207,7 @@ Show the user what their simple request was expanded into, then proceed with the
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
+        ...this.getAuthHeaders(),
       },
       body: JSON.stringify({ patterns }),
     });
@@ -1188,7 +1231,7 @@ Show the user what their simple request was expanded into, then proceed with the
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
+        ...this.getAuthHeaders(),
       },
       body: JSON.stringify({ query }),
     });
@@ -1475,7 +1518,7 @@ Show the user what their simple request was expanded into, then proceed with the
 
       const response = await fetch(`${this.apiUrl}/api/content`, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${this.apiKey}` },
+        headers: this.getAuthHeaders(),
       });
 
       if (response.ok) {
@@ -1881,7 +1924,7 @@ Or if user declines, call without fullDeploy:
     try {
       const response = await fetch(`${this.apiUrl}/api/content`, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${this.apiKey}` },
+        headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -2991,7 +3034,7 @@ Just describe what you want to build! I'll automatically:
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
+          ...this.getAuthHeaders(),
         },
         body: JSON.stringify({
           category,
@@ -3043,7 +3086,7 @@ Just describe what you want to build! I'll automatically:
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
+          ...this.getAuthHeaders(),
         },
         body: JSON.stringify({
           eventType,

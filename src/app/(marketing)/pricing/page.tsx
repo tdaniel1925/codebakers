@@ -12,12 +12,12 @@ const plans: Array<{
 }> = [
   {
     name: 'Pro',
-    price: 149,
+    price: 49,
     plan: 'pro',
     description: 'Perfect for solo developers',
     features: [
-      '34 production modules',
-      '45,474 lines of patterns',
+      '40 production modules',
+      '50,000+ lines of patterns',
       'Auto-testing included',
       'Full stack coverage',
       '1 seat',
@@ -27,7 +27,7 @@ const plans: Array<{
   },
   {
     name: 'Team',
-    price: 299,
+    price: 149,
     plan: 'team',
     description: 'For growing teams',
     features: [
@@ -42,7 +42,7 @@ const plans: Array<{
   },
   {
     name: 'Agency',
-    price: 499,
+    price: 349,
     plan: 'agency',
     description: 'For agencies & consultancies',
     features: [
@@ -57,7 +57,7 @@ const plans: Array<{
   },
   {
     name: 'Enterprise',
-    price: 999,
+    price: 'custom',
     plan: 'enterprise',
     description: 'Unlimited teams & custom SLA',
     features: [
@@ -92,14 +92,14 @@ export default async function PricingPage() {
           </p>
         </div>
 
-        {/* Free Project Banner */}
+        {/* Free Trial Banner */}
         <div className="max-w-2xl mx-auto mb-12 p-4 rounded-lg bg-red-600/10 border border-red-500/30 text-center">
-          <Badge className="bg-red-600 mb-2">Try Free</Badge>
+          <Badge className="bg-red-600 mb-2">7-Day Free Trial</Badge>
           <p className="text-white font-medium">
-            Start with 1 free project - no credit card required
+            Try CodeBakers free for 7 days - no signup required
           </p>
           <p className="text-neutral-400 text-sm mt-1">
-            Upgrade anytime to unlock unlimited projects
+            Run <code className="bg-neutral-800 px-2 py-0.5 rounded text-red-400">npx @codebakers/cli go</code> to start instantly
           </p>
         </div>
 
