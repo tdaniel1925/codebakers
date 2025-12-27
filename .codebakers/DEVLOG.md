@@ -1,5 +1,29 @@
 # Development Log
 
+## 2025-12-26 - Session Protocols v4.8
+**Session:** 2025-12-26T15:00:00Z
+**Task Size:** MEDIUM
+**Status:** Completed
+
+### What was done:
+- Added SESSION START PROTOCOL - reads devlog, git log, currentWork, and blockers
+- Added SESSION END PROTOCOL - updates devlog, creates BLOCKED.md, commits changes
+- Added `.codebakers/BLOCKED.md` format for seamless AI session handoffs
+- Updated version to 4.8 across all pattern files
+
+### Files changed:
+- `CLAUDE.md` - Added session protocols, updated to v4.8
+- `.cursorrules` - Added session protocols, updated to v4.8
+- `scripts/push-v45.js` - Updated to push v4.8
+- `newfiles/CLAUDE.md` - Updated copy
+- `newfiles/.cursorrules` - Updated copy
+
+### Next steps:
+- Push v4.8 to production
+- Test session handoff with new blocker format
+
+---
+
 ## 2025-12-26 - Push Patterns CLI + Visible Branding v4.7
 **Session:** 2025-12-26T14:30:00Z
 **Task Size:** LARGE

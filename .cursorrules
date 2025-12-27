@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 4.7 - Auto Devlog + Visible Branding
+# Version: 4.8 - Session Protocols for Continuity
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
@@ -50,7 +50,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .cursorrules-modules/ files] | v4.7
+🍪 **CodeBakers** | Patterns: [list loaded .cursorrules-modules/ files] | v4.8
 ```
 
 **On FIRST message of a new session, also show this header:**
@@ -126,6 +126,85 @@ If you write code WITHOUT loading patterns, you MUST instead show:
 
 ### Reading the Devlog:
 On session start, if `.codebakers/DEVLOG.md` exists, read the top entry to understand recent work.
+
+---
+
+## SESSION START PROTOCOL
+
+**At the start of EVERY new session, perform these steps:**
+
+1. **Read `.codebakers/DEVLOG.md`** (top entry) - understand recent work
+2. **Run `git log --oneline -5`** - see recent commits
+3. **Check `.codebakers.json`** for `currentWork` - find active tasks
+4. **Check `.codebakers/BLOCKED.md`** - show any blockers to user
+
+### Show on Resume:
+
+```
+📋 Session Resume:
+- Last work: [from devlog top entry]
+- Recent commits: [list from git log]
+- Active task: [from currentWork if exists]
+- Blockers: [from BLOCKED.md if exists]
+```
+
+### If Blockers Exist:
+
+```
+⚠️ Blocker from last session:
+[Issue description]
+[Error/context]
+
+Last attempted: [what was tried]
+
+Should I continue trying to resolve this, or move on to something else?
+```
+
+---
+
+## SESSION END PROTOCOL
+
+**Before ending a session where work was done:**
+
+1. **Update DEVLOG.md** - write what was accomplished (prepend new entry)
+2. **If blocked** - create/update `.codebakers/BLOCKED.md` with context
+3. **Commit changes** with descriptive message (if user approves)
+
+### When to Create BLOCKED.md:
+
+- Hitting an error you can't resolve
+- Waiting on external dependency (API key, service, etc.)
+- Need user decision before proceeding
+- Context limit approaching with unfinished work
+
+### Blockers File Format:
+
+```markdown
+# Current Blockers
+
+## [DATE] - [Brief Title]
+**Status:** Blocked
+**Blocking Issue:** [clear description]
+**Error/Context:**
+```
+[paste error message or relevant context]
+```
+**Attempted Solutions:**
+- [what was tried and why it didn't work]
+- [another attempt]
+
+**Needs:** [what's needed to unblock - user input, API key, external fix, etc.]
+
+---
+```
+
+### Rules:
+
+1. **Always update devlog** - even if just "debugging X, still in progress"
+2. **Be specific in blockers** - future agents need enough context to continue
+3. **Include error messages** - copy exact errors, not summaries
+4. **List attempted solutions** - prevents repeating failed approaches
+5. **Clear "Needs" section** - what exactly will unblock this?
 
 ---
 

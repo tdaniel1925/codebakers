@@ -18,7 +18,7 @@ async function pushV45() {
   console.log('CLAUDE.md size:', (claudeMdContent.length / 1024).toFixed(1), 'KB');
   console.log('.cursorrules size:', (cursorRulesContent.length / 1024).toFixed(1), 'KB');
 
-  const changelog = `v4.7 Auto Devlog + Visible Branding: Added AUTOMATIC DEVLOG feature - AI maintains .codebakers/DEVLOG.md for session continuity. Added visible "🍪 CodeBakers Active" header on session start. Added "🍪 CodeBakers | Patterns: [...] | v4.7" footer on every code response. Includes MANDATORY COMPLIANCE, TASK SIZE DETECTION, DEBUG/QUICK MODE, and ANNOUNCE YOUR CLASSIFICATION.`;
+  const changelog = `v4.8 Session Protocols for Continuity: Added SESSION START PROTOCOL - reads devlog, git log, currentWork, and blockers on session start. Added SESSION END PROTOCOL - updates devlog, creates BLOCKED.md if stuck, commits changes. Added .codebakers/BLOCKED.md format for seamless handoffs between AI sessions. Ensures no context is ever lost between chats.`;
 
   console.log('\nPushing to', apiUrl + '/api/admin/content/push');
 
@@ -30,7 +30,7 @@ async function pushV45() {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        version: '4.7',
+        version: '4.8',
         claudeMdContent,
         cursorRulesContent,
         changelog,
