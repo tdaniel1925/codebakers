@@ -79,10 +79,11 @@ exit 0
 function main() {
   console.log('🍪 CodeBakers Hook Installer\\n');
 
-  // Check if we're in a git repo
+  // Check if we're in a git repo - skip gracefully if not (e.g., Vercel builds)
   if (!fs.existsSync(path.join(process.cwd(), '.git'))) {
-    console.error('❌ Not a git repository. Run this from the project root.');
-    process.exit(1);
+    console.log('   ⏭️  Not a git repository, skipping hook installation.');
+    console.log('   (This is normal for CI/CD environments like Vercel)\\n');
+    process.exit(0);
   }
 
   // Create hooks directory if it doesn't exist
