@@ -18,7 +18,7 @@ async function pushV45() {
   console.log('CLAUDE.md size:', (claudeMdContent.length / 1024).toFixed(1), 'KB');
   console.log('.cursorrules size:', (cursorRulesContent.length / 1024).toFixed(1), 'KB');
 
-  const changelog = `v4.9 Pattern Access Failure Modes: Added CRITICAL section preventing AI from falling back to memory when patterns are hard to access. Covers: large files (read in chunks/grep first), base64 encoding (decode it!), search misses (broaden terms), unclear modules (keyword mapping). Golden Rule: "I couldn't read the pattern" is NEVER acceptable.`;
+  const changelog = `v5.0 Split Large Modules: Split 3 large modules (3000+ lines each) into smaller focused modules (<600 lines). 06-integrations split into 6 modules (voice, email, communications, background-jobs, documents, api-patterns). 09-design split into 3 modules (layouts, accessibility, seo). 25-experts-industry split into 5 modules (ecommerce, education, voice-vapi, b2b, kids-coppa). Updated MODULE REFERENCE with loading guide.`;
 
   console.log('\nPushing to', apiUrl + '/api/admin/content/push');
 
@@ -30,7 +30,7 @@ async function pushV45() {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        version: '4.9',
+        version: '5.0',
         claudeMdContent,
         cursorRulesContent,
         changelog,

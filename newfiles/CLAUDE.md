@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 4.7 - Auto Devlog + Visible Branding
+# Version: 4.9 - Pattern Access Failure Modes
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
@@ -50,7 +50,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v4.7
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v4.9
 ```
 
 **On FIRST message of a new session, also show this header:**
@@ -126,6 +126,85 @@ If you write code WITHOUT loading patterns, you MUST instead show:
 
 ### Reading the Devlog:
 On session start, if `.codebakers/DEVLOG.md` exists, read the top entry to understand recent work.
+
+---
+
+## SESSION START PROTOCOL
+
+**At the start of EVERY new session, perform these steps:**
+
+1. **Read `.codebakers/DEVLOG.md`** (top entry) - understand recent work
+2. **Run `git log --oneline -5`** - see recent commits
+3. **Check `.codebakers.json`** for `currentWork` - find active tasks
+4. **Check `.codebakers/BLOCKED.md`** - show any blockers to user
+
+### Show on Resume:
+
+```
+📋 Session Resume:
+- Last work: [from devlog top entry]
+- Recent commits: [list from git log]
+- Active task: [from currentWork if exists]
+- Blockers: [from BLOCKED.md if exists]
+```
+
+### If Blockers Exist:
+
+```
+⚠️ Blocker from last session:
+[Issue description]
+[Error/context]
+
+Last attempted: [what was tried]
+
+Should I continue trying to resolve this, or move on to something else?
+```
+
+---
+
+## SESSION END PROTOCOL
+
+**Before ending a session where work was done:**
+
+1. **Update DEVLOG.md** - write what was accomplished (prepend new entry)
+2. **If blocked** - create/update `.codebakers/BLOCKED.md` with context
+3. **Commit changes** with descriptive message (if user approves)
+
+### When to Create BLOCKED.md:
+
+- Hitting an error you can't resolve
+- Waiting on external dependency (API key, service, etc.)
+- Need user decision before proceeding
+- Context limit approaching with unfinished work
+
+### Blockers File Format:
+
+```markdown
+# Current Blockers
+
+## [DATE] - [Brief Title]
+**Status:** Blocked
+**Blocking Issue:** [clear description]
+**Error/Context:**
+```
+[paste error message or relevant context]
+```
+**Attempted Solutions:**
+- [what was tried and why it didn't work]
+- [another attempt]
+
+**Needs:** [what's needed to unblock - user input, API key, external fix, etc.]
+
+---
+```
+
+### Rules:
+
+1. **Always update devlog** - even if just "debugging X, still in progress"
+2. **Be specific in blockers** - future agents need enough context to continue
+3. **Include error messages** - copy exact errors, not summaries
+4. **List attempted solutions** - prevents repeating failed approaches
+5. **Clear "Needs" section** - what exactly will unblock this?
 
 ---
 
@@ -277,6 +356,81 @@ When you read a file that starts with `<<CB64>>`, you must:
 
 ---
 
+## PATTERN ACCESS FAILURE MODES (CRITICAL)
+
+**When you encounter obstacles accessing patterns, you MUST NOT fall back to memory. Follow these recovery steps:**
+
+### Problem: File Too Large to Read
+
+**Symptoms:** File is 50K+ tokens, context limit hit, "file too large" errors.
+
+**Solution:**
+1. **Read in chunks** using offset/limit: `Read(file, offset=0, limit=500)`, then `offset=500`, etc.
+2. **Search first** - Use grep to find the specific section you need:
+   ```
+   grep "email" .claude/06-integrations.md
+   grep "send" .claude/06-integrations.md
+   ```
+3. **Read just that section** - Once you find line numbers, read only that part
+4. **NEVER skip** - If a pattern exists, you MUST access it somehow
+
+### Problem: Base64 Encoded Content
+
+**Symptoms:** File content starts with `<<CB64>>` or looks like random characters.
+
+**Solution:**
+1. **This is expected** - All `.claude/` files are base64 encoded
+2. **Decode it:**
+   ```python
+   import base64
+   content = base64.b64decode(encoded_content).decode('utf-8')
+   ```
+3. **Or use shell:** `base64 -d .claude/file.md`
+4. **NEVER say "it's encoded so I can't use it"** - Decode it and use it
+
+### Problem: Search Term Not Found
+
+**Symptoms:** Searched for "Resend" but got no matches.
+
+**Solution:**
+1. **Broaden your search** - Try related terms:
+   - For email: search "email", "mail", "send", "smtp", "notification"
+   - For payments: search "payment", "stripe", "billing", "charge", "subscription"
+   - For auth: search "auth", "login", "session", "token", "user"
+2. **Check the module table** - Find which module covers your domain
+3. **Read the module index** - First 100 lines usually list all topics covered
+4. **NEVER conclude "pattern doesn't exist"** without trying 3+ search terms
+
+### Problem: Relevant Module Unclear
+
+**Symptoms:** Not sure which of 40 modules covers this feature.
+
+**Solution:**
+1. **Check MODULE REFERENCE table** in this file (search for it)
+2. **Use keyword mapping:**
+   | Feature | Try Module |
+   |---------|-----------|
+   | Email sending | 06-integrations, 28-email-design |
+   | API routes | 03-api |
+   | Forms | 04-frontend |
+   | Database | 01-database |
+   | Auth/login | 02-auth |
+   | Payments | 05-payments |
+3. **When in doubt, read 00-core first** - It has cross-references
+
+### THE GOLDEN RULE
+
+**If you're about to write code from memory because patterns were "inaccessible":**
+
+1. STOP
+2. Tell the user: "The pattern file is [large/encoded/unclear]. Let me try a different approach to access it."
+3. Try the recovery steps above
+4. Only proceed when you have the actual pattern content
+
+**"I couldn't read the pattern" is NEVER an acceptable reason to skip patterns.**
+
+---
+
 ## PROJECT STATE FILE (.codebakers.json)
 
 Check for and maintain a `.codebakers.json` file in the project root.
@@ -398,10 +552,20 @@ At the START of every new chat:
 | 03-api | 1,640 | Routes, validation, rate limits |
 | 04-frontend | 1,770 | React, forms, states, i18n |
 | 05-payments | 1,570 | Stripe, subscriptions, money |
-| 06-integrations | 3,440 | Email, VAPI, files, jobs |
+| **06-integrations (SPLIT)** | | |
+| 06a-voice | 450 | VAPI Voice AI, webhooks |
+| 06b-email | 600 | Nylas, Resend, React Email templates |
+| 06c-communications | 400 | Twilio SMS, GoHighLevel CRM |
+| 06d-background-jobs | 500 | Inngest, scheduled tasks, cron |
+| 06e-documents | 450 | PDF, Excel, Word generation |
+| 06f-api-patterns | 400 | Unknown API integration protocol |
 | 07-performance | 710 | Caching, optimization |
 | 08-testing | 820 | Tests, CI/CD, monitoring |
-| 09-design | 3,200 | UI, accessibility, SEO |
+| **09-design (SPLIT)** | | |
+| 09a-layouts | 500 | Navigation, page layouts, theme |
+| 09b-accessibility | 350 | WCAG compliance, keyboard, focus |
+| 09c-seo | 300 | Metadata, sitemap, structured data |
+| 09-design | 2,500 | Components, dashboards, marketing, design clone |
 | 10-generators | 2,920 | Scaffolding, templates |
 | 11-realtime | 1,940 | WebSockets, notifications |
 | 12-saas | 1,270 | Multi-tenant, feature flags |
@@ -417,7 +581,12 @@ At the START of every new chat:
 | 22-experts-health | 780 | Healthcare, HIPAA compliance |
 | 23-experts-finance | 1,090 | Fintech, PCI, banking |
 | 24-experts-legal | 2,510 | Legal tech, contracts, privacy |
-| 25-experts-industry | 3,530 | Ecommerce, edtech, proptech, etc. |
+| **25-experts-industry (SPLIT)** | | |
+| 25a-ecommerce | 300 | Products, carts, orders, inventory |
+| 25b-education | 400 | Courses, lessons, progress, certificates |
+| 25c-voice-vapi | 350 | Voice AI assistants, VAPI integration |
+| 25d-b2b | 400 | Multi-tenancy, RBAC, SSO, API keys |
+| 25e-kids-coppa | 350 | COPPA compliance, parental consent |
 | 26-analytics | 920 | PostHog, Mixpanel, funnels |
 | 27-search | 1,130 | Full-text, Algolia, autocomplete |
 | 28-email-design | 800 | HTML emails, MJML, React Email |
@@ -425,13 +594,30 @@ At the START of every new chat:
 | 30-motion | 880 | Framer Motion, GSAP, animations |
 | 31-iconography | 630 | Lucide, Heroicons, SVG icons |
 | 32-print | 990 | PDF generation, print stylesheets |
-| 33-cicd | 1,100 | CI/CD pipelines, GitHub Actions, deployments |
+| 33-cicd | 1,100 | CI/CD pipelines, GitHub Actions |
 | 34-integration-contracts | 650 | Cross-system integration patterns |
-| 35-environment | 1,200 | Environment vars, secrets, .env management |
+| 35-environment | 1,200 | Environment vars, secrets management |
 | 36-pre-launch | 1,400 | Comprehensive pre-launch checklist |
-| 37-quality-gates | 1,100 | Code quality, linting, CI/CD enforcement |
+| 37-quality-gates | 1,100 | Code quality, linting enforcement |
 | 38-troubleshooting | 1,500 | Common issues, debugging, fixes |
-| 39-self-healing | 1,800 | Auto-detect errors, classify, fix with AI |
+| 39-self-healing | 1,800 | Auto-detect errors, fix with AI |
+
+**Module Loading Guide:**
+- For **voice/calls**: Load `06a-voice`
+- For **email**: Load `06b-email`
+- For **SMS/CRM**: Load `06c-communications`
+- For **background jobs**: Load `06d-background-jobs`
+- For **PDF/Excel/Word**: Load `06e-documents`
+- For **new API integrations**: Load `06f-api-patterns`
+- For **layouts/theme**: Load `09a-layouts`
+- For **accessibility**: Load `09b-accessibility`
+- For **SEO/metadata**: Load `09c-seo`
+- For **components/dashboards**: Load `09-design`
+- For **e-commerce**: Load `25a-ecommerce`
+- For **education/LMS**: Load `25b-education`
+- For **voice AI/VAPI**: Load `25c-voice-vapi`
+- For **B2B/multi-tenant**: Load `25d-b2b`
+- For **kids apps/COPPA**: Load `25e-kids-coppa`
 
 ---
 

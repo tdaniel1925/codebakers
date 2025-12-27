@@ -4,6 +4,7 @@ import { createInterface } from 'readline';
 import { execSync } from 'child_process';
 import { setApiKey, getApiKey, getApiUrl, syncServiceKeys, SERVICE_KEY_LABELS, type ServiceName } from '../config.js';
 import { validateApiKey, formatApiError, checkForUpdates, getCliVersion, type ApiError } from '../lib/api.js';
+import { showQuickStartGuide, formatFriendlyError, getNetworkError, getAuthError } from '../lib/progress.js';
 
 function prompt(question: string): Promise<string> {
   const rl = createInterface({
@@ -67,8 +68,16 @@ export async function setup(): Promise<void> {
   } catch (error) {
     spinner.fail('Invalid API key');
 
-    if (error && typeof error === 'object' && 'recoverySteps' in error) {
-      console.log(chalk.red(`\n  ${formatApiError(error as ApiError)}\n`));
+    // Use friendly error formatting
+    if (error && typeof error === 'object' && 'code' in error) {
+      const code = (error as { code: string }).code;
+      if (code === 'NETWORK_ERROR') {
+        console.log(formatFriendlyError(getNetworkError()));
+      } else if (code === 'UNAUTHORIZED' || code === 'INVALID_FORMAT') {
+        console.log(formatFriendlyError(getAuthError()));
+      } else if ('recoverySteps' in error) {
+        console.log(chalk.red(`\n  ${formatApiError(error as ApiError)}\n`));
+      }
     } else {
       const message = error instanceof Error ? error.message : 'API key validation failed';
       console.log(chalk.red(`\n  ${message}\n`));

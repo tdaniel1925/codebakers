@@ -68,6 +68,57 @@ If you write code WITHOUT loading patterns, you MUST instead show:
 
 ---
 
+## PRE-COMMIT ENFORCEMENT (HARD VALIDATION)
+
+**Code that ignores patterns will be BLOCKED from committing.**
+
+A pre-commit hook validates all code against CodeBakers patterns:
+
+### What Gets Validated:
+
+| File Type | Required Patterns | Forbidden Patterns |
+|-----------|-------------------|-------------------|
+| API Routes | try/catch error handling, NextResponse.json | console.log, `any` type |
+| Components | Valid React exports, proper structure | Direct DOM manipulation |
+| Services | Proper exports | TODO throws |
+| Database | Drizzle patterns | Raw SQL queries |
+
+### Universal Rules (All Files):
+
+- No `@ts-ignore` or `@ts-nocheck` comments
+- No `FIXME:`, `HACK:`, or `XXX:` comments in committed code
+- Environment variables must have fallbacks or type guards
+
+### How It Works:
+
+1. **Pre-commit hook** runs `validate-codebakers-compliance.js`
+2. **Scans staged files** for pattern violations
+3. **Blocks commit** if errors found
+4. **Shows specific fixes** needed
+
+### Commands:
+
+```bash
+# Validate all files
+npm run validate
+
+# Validate staged files only (what pre-commit runs)
+npm run validate:staged
+
+# Strict mode (warnings also block)
+npm run validate:strict
+```
+
+### Install the Hook:
+
+```bash
+npm run prepare
+```
+
+**This ensures AI-generated code CANNOT bypass patterns - commit is blocked until compliant.**
+
+---
+
 ## SESSION CONTEXT CHECK (STEP 0)
 
 **BEFORE doing anything else, check if this is a resumed session:**
@@ -571,7 +622,12 @@ At the START of every new chat:
 | 22-experts-health | 780 | Healthcare, HIPAA compliance |
 | 23-experts-finance | 1,090 | Fintech, PCI, banking |
 | 24-experts-legal | 2,510 | Legal tech, contracts, privacy |
-| 25-experts-industry | 3,530 | Ecommerce, edtech, proptech, etc. |
+| **25-experts-industry (SPLIT)** | | |
+| 25a-ecommerce | 300 | Products, carts, orders, inventory |
+| 25b-education | 400 | Courses, lessons, progress, certificates |
+| 25c-voice-vapi | 350 | Voice AI assistants, VAPI integration |
+| 25d-b2b | 400 | Multi-tenancy, RBAC, SSO, API keys |
+| 25e-kids-coppa | 350 | COPPA compliance, parental consent |
 | 26-analytics | 920 | PostHog, Mixpanel, funnels |
 | 27-search | 1,130 | Full-text, Algolia, autocomplete |
 | 28-email-design | 800 | HTML emails, MJML, React Email |
