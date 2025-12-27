@@ -19,7 +19,9 @@
     "prepare": "node scripts/install-hooks.js",
     "validate": "node scripts/validate-codebakers-compliance.js",
     "validate:staged": "node scripts/validate-codebakers-compliance.js --staged",
-    "validate:strict": "node scripts/validate-codebakers-compliance.js --strict"
+    "validate:strict": "node scripts/validate-codebakers-compliance.js --strict",
+    "test:watch": "playwright test --watch",
+    "test:ci": "playwright test --reporter=github"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
