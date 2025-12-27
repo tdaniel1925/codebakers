@@ -31,10 +31,6 @@ interface Stats {
   apiKeyCount: number;
   lastApiCall: Date | null;
   seatLimit?: number | null;
-  freeTrialProject?: {
-    id: string;
-    name: string | null;
-  } | null;
 }
 
 interface AccountContentProps {
@@ -80,10 +76,7 @@ export function AccountContent({ user, stats, team, apiKey }: AccountContentProp
     if (stats.subscription?.status === 'active') {
       return <Badge className="bg-green-600">{stats.subscription?.plan?.toUpperCase() || 'ACTIVE'}</Badge>;
     }
-    if (stats.freeTrialProject) {
-      return <Badge className="bg-amber-600">Free Trial</Badge>;
-    }
-    return <Badge variant="secondary">No Plan</Badge>;
+    return <Badge variant="secondary">No Active Plan</Badge>;
   };
 
   const getStatusIcon = () => {
@@ -171,12 +164,10 @@ export function AccountContent({ user, stats, team, apiKey }: AccountContentProp
                 <p className="text-white font-medium">Current Plan</p>
                 <p className="text-sm text-neutral-400">
                   {stats.subscription?.status === 'active'
-                    ? `Paid via ${team?.paymentProvider || 'Unknown'}`
+                    ? `Paid via ${team?.paymentProvider || 'PayPal'}`
                     : stats.subscription?.isBeta
                       ? 'Admin-granted beta access'
-                      : stats.freeTrialProject
-                        ? `Free trial locked to: ${stats.freeTrialProject.name || stats.freeTrialProject.id}`
-                        : 'No active subscription'}
+                      : 'No active subscription - upgrade to access all 40 modules'}
                 </p>
               </div>
             </div>

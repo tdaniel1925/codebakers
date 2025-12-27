@@ -36,13 +36,6 @@ export class DashboardService {
       apiKeyCount: keys.length,
       lastApiCall: lastUsedKey?.lastUsedAt || null,
       seatLimit: team.seatLimit,
-      // Free trial project info
-      freeTrialProject: team.freeTrialProjectId
-        ? {
-            id: team.freeTrialProjectId,
-            name: team.freeTrialProjectName,
-          }
-        : null,
     };
   }
 

@@ -2,10 +2,18 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Terminal, FolderCode, ArrowRight, Sparkles, CreditCard, Users, Plug, RefreshCw, AlertCircle, CheckCircle, XCircle, Copy, BarChart3 } from 'lucide-react';
+import { Terminal, ArrowRight, Sparkles, CreditCard, Users, Plug, RefreshCw, AlertCircle, CheckCircle, XCircle, Copy, BarChart3, Clock, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+
+interface TrialInfo {
+  stage: 'anonymous' | 'extended' | 'expired' | 'converted' | null;
+  daysRemaining: number;
+  canExtend: boolean;
+  githubUsername?: string | null;
+  expiresAt?: Date | null;
+}
 
 interface DashboardContentProps {
   stats: {
@@ -20,18 +28,15 @@ interface DashboardContentProps {
     apiKeyCount: number;
     lastApiCall: Date | null;
     seatLimit?: number | null;
-    freeTrialProject?: {
-      id: string;
-      name: string | null;
-    } | null;
   };
   apiKey: {
     keyPrefix: string;
     name: string | null;
   } | null;
+  trial?: TrialInfo | null;
 }
 
-export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
+export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps) {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -40,8 +45,9 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
   const hasActiveSubscription =
     stats.subscription?.status === 'active' || stats.subscription?.isBeta;
 
-  const isFreeUser = !hasActiveSubscription;
-  const hasLockedProject = !!stats.freeTrialProject;
+  const isTrialUser = !hasActiveSubscription && trial && trial.stage !== 'converted';
+  const isTrialExpired = trial?.stage === 'expired' || (trial && trial.daysRemaining <= 0);
+  const isTrialExpiringSoon = trial && trial.daysRemaining > 0 && trial.daysRemaining <= 2;
 
   const regenerateKey = async () => {
     setIsRegenerating(true);
@@ -109,47 +115,136 @@ export function DashboardContent({ stats, apiKey }: DashboardContentProps) {
         <CardContent>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${hasActiveSubscription ? 'bg-red-600/20' : 'bg-red-500/10'}`}>
-                <Sparkles className={`w-6 h-6 ${hasActiveSubscription ? 'text-red-400' : 'text-red-500'}`} />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                hasActiveSubscription ? 'bg-red-600/20' :
+                isTrialExpired ? 'bg-red-500/20' :
+                isTrialExpiringSoon ? 'bg-amber-500/20' :
+                'bg-emerald-500/20'
+              }`}>
+                {isTrialUser ? (
+                  <Clock className={`w-6 h-6 ${
+                    isTrialExpired ? 'text-red-400' :
+                    isTrialExpiringSoon ? 'text-amber-400' :
+                    'text-emerald-400'
+                  }`} />
+                ) : (
+                  <Sparkles className="w-6 h-6 text-red-400" />
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-white font-semibold text-lg">
                     {hasActiveSubscription
                       ? `${stats.subscription?.plan?.charAt(0).toUpperCase()}${stats.subscription?.plan?.slice(1)} Plan`
-                      : 'Free Trial'}
+                      : isTrialExpired
+                        ? 'Trial Expired'
+                        : trial?.stage === 'extended'
+                          ? 'Extended Trial'
+                          : '7-Day Free Trial'}
                   </span>
                   {stats.subscription?.isBeta && (
-                    <Badge className="bg-red-600">Beta</Badge>
+                    <Badge className="bg-purple-600">Beta</Badge>
+                  )}
+                  {trial?.stage === 'extended' && trial.githubUsername && (
+                    <Badge className="bg-slate-700 gap-1">
+                      <Github className="w-3 h-3" />
+                      @{trial.githubUsername}
+                    </Badge>
                   )}
                 </div>
                 <p className="text-neutral-400 text-sm">
                   {hasActiveSubscription
-                    ? 'Unlimited projects'
-                    : hasLockedProject
-                      ? 'Unlimited usage for 1 project'
-                      : 'Unlimited usage for your first project'}
+                    ? 'Unlimited projects & all 40 modules'
+                    : isTrialExpired
+                      ? 'Upgrade to continue using CodeBakers'
+                      : `${trial?.daysRemaining || 0} day${trial?.daysRemaining !== 1 ? 's' : ''} remaining`}
                 </p>
               </div>
             </div>
 
-            <Link href="/billing">
-              <Button className={isFreeUser ? "bg-red-600 hover:bg-red-700 gap-2" : "bg-neutral-800 hover:bg-neutral-700 gap-2"}>
-                {isFreeUser ? 'Upgrade Plan' : 'Manage Billing'}
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
+            <div className="flex items-center gap-3">
+              {/* Show extend button for anonymous trial users */}
+              {isTrialUser && trial?.canExtend && trial.stage === 'anonymous' && !isTrialExpired && (
+                <Link href="/api/auth/github?extend=true">
+                  <Button variant="outline" className="gap-2 border-neutral-700 hover:bg-neutral-800">
+                    <Github className="w-4 h-4" />
+                    +7 Days Free
+                  </Button>
+                </Link>
+              )}
+              <Link href="/billing">
+                <Button className={isTrialUser || isTrialExpired ? "bg-red-600 hover:bg-red-700 gap-2" : "bg-neutral-800 hover:bg-neutral-700 gap-2"}>
+                  {isTrialUser || isTrialExpired ? 'Upgrade to Pro' : 'Manage Billing'}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
 
-          {/* Project info for free users */}
-          {isFreeUser && hasLockedProject && (
-            <div className="mt-6 p-4 rounded-lg bg-black/50 border border-neutral-800">
-              <div className="flex items-center gap-3">
-                <FolderCode className="w-5 h-5 text-red-400" />
-                <div>
-                  <p className="text-sm text-neutral-400">Free trial locked to:</p>
-                  <p className="text-white font-medium">{stats.freeTrialProject?.name || 'Your Project'}</p>
+          {/* Trial countdown for trial users */}
+          {isTrialUser && !isTrialExpired && (
+            <div className={`mt-6 p-4 rounded-lg border ${
+              isTrialExpiringSoon
+                ? 'bg-amber-900/20 border-amber-700/50'
+                : 'bg-emerald-900/20 border-emerald-700/50'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Clock className={`w-5 h-5 ${isTrialExpiringSoon ? 'text-amber-400' : 'text-emerald-400'}`} />
+                  <div>
+                    <p className={`text-sm font-medium ${isTrialExpiringSoon ? 'text-amber-200' : 'text-emerald-200'}`}>
+                      {trial?.daysRemaining} day{trial?.daysRemaining !== 1 ? 's' : ''} left in your trial
+                    </p>
+                    <p className="text-xs text-neutral-400">
+                      {trial?.stage === 'anonymous'
+                        ? 'Connect GitHub to extend for 7 more days free'
+                        : 'Full access to all 40 modules'}
+                    </p>
+                  </div>
                 </div>
+                {trial?.canExtend && trial.stage === 'anonymous' && (
+                  <Link href="/api/auth/github?extend=true">
+                    <Button size="sm" variant="outline" className="gap-2 border-amber-600 text-amber-300 hover:bg-amber-900/30">
+                      <Github className="w-4 h-4" />
+                      Extend Trial
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Expired trial message */}
+          {isTrialExpired && (
+            <div className="mt-6 p-4 rounded-lg bg-red-900/20 border border-red-700/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400" />
+                  <div>
+                    <p className="text-sm font-medium text-red-200">
+                      {trial?.canExtend
+                        ? 'Trial expired - Connect GitHub for 7 more days free!'
+                        : 'Your trial has ended'}
+                    </p>
+                    <p className="text-xs text-neutral-400">
+                      Upgrade to Pro ($49/mo) for unlimited access
+                    </p>
+                  </div>
+                </div>
+                {trial?.canExtend ? (
+                  <Link href="/api/auth/github?extend=true">
+                    <Button size="sm" className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                      <Github className="w-4 h-4" />
+                      Extend Free
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link href="/billing">
+                    <Button size="sm" className="gap-2 bg-red-600 hover:bg-red-700">
+                      Upgrade Now
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
           )}

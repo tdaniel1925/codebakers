@@ -360,7 +360,7 @@ export default function QuickStartPage() {
 
           <div className="bg-purple-900/20 border border-purple-600/30 rounded-lg p-4 mt-4">
             <p className="text-purple-200 text-sm">
-              <strong>No commands needed.</strong> The AI has 34 production patterns loaded. Just describe what you want in plain English - the AI scaffolds projects, creates files, and builds features automatically.
+              <strong>No commands needed.</strong> The AI has 40 production patterns loaded. Just describe what you want in plain English - the AI scaffolds projects, creates files, and builds features automatically.
             </p>
           </div>
         </CardContent>

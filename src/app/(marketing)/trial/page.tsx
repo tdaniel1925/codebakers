@@ -86,7 +86,7 @@ export default function TrialPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    1 project limit
+                    Build unlimited projects
                   </li>
                 </ul>
               </div>
@@ -121,7 +121,7 @@ export default function TrialPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    Keep the same project
+                    Seamless transition, no setup
                   </li>
                 </ul>
                 <div className="mt-4 p-3 bg-neutral-800/50 rounded-lg">
@@ -252,8 +252,8 @@ export default function TrialPage() {
                 a: 'Yes! There are no restrictions on what you can build during the trial. If you ship something, just upgrade before your trial ends.',
               },
               {
-                q: 'What does "1 project limit" mean?',
-                a: 'During the trial, you can use CodeBakers in one project directory. Upgrading to Pro unlocks unlimited projects.',
+                q: 'Is the trial limited in any way?',
+                a: 'The only limit is time - 7 days anonymous, then 7 more with GitHub. You get full access to all 40 modules and can build unlimited projects during your trial.',
               },
               {
                 q: 'Why do you need my GitHub account for extension?',
