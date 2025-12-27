@@ -69,7 +69,7 @@ const program = new Command();
 program
   .name('codebakers')
   .description('CodeBakers CLI - Production patterns for AI-assisted development')
-  .version('2.8.0');
+  .version('2.9.0');
 
 // Primary command - one-time setup
 program

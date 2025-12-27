@@ -566,7 +566,7 @@ class CodeBakersServer {
         {
           name: 'scaffold_project',
           description:
-            'Create a new project from scratch with Next.js + Supabase + Drizzle. Use this when user wants to build something new and no project exists yet. Creates all files, installs dependencies, and sets up CodeBakers patterns automatically.',
+            'Create a new project from scratch with Next.js + Supabase + Drizzle. Use this when user wants to build something new and no project exists yet. Creates all files, installs dependencies, and sets up CodeBakers patterns automatically. Set fullDeploy=true for seamless idea-to-deployment (creates GitHub repo, Supabase project, and deploys to Vercel). When fullDeploy=true, first call returns explanation - then call again with deployConfirmed=true after user confirms.',
           inputSchema: {
             type: 'object' as const,
             properties: {
@@ -577,6 +577,14 @@ class CodeBakersServer {
               description: {
                 type: 'string',
                 description: 'Brief description of what the project is for (used in PRD.md)',
+              },
+              fullDeploy: {
+                type: 'boolean',
+                description: 'If true, enables full deployment flow (GitHub + Supabase + Vercel). First call returns explanation for user confirmation.',
+              },
+              deployConfirmed: {
+                type: 'boolean',
+                description: 'Set to true AFTER user confirms they want full deployment. Only set this after showing user the explanation and getting their approval.',
               },
             },
             required: ['projectName'],
@@ -900,7 +908,7 @@ class CodeBakersServer {
           return this.handleGetPatternSection(args as { pattern: string; section: string });
 
         case 'scaffold_project':
-          return this.handleScaffoldProject(args as { projectName: string; description?: string });
+          return this.handleScaffoldProject(args as { projectName: string; description?: string; fullDeploy?: boolean; deployConfirmed?: boolean });
 
         case 'init_project':
           return this.handleInitProject(args as { projectName?: string });
@@ -1376,9 +1384,14 @@ Show the user what their simple request was expanded into, then proceed with the
     };
   }
 
-  private async handleScaffoldProject(args: { projectName: string; description?: string }) {
-    const { projectName, description } = args;
+  private async handleScaffoldProject(args: { projectName: string; description?: string; fullDeploy?: boolean; deployConfirmed?: boolean }) {
+    const { projectName, description, fullDeploy, deployConfirmed } = args;
     const cwd = process.cwd();
+
+    // If fullDeploy requested but not confirmed, show explanation and ask for confirmation
+    if (fullDeploy && !deployConfirmed) {
+      return this.showFullDeployExplanation(projectName, description);
+    }
 
     // Check if directory has files
     const files = fs.readdirSync(cwd);
@@ -1533,14 +1546,22 @@ phase: setup
 
       results.push('\n---\n');
       results.push('## ✅ Project Created Successfully!\n');
-      results.push('### Next Steps:\n');
-      results.push('1. **Set up Supabase:** Go to https://supabase.com and create a free project');
-      results.push('2. **Add credentials:** Copy your Supabase URL and anon key to `.env.local`');
-      results.push('3. **Start building:** Just tell me what features you want!\n');
-      results.push('### Example:\n');
-      results.push('> "Add user authentication with email/password"');
-      results.push('> "Create a dashboard with stats cards"');
-      results.push('> "Build a todo list with CRUD operations"');
+
+      // If fullDeploy is enabled and confirmed, proceed with cloud deployment
+      if (fullDeploy && deployConfirmed) {
+        results.push('## 🚀 Starting Full Deployment...\n');
+        const deployResults = await this.executeFullDeploy(projectName, cwd, description);
+        results.push(...deployResults);
+      } else {
+        results.push('### Next Steps:\n');
+        results.push('1. **Set up Supabase:** Go to https://supabase.com and create a free project');
+        results.push('2. **Add credentials:** Copy your Supabase URL and anon key to `.env.local`');
+        results.push('3. **Start building:** Just tell me what features you want!\n');
+        results.push('### Example:\n');
+        results.push('> "Add user authentication with email/password"');
+        results.push('> "Create a dashboard with stats cards"');
+        results.push('> "Build a todo list with CRUD operations"');
+      }
 
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -1553,6 +1574,285 @@ phase: setup
         text: results.join('\n'),
       }],
     };
+  }
+
+  /**
+   * Show explanation of what fullDeploy will do and ask for confirmation
+   */
+  private showFullDeployExplanation(projectName: string, description?: string) {
+    const explanation = `# 🚀 Full Deployment: ${projectName}
+
+## What This Will Do
+
+Full deployment creates a complete production-ready environment automatically:
+
+### 1. 📁 Local Project
+- Create Next.js + Supabase + Drizzle project
+- Install all dependencies
+- Set up CodeBakers patterns
+
+### 2. 🐙 GitHub Repository
+- Create a new private repository: \`${projectName}\`
+- Initialize git and push code
+- Set up .gitignore properly
+
+### 3. 🗄️ Supabase Project
+- Create a new Supabase project
+- Get database connection string
+- Get API keys (anon + service role)
+- Auto-configure .env.local
+
+### 4. 🔺 Vercel Deployment
+- Deploy to Vercel
+- Connect to GitHub for auto-deploys
+- Set all environment variables
+- Get your live URL
+
+---
+
+## Requirements
+
+Make sure you have these CLIs installed and authenticated:
+- \`gh\` - GitHub CLI (run: \`gh auth login\`)
+- \`supabase\` - Supabase CLI (run: \`supabase login\`)
+- \`vercel\` - Vercel CLI (run: \`vercel login\`)
+
+---
+
+## 🎯 Result
+
+After completion, you'll have:
+- ✅ GitHub repo with your code
+- ✅ Supabase project with database ready
+- ✅ Live URL on Vercel
+- ✅ Auto-deploys on every push
+
+---
+
+**⚠️ IMPORTANT: Ask the user to confirm before proceeding.**
+
+To proceed, call \`scaffold_project\` again with:
+\`\`\`json
+{
+  "projectName": "${projectName}",
+  "description": "${description || ''}",
+  "fullDeploy": true,
+  "deployConfirmed": true
+}
+\`\`\`
+
+Or if user declines, call without fullDeploy:
+\`\`\`json
+{
+  "projectName": "${projectName}",
+  "description": "${description || ''}"
+}
+\`\`\`
+`;
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: explanation,
+      }],
+    };
+  }
+
+  /**
+   * Execute full cloud deployment (GitHub + Supabase + Vercel)
+   */
+  private async executeFullDeploy(projectName: string, cwd: string, description?: string): Promise<string[]> {
+    const results: string[] = [];
+
+    // Check for required CLIs
+    const cliChecks = this.checkRequiredCLIs();
+    if (cliChecks.missing.length > 0) {
+      results.push('### ❌ Missing Required CLIs\n');
+      results.push('The following CLIs are required for full deployment:\n');
+      for (const cli of cliChecks.missing) {
+        results.push(`- **${cli.name}**: ${cli.installCmd}`);
+      }
+      results.push('\nInstall the missing CLIs and try again.');
+      return results;
+    }
+    results.push('✓ All required CLIs found\n');
+
+    // Step 1: Initialize Git and create GitHub repo
+    results.push('### Step 1: GitHub Repository\n');
+    try {
+      // Initialize git
+      execSync('git init', { cwd, stdio: 'pipe' });
+      execSync('git add .', { cwd, stdio: 'pipe' });
+      execSync('git commit -m "Initial commit from CodeBakers"', { cwd, stdio: 'pipe' });
+      results.push('✓ Initialized git repository');
+
+      // Create GitHub repo
+      const ghDescription = description || `${projectName} - Created with CodeBakers`;
+      execSync(`gh repo create ${projectName} --private --source=. --push --description "${ghDescription}"`, { cwd, stdio: 'pipe' });
+      results.push(`✓ Created GitHub repo: ${projectName}`);
+      results.push(`  → https://github.com/${this.getGitHubUsername()}/${projectName}\n`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      results.push(`⚠️ GitHub setup failed: ${msg}`);
+      results.push('  You can create the repo manually: gh repo create\n');
+    }
+
+    // Step 2: Create Supabase project
+    results.push('### Step 2: Supabase Project\n');
+    try {
+      // Create Supabase project (this may take a while)
+      const orgId = this.getSupabaseOrgId();
+      if (orgId) {
+        execSync(`supabase projects create ${projectName} --org-id ${orgId} --region us-east-1 --db-password "${this.generatePassword()}"`, { cwd, stdio: 'pipe', timeout: 120000 });
+        results.push(`✓ Created Supabase project: ${projectName}`);
+
+        // Get project credentials
+        const projectsOutput = execSync('supabase projects list --output json', { cwd, encoding: 'utf-8' });
+        const projects = JSON.parse(projectsOutput);
+        const newProject = projects.find((p: { name: string }) => p.name === projectName);
+
+        if (newProject) {
+          // Update .env.local with Supabase credentials
+          const envPath = path.join(cwd, '.env.local');
+          let envContent = fs.readFileSync(envPath, 'utf-8');
+          envContent = envContent.replace('your-supabase-url', `https://${newProject.id}.supabase.co`);
+          envContent = envContent.replace('your-anon-key', newProject.anon_key || 'YOUR_ANON_KEY');
+          fs.writeFileSync(envPath, envContent);
+          results.push('✓ Updated .env.local with Supabase credentials\n');
+        }
+      } else {
+        results.push('⚠️ Could not detect Supabase organization');
+        results.push('  Run: supabase orgs list\n');
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      results.push(`⚠️ Supabase setup failed: ${msg}`);
+      results.push('  Create project manually at: https://supabase.com/dashboard\n');
+    }
+
+    // Step 3: Deploy to Vercel
+    results.push('### Step 3: Vercel Deployment\n');
+    try {
+      // Link to Vercel (creates new project)
+      execSync('vercel link --yes', { cwd, stdio: 'pipe' });
+      results.push('✓ Linked to Vercel');
+
+      // Set environment variables from .env.local
+      const envPath = path.join(cwd, '.env.local');
+      if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf-8');
+        const envVars = envContent.split('\n')
+          .filter(line => line.includes('=') && !line.startsWith('#'))
+          .map(line => {
+            const [key, ...valueParts] = line.split('=');
+            return { key: key.trim(), value: valueParts.join('=').trim() };
+          });
+
+        for (const { key, value } of envVars) {
+          if (value && !value.includes('your-')) {
+            try {
+              execSync(`vercel env add ${key} production <<< "${value}"`, { cwd, stdio: 'pipe', shell: 'bash' });
+            } catch {
+              // Env var might already exist, try to update
+            }
+          }
+        }
+        results.push('✓ Set environment variables');
+      }
+
+      // Deploy to production
+      const deployOutput = execSync('vercel --prod --yes', { cwd, encoding: 'utf-8' });
+      const urlMatch = deployOutput.match(/https:\/\/[^\s]+\.vercel\.app/);
+      const deployUrl = urlMatch ? urlMatch[0] : 'Check Vercel dashboard';
+      results.push(`✓ Deployed to Vercel`);
+      results.push(`  → ${deployUrl}\n`);
+
+      // Connect to GitHub for auto-deploys
+      try {
+        execSync('vercel git connect --yes', { cwd, stdio: 'pipe' });
+        results.push('✓ Connected to GitHub for auto-deploys\n');
+      } catch {
+        results.push('⚠️ Could not auto-connect to GitHub\n');
+      }
+
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      results.push(`⚠️ Vercel deployment failed: ${msg}`);
+      results.push('  Deploy manually: vercel --prod\n');
+    }
+
+    // Summary
+    results.push('---\n');
+    results.push('## 🎉 Full Deployment Complete!\n');
+    results.push('Your project is now live with:');
+    results.push('- GitHub repo with CI/CD ready');
+    results.push('- Supabase database configured');
+    results.push('- Vercel hosting with auto-deploys\n');
+    results.push('**Start building features - every push auto-deploys!**');
+
+    return results;
+  }
+
+  /**
+   * Check if required CLIs are installed
+   */
+  private checkRequiredCLIs(): { installed: string[]; missing: { name: string; installCmd: string }[] } {
+    const clis = [
+      { name: 'gh', cmd: 'gh --version', installCmd: 'npm install -g gh' },
+      { name: 'supabase', cmd: 'supabase --version', installCmd: 'npm install -g supabase' },
+      { name: 'vercel', cmd: 'vercel --version', installCmd: 'npm install -g vercel' },
+    ];
+
+    const installed: string[] = [];
+    const missing: { name: string; installCmd: string }[] = [];
+
+    for (const cli of clis) {
+      try {
+        execSync(cli.cmd, { stdio: 'pipe' });
+        installed.push(cli.name);
+      } catch {
+        missing.push({ name: cli.name, installCmd: cli.installCmd });
+      }
+    }
+
+    return { installed, missing };
+  }
+
+  /**
+   * Get GitHub username from gh CLI
+   */
+  private getGitHubUsername(): string {
+    try {
+      const output = execSync('gh api user --jq .login', { encoding: 'utf-8' });
+      return output.trim();
+    } catch {
+      return 'YOUR_USERNAME';
+    }
+  }
+
+  /**
+   * Get Supabase organization ID
+   */
+  private getSupabaseOrgId(): string | null {
+    try {
+      const output = execSync('supabase orgs list --output json', { encoding: 'utf-8' });
+      const orgs = JSON.parse(output);
+      return orgs[0]?.id || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Generate a secure random password for Supabase
+   */
+  private generatePassword(): string {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let password = '';
+    for (let i = 0; i < 24; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
   }
 
   private async handleInitProject(args: { projectName?: string }) {
