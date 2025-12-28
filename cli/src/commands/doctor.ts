@@ -134,12 +134,18 @@ function checkProject(): CheckResult[] {
       const files = readdirSync(claudeDir).filter(f => f.endsWith('.md'));
       const moduleCount = files.length;
 
-      if (moduleCount >= 10) {
-        results.push({ ok: true, message: `${moduleCount} modules present` });
+      if (moduleCount >= 40) {
+        results.push({ ok: true, message: `${moduleCount} modules present (full set)` });
+      } else if (moduleCount >= 10) {
+        results.push({
+          ok: true,
+          message: `${moduleCount} modules present (partial set)`,
+          details: 'Run: codebakers upgrade to get all 47 modules'
+        });
       } else if (moduleCount > 0) {
         results.push({
           ok: false,
-          message: `Only ${moduleCount} modules found (expected 10+)`,
+          message: `Only ${moduleCount} modules found (expected 47)`,
           details: 'Run: codebakers upgrade to get all modules'
         });
       } else {

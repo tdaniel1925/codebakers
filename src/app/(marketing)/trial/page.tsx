@@ -2,10 +2,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Github, CreditCard, ArrowRight, Terminal, Clock, Zap } from 'lucide-react';
+import { PRICING, TRIAL, MODULES, PRODUCT } from '@/lib/constants';
 
 export const metadata = {
   title: 'Free Trial - CodeBakers',
-  description: 'Try CodeBakers free for 7 days. No signup required, no credit card. Start building production-ready apps instantly.',
+  description: `Try CodeBakers free for ${TRIAL.ANONYMOUS_DAYS} days. No signup required, no credit card. Start building production-ready apps instantly.`,
 };
 
 export default function TrialPage() {
@@ -16,11 +17,11 @@ export default function TrialPage() {
         <div className="container mx-auto max-w-4xl text-center">
           <Badge className="bg-red-600 mb-4">Zero Friction</Badge>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Try CodeBakers Free for 14 Days
+            Try CodeBakers Free for {TRIAL.TOTAL_DAYS} Days
           </h1>
           <p className="text-xl text-neutral-400 mb-8 max-w-2xl mx-auto">
             No signup. No credit card. Just run one command and start building
-            production-ready apps with 40 battle-tested patterns.
+            production-ready apps with {MODULES.COUNT} battle-tested patterns.
           </p>
 
           {/* CLI Command */}
@@ -31,7 +32,7 @@ export default function TrialPage() {
                 Run this command:
               </p>
               <code className="block text-lg text-red-400 font-mono">
-                npx @codebakers/cli go
+                {PRODUCT.CLI_COMMAND}
               </code>
             </div>
           </div>
@@ -39,7 +40,7 @@ export default function TrialPage() {
           <div className="flex flex-wrap justify-center gap-3 text-sm text-neutral-500">
             <span className="flex items-center gap-1">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              7 days free
+              {TRIAL.ANONYMOUS_DAYS} days free
             </span>
             <span className="flex items-center gap-1">
               <CheckCircle className="h-4 w-4 text-green-500" />
@@ -47,7 +48,7 @@ export default function TrialPage() {
             </span>
             <span className="flex items-center gap-1">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              Full access to all 40 modules
+              Full access to all {MODULES.COUNT} modules
             </span>
           </div>
         </div>
@@ -67,7 +68,7 @@ export default function TrialPage() {
                 <div className="bg-blue-600 rounded-full w-10 h-10 flex items-center justify-center mb-4">
                   <Terminal className="h-5 w-5 text-white" />
                 </div>
-                <Badge className="bg-blue-600/20 text-blue-400 mb-3">Day 1-7</Badge>
+                <Badge className="bg-blue-600/20 text-blue-400 mb-3">Day 1-{TRIAL.ANONYMOUS_DAYS}</Badge>
                 <h3 className="text-xl font-bold text-white mb-2">
                   Anonymous Trial
                 </h3>
@@ -78,7 +79,7 @@ export default function TrialPage() {
                 <ul className="space-y-2 text-sm text-neutral-400">
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    Full access to all 40 modules
+                    Full access to all {MODULES.COUNT} modules
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
@@ -102,18 +103,18 @@ export default function TrialPage() {
                 <div className="bg-green-600 rounded-full w-10 h-10 flex items-center justify-center mb-4">
                   <Github className="h-5 w-5 text-white" />
                 </div>
-                <Badge className="bg-green-600/20 text-green-400 mb-3">Day 8-14</Badge>
+                <Badge className="bg-green-600/20 text-green-400 mb-3">Day {TRIAL.ANONYMOUS_DAYS + 1}-{TRIAL.TOTAL_DAYS}</Badge>
                 <h3 className="text-xl font-bold text-white mb-2">
                   Extended Trial
                 </h3>
                 <p className="text-neutral-400 mb-4">
-                  Connect your GitHub account for 7 more days free. One click,
+                  Connect your GitHub account for {TRIAL.EXTENDED_DAYS} more days free. One click,
                   no passwords to remember.
                 </p>
                 <ul className="space-y-2 text-sm text-neutral-400">
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    +7 days additional access
+                    +{TRIAL.EXTENDED_DAYS} days additional access
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
@@ -126,7 +127,7 @@ export default function TrialPage() {
                 </ul>
                 <div className="mt-4 p-3 bg-neutral-800/50 rounded-lg">
                   <code className="text-sm text-green-400 font-mono">
-                    codebakers extend
+                    {PRODUCT.CLI_EXTEND_COMMAND}
                   </code>
                 </div>
               </div>
@@ -142,13 +143,13 @@ export default function TrialPage() {
                 <div className="bg-red-600 rounded-full w-10 h-10 flex items-center justify-center mb-4">
                   <CreditCard className="h-5 w-5 text-white" />
                 </div>
-                <Badge className="bg-red-600 mb-3">Day 15+</Badge>
+                <Badge className="bg-red-600 mb-3">Day {TRIAL.TOTAL_DAYS + 1}+</Badge>
                 <h3 className="text-xl font-bold text-white mb-2">
                   Pro Subscription
                 </h3>
                 <p className="text-neutral-400 mb-4">
                   Love it? Upgrade to Pro for unlimited projects and continued
-                  access. Just $49/month.
+                  access. Just ${PRICING.PRO.MONTHLY}/month.
                 </p>
                 <ul className="space-y-2 text-sm text-neutral-400">
                   <li className="flex items-center gap-2">
@@ -157,7 +158,7 @@ export default function TrialPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    All 40 modules forever
+                    All {MODULES.COUNT} modules forever
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
@@ -194,7 +195,7 @@ export default function TrialPage() {
             {[
               {
                 icon: <Zap className="h-6 w-6" />,
-                title: '40 Modules',
+                title: `${MODULES.COUNT} Modules`,
                 description: 'Auth, payments, APIs, testing, and more',
               },
               {
@@ -244,8 +245,8 @@ export default function TrialPage() {
                 a: 'No. The trial is completely anonymous. We track your device to prevent abuse, but we don\'t require any personal information.',
               },
               {
-                q: 'What happens after 7 days?',
-                a: 'You can connect your GitHub account for 7 more days free (14 days total). After that, you can upgrade to Pro ($49/month) or your access will end.',
+                q: `What happens after ${TRIAL.ANONYMOUS_DAYS} days?`,
+                a: `You can connect your GitHub account for ${TRIAL.EXTENDED_DAYS} more days free (${TRIAL.TOTAL_DAYS} days total). After that, you can upgrade to Pro ($${PRICING.PRO.MONTHLY}/month) or your access will end.`,
               },
               {
                 q: 'Can I use it for commercial projects?',
@@ -253,7 +254,7 @@ export default function TrialPage() {
               },
               {
                 q: 'Is the trial limited in any way?',
-                a: 'The only limit is time - 7 days anonymous, then 7 more with GitHub. You get full access to all 40 modules and can build unlimited projects during your trial.',
+                a: `The only limit is time - ${TRIAL.ANONYMOUS_DAYS} days anonymous, then ${TRIAL.EXTENDED_DAYS} more with GitHub. You get full access to all ${MODULES.COUNT} modules and can build unlimited projects during your trial.`,
               },
               {
                 q: 'Why do you need my GitHub account for extension?',
@@ -279,12 +280,12 @@ export default function TrialPage() {
             Ready to Build 5x Faster?
           </h2>
           <p className="text-neutral-400 mb-8">
-            One command. 7 days free. No strings attached.
+            One command. {TRIAL.ANONYMOUS_DAYS} days free. No strings attached.
           </p>
 
           <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 mb-8">
             <code className="text-xl text-red-400 font-mono">
-              npx @codebakers/cli go
+              {PRODUCT.CLI_COMMAND}
             </code>
           </div>
 

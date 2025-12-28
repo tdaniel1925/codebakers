@@ -1,6 +1,9 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join } from 'path';
+import { createInterface } from 'readline';
 import {
   getTrialState,
   setTrialState,
@@ -12,10 +15,44 @@ import {
 } from '../config.js';
 import { getDeviceFingerprint } from '../lib/fingerprint.js';
 
+function prompt(question: string): Promise<string> {
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase());
+    });
+  });
+}
+
+interface ContentResponse {
+  version: string;
+  router: string;
+  modules: Record<string, string>;
+}
+
+interface GoOptions {
+  verbose?: boolean;
+}
+
+function log(message: string, options?: GoOptions): void {
+  if (options?.verbose) {
+    console.log(chalk.gray(`  [verbose] ${message}`));
+  }
+}
+
 /**
  * Zero-friction entry point - start using CodeBakers instantly
  */
-export async function go(): Promise<void> {
+export async function go(options: GoOptions = {}): Promise<void> {
+  log('Starting go command...', options);
+  log(`API URL: ${getApiUrl()}`, options);
+  log(`Working directory: ${process.cwd()}`, options);
+
   console.log(chalk.blue(`
   ╔═══════════════════════════════════════════════════════════╗
   ║                                                           ║
@@ -25,12 +62,18 @@ export async function go(): Promise<void> {
   `));
 
   // Check if user already has an API key (paid user)
+  log('Checking for existing API key...', options);
   const apiKey = getApiKey();
   if (apiKey) {
+    log(`Found API key: ${apiKey.substring(0, 8)}...`, options);
     console.log(chalk.green('  ✓ You\'re already logged in with an API key!\n'));
-    console.log(chalk.gray('  Run ') + chalk.cyan('codebakers status') + chalk.gray(' to check your setup.\n'));
+
+    // Still install patterns if not already installed
+    await installPatternsWithApiKey(apiKey, options);
+    await configureMCP(options);
     return;
   }
+  log('No API key found, checking trial state...', options);
 
   // Check existing trial
   const existingTrial = getTrialState();
@@ -44,7 +87,10 @@ export async function go(): Promise<void> {
       console.log(chalk.cyan('    codebakers extend\n'));
     }
 
-    await configureMCP();
+    // Install patterns if not already installed
+    await installPatterns(existingTrial.trialId, options);
+
+    await configureMCP(options);
     return;
   }
 
@@ -132,8 +178,11 @@ export async function go(): Promise<void> {
     spinner.succeed(`Trial started (${data.daysRemaining} days free)`);
     console.log('');
 
+    // Install patterns (CLAUDE.md and .claude/)
+    await installPatterns(data.trialId, options);
+
     // Configure MCP
-    await configureMCP();
+    await configureMCP(options);
 
     // Show success message
     console.log(chalk.green(`
@@ -165,7 +214,8 @@ export async function go(): Promise<void> {
   }
 }
 
-async function configureMCP(): Promise<void> {
+async function configureMCP(options: GoOptions = {}): Promise<void> {
+  log('Configuring MCP integration...', options);
   const spinner = ora('Configuring Claude Code integration...').start();
   const isWindows = process.platform === 'win32';
 
@@ -189,9 +239,181 @@ async function configureMCP(): Promise<void> {
 }
 
 async function attemptAutoRestart(): Promise<void> {
-  console.log(chalk.yellow('\n  ⚠️  RESTART REQUIRED\n'));
-  console.log(chalk.gray('  Close this terminal and open a new one to activate CodeBakers.\n'));
+  const cwd = process.cwd();
 
-  // Note: Auto-restart is risky and could lose user work
-  // We show instructions instead of forcibly restarting
+  console.log(chalk.yellow('\n  ⚠️  RESTART REQUIRED\n'));
+  console.log(chalk.gray('  Claude Code needs to restart to load CodeBakers.\n'));
+
+  const answer = await prompt(chalk.cyan('  Restart Claude Code now? (Y/n): '));
+
+  if (answer === 'n' || answer === 'no') {
+    console.log(chalk.gray('\n  No problem! Just restart Claude Code manually when ready.\n'));
+    return;
+  }
+
+  // Attempt to restart Claude Code
+  console.log(chalk.gray('\n  Restarting Claude Code...\n'));
+
+  try {
+    const isWindows = process.platform === 'win32';
+
+    if (isWindows) {
+      // On Windows, spawn a new Claude process detached and exit
+      spawn('cmd', ['/c', 'start', 'claude'], {
+        cwd,
+        detached: true,
+        stdio: 'ignore',
+        shell: true,
+      }).unref();
+    } else {
+      // On Mac/Linux, spawn claude in new terminal
+      spawn('claude', [], {
+        cwd,
+        detached: true,
+        stdio: 'ignore',
+        shell: true,
+      }).unref();
+    }
+
+    console.log(chalk.green('  ✓ Claude Code is restarting...\n'));
+    console.log(chalk.gray('  This terminal will close. Claude Code will open in a new window.\n'));
+
+    // Give the spawn a moment to start
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Exit this process
+    process.exit(0);
+
+  } catch (error) {
+    console.log(chalk.yellow('  Could not auto-restart. Please restart Claude Code manually.\n'));
+  }
+}
+
+/**
+ * Install pattern files for API key users (paid users)
+ */
+async function installPatternsWithApiKey(apiKey: string, options: GoOptions = {}): Promise<void> {
+  log('Installing patterns with API key...', options);
+  const spinner = ora('Installing CodeBakers patterns...').start();
+  const cwd = process.cwd();
+  const apiUrl = getApiUrl();
+
+  log(`Fetching from: ${apiUrl}/api/content`, options);
+
+  try {
+    const response = await fetch(`${apiUrl}/api/content`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      log(`Response not OK: ${response.status} ${response.statusText}`, options);
+      spinner.warn('Could not download patterns');
+      return;
+    }
+
+    log('Response OK, parsing JSON...', options);
+    const content: ContentResponse = await response.json();
+    log(`Received version: ${content.version}, modules: ${Object.keys(content.modules || {}).length}`, options);
+    await writePatternFiles(cwd, content, spinner, options);
+
+  } catch (error) {
+    log(`Error: ${error instanceof Error ? error.message : String(error)}`, options);
+    spinner.warn('Could not install patterns');
+    console.log(chalk.gray('  Check your internet connection.\n'));
+  }
+}
+
+/**
+ * Install pattern files (CLAUDE.md and .claude/) for trial users
+ */
+async function installPatterns(trialId: string, options: GoOptions = {}): Promise<void> {
+  log(`Installing patterns with trial ID: ${trialId.substring(0, 8)}...`, options);
+  const spinner = ora('Installing CodeBakers patterns...').start();
+  const cwd = process.cwd();
+  const apiUrl = getApiUrl();
+
+  try {
+    // Fetch patterns using trial ID
+    log(`Fetching from: ${apiUrl}/api/content`, options);
+    const response = await fetch(`${apiUrl}/api/content`, {
+      method: 'GET',
+      headers: {
+        'X-Trial-ID': trialId,
+      },
+    });
+
+    if (!response.ok) {
+      log(`Primary endpoint failed: ${response.status}, trying trial endpoint...`, options);
+      // Try without auth - some patterns may be available for trial
+      const publicResponse = await fetch(`${apiUrl}/api/content/trial`, {
+        method: 'GET',
+        headers: {
+          'X-Trial-ID': trialId,
+        },
+      });
+
+      if (!publicResponse.ok) {
+        log(`Trial endpoint also failed: ${publicResponse.status}`, options);
+        spinner.warn('Could not download patterns (will use MCP tools)');
+        return;
+      }
+
+      const content: ContentResponse = await publicResponse.json();
+      log(`Received version: ${content.version}, modules: ${Object.keys(content.modules || {}).length}`, options);
+      await writePatternFiles(cwd, content, spinner, options);
+      return;
+    }
+
+    const content: ContentResponse = await response.json();
+    log(`Received version: ${content.version}, modules: ${Object.keys(content.modules || {}).length}`, options);
+    await writePatternFiles(cwd, content, spinner, options);
+
+  } catch (error) {
+    log(`Error: ${error instanceof Error ? error.message : String(error)}`, options);
+    spinner.warn('Could not install patterns (will use MCP tools)');
+    console.log(chalk.gray('  Patterns will be available via MCP tools.\n'));
+  }
+}
+
+async function writePatternFiles(cwd: string, content: ContentResponse, spinner: ReturnType<typeof ora>, options: GoOptions = {}): Promise<void> {
+  log(`Writing pattern files to ${cwd}...`, options);
+  // Check if patterns already exist
+  const claudeMdPath = join(cwd, 'CLAUDE.md');
+  if (existsSync(claudeMdPath)) {
+    spinner.succeed('CodeBakers patterns already installed');
+    return;
+  }
+
+  // Write CLAUDE.md (router file)
+  if (content.router) {
+    writeFileSync(claudeMdPath, content.router);
+  }
+
+  // Write pattern modules to .claude/
+  if (content.modules && Object.keys(content.modules).length > 0) {
+    const modulesDir = join(cwd, '.claude');
+    if (!existsSync(modulesDir)) {
+      mkdirSync(modulesDir, { recursive: true });
+    }
+
+    for (const [name, data] of Object.entries(content.modules)) {
+      writeFileSync(join(modulesDir, name), data);
+    }
+  }
+
+  // Update .gitignore to exclude encoded patterns
+  const gitignorePath = join(cwd, '.gitignore');
+  if (existsSync(gitignorePath)) {
+    const { readFileSync } = await import('fs');
+    const gitignore = readFileSync(gitignorePath, 'utf-8');
+    if (!gitignore.includes('.claude/')) {
+      writeFileSync(gitignorePath, gitignore + '\n# CodeBakers patterns\n.claude/\n');
+    }
+  }
+
+  spinner.succeed(`CodeBakers patterns installed (v${content.version})`);
+  console.log(chalk.gray(`  ${Object.keys(content.modules || {}).length} pattern modules ready\n`));
 }

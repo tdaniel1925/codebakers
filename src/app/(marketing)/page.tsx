@@ -814,8 +814,116 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Code Quality Comparison Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Badge className="mb-4 bg-purple-50 text-purple-600 border-purple-200">
+              <Code2 className="h-3 w-3 mr-1" />
+              Code Quality
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              See the difference
+            </h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">
+              Same prompt. Drastically different&nbsp;results.
+            </p>
+          </motion.div>
+
+          <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-6">
+            {/* Without CodeBakers */}
+            <motion.div
+              className="rounded-2xl bg-white border-2 border-red-200 overflow-hidden shadow-sm"
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <div className="px-4 py-3 bg-red-50 border-b border-red-200 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                <span className="text-sm font-semibold text-red-700">Without CodeBakers</span>
+              </div>
+              <pre className="p-4 text-xs text-gray-700 font-mono overflow-x-auto bg-red-50/30 leading-relaxed">
+{`// "Add user signup endpoint"
+
+export async function POST(req) {
+  const data = await req.json();
+
+  // No validation ❌
+  const user = await db.insert(users).values({
+    email: data.email,
+    password: data.password, // Plain text! ❌
+  });
+
+  return Response.json(user);
+  // No error handling ❌
+  // No rate limiting ❌
+  // No type safety ❌
+}`}
+              </pre>
+              <div className="px-4 py-3 bg-red-50 border-t border-red-200">
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600">No validation</span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600">No error handling</span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600">Security risk</span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600">No types</span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* With CodeBakers */}
+            <motion.div
+              className="rounded-2xl bg-white border-2 border-green-200 overflow-hidden shadow-sm"
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <div className="px-4 py-3 bg-green-50 border-b border-green-200 flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-500" />
+                <span className="text-sm font-semibold text-green-700">With CodeBakers</span>
+              </div>
+              <pre className="p-4 text-xs text-gray-700 font-mono overflow-x-auto bg-green-50/30 leading-relaxed">
+{`// "Add user signup endpoint"
+
+const signupSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+export const POST = withRateLimit(async (req) => {
+  const input = signupSchema.parse(await req.json());
+
+  const hashedPassword = await hash(input.password);
+  const user = await db.insert(users).values({
+    email: input.email,
+    password: hashedPassword, // Hashed ✓
+  }).returning({ id: users.id });
+
+  return Response.json({
+    success: true,
+    userId: user[0].id
+  });
+}, { limit: 5, window: '1m' });`}
+              </pre>
+              <div className="px-4 py-3 bg-green-50 border-t border-green-200">
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">Zod validation</span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">Password hashing</span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">Rate limited</span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">Type safe</span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Interactive Demo Section */}
-      <section id="demo" className="py-20 px-4">
+      <section id="demo" className="py-20 px-4 bg-gray-50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"

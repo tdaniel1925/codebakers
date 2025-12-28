@@ -72,14 +72,15 @@ const program = new Command();
 program
   .name('codebakers')
   .description('CodeBakers CLI - Production patterns for AI-assisted development')
-  .version('2.9.0');
+  .version('3.1.0');
 
 // Zero-friction trial entry (no signup required)
 program
   .command('go')
   .alias('start')
   .description('Start using CodeBakers instantly (no signup required)')
-  .action(go);
+  .option('-v, --verbose', 'Show detailed debug output for troubleshooting')
+  .action((options) => go({ verbose: options.verbose }));
 
 program
   .command('extend')

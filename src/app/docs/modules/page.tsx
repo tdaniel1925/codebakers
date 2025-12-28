@@ -2,10 +2,21 @@ import Link from 'next/link';
 
 export const metadata = {
   title: 'Pattern Modules - CodeBakers Documentation',
-  description: 'Reference for all 34 CodeBakers pattern modules.',
+  description: 'Reference for all 47 CodeBakers pattern modules.',
 };
 
-const modules = [
+interface Module {
+  id: string;
+  name: string;
+  lines: number;
+  description: string;
+  keywords: string[];
+  required?: boolean;
+  edgeCase?: boolean;
+  splitFrom?: string;
+}
+
+const modules: Module[] = [
   {
     id: '00-core',
     name: 'Core Standards',
@@ -22,6 +33,14 @@ const modules = [
     keywords: ['drizzle', 'sql', 'query', 'migration', 'schema'],
   },
   {
+    id: '01a-database-edge-cases',
+    name: 'Database Edge Cases',
+    lines: 400,
+    description: 'Transactions, deadlocks, soft-delete recovery, connection pooling, migrations.',
+    keywords: ['transaction', 'deadlock', 'soft-delete', 'pool', 'migration'],
+    edgeCase: true,
+  },
+  {
     id: '02-auth',
     name: 'Authentication',
     lines: 1240,
@@ -29,11 +48,27 @@ const modules = [
     keywords: ['login', 'signup', 'oauth', '2fa', 'session', 'permission'],
   },
   {
+    id: '02a-auth-edge-cases',
+    name: 'Auth Edge Cases',
+    lines: 500,
+    description: 'Account lockout, password reset flows, session management, device limits.',
+    keywords: ['lockout', 'password-reset', 'session', 'device', 'security'],
+    edgeCase: true,
+  },
+  {
     id: '03-api',
     name: 'API Development',
     lines: 1640,
     description: 'REST endpoints, validation, rate limiting, versioning, OpenAPI docs.',
     keywords: ['api', 'endpoint', 'route', 'rest', 'rate limit'],
+  },
+  {
+    id: '03a-api-edge-cases',
+    name: 'API Edge Cases',
+    lines: 550,
+    description: 'Rate limiting, timeouts, retries, file uploads, idempotency keys.',
+    keywords: ['rate-limit', 'timeout', 'retry', 'upload', 'idempotency'],
+    edgeCase: true,
   },
   {
     id: '04-frontend',
@@ -48,6 +83,62 @@ const modules = [
     lines: 1570,
     description: 'Stripe integration, subscriptions, checkout, webhooks, billing portal.',
     keywords: ['stripe', 'payment', 'subscription', 'billing', 'checkout'],
+  },
+  {
+    id: '05a-payments-edge-cases',
+    name: 'Payments Edge Cases',
+    lines: 600,
+    description: 'Refunds, disputes, chargebacks, dunning, failed payment recovery.',
+    keywords: ['refund', 'dispute', 'chargeback', 'dunning', 'failed-payment'],
+    edgeCase: true,
+  },
+  {
+    id: '06a-voice',
+    name: 'Voice AI',
+    lines: 450,
+    description: 'VAPI integration, voice calls, phone handling, voice webhooks.',
+    keywords: ['vapi', 'voice', 'call', 'phone', 'audio'],
+    splitFrom: '06-integrations',
+  },
+  {
+    id: '06b-email',
+    name: 'Email',
+    lines: 600,
+    description: 'Nylas, Resend, SMTP, React Email templates, transactional email.',
+    keywords: ['resend', 'nylas', 'smtp', 'template', 'email'],
+    splitFrom: '06-integrations',
+  },
+  {
+    id: '06c-communications',
+    name: 'Communications',
+    lines: 400,
+    description: 'Twilio SMS, GoHighLevel CRM, messaging patterns.',
+    keywords: ['twilio', 'sms', 'gohighlevel', 'crm', 'messaging'],
+    splitFrom: '06-integrations',
+  },
+  {
+    id: '06d-background-jobs',
+    name: 'Background Jobs',
+    lines: 500,
+    description: 'Inngest, scheduled tasks, cron jobs, queue processing.',
+    keywords: ['inngest', 'cron', 'queue', 'scheduled', 'background'],
+    splitFrom: '06-integrations',
+  },
+  {
+    id: '06e-documents',
+    name: 'Documents',
+    lines: 450,
+    description: 'PDF, Excel, Word generation, document processing.',
+    keywords: ['pdf', 'excel', 'word', 'docx', 'document'],
+    splitFrom: '06-integrations',
+  },
+  {
+    id: '06f-api-patterns',
+    name: 'API Integration Patterns',
+    lines: 400,
+    description: 'Third-party API integration protocol, external API handling.',
+    keywords: ['third-party', 'external-api', 'integration', 'sdk'],
+    splitFrom: '06-integrations',
   },
   {
     id: '06-integrations',
@@ -71,11 +162,35 @@ const modules = [
     keywords: ['test', 'vitest', 'playwright', 'ci', 'deploy'],
   },
   {
+    id: '09a-layouts',
+    name: 'Layouts',
+    lines: 500,
+    description: 'Navigation, sidebar, header, footer, page layouts, theme switching.',
+    keywords: ['navigation', 'sidebar', 'header', 'theme', 'layout'],
+    splitFrom: '09-design',
+  },
+  {
+    id: '09b-accessibility',
+    name: 'Accessibility',
+    lines: 350,
+    description: 'WCAG compliance, keyboard navigation, ARIA labels, focus management.',
+    keywords: ['a11y', 'wcag', 'keyboard', 'aria', 'focus'],
+    splitFrom: '09-design',
+  },
+  {
+    id: '09c-seo',
+    name: 'SEO',
+    lines: 300,
+    description: 'Metadata, sitemap, Open Graph, structured data, robots.txt.',
+    keywords: ['metadata', 'sitemap', 'opengraph', 'schema', 'seo'],
+    splitFrom: '09-design',
+  },
+  {
     id: '09-design',
     name: 'Design System',
-    lines: 3200,
-    description: 'UI patterns, accessibility, responsive design, SEO, navigation layouts.',
-    keywords: ['ui', 'design', 'tailwind', 'accessibility', 'seo'],
+    lines: 2500,
+    description: 'UI patterns, components, dashboards, marketing pages, design cloning.',
+    keywords: ['ui', 'design', 'tailwind', 'component', 'dashboard'],
   },
   {
     id: '10-generators',
@@ -90,6 +205,14 @@ const modules = [
     lines: 1940,
     description: 'WebSockets, live updates, notifications, presence, pub/sub.',
     keywords: ['websocket', 'realtime', 'notification', 'live', 'subscribe'],
+  },
+  {
+    id: '11a-realtime-edge-cases',
+    name: 'Realtime Edge Cases',
+    lines: 450,
+    description: 'Connection drops, reconnection, presence, message ordering, offline sync.',
+    keywords: ['reconnect', 'presence', 'ordering', 'offline', 'sync'],
+    edgeCase: true,
   },
   {
     id: '12-saas',
@@ -183,11 +306,51 @@ const modules = [
     keywords: ['legal', 'gdpr', 'privacy', 'contract', 'compliance'],
   },
   {
+    id: '25a-ecommerce',
+    name: 'E-commerce',
+    lines: 300,
+    description: 'Products, carts, orders, inventory, checkout flows.',
+    keywords: ['product', 'cart', 'order', 'inventory', 'shop'],
+    splitFrom: '25-experts-industry',
+  },
+  {
+    id: '25b-education',
+    name: 'Education & LMS',
+    lines: 400,
+    description: 'Courses, lessons, progress tracking, certificates, quizzes.',
+    keywords: ['course', 'lesson', 'lms', 'certificate', 'quiz'],
+    splitFrom: '25-experts-industry',
+  },
+  {
+    id: '25c-voice-vapi',
+    name: 'Voice AI (VAPI)',
+    lines: 350,
+    description: 'Voice AI assistants, VAPI integration, call handling.',
+    keywords: ['voice-ai', 'assistant', 'vapi', 'call', 'speech'],
+    splitFrom: '25-experts-industry',
+  },
+  {
+    id: '25d-b2b',
+    name: 'B2B & Enterprise',
+    lines: 400,
+    description: 'Multi-tenancy, RBAC, SSO, API keys, enterprise features.',
+    keywords: ['enterprise', 'rbac', 'sso', 'api-key', 'b2b'],
+    splitFrom: '25-experts-industry',
+  },
+  {
+    id: '25e-kids-coppa',
+    name: 'Kids & COPPA',
+    lines: 350,
+    description: 'COPPA compliance, parental consent, age gates, child safety.',
+    keywords: ['coppa', 'parental', 'child', 'age-gate', 'consent'],
+    splitFrom: '25-experts-industry',
+  },
+  {
     id: '25-experts-industry',
     name: 'Industry Experts',
-    lines: 3530,
-    description: 'Ecommerce, edtech, proptech, logistics, hospitality patterns.',
-    keywords: ['ecommerce', 'edtech', 'proptech', 'logistics', 'retail'],
+    lines: 700,
+    description: 'Cross-industry patterns, vertical-specific guidance.',
+    keywords: ['industry', 'vertical', 'domain', 'specialist'],
   },
   {
     id: '26-analytics',
@@ -238,6 +401,55 @@ const modules = [
     description: 'PDF generation, print stylesheets, invoices, reports, certificates.',
     keywords: ['pdf', 'print', 'invoice', 'report', 'puppeteer'],
   },
+  {
+    id: '33-cicd',
+    name: 'CI/CD',
+    lines: 1100,
+    description: 'GitHub Actions, deployment pipelines, automated testing, release workflows.',
+    keywords: ['github-actions', 'deploy', 'pipeline', 'ci', 'cd'],
+  },
+  {
+    id: '34-integration-contracts',
+    name: 'Integration Contracts',
+    lines: 650,
+    description: 'Cross-system integration patterns, API contracts, interface definitions.',
+    keywords: ['contract', 'cross-system', 'interface', 'integration'],
+  },
+  {
+    id: '35-environment',
+    name: 'Environment',
+    lines: 1200,
+    description: 'Environment variables, secrets management, dotenv, configuration.',
+    keywords: ['env', 'secrets', 'dotenv', 'config', 'environment'],
+  },
+  {
+    id: '36-pre-launch',
+    name: 'Pre-Launch',
+    lines: 1400,
+    description: 'Comprehensive pre-launch checklist, production readiness, go-live.',
+    keywords: ['checklist', 'launch', 'production', 'readiness', 'go-live'],
+  },
+  {
+    id: '37-quality-gates',
+    name: 'Quality Gates',
+    lines: 1100,
+    description: 'ESLint, Prettier, code quality enforcement, linting standards.',
+    keywords: ['lint', 'eslint', 'prettier', 'quality', 'standards'],
+  },
+  {
+    id: '38-troubleshooting',
+    name: 'Troubleshooting',
+    lines: 1500,
+    description: 'Common issues, debugging guides, error diagnosis, fixes.',
+    keywords: ['debug', 'error', 'fix', 'issue', 'troubleshoot'],
+  },
+  {
+    id: '39-self-healing',
+    name: 'Self-Healing',
+    lines: 1800,
+    description: 'Auto-detect errors, AI-powered fixes, recovery patterns.',
+    keywords: ['auto-fix', 'ai-repair', 'recovery', 'healing', 'automated'],
+  },
 ];
 
 export default function ModulesPage() {
@@ -284,11 +496,21 @@ export default function ModulesPage() {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <code className="text-red-400">{module.id}</code>
                   {module.required && (
                     <span className="rounded bg-red-500/20 px-2 py-0.5 text-xs text-red-400">
                       Always Loaded
+                    </span>
+                  )}
+                  {module.edgeCase && (
+                    <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
+                      Edge Cases
+                    </span>
+                  )}
+                  {module.splitFrom && (
+                    <span className="rounded bg-blue-500/20 px-2 py-0.5 text-xs text-blue-400">
+                      Split Module
                     </span>
                   )}
                 </div>

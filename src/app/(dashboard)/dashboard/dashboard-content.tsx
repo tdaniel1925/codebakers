@@ -6,6 +6,7 @@ import { Terminal, ArrowRight, Sparkles, CreditCard, Users, Plug, RefreshCw, Ale
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PRICING, TRIAL, MODULES } from '@/lib/constants';
 
 interface TrialInfo {
   stage: 'anonymous' | 'extended' | 'expired' | 'converted' | null;
@@ -47,7 +48,7 @@ export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps
 
   const isTrialUser = !hasActiveSubscription && trial && trial.stage !== 'converted';
   const isTrialExpired = trial?.stage === 'expired' || (trial && trial.daysRemaining <= 0);
-  const isTrialExpiringSoon = trial && trial.daysRemaining > 0 && trial.daysRemaining <= 2;
+  const isTrialExpiringSoon = trial && trial.daysRemaining > 0 && trial.daysRemaining <= TRIAL.EXPIRING_SOON_THRESHOLD;
 
   const regenerateKey = async () => {
     setIsRegenerating(true);
@@ -140,7 +141,7 @@ export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps
                         ? 'Trial Expired'
                         : trial?.stage === 'extended'
                           ? 'Extended Trial'
-                          : '7-Day Free Trial'}
+                          : `${TRIAL.ANONYMOUS_DAYS}-Day Free Trial`}
                   </span>
                   {stats.subscription?.isBeta && (
                     <Badge className="bg-purple-600">Beta</Badge>
@@ -154,7 +155,7 @@ export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps
                 </div>
                 <p className="text-neutral-400 text-sm">
                   {hasActiveSubscription
-                    ? 'Unlimited projects & all 40 modules'
+                    ? `Unlimited projects & all ${MODULES.COUNT} modules`
                     : isTrialExpired
                       ? 'Upgrade to continue using CodeBakers'
                       : `${trial?.daysRemaining || 0} day${trial?.daysRemaining !== 1 ? 's' : ''} remaining`}
@@ -168,7 +169,7 @@ export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps
                 <Link href="/api/auth/github?extend=true">
                   <Button variant="outline" className="gap-2 border-neutral-700 hover:bg-neutral-800">
                     <Github className="w-4 h-4" />
-                    +7 Days Free
+                    +{TRIAL.EXTENDED_DAYS} Days Free
                   </Button>
                 </Link>
               )}
@@ -197,8 +198,8 @@ export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps
                     </p>
                     <p className="text-xs text-neutral-400">
                       {trial?.stage === 'anonymous'
-                        ? 'Connect GitHub to extend for 7 more days free'
-                        : 'Full access to all 40 modules'}
+                        ? `Connect GitHub to extend for ${TRIAL.EXTENDED_DAYS} more days free`
+                        : `Full access to all ${MODULES.COUNT} modules`}
                     </p>
                   </div>
                 </div>
@@ -223,11 +224,11 @@ export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps
                   <div>
                     <p className="text-sm font-medium text-red-200">
                       {trial?.canExtend
-                        ? 'Trial expired - Connect GitHub for 7 more days free!'
+                        ? `Trial expired - Connect GitHub for ${TRIAL.EXTENDED_DAYS} more days free!`
                         : 'Your trial has ended'}
                     </p>
                     <p className="text-xs text-neutral-400">
-                      Upgrade to Pro ($49/mo) for unlimited access
+                      Upgrade to Pro (${PRICING.PRO.MONTHLY}/mo) for unlimited access
                     </p>
                   </div>
                 </div>

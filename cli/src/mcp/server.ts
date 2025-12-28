@@ -894,6 +894,96 @@ class CodeBakersServer {
             required: ['token'],
           },
         },
+        {
+          name: 'update_constant',
+          description:
+            'Update a business constant (pricing, trial days, module count, etc.) using natural language. Use this when user says things like "change Pro price to $59", "set trial to 10 days", "update module count to 45". Automatically edits src/lib/constants.ts.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              request: {
+                type: 'string',
+                description: 'Natural language request describing what to change (e.g., "change Pro monthly price to $59", "set anonymous trial days to 10", "update Agency seats to 10")',
+              },
+            },
+            required: ['request'],
+          },
+        },
+        {
+          name: 'update_schema',
+          description:
+            'Add or modify database tables using natural language. Use this when user says things like "add a tags table", "add a status field to users", "create a comments table with user_id and content". Automatically edits src/db/schema.ts and creates migration.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              request: {
+                type: 'string',
+                description: 'Natural language request describing schema changes (e.g., "add a tags table with name and color fields", "add isArchived boolean to projects table", "create a comments table")',
+              },
+            },
+            required: ['request'],
+          },
+        },
+        {
+          name: 'update_env',
+          description:
+            'Add or update environment variables. Use this when user says things like "add OPENAI_API_KEY", "set up Stripe keys", "add database URL". Updates both .env.local and .env.example.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              request: {
+                type: 'string',
+                description: 'Natural language request describing env vars to add (e.g., "add OPENAI_API_KEY", "add Stripe test keys", "add RESEND_API_KEY for emails")',
+              },
+            },
+            required: ['request'],
+          },
+        },
+        {
+          name: 'billing_action',
+          description:
+            'Perform billing and subscription actions. Use this when user says things like "show my subscription", "extend my trial", "upgrade to Pro", "check my usage". Opens billing page or shows subscription info.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              action: {
+                type: 'string',
+                description: 'Natural language billing action (e.g., "show my subscription", "extend trial", "upgrade to team", "check usage")',
+              },
+            },
+            required: ['action'],
+          },
+        },
+        {
+          name: 'add_page',
+          description:
+            'Create a new page or route in the Next.js app. Use this when user says things like "create a settings page", "add an about page", "make a dashboard page with stats". Creates the file in src/app/ with proper structure.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              request: {
+                type: 'string',
+                description: 'Natural language request describing the page (e.g., "create a settings page with tabs", "add an about page", "make a user profile page")',
+              },
+            },
+            required: ['request'],
+          },
+        },
+        {
+          name: 'add_api_route',
+          description:
+            'Create a new API route endpoint. Use this when user says things like "create a feedback endpoint", "add an API for user preferences", "make a webhook endpoint for Stripe". Creates properly structured route.ts file.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              request: {
+                type: 'string',
+                description: 'Natural language request describing the API route (e.g., "create POST endpoint for feedback", "add GET/POST for user settings", "make a Stripe webhook endpoint")',
+              },
+            },
+            required: ['request'],
+          },
+        },
       ],
     }));
 
@@ -1002,6 +1092,24 @@ class CodeBakersServer {
 
         case 'vercel_connect':
           return this.handleVercelConnect(args as { token: string });
+
+        case 'update_constant':
+          return this.handleUpdateConstant(args as { request: string });
+
+        case 'update_schema':
+          return this.handleUpdateSchema(args as { request: string });
+
+        case 'update_env':
+          return this.handleUpdateEnv(args as { request: string });
+
+        case 'billing_action':
+          return this.handleBillingAction(args as { action: string });
+
+        case 'add_page':
+          return this.handleAddPage(args as { request: string });
+
+        case 'add_api_route':
+          return this.handleAddApiRoute(args as { request: string });
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -3575,6 +3683,1362 @@ Just describe what you want to build! I'll automatically:
         isError: true,
       };
     }
+  }
+
+  /**
+   * Handle update_constant tool - updates constants via natural language
+   * Parses requests like "change Pro price to $59" and edits constants.ts
+   */
+  private async handleUpdateConstant(args: { request: string }) {
+    const { request } = args;
+    const cwd = process.cwd();
+
+    // Find constants.ts file (server project)
+    const possiblePaths = [
+      path.join(cwd, 'src', 'lib', 'constants.ts'),
+      path.join(cwd, 'lib', 'constants.ts'),
+      path.join(cwd, 'constants.ts'),
+    ];
+
+    let constantsPath: string | null = null;
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        constantsPath = p;
+        break;
+      }
+    }
+
+    if (!constantsPath) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❌ Could not find constants.ts file.\n\nLooked in:\n${possiblePaths.map(p => `- ${p}`).join('\n')}\n\nMake sure you're in the right directory or create src/lib/constants.ts first.`,
+        }],
+        isError: true,
+      };
+    }
+
+    // Read current constants file
+    const currentContent = fs.readFileSync(constantsPath, 'utf-8');
+
+    // Parse the natural language request to identify what to change
+    const parsed = this.parseConstantRequest(request);
+
+    if (!parsed.success) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❓ I couldn't understand that request.\n\n**Request:** "${request}"\n\n**Supported changes:**\n- "change Pro monthly price to $59"\n- "set Team yearly price to $1200"\n- "update Agency seats to 10"\n- "set anonymous trial days to 10"\n- "change extended trial days to 14"\n- "update module count to 45"\n- "change support email to help@example.com"\n- "update tagline to 'Build faster'"\n\n**Try rephrasing** your request with the constant name and new value.`,
+        }],
+      };
+    }
+
+    // Apply the change
+    const { constantPath, newValue, description } = parsed;
+    const updatedContent = this.updateConstantValue(currentContent, constantPath!, newValue!);
+
+    if (updatedContent === currentContent) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `⚠️ No changes made.\n\nCouldn't find or update: \`${constantPath}\`\n\nThe constant might not exist or the path format is different.`,
+        }],
+      };
+    }
+
+    // Write the updated file
+    fs.writeFileSync(constantsPath, updatedContent, 'utf-8');
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `✅ **Constant Updated**\n\n**Change:** ${description}\n**File:** \`${path.relative(cwd, constantsPath)}\`\n\n---\n\n⚡ This change is now active across the entire codebase.\n\nAll components, pages, and APIs that reference this constant will automatically use the new value.`,
+      }],
+    };
+  }
+
+  /**
+   * Parse natural language request to identify constant and new value
+   */
+  private parseConstantRequest(request: string): {
+    success: boolean;
+    constantPath?: string;
+    newValue?: string | number | boolean | null;
+    description?: string;
+  } {
+    const lower = request.toLowerCase();
+
+    // PRICING patterns
+    // "change/set/update pro monthly price to $59" or "pro monthly to 59"
+    const pricingMatch = lower.match(
+      /(?:change|set|update|make)?\s*(pro|team|agency|enterprise)\s*(monthly|yearly)\s*(?:price|cost)?\s*(?:to|=|:)?\s*\$?(\d+)/i
+    );
+    if (pricingMatch) {
+      const plan = pricingMatch[1].toUpperCase();
+      const period = pricingMatch[2].toUpperCase();
+      const value = parseInt(pricingMatch[3]);
+      return {
+        success: true,
+        constantPath: `PRICING.${plan}.${period}`,
+        newValue: value,
+        description: `${plan} ${period.toLowerCase()} price → $${value}`,
+      };
+    }
+
+    // SEATS patterns
+    // "change/set team seats to 10" or "agency seats to unlimited"
+    const seatsMatch = lower.match(
+      /(?:change|set|update|make)?\s*(pro|team|agency|enterprise)\s*seats?\s*(?:to|=|:)?\s*(\d+|unlimited|-1)/i
+    );
+    if (seatsMatch) {
+      const plan = seatsMatch[1].toUpperCase();
+      let value: number;
+      if (seatsMatch[2] === 'unlimited' || seatsMatch[2] === '-1') {
+        value = -1;
+      } else {
+        value = parseInt(seatsMatch[2]);
+      }
+      return {
+        success: true,
+        constantPath: `PRICING.${plan}.SEATS`,
+        newValue: value,
+        description: `${plan} seats → ${value === -1 ? 'unlimited' : value}`,
+      };
+    }
+
+    // TRIAL patterns
+    // "set anonymous trial days to 10" or "anonymous days to 10"
+    const trialMatch = lower.match(
+      /(?:change|set|update|make)?\s*(anonymous|extended|total|expiring)\s*(?:trial)?\s*(?:days|threshold)?\s*(?:to|=|:)?\s*(\d+)/i
+    );
+    if (trialMatch) {
+      const trialType = trialMatch[1].toUpperCase();
+      const value = parseInt(trialMatch[2]);
+      let path: string;
+      let desc: string;
+
+      switch (trialType) {
+        case 'ANONYMOUS':
+          path = 'TRIAL.ANONYMOUS_DAYS';
+          desc = `Anonymous trial days → ${value}`;
+          break;
+        case 'EXTENDED':
+          path = 'TRIAL.EXTENDED_DAYS';
+          desc = `Extended trial days → ${value}`;
+          break;
+        case 'TOTAL':
+          path = 'TRIAL.TOTAL_DAYS';
+          desc = `Total trial days → ${value}`;
+          break;
+        case 'EXPIRING':
+          path = 'TRIAL.EXPIRING_SOON_THRESHOLD';
+          desc = `Expiring warning threshold → ${value} days`;
+          break;
+        default:
+          return { success: false };
+      }
+      return { success: true, constantPath: path, newValue: value, description: desc };
+    }
+
+    // MODULE COUNT pattern
+    // "set module count to 45" or "modules to 45"
+    const moduleMatch = lower.match(
+      /(?:change|set|update|make)?\s*(?:module|pattern)\s*count\s*(?:to|=|:)?\s*(\d+)/i
+    );
+    if (moduleMatch) {
+      const value = parseInt(moduleMatch[1]);
+      return {
+        success: true,
+        constantPath: 'MODULES.COUNT',
+        newValue: value,
+        description: `Module count → ${value}`,
+      };
+    }
+
+    // PRODUCT string patterns
+    // "change tagline to 'Build faster'" or "set support email to help@example.com"
+    const productMatch = lower.match(
+      /(?:change|set|update|make)?\s*(name|tagline|support\s*email|website|cli\s*command)\s*(?:to|=|:)?\s*["']?([^"']+)["']?/i
+    );
+    if (productMatch) {
+      const field = productMatch[1].toLowerCase().replace(/\s+/g, '_').toUpperCase();
+      const value = productMatch[2].trim();
+      let path: string;
+
+      if (field === 'SUPPORT_EMAIL') {
+        path = 'PRODUCT.SUPPORT_EMAIL';
+      } else if (field === 'NAME') {
+        path = 'PRODUCT.NAME';
+      } else if (field === 'TAGLINE') {
+        path = 'PRODUCT.TAGLINE';
+      } else if (field === 'WEBSITE') {
+        path = 'PRODUCT.WEBSITE';
+      } else if (field === 'CLI_COMMAND') {
+        path = 'PRODUCT.CLI_COMMAND';
+      } else {
+        return { success: false };
+      }
+
+      return {
+        success: true,
+        constantPath: path,
+        newValue: value,
+        description: `${field.replace(/_/g, ' ').toLowerCase()} → "${value}"`,
+      };
+    }
+
+    // API KEYS patterns
+    // "set rate limit to 100 per minute"
+    const rateLimitMatch = lower.match(
+      /(?:change|set|update|make)?\s*(?:rate\s*limit|requests)\s*(?:per|\/)\s*(minute|hour)\s*(?:to|=|:)?\s*(\d+)/i
+    );
+    if (rateLimitMatch) {
+      const period = rateLimitMatch[1].toUpperCase();
+      const value = parseInt(rateLimitMatch[2]);
+      const path = period === 'MINUTE'
+        ? 'API_KEYS.RATE_LIMIT.REQUESTS_PER_MINUTE'
+        : 'API_KEYS.RATE_LIMIT.REQUESTS_PER_HOUR';
+      return {
+        success: true,
+        constantPath: path,
+        newValue: value,
+        description: `Rate limit → ${value} requests per ${period.toLowerCase()}`,
+      };
+    }
+
+    // FEATURE FLAGS patterns
+    // "enable/disable trial system" or "set trial system to true/false"
+    const featureMatch = lower.match(
+      /(?:enable|disable|turn\s*on|turn\s*off|set)?\s*(trial\s*system|github\s*extension|anonymous\s*trial)\s*(?:enabled|disabled|on|off|to\s*true|to\s*false)?/i
+    );
+    if (featureMatch) {
+      const feature = featureMatch[1].toLowerCase().replace(/\s+/g, '_').toUpperCase();
+      const enabled = lower.includes('enable') || lower.includes('turn on') || lower.includes('to true');
+      let path: string;
+
+      if (feature.includes('TRIAL_SYSTEM')) {
+        path = 'FEATURES.TRIAL_SYSTEM_ENABLED';
+      } else if (feature.includes('GITHUB_EXTENSION')) {
+        path = 'FEATURES.GITHUB_EXTENSION_ENABLED';
+      } else if (feature.includes('ANONYMOUS_TRIAL')) {
+        path = 'FEATURES.ANONYMOUS_TRIAL_ENABLED';
+      } else {
+        return { success: false };
+      }
+
+      return {
+        success: true,
+        constantPath: path,
+        newValue: enabled,
+        description: `${feature.replace(/_/g, ' ').toLowerCase()} → ${enabled ? 'enabled' : 'disabled'}`,
+      };
+    }
+
+    return { success: false };
+  }
+
+  /**
+   * Update a specific constant value in the file content
+   */
+  private updateConstantValue(
+    content: string,
+    constantPath: string,
+    newValue: string | number | boolean | null
+  ): string {
+    const parts = constantPath.split('.');
+
+    // Format the new value for TypeScript
+    let formattedValue: string;
+    if (typeof newValue === 'string') {
+      formattedValue = `'${newValue}'`;
+    } else if (typeof newValue === 'boolean') {
+      formattedValue = newValue.toString();
+    } else if (newValue === null) {
+      formattedValue = 'null';
+    } else {
+      formattedValue = newValue.toString();
+    }
+
+    // Build regex to find and replace the value
+    // e.g., for PRICING.PRO.MONTHLY, look for "MONTHLY: <number>" within PRO block
+    if (parts.length === 2) {
+      // Simple case: MODULES.COUNT or FEATURES.X
+      const [obj, key] = parts;
+      const regex = new RegExp(`(${key}:\\s*)([^,}\\n]+)`, 'g');
+
+      // Find the right object and update within it
+      const objRegex = new RegExp(`(export const ${obj}\\s*=\\s*\\{[\\s\\S]*?)(${key}:\\s*)([^,}\\n]+)([\\s\\S]*?\\}\\s*as\\s*const)`, 'g');
+      return content.replace(objRegex, `$1$2${formattedValue}$4`);
+    } else if (parts.length === 3) {
+      // Nested case: PRICING.PRO.MONTHLY
+      const [obj, subObj, key] = parts;
+
+      // More complex regex to find nested value
+      // Look for the pattern within the specific sub-object
+      const objPattern = `export const ${obj}\\s*=\\s*\\{[\\s\\S]*?${subObj}:\\s*\\{[\\s\\S]*?${key}:\\s*`;
+
+      const lines = content.split('\n');
+      let inObject = false;
+      let inSubObject = false;
+      let braceDepth = 0;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Track if we're in the right object
+        if (line.includes(`export const ${obj}`)) {
+          inObject = true;
+        }
+
+        if (inObject) {
+          // Count braces
+          braceDepth += (line.match(/\{/g) || []).length;
+          braceDepth -= (line.match(/\}/g) || []).length;
+
+          // Check if we're in the sub-object
+          if (line.includes(`${subObj}:`)) {
+            inSubObject = true;
+          }
+
+          if (inSubObject && line.includes(`${key}:`)) {
+            // Found the line to update
+            lines[i] = line.replace(
+              new RegExp(`(${key}:\\s*)([^,}\\n]+)`),
+              `$1${formattedValue}`
+            );
+            break;
+          }
+
+          // Exit sub-object when we see closing brace at right depth
+          if (inSubObject && line.includes('}') && !line.includes('{')) {
+            // Check if this closes the sub-object
+            const match = line.match(/^\s*\}/);
+            if (match) {
+              inSubObject = false;
+            }
+          }
+
+          if (braceDepth === 0) {
+            inObject = false;
+          }
+        }
+      }
+
+      return lines.join('\n');
+    } else if (parts.length === 4) {
+      // Deeply nested: API_KEYS.RATE_LIMIT.REQUESTS_PER_MINUTE
+      const [obj, subObj1, subObj2, key] = parts;
+
+      const lines = content.split('\n');
+      let inObject = false;
+      let inSubObj1 = false;
+      let inSubObj2 = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (line.includes(`export const ${obj}`)) {
+          inObject = true;
+        }
+
+        if (inObject && line.includes(`${subObj1}:`)) {
+          inSubObj1 = true;
+        }
+
+        if (inSubObj1 && line.includes(`${subObj2}:`)) {
+          inSubObj2 = true;
+        }
+
+        if (inSubObj2 && line.includes(`${key}:`)) {
+          lines[i] = line.replace(
+            new RegExp(`(${key}:\\s*)([^,}\\n]+)`),
+            `$1${formattedValue}`
+          );
+          break;
+        }
+
+        // Reset on closing braces (simplified - could be more robust)
+        if (inSubObj2 && line.trim() === '},') {
+          inSubObj2 = false;
+        }
+        if (inSubObj1 && line.trim() === '},') {
+          inSubObj1 = false;
+        }
+      }
+
+      return lines.join('\n');
+    }
+
+    return content;
+  }
+
+  /**
+   * Handle update_schema tool - add/modify database tables via natural language
+   */
+  private async handleUpdateSchema(args: { request: string }) {
+    const { request } = args;
+    const cwd = process.cwd();
+
+    // Find schema file
+    const possiblePaths = [
+      path.join(cwd, 'src', 'db', 'schema.ts'),
+      path.join(cwd, 'db', 'schema.ts'),
+      path.join(cwd, 'schema.ts'),
+      path.join(cwd, 'drizzle', 'schema.ts'),
+    ];
+
+    let schemaPath: string | null = null;
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        schemaPath = p;
+        break;
+      }
+    }
+
+    if (!schemaPath) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❌ Could not find schema.ts file.\n\nLooked in:\n${possiblePaths.map(p => `- ${p}`).join('\n')}\n\nMake sure you have a Drizzle schema file or create one at src/db/schema.ts`,
+        }],
+        isError: true,
+      };
+    }
+
+    // Parse the request to understand what to create
+    const parsed = this.parseSchemaRequest(request);
+
+    if (!parsed.success) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❓ I couldn't understand that schema request.\n\n**Request:** "${request}"\n\n**Supported changes:**\n- "add a tags table with name and color fields"\n- "create a comments table with userId, postId, and content"\n- "add isArchived boolean to projects table"\n- "add createdAt timestamp to users"\n\n**Try rephrasing** with the table name and fields.`,
+        }],
+      };
+    }
+
+    // Read current schema
+    const currentSchema = fs.readFileSync(schemaPath, 'utf-8');
+
+    // Generate new schema code
+    const { tableName, fields, action, description } = parsed;
+    let newCode: string;
+    let updatedSchema: string;
+
+    if (action === 'create_table') {
+      newCode = this.generateTableSchema(tableName!, fields!);
+      // Add to end of file before any exports
+      const exportIndex = currentSchema.lastIndexOf('export {');
+      if (exportIndex > 0) {
+        updatedSchema = currentSchema.slice(0, exportIndex) + newCode + '\n\n' + currentSchema.slice(exportIndex);
+      } else {
+        updatedSchema = currentSchema + '\n\n' + newCode;
+      }
+    } else if (action === 'add_field') {
+      // Find the table and add field
+      const tableRegex = new RegExp(`export const ${tableName} = pgTable\\([^)]+\\{([\\s\\S]*?)\\}\\s*\\)`, 'g');
+      const match = tableRegex.exec(currentSchema);
+      if (!match) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: `❌ Could not find table "${tableName}" in schema.\n\nMake sure the table exists before adding fields.`,
+          }],
+        };
+      }
+      const fieldCode = this.generateFieldCode(fields![0]);
+      // Insert before the closing brace
+      const insertPos = match.index + match[0].lastIndexOf('}');
+      updatedSchema = currentSchema.slice(0, insertPos) + fieldCode + ',\n  ' + currentSchema.slice(insertPos);
+    } else {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❌ Unknown schema action: ${action}`,
+        }],
+      };
+    }
+
+    // Write updated schema
+    fs.writeFileSync(schemaPath, updatedSchema, 'utf-8');
+
+    // Generate migration reminder
+    const migrationHint = `\n\n📝 **Next steps:**\n1. Run \`npx drizzle-kit generate\` to create migration\n2. Run \`npx drizzle-kit migrate\` to apply it`;
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `✅ **Schema Updated**\n\n**Change:** ${description}\n**File:** \`${path.relative(cwd, schemaPath)}\`${migrationHint}`,
+      }],
+    };
+  }
+
+  private parseSchemaRequest(request: string): {
+    success: boolean;
+    action?: 'create_table' | 'add_field';
+    tableName?: string;
+    fields?: Array<{ name: string; type: string; nullable?: boolean; references?: string }>;
+    description?: string;
+  } {
+    const lower = request.toLowerCase();
+
+    // Create table pattern: "add/create a X table with Y, Z fields"
+    const createMatch = lower.match(
+      /(?:add|create)\s+(?:a\s+)?(\w+)\s+table\s+(?:with\s+)?(.+)/i
+    );
+    if (createMatch) {
+      const tableName = createMatch[1];
+      const fieldsStr = createMatch[2];
+      const fields = this.parseFields(fieldsStr);
+
+      return {
+        success: true,
+        action: 'create_table',
+        tableName,
+        fields,
+        description: `Created "${tableName}" table with ${fields.length} fields`,
+      };
+    }
+
+    // Add field pattern: "add X to Y table"
+    const addFieldMatch = lower.match(
+      /add\s+(\w+)\s+(?:field|column)?\s*(?:to\s+)?(\w+)\s+table/i
+    );
+    if (addFieldMatch) {
+      const fieldName = addFieldMatch[1];
+      const tableName = addFieldMatch[2];
+
+      // Detect type from name
+      let fieldType = 'text';
+      if (fieldName.includes('id') || fieldName.includes('Id')) fieldType = 'uuid';
+      else if (fieldName.includes('at') || fieldName.includes('At') || fieldName.includes('date')) fieldType = 'timestamp';
+      else if (fieldName.includes('is') || fieldName.includes('Is') || fieldName.includes('has') || fieldName.includes('Has')) fieldType = 'boolean';
+      else if (fieldName.includes('count') || fieldName.includes('Count') || fieldName.includes('num') || fieldName.includes('Num')) fieldType = 'integer';
+
+      return {
+        success: true,
+        action: 'add_field',
+        tableName,
+        fields: [{ name: fieldName, type: fieldType }],
+        description: `Added "${fieldName}" field to "${tableName}" table`,
+      };
+    }
+
+    // Add typed field: "add isArchived boolean to projects"
+    const typedFieldMatch = lower.match(
+      /add\s+(\w+)\s+(boolean|text|integer|timestamp|uuid)\s+(?:to\s+)?(\w+)/i
+    );
+    if (typedFieldMatch) {
+      return {
+        success: true,
+        action: 'add_field',
+        tableName: typedFieldMatch[3],
+        fields: [{ name: typedFieldMatch[1], type: typedFieldMatch[2] }],
+        description: `Added "${typedFieldMatch[1]}" (${typedFieldMatch[2]}) to "${typedFieldMatch[3]}" table`,
+      };
+    }
+
+    return { success: false };
+  }
+
+  private parseFields(fieldsStr: string): Array<{ name: string; type: string; nullable?: boolean; references?: string }> {
+    const fields: Array<{ name: string; type: string; nullable?: boolean; references?: string }> = [];
+
+    // Split by "and" or ","
+    const parts = fieldsStr.split(/,|\band\b/).map(s => s.trim()).filter(Boolean);
+
+    for (const part of parts) {
+      const words = part.split(/\s+/);
+      let name = words[0].replace(/[^a-zA-Z0-9_]/g, '');
+
+      // Skip common filler words
+      if (['a', 'an', 'the', 'field', 'fields', 'column', 'columns'].includes(name)) {
+        name = words[1]?.replace(/[^a-zA-Z0-9_]/g, '') || '';
+      }
+
+      if (!name) continue;
+
+      // Detect type from name or explicit type
+      let type = 'text';
+      const fullPart = part.toLowerCase();
+
+      if (fullPart.includes('boolean') || fullPart.includes('bool')) type = 'boolean';
+      else if (fullPart.includes('integer') || fullPart.includes('int') || fullPart.includes('number')) type = 'integer';
+      else if (fullPart.includes('timestamp') || fullPart.includes('datetime') || fullPart.includes('date')) type = 'timestamp';
+      else if (fullPart.includes('uuid')) type = 'uuid';
+      else if (name.endsWith('Id') || name.endsWith('_id')) type = 'uuid';
+      else if (name.startsWith('is') || name.startsWith('has') || name.startsWith('can')) type = 'boolean';
+      else if (name.endsWith('At') || name.endsWith('_at') || name.includes('date') || name.includes('Date')) type = 'timestamp';
+      else if (name.includes('count') || name.includes('Count') || name.includes('num') || name.includes('Num')) type = 'integer';
+
+      fields.push({ name, type });
+    }
+
+    // Add default fields if creating a new table
+    const hasId = fields.some(f => f.name === 'id');
+    const hasCreatedAt = fields.some(f => f.name === 'createdAt' || f.name === 'created_at');
+
+    if (!hasId) {
+      fields.unshift({ name: 'id', type: 'uuid' });
+    }
+    if (!hasCreatedAt) {
+      fields.push({ name: 'createdAt', type: 'timestamp' });
+    }
+
+    return fields;
+  }
+
+  private generateTableSchema(tableName: string, fields: Array<{ name: string; type: string; nullable?: boolean }>): string {
+    const fieldLines = fields.map(f => this.generateFieldCode(f)).join(',\n  ');
+
+    return `export const ${tableName} = pgTable('${this.toSnakeCase(tableName)}', {
+  ${fieldLines},
+});`;
+  }
+
+  private generateFieldCode(field: { name: string; type: string; nullable?: boolean }): string {
+    const { name, type, nullable } = field;
+    const snakeName = this.toSnakeCase(name);
+
+    let code = '';
+    switch (type) {
+      case 'uuid':
+        if (name === 'id') {
+          code = `${name}: uuid('${snakeName}').defaultRandom().primaryKey()`;
+        } else {
+          code = `${name}: uuid('${snakeName}')`;
+        }
+        break;
+      case 'text':
+        code = `${name}: text('${snakeName}')`;
+        break;
+      case 'boolean':
+        code = `${name}: boolean('${snakeName}').default(false)`;
+        break;
+      case 'integer':
+        code = `${name}: integer('${snakeName}')`;
+        break;
+      case 'timestamp':
+        if (name === 'createdAt' || name === 'created_at') {
+          code = `${name}: timestamp('${snakeName}').defaultNow()`;
+        } else if (name === 'updatedAt' || name === 'updated_at') {
+          code = `${name}: timestamp('${snakeName}').defaultNow()`;
+        } else {
+          code = `${name}: timestamp('${snakeName}')`;
+        }
+        break;
+      default:
+        code = `${name}: text('${snakeName}')`;
+    }
+
+    if (nullable && !code.includes('.default')) {
+      // Fields are nullable by default in Drizzle unless .notNull() is added
+    }
+
+    return code;
+  }
+
+  private toSnakeCase(str: string): string {
+    return str.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+  }
+
+  /**
+   * Handle update_env tool - add/update environment variables
+   */
+  private async handleUpdateEnv(args: { request: string }) {
+    const { request } = args;
+    const cwd = process.cwd();
+
+    const parsed = this.parseEnvRequest(request);
+
+    if (!parsed.success || !parsed.variables || parsed.variables.length === 0) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❓ I couldn't understand that env request.\n\n**Request:** "${request}"\n\n**Supported:**\n- "add OPENAI_API_KEY"\n- "add Stripe keys" (adds STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY)\n- "add RESEND_API_KEY for emails"\n- "add DATABASE_URL"\n\n**Try rephrasing** with the variable name(s).`,
+        }],
+      };
+    }
+
+    const results: string[] = [];
+    const { variables } = parsed;
+
+    // Update .env.local
+    const envLocalPath = path.join(cwd, '.env.local');
+    let envLocalContent = fs.existsSync(envLocalPath) ? fs.readFileSync(envLocalPath, 'utf-8') : '';
+
+    for (const v of variables) {
+      if (!envLocalContent.includes(`${v.name}=`)) {
+        envLocalContent += `\n${v.name}=${v.placeholder || ''}`;
+        results.push(`✓ Added ${v.name} to .env.local`);
+      } else {
+        results.push(`⚠️ ${v.name} already exists in .env.local`);
+      }
+    }
+    fs.writeFileSync(envLocalPath, envLocalContent.trim() + '\n', 'utf-8');
+
+    // Update .env.example
+    const envExamplePath = path.join(cwd, '.env.example');
+    let envExampleContent = fs.existsSync(envExamplePath) ? fs.readFileSync(envExamplePath, 'utf-8') : '';
+
+    for (const v of variables) {
+      if (!envExampleContent.includes(`${v.name}=`)) {
+        const comment = v.comment ? `# ${v.comment}\n` : '';
+        envExampleContent += `\n${comment}${v.name}=`;
+        results.push(`✓ Added ${v.name} to .env.example`);
+      }
+    }
+    fs.writeFileSync(envExamplePath, envExampleContent.trim() + '\n', 'utf-8');
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `✅ **Environment Variables Updated**\n\n${results.join('\n')}\n\n📝 **Don't forget** to add the actual values to .env.local`,
+      }],
+    };
+  }
+
+  private parseEnvRequest(request: string): {
+    success: boolean;
+    variables?: Array<{ name: string; placeholder?: string; comment?: string }>;
+  } {
+    const lower = request.toLowerCase();
+    const variables: Array<{ name: string; placeholder?: string; comment?: string }> = [];
+
+    // Known service patterns
+    if (lower.includes('stripe')) {
+      variables.push(
+        { name: 'STRIPE_SECRET_KEY', placeholder: 'sk_test_...', comment: 'Stripe secret key' },
+        { name: 'STRIPE_PUBLISHABLE_KEY', placeholder: 'pk_test_...', comment: 'Stripe publishable key' },
+        { name: 'STRIPE_WEBHOOK_SECRET', placeholder: 'whsec_...', comment: 'Stripe webhook secret' },
+      );
+    }
+
+    if (lower.includes('openai')) {
+      variables.push({ name: 'OPENAI_API_KEY', placeholder: 'sk-...', comment: 'OpenAI API key' });
+    }
+
+    if (lower.includes('anthropic') || lower.includes('claude')) {
+      variables.push({ name: 'ANTHROPIC_API_KEY', placeholder: 'sk-ant-...', comment: 'Anthropic API key' });
+    }
+
+    if (lower.includes('resend') || lower.includes('email')) {
+      variables.push({ name: 'RESEND_API_KEY', placeholder: 're_...', comment: 'Resend API key for emails' });
+    }
+
+    if (lower.includes('supabase')) {
+      variables.push(
+        { name: 'NEXT_PUBLIC_SUPABASE_URL', placeholder: 'https://xxx.supabase.co', comment: 'Supabase project URL' },
+        { name: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', placeholder: 'eyJ...', comment: 'Supabase anon key' },
+        { name: 'SUPABASE_SERVICE_ROLE_KEY', placeholder: 'eyJ...', comment: 'Supabase service role key (server only)' },
+      );
+    }
+
+    if (lower.includes('database') || lower.includes('postgres') || lower.includes('db')) {
+      variables.push({ name: 'DATABASE_URL', placeholder: 'postgresql://...', comment: 'PostgreSQL connection string' });
+    }
+
+    if (lower.includes('github')) {
+      variables.push(
+        { name: 'GITHUB_CLIENT_ID', placeholder: '', comment: 'GitHub OAuth client ID' },
+        { name: 'GITHUB_CLIENT_SECRET', placeholder: '', comment: 'GitHub OAuth client secret' },
+      );
+    }
+
+    if (lower.includes('vercel')) {
+      variables.push({ name: 'VERCEL_TOKEN', placeholder: '', comment: 'Vercel API token' });
+    }
+
+    // Extract explicit variable names from request
+    const explicitMatch = request.match(/\b([A-Z][A-Z0-9_]{2,})\b/g);
+    if (explicitMatch) {
+      for (const name of explicitMatch) {
+        if (!variables.some(v => v.name === name)) {
+          variables.push({ name, placeholder: '', comment: `Added via CLI` });
+        }
+      }
+    }
+
+    return {
+      success: variables.length > 0,
+      variables,
+    };
+  }
+
+  /**
+   * Handle billing_action tool - subscription and billing management
+   */
+  private async handleBillingAction(args: { action: string }) {
+    const { action } = args;
+    const lower = action.toLowerCase();
+
+    // Check current auth status
+    const trialState = getTrialState();
+    const hasApiKey = !!this.apiKey;
+
+    // Show subscription status
+    if (lower.includes('show') || lower.includes('status') || lower.includes('check') || lower.includes('my')) {
+      let status = '';
+
+      if (hasApiKey) {
+        // Fetch subscription info from API
+        try {
+          const response = await fetch(`${this.apiUrl}/api/subscription/status`, {
+            headers: this.getAuthHeaders(),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            status = `# 💳 Subscription Status\n\n`;
+            status += `**Plan:** ${data.plan || 'Unknown'}\n`;
+            status += `**Status:** ${data.status || 'Unknown'}\n`;
+            if (data.seats) status += `**Seats:** ${data.usedSeats}/${data.seats}\n`;
+            if (data.renewsAt) status += `**Renews:** ${new Date(data.renewsAt).toLocaleDateString()}\n`;
+          } else {
+            status = `# 💳 Subscription Status\n\n**Status:** Active (API key configured)\n\nVisit https://codebakers.ai/billing for details.`;
+          }
+        } catch {
+          status = `# 💳 Subscription Status\n\n**Status:** Active (API key configured)\n\nVisit https://codebakers.ai/billing for details.`;
+        }
+      } else if (trialState) {
+        const daysRemaining = getTrialDaysRemaining();
+        const isExpired = isTrialExpired();
+
+        status = `# 🎁 Trial Status\n\n`;
+        status += `**Stage:** ${trialState.stage}\n`;
+        status += `**Days Remaining:** ${isExpired ? '0 (expired)' : daysRemaining}\n`;
+
+        if (trialState.stage === 'anonymous' && !isExpired) {
+          status += `\n💡 **Extend your trial:** Run \`codebakers extend\` to connect GitHub and get 7 more days free.`;
+        } else if (isExpired) {
+          status += `\n⚠️ **Trial expired.** Run \`codebakers billing\` to upgrade.`;
+        }
+      } else {
+        status = `# ❓ No Subscription\n\nRun \`codebakers go\` to start a free trial, or \`codebakers setup\` if you have an account.`;
+      }
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: status,
+        }],
+      };
+    }
+
+    // Extend trial
+    if (lower.includes('extend')) {
+      if (!trialState) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: `❌ No active trial to extend.\n\nRun \`codebakers go\` to start a free trial first.`,
+          }],
+        };
+      }
+
+      if (trialState.stage === 'extended') {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: `⚠️ Trial already extended.\n\nYou've already connected GitHub. Run \`codebakers billing\` to upgrade to a paid plan.`,
+          }],
+        };
+      }
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `# 🚀 Extend Your Trial\n\nRun this command to connect GitHub and get 7 more days free:\n\n\`\`\`\ncodebakers extend\n\`\`\`\n\nOr visit: https://codebakers.ai/api/auth/github?extend=true`,
+        }],
+      };
+    }
+
+    // Upgrade
+    if (lower.includes('upgrade') || lower.includes('pro') || lower.includes('team') || lower.includes('agency')) {
+      let plan = 'pro';
+      if (lower.includes('team')) plan = 'team';
+      if (lower.includes('agency')) plan = 'agency';
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `# 💎 Upgrade to ${plan.charAt(0).toUpperCase() + plan.slice(1)}\n\nRun this command to open billing:\n\n\`\`\`\ncodebakers billing\n\`\`\`\n\nOr visit: https://codebakers.ai/billing?plan=${plan}`,
+        }],
+      };
+    }
+
+    // Default: show help
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `# 💳 Billing Actions\n\n**Available commands:**\n- "show my subscription" - View current status\n- "extend trial" - Get 7 more days with GitHub\n- "upgrade to Pro" - Open upgrade page\n- "upgrade to Team" - Open Team plan page\n\nOr run \`codebakers billing\` to open the billing page.`,
+      }],
+    };
+  }
+
+  /**
+   * Handle add_page tool - create new Next.js pages
+   */
+  private async handleAddPage(args: { request: string }) {
+    const { request } = args;
+    const cwd = process.cwd();
+
+    const parsed = this.parsePageRequest(request);
+
+    if (!parsed.success) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❓ I couldn't understand that page request.\n\n**Request:** "${request}"\n\n**Supported:**\n- "create a settings page"\n- "add an about page"\n- "make a user profile page"\n- "create a dashboard page with stats"\n\n**Try rephrasing** with the page name and optional features.`,
+        }],
+      };
+    }
+
+    const { pageName, route, features, isProtected } = parsed;
+
+    // Determine the correct app directory
+    const appDir = path.join(cwd, 'src', 'app');
+    if (!fs.existsSync(appDir)) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❌ Could not find src/app directory.\n\nMake sure you're in a Next.js project root.`,
+        }],
+        isError: true,
+      };
+    }
+
+    // Determine route group
+    let targetDir: string;
+    if (isProtected) {
+      targetDir = path.join(appDir, '(dashboard)', route!);
+    } else {
+      targetDir = path.join(appDir, '(marketing)', route!);
+    }
+
+    // Create directory if needed
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
+    // Generate page content
+    const pageContent = this.generatePageContent(pageName!, features || [], isProtected || false);
+
+    // Write page file
+    const pagePath = path.join(targetDir, 'page.tsx');
+    fs.writeFileSync(pagePath, pageContent, 'utf-8');
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `✅ **Page Created**\n\n**Name:** ${pageName}\n**Route:** /${route}\n**File:** \`${path.relative(cwd, pagePath)}\`\n**Protected:** ${isProtected ? 'Yes (requires auth)' : 'No (public)'}\n\n📝 **Next steps:**\n1. Customize the page content\n2. Add to navigation if needed`,
+      }],
+    };
+  }
+
+  private parsePageRequest(request: string): {
+    success: boolean;
+    pageName?: string;
+    route?: string;
+    features?: string[];
+    isProtected?: boolean;
+  } {
+    const lower = request.toLowerCase();
+
+    // Extract page name
+    const pageMatch = lower.match(
+      /(?:create|add|make)\s+(?:a\s+)?(\w+)\s+page/i
+    );
+
+    if (!pageMatch) return { success: false };
+
+    const pageName = pageMatch[1];
+    const route = pageName.toLowerCase();
+
+    // Detect features
+    const features: string[] = [];
+    if (lower.includes('tab')) features.push('tabs');
+    if (lower.includes('form')) features.push('form');
+    if (lower.includes('stat')) features.push('stats');
+    if (lower.includes('table') || lower.includes('list')) features.push('table');
+    if (lower.includes('card')) features.push('cards');
+
+    // Detect if protected
+    const protectedKeywords = ['dashboard', 'settings', 'profile', 'account', 'admin', 'billing'];
+    const isProtected = protectedKeywords.some(k => lower.includes(k));
+
+    return {
+      success: true,
+      pageName: pageName.charAt(0).toUpperCase() + pageName.slice(1),
+      route,
+      features,
+      isProtected,
+    };
+  }
+
+  private generatePageContent(pageName: string, features: string[], isProtected: boolean): string {
+    const imports: string[] = [];
+    const components: string[] = [];
+
+    if (isProtected) {
+      imports.push(`import { redirect } from 'next/navigation';`);
+      imports.push(`import { getServerSession } from 'next-auth';`);
+    }
+
+    if (features.includes('tabs')) {
+      imports.push(`import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';`);
+    }
+
+    if (features.includes('cards') || features.includes('stats')) {
+      imports.push(`import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';`);
+    }
+
+    // Generate component based on features
+    let content = '';
+
+    if (features.includes('stats')) {
+      content = `
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">1,234</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">$12,345</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Active Projects</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">42</p>
+            </CardContent>
+          </Card>
+        </div>`;
+    } else if (features.includes('tabs')) {
+      content = `
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
+          </TabsList>
+          <TabsContent value="general">
+            <Card>
+              <CardHeader>
+                <CardTitle>General Settings</CardTitle>
+                <CardDescription>Manage your general preferences</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Add form fields here */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Add notification settings here */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="security">
+            <Card>
+              <CardHeader>
+                <CardTitle>Security Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Add security settings here */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>`;
+    } else {
+      content = `
+        <p className="text-muted-foreground">
+          Welcome to the ${pageName} page. Add your content here.
+        </p>`;
+    }
+
+    const asyncKeyword = isProtected ? 'async ' : '';
+    const authCheck = isProtected ? `
+  const session = await getServerSession();
+  if (!session) {
+    redirect('/login');
+  }
+` : '';
+
+    return `${imports.join('\n')}
+
+export const metadata = {
+  title: '${pageName}',
+};
+
+export default ${asyncKeyword}function ${pageName}Page() {${authCheck}
+  return (
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-8">${pageName}</h1>
+      ${content}
+    </div>
+  );
+}
+`;
+  }
+
+  /**
+   * Handle add_api_route tool - create new API endpoints
+   */
+  private async handleAddApiRoute(args: { request: string }) {
+    const { request } = args;
+    const cwd = process.cwd();
+
+    const parsed = this.parseApiRouteRequest(request);
+
+    if (!parsed.success) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `❓ I couldn't understand that API route request.\n\n**Request:** "${request}"\n\n**Supported:**\n- "create a feedback endpoint"\n- "add POST endpoint for user settings"\n- "make a webhook for Stripe"\n- "create GET/POST for preferences"\n\n**Try rephrasing** with the endpoint name and HTTP methods.`,
+        }],
+      };
+    }
+
+    const { routeName, routePath, methods, isWebhook, requiresAuth } = parsed;
+
+    // Determine the API directory
+    const apiDir = path.join(cwd, 'src', 'app', 'api', routePath!);
+
+    // Create directory if needed
+    if (!fs.existsSync(apiDir)) {
+      fs.mkdirSync(apiDir, { recursive: true });
+    }
+
+    // Generate route content
+    const routeContent = this.generateApiRouteContent(routeName!, methods!, isWebhook, requiresAuth);
+
+    // Write route file
+    const routeFilePath = path.join(apiDir, 'route.ts');
+    fs.writeFileSync(routeFilePath, routeContent, 'utf-8');
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `✅ **API Route Created**\n\n**Name:** ${routeName}\n**Path:** /api/${routePath}\n**Methods:** ${methods!.join(', ')}\n**File:** \`${path.relative(cwd, routeFilePath)}\`\n**Auth Required:** ${requiresAuth ? 'Yes' : 'No'}\n\n📝 **Next steps:**\n1. Implement the business logic\n2. Add validation with Zod\n3. Test the endpoint`,
+      }],
+    };
+  }
+
+  private parseApiRouteRequest(request: string): {
+    success: boolean;
+    routeName?: string;
+    routePath?: string;
+    methods?: string[];
+    isWebhook?: boolean;
+    requiresAuth?: boolean;
+  } {
+    const lower = request.toLowerCase();
+
+    // Detect webhook
+    const isWebhook = lower.includes('webhook');
+
+    // Extract route name
+    let routeName = '';
+    let routePath = '';
+
+    // Pattern: "create a X endpoint" or "add X route"
+    const nameMatch = lower.match(
+      /(?:create|add|make)\s+(?:a\s+)?(?:post\s+|get\s+)?(?:endpoint|route|api)?\s*(?:for\s+)?(\w+)/i
+    );
+
+    if (nameMatch) {
+      routeName = nameMatch[1];
+      routePath = routeName.toLowerCase();
+    } else {
+      return { success: false };
+    }
+
+    // Detect methods
+    const methods: string[] = [];
+    if (lower.includes('get')) methods.push('GET');
+    if (lower.includes('post')) methods.push('POST');
+    if (lower.includes('put')) methods.push('PUT');
+    if (lower.includes('patch')) methods.push('PATCH');
+    if (lower.includes('delete')) methods.push('DELETE');
+
+    // Default to POST for most endpoints, GET for queries
+    if (methods.length === 0) {
+      if (lower.includes('list') || lower.includes('fetch') || lower.includes('query')) {
+        methods.push('GET');
+      } else {
+        methods.push('POST');
+      }
+    }
+
+    // Detect if auth required
+    const noAuthKeywords = ['webhook', 'public', 'open'];
+    const requiresAuth = !noAuthKeywords.some(k => lower.includes(k));
+
+    return {
+      success: true,
+      routeName: routeName.charAt(0).toUpperCase() + routeName.slice(1),
+      routePath,
+      methods,
+      isWebhook,
+      requiresAuth,
+    };
+  }
+
+  private generateApiRouteContent(routeName: string, methods: string[], isWebhook?: boolean, requiresAuth?: boolean): string {
+    const imports: string[] = [
+      `import { NextRequest, NextResponse } from 'next/server';`,
+      `import { z } from 'zod';`,
+    ];
+
+    if (requiresAuth && !isWebhook) {
+      imports.push(`import { getServerSession } from 'next-auth';`);
+    }
+
+    const handlers: string[] = [];
+
+    for (const method of methods) {
+      let handler = '';
+
+      if (method === 'GET') {
+        handler = `
+export async function GET(request: NextRequest) {
+  try {${requiresAuth ? `
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+` : ''}
+    // TODO: Implement ${routeName} GET logic
+
+    return NextResponse.json({ message: 'Success' });
+  } catch (error) {
+    console.error('[${routeName.toUpperCase()}] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}`;
+      } else if (method === 'POST') {
+        const schemaName = `${routeName}Schema`;
+
+        handler = `
+const ${schemaName} = z.object({
+  // TODO: Define your schema
+  // example: z.string().min(1),
+});
+
+export async function POST(request: NextRequest) {
+  try {${requiresAuth ? `
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+` : ''}
+    const body = await request.json();
+    const validated = ${schemaName}.safeParse(body);
+
+    if (!validated.success) {
+      return NextResponse.json({ error: 'Invalid request', details: validated.error.flatten() }, { status: 400 });
+    }
+
+    // TODO: Implement ${routeName} POST logic
+
+    return NextResponse.json({ message: 'Success' }, { status: 201 });
+  } catch (error) {
+    console.error('[${routeName.toUpperCase()}] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}`;
+      } else if (method === 'PUT' || method === 'PATCH') {
+        handler = `
+export async function ${method}(request: NextRequest) {
+  try {${requiresAuth ? `
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+` : ''}
+    const body = await request.json();
+
+    // TODO: Implement ${routeName} ${method} logic
+
+    return NextResponse.json({ message: 'Updated' });
+  } catch (error) {
+    console.error('[${routeName.toUpperCase()}] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}`;
+      } else if (method === 'DELETE') {
+        handler = `
+export async function DELETE(request: NextRequest) {
+  try {${requiresAuth ? `
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+` : ''}
+    // TODO: Implement ${routeName} DELETE logic
+
+    return NextResponse.json({ message: 'Deleted' });
+  } catch (error) {
+    console.error('[${routeName.toUpperCase()}] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}`;
+      }
+
+      handlers.push(handler);
+    }
+
+    // Webhook-specific template
+    if (isWebhook) {
+      return `import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.text();
+    const headersList = headers();
+
+    // TODO: Verify webhook signature
+    // const signature = headersList.get('stripe-signature');
+
+    // TODO: Parse and handle webhook event
+    const event = JSON.parse(body);
+
+    switch (event.type) {
+      case 'example.event':
+        // Handle event
+        break;
+      default:
+        console.log(\`Unhandled event type: \${event.type}\`);
+    }
+
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error('[WEBHOOK] Error:', error);
+    return NextResponse.json({ error: 'Webhook error' }, { status: 400 });
+  }
+}
+`;
+    }
+
+    return `${imports.join('\n')}
+${handlers.join('\n')}
+`;
   }
 
   async run(): Promise<void> {

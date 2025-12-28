@@ -21,7 +21,9 @@
     "validate:staged": "node scripts/validate-codebakers-compliance.js --staged",
     "validate:strict": "node scripts/validate-codebakers-compliance.js --strict",
     "test:watch": "playwright test --watch",
-    "test:ci": "playwright test --reporter=github"
+    "test:ci": "playwright test --reporter=github",
+    "checkly:test": "npx checkly test",
+    "checkly:deploy": "npx checkly deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
@@ -38,6 +40,7 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
     "@react-email/components": "^1.0.2",
+    "@sentry/nextjs": "^10.32.1",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.87.1",
     "class-variance-authority": "^0.7.1",
@@ -66,6 +69,7 @@
     "@types/node": "^20.19.27",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "checkly": "^6.9.7",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.8",
     "eslint": "^9",
