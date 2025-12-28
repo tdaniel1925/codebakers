@@ -22,13 +22,15 @@ import { pushPatterns, pushPatternsInteractive } from './commands/push-patterns.
 import { go } from './commands/go.js';
 import { extend } from './commands/extend.js';
 import { billing } from './commands/billing.js';
-import { getCachedUpdateInfo, setCachedUpdateInfo, getCliVersion } from './config.js';
+import { getCachedUpdateInfo, setCachedUpdateInfo, getCliVersion, getCachedPatternInfo, setCachedPatternInfo, getApiKey, getApiUrl, getTrialState, hasValidAccess } from './config.js';
+import { existsSync, writeFileSync, readFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 // ============================================
 // Automatic Update Notification
 // ============================================
 
-const CURRENT_VERSION = '3.2.0';
+const CURRENT_VERSION = '3.3.0';
 
 async function checkForUpdatesInBackground(): Promise<void> {
   // Check if we have a valid cached result first (fast path)
@@ -76,6 +78,181 @@ function showUpdateBanner(currentVersion: string, latestVersion: string): void {
   │                                                         │
   ╰─────────────────────────────────────────────────────────╯
   `));
+}
+
+// ============================================
+// Automatic Pattern Updates
+// ============================================
+
+interface PatternVersionInfo {
+  version: string;
+  moduleCount: number;
+  updatedAt: string;
+  cliVersion: string;
+}
+
+interface ContentResponse {
+  version: string;
+  router: string;
+  modules: Record<string, string>;
+}
+
+function getLocalPatternVersion(): string | null {
+  const cwd = process.cwd();
+  const versionFile = join(cwd, '.claude', '.version.json');
+
+  if (!existsSync(versionFile)) return null;
+
+  try {
+    const content = readFileSync(versionFile, 'utf-8');
+    const info: PatternVersionInfo = JSON.parse(content);
+    return info.version;
+  } catch {
+    return null;
+  }
+}
+
+function isCodeBakersProject(): boolean {
+  const cwd = process.cwd();
+  return existsSync(join(cwd, 'CLAUDE.md')) || existsSync(join(cwd, '.claude'));
+}
+
+async function autoUpdatePatterns(): Promise<void> {
+  // Only auto-update if this is a CodeBakers project
+  if (!isCodeBakersProject()) return;
+
+  // Only auto-update if user has valid access
+  if (!hasValidAccess()) return;
+
+  const localVersion = getLocalPatternVersion();
+
+  // Check if we have a valid cached result first (fast path)
+  const cached = getCachedPatternInfo();
+  if (cached) {
+    // If local matches latest, nothing to do
+    if (localVersion === cached.latestVersion) return;
+    // If we know there's an update but haven't updated yet, do it now
+    if (localVersion !== cached.latestVersion) {
+      await performPatternUpdate(cached.latestVersion);
+    }
+    return;
+  }
+
+  // Fetch from server to check for updates (with timeout)
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const apiUrl = getApiUrl();
+    const apiKey = getApiKey();
+    const trial = getTrialState();
+
+    // Build authorization header
+    let authHeader = '';
+    if (apiKey) {
+      authHeader = `Bearer ${apiKey}`;
+    } else if (trial?.trialId) {
+      authHeader = `Trial ${trial.trialId}`;
+    }
+
+    if (!authHeader) return;
+
+    // First, check the version endpoint (lightweight)
+    const versionResponse = await fetch(`${apiUrl}/api/content/version`, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (versionResponse.ok) {
+      const versionData = await versionResponse.json();
+      const serverVersion = versionData.version;
+
+      // Cache the version info
+      setCachedPatternInfo(serverVersion);
+
+      // If local version is different, update
+      if (localVersion !== serverVersion) {
+        await performPatternUpdate(serverVersion);
+      }
+    }
+  } catch {
+    // Silently fail - don't block CLI for pattern check
+  }
+}
+
+async function performPatternUpdate(targetVersion: string): Promise<void> {
+  const cwd = process.cwd();
+  const claudeMdPath = join(cwd, 'CLAUDE.md');
+  const claudeDir = join(cwd, '.claude');
+
+  try {
+    const apiUrl = getApiUrl();
+    const apiKey = getApiKey();
+    const trial = getTrialState();
+
+    let authHeader = '';
+    if (apiKey) {
+      authHeader = `Bearer ${apiKey}`;
+    } else if (trial?.trialId) {
+      authHeader = `Trial ${trial.trialId}`;
+    }
+
+    if (!authHeader) return;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(`${apiUrl}/api/content`, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) return;
+
+    const content: ContentResponse = await response.json();
+
+    // Update CLAUDE.md
+    if (content.router) {
+      writeFileSync(claudeMdPath, content.router);
+    }
+
+    // Update pattern modules
+    if (content.modules && Object.keys(content.modules).length > 0) {
+      if (!existsSync(claudeDir)) {
+        mkdirSync(claudeDir, { recursive: true });
+      }
+
+      for (const [name, data] of Object.entries(content.modules)) {
+        writeFileSync(join(claudeDir, name), data);
+      }
+    }
+
+    // Write version file
+    const moduleCount = Object.keys(content.modules || {}).length;
+    const versionInfo: PatternVersionInfo = {
+      version: content.version,
+      moduleCount,
+      updatedAt: new Date().toISOString(),
+      cliVersion: getCliVersion(),
+    };
+    writeFileSync(join(claudeDir, '.version.json'), JSON.stringify(versionInfo, null, 2));
+
+    // Show subtle notification
+    console.log(chalk.green(`  ✓ Patterns auto-updated to v${content.version} (${moduleCount} modules)\n`));
+
+  } catch {
+    // Silently fail - don't block the user
+  }
 }
 
 // Show welcome message when no command is provided
@@ -127,7 +304,7 @@ const program = new Command();
 program
   .name('codebakers')
   .description('CodeBakers CLI - Production patterns for AI-assisted development')
-  .version('3.2.0');
+  .version('3.3.0');
 
 // Zero-friction trial entry (no signup required)
 program
@@ -282,7 +459,11 @@ program
 
 // Add update check hook (runs before every command)
 program.hook('preAction', async () => {
-  await checkForUpdatesInBackground();
+  // Run CLI update check and pattern auto-update in parallel
+  await Promise.all([
+    checkForUpdatesInBackground(),
+    autoUpdatePatterns(),
+  ]);
 });
 
 // Show welcome if no command provided

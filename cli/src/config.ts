@@ -116,9 +116,12 @@ interface ConfigSchema {
   lastKeySync: string | null;  // ISO date of last sync with server
   // Trial state (for zero-friction onboarding)
   trial: TrialState | null;
-  // Update notification cache
+  // Update notification cache (CLI updates)
   lastUpdateCheck: string | null;  // ISO date of last npm registry check
   latestKnownVersion: string | null;  // Cached latest version from npm
+  // Pattern auto-update cache
+  lastPatternCheck: string | null;  // ISO date of last pattern version check
+  latestPatternVersion: string | null;  // Cached latest pattern version from server
 }
 
 // Create default service keys object with all keys set to null
@@ -128,7 +131,7 @@ const defaultServiceKeys: ServiceKeys = Object.fromEntries(
 
 const config = new Conf<ConfigSchema>({
   projectName: 'codebakers',
-  projectVersion: '1.8.0',
+  projectVersion: '1.9.0',
   defaults: {
     apiKey: null,
     apiUrl: 'https://codebakers.ai',
@@ -138,6 +141,8 @@ const config = new Conf<ConfigSchema>({
     trial: null,
     lastUpdateCheck: null,
     latestKnownVersion: null,
+    lastPatternCheck: null,
+    latestPatternVersion: null,
   },
   // Migration to add new keys when upgrading from old version
   migrations: {
@@ -158,6 +163,15 @@ const config = new Conf<ConfigSchema>({
       // Add trial field if not present
       if (!store.has('trial')) {
         store.set('trial', null);
+      }
+    },
+    '1.9.0': (store) => {
+      // Add pattern auto-update fields if not present
+      if (!store.has('lastPatternCheck')) {
+        store.set('lastPatternCheck', null);
+      }
+      if (!store.has('latestPatternVersion')) {
+        store.set('latestPatternVersion', null);
       }
     },
   },
@@ -528,5 +542,42 @@ export function setCachedUpdateInfo(latestVersion: string): void {
  * Get the current CLI version from package.json
  */
 export function getCliVersion(): string {
-  return '3.2.0'; // Keep in sync with package.json
+  return '3.3.0'; // Keep in sync with package.json
+}
+
+// ============================================
+// Pattern Auto-Update Cache
+// ============================================
+
+const PATTERN_CHECK_INTERVAL_HOURS = 6;  // Check more frequently than CLI
+
+/**
+ * Get cached pattern version info if still valid (within 6 hours)
+ */
+export function getCachedPatternInfo(): { latestVersion: string; checkedAt: string } | null {
+  const lastCheck = config.get('lastPatternCheck');
+  const latestVersion = config.get('latestPatternVersion');
+
+  if (!lastCheck || !latestVersion) return null;
+
+  const hoursSinceCheck = (Date.now() - new Date(lastCheck).getTime()) / (1000 * 60 * 60);
+  if (hoursSinceCheck > PATTERN_CHECK_INTERVAL_HOURS) return null;
+
+  return { latestVersion, checkedAt: lastCheck };
+}
+
+/**
+ * Cache the latest pattern version from server
+ */
+export function setCachedPatternInfo(latestVersion: string): void {
+  config.set('lastPatternCheck', new Date().toISOString());
+  config.set('latestPatternVersion', latestVersion);
+}
+
+/**
+ * Clear pattern cache to force a fresh check
+ */
+export function clearPatternCache(): void {
+  config.set('lastPatternCheck', null);
+  config.set('latestPatternVersion', null);
 }
