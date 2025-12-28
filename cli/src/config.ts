@@ -116,6 +116,9 @@ interface ConfigSchema {
   lastKeySync: string | null;  // ISO date of last sync with server
   // Trial state (for zero-friction onboarding)
   trial: TrialState | null;
+  // Update notification cache
+  lastUpdateCheck: string | null;  // ISO date of last npm registry check
+  latestKnownVersion: string | null;  // Cached latest version from npm
 }
 
 // Create default service keys object with all keys set to null
@@ -133,6 +136,8 @@ const config = new Conf<ConfigSchema>({
     serviceKeys: defaultServiceKeys,
     lastKeySync: null,
     trial: null,
+    lastUpdateCheck: null,
+    latestKnownVersion: null,
   },
   // Migration to add new keys when upgrading from old version
   migrations: {
@@ -488,4 +493,40 @@ export function getAuthMode(): 'apiKey' | 'trial' | 'none' {
   if (trial && !isTrialExpired()) return 'trial';
 
   return 'none';
+}
+
+// ============================================
+// Update Notification Cache
+// ============================================
+
+const UPDATE_CHECK_INTERVAL_HOURS = 24;
+
+/**
+ * Get cached update info if still valid (within 24 hours)
+ */
+export function getCachedUpdateInfo(): { latestVersion: string; checkedAt: string } | null {
+  const lastCheck = config.get('lastUpdateCheck');
+  const latestVersion = config.get('latestKnownVersion');
+
+  if (!lastCheck || !latestVersion) return null;
+
+  const hoursSinceCheck = (Date.now() - new Date(lastCheck).getTime()) / (1000 * 60 * 60);
+  if (hoursSinceCheck > UPDATE_CHECK_INTERVAL_HOURS) return null;
+
+  return { latestVersion, checkedAt: lastCheck };
+}
+
+/**
+ * Cache the latest version from npm registry
+ */
+export function setCachedUpdateInfo(latestVersion: string): void {
+  config.set('lastUpdateCheck', new Date().toISOString());
+  config.set('latestKnownVersion', latestVersion);
+}
+
+/**
+ * Get the current CLI version from package.json
+ */
+export function getCliVersion(): string {
+  return '3.2.0'; // Keep in sync with package.json
 }

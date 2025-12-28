@@ -22,6 +22,61 @@ import { pushPatterns, pushPatternsInteractive } from './commands/push-patterns.
 import { go } from './commands/go.js';
 import { extend } from './commands/extend.js';
 import { billing } from './commands/billing.js';
+import { getCachedUpdateInfo, setCachedUpdateInfo, getCliVersion } from './config.js';
+
+// ============================================
+// Automatic Update Notification
+// ============================================
+
+const CURRENT_VERSION = '3.2.0';
+
+async function checkForUpdatesInBackground(): Promise<void> {
+  // Check if we have a valid cached result first (fast path)
+  const cached = getCachedUpdateInfo();
+  if (cached) {
+    if (cached.latestVersion !== CURRENT_VERSION) {
+      showUpdateBanner(CURRENT_VERSION, cached.latestVersion);
+    }
+    return;
+  }
+
+  // Fetch from npm registry (with timeout to not block CLI)
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+
+    const response = await fetch('https://registry.npmjs.org/@codebakers/cli/latest', {
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (response.ok) {
+      const data = await response.json();
+      const latestVersion = data.version;
+      setCachedUpdateInfo(latestVersion);
+
+      if (latestVersion !== CURRENT_VERSION) {
+        showUpdateBanner(CURRENT_VERSION, latestVersion);
+      }
+    }
+  } catch {
+    // Silently fail - don't block CLI for update check
+  }
+}
+
+function showUpdateBanner(currentVersion: string, latestVersion: string): void {
+  console.log(chalk.yellow(`
+  ╭─────────────────────────────────────────────────────────╮
+  │                                                         │
+  │   ${chalk.bold('Update available!')} ${chalk.gray(currentVersion)} → ${chalk.green(latestVersion)}                     │
+  │                                                         │
+  │   Run ${chalk.cyan('npm i -g @codebakers/cli@latest')} to update        │
+  │                                                         │
+  ╰─────────────────────────────────────────────────────────╯
+  `));
+}
 
 // Show welcome message when no command is provided
 function showWelcome(): void {
@@ -72,7 +127,7 @@ const program = new Command();
 program
   .name('codebakers')
   .description('CodeBakers CLI - Production patterns for AI-assisted development')
-  .version('3.1.0');
+  .version('3.2.0');
 
 // Zero-friction trial entry (no signup required)
 program
@@ -225,9 +280,17 @@ program
   .description('Remove MCP configuration from Claude Code')
   .action(mcpUninstall);
 
+// Add update check hook (runs before every command)
+program.hook('preAction', async () => {
+  await checkForUpdatesInBackground();
+});
+
 // Show welcome if no command provided
 if (process.argv.length <= 2) {
-  showWelcome();
+  // Still check for updates when showing welcome
+  checkForUpdatesInBackground().then(() => {
+    showWelcome();
+  });
 } else {
   program.parse();
 }
