@@ -21,18 +21,27 @@ import {
   MagicWand02Icon,
   PlayIcon,
   SecurityCheckIcon,
+  UserIcon,
+  Briefcase01Icon,
+  Book02Icon,
 } from 'hugeicons-react';
 
-// Just 3 testimonials - keep it light
+// Testimonials representing different skill levels
 const testimonials = [
   {
-    quote: "I just describe what I want. The AI handles everything else - security, tests, the works.",
-    author: "Alex Rivera",
-    role: "Vibe Coder",
-    avatar: "AR",
+    quote: "I'm learning to code and had no idea auth needed security reviews. CodeBakers caught things I didn't even know to worry about.",
+    author: "Maya Chen",
+    role: "Career Changer, 6 months coding",
+    avatar: "MC",
   },
   {
-    quote: "It suggested a security review right after I added auth. Didn't even ask. That's the future.",
+    quote: "I know what production code should look like—I just don't want to explain it every time. Now I don't have to.",
+    author: "David Park",
+    role: "Staff Engineer, 12 years exp",
+    avatar: "DP",
+  },
+  {
+    quote: "Shipped my SaaS in 3 weeks instead of 3 months. The AI writes code like a senior dev reviewed it.",
     author: "Jordan Lee",
     role: "Indie Hacker",
     avatar: "JL",
@@ -285,39 +294,114 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Who It's For - Speak to all skill levels */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800">
+              For Every Developer
+            </Badge>
+            <h2 className="text-4xl font-bold mb-4">
+              Your skill level doesn't matter.
+              <br />
+              <span className="text-muted-foreground">Your output does.</span>
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Whether you're writing your first app or your hundredth, CodeBakers fills the gaps you don't even know you have.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Beginners */}
+            <div className="p-8 rounded-2xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border border-green-200 dark:border-green-800">
+              <div className="w-14 h-14 rounded-xl bg-green-500 flex items-center justify-center mb-6">
+                <Book02Icon className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Just Starting?</h3>
+              <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-4">You don't know what you don't know.</p>
+              <p className="text-muted-foreground mb-4">
+                You can build amazing things with AI—but how do you know if the code is secure? Accessible? Production-ready?
+              </p>
+              <p className="text-foreground font-medium">
+                CodeBakers knows. It automatically adds the things experienced developers would add—so you ship like a pro from day one.
+              </p>
+            </div>
+
+            {/* Mid-level / Indie */}
+            <div className="p-8 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 border border-amber-200 dark:border-amber-800">
+              <div className="w-14 h-14 rounded-xl bg-amber-500 flex items-center justify-center mb-6">
+                <Rocket01Icon className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Building Fast?</h3>
+              <p className="text-sm text-amber-700 dark:text-amber-300 font-medium mb-4">You're tired of the back-and-forth.</p>
+              <p className="text-muted-foreground mb-4">
+                You've shipped before. You know the drill—prompt, fix, prompt again, add error handling, fix again. It's exhausting.
+              </p>
+              <p className="text-foreground font-medium">
+                Skip the iteration loop. Your first prompt produces code that's already complete—tests, errors, loading states, all of it.
+              </p>
+            </div>
+
+            {/* Experienced */}
+            <div className="p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20 border border-purple-200 dark:border-purple-800">
+              <div className="w-14 h-14 rounded-xl bg-purple-500 flex items-center justify-center mb-6">
+                <Briefcase01Icon className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Senior Dev?</h3>
+              <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mb-4">You know what good looks like.</p>
+              <p className="text-muted-foreground mb-4">
+                You've been writing production code for years. You know about security, testing, edge cases—you just don't want to explain it every time.
+              </p>
+              <p className="text-foreground font-medium">
+                Stop teaching AI your standards. CodeBakers already knows them. Get code written the way you'd write it—without the monologue.
+              </p>
+            </div>
+          </div>
+
+          {/* The key insight */}
+          <div className="mt-12 p-6 rounded-2xl bg-muted/50 border border-border text-center">
+            <p className="text-lg">
+              <span className="font-bold">The difference?</span> Without CodeBakers, AI writes code like a tutorial.
+              <br />
+              <span className="text-muted-foreground">With CodeBakers, AI writes code like your best engineer on their best day.</span>
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* The Magic - Smart Triggers */}
       <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800">
               <AiMagicIcon className="w-3 h-3 mr-1" />
-              The Magic
+              How It Works
             </Badge>
             <h2 className="text-4xl font-bold mb-4">
-              AI that thinks ahead
+              It's not magic. It's patterns.
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              No commands to memorize. Your AI proactively suggests what you need, exactly when you need it.
+              39 modules of battle-tested code patterns. The AI reads them. Your code inherits them. Simple.
             </p>
           </div>
 
-          {/* 3 Smart Features */}
+          {/* 3 Smart Features - Problem-focused */}
           <div className="grid md:grid-cols-3 gap-8">
             {/* Smart Triggers */}
             <div className="p-8 rounded-2xl bg-card border border-border hover:border-red-500/50 transition-all">
               <div className="w-14 h-14 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-6">
                 <Target02Icon className="h-7 w-7 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Smart Triggers</h3>
+              <h3 className="text-xl font-bold mb-3">Forget Something? AI Won't.</h3>
               <p className="text-muted-foreground mb-4">
-                Modified auth code? AI suggests a security review. Created a component? It offers an accessibility check.
+                Touched auth code? AI reminds you to review security. Built a form? It suggests accessibility checks. Like having a senior dev watching over your shoulder.
               </p>
               <div className="p-4 rounded-xl bg-muted/50 text-sm font-mono">
-                <span className="text-muted-foreground">[TRIGGER]</span>
+                <span className="text-muted-foreground">[AUTO-TRIGGER]</span>
                 <br />
-                <span className="text-foreground">Security-sensitive code detected.</span>
+                <span className="text-foreground">Auth code changed.</span>
                 <br />
-                <span className="text-green-600 dark:text-green-400">Want a quick review?</span>
+                <span className="text-green-600 dark:text-green-400">Security review suggested.</span>
               </div>
             </div>
 
@@ -326,14 +410,14 @@ export default function HomePage() {
               <div className="w-14 h-14 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-6">
                 <Idea01Icon className="h-7 w-7 text-amber-600 dark:text-amber-400" />
               </div>
-              <h3 className="text-xl font-bold mb-3">/learn Mode</h3>
+              <h3 className="text-xl font-bold mb-3">Level Up While You Build</h3>
               <p className="text-muted-foreground mb-4">
-                When AI catches a mistake, it doesn't just fix it—it offers to teach you why. Level up while you build.
+                When AI catches a mistake, it doesn't just fix it—it can teach you why. Every bug becomes a lesson. Every fix makes you better.
               </p>
               <div className="p-4 rounded-xl bg-muted/50 text-sm font-mono">
-                <span className="text-amber-600 dark:text-amber-400">Caught: API key in client code</span>
+                <span className="text-amber-600 dark:text-amber-400">Fixed: API key in client code</span>
                 <br />
-                <span className="text-foreground">Fixed. Want to learn why?</span>
+                <span className="text-foreground">Want to learn why this matters?</span>
                 <br />
                 <span className="text-muted-foreground">/learn</span>
               </div>
@@ -342,16 +426,16 @@ export default function HomePage() {
             {/* Production First */}
             <div className="p-8 rounded-2xl bg-card border border-border hover:border-green-500/50 transition-all">
               <div className="w-14 h-14 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-6">
-                <Rocket01Icon className="h-7 w-7 text-green-600 dark:text-green-400" />
+                <SecurityCheckIcon className="h-7 w-7 text-green-600 dark:text-green-400" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Production First</h3>
+              <h3 className="text-xl font-bold mb-3">Never Ship Broken Code</h3>
               <p className="text-muted-foreground mb-4">
-                Tests, error handling, loading states, accessibility—all included automatically. No asking required.
+                Tests, error handling, loading states, accessibility—automatically included. You don't ask for them. You don't need to know to ask. They're just there.
               </p>
               <div className="p-4 rounded-xl bg-muted/50 text-sm font-mono">
                 <span className="text-muted-foreground">You type:</span> add login
                 <br />
-                <span className="text-green-600 dark:text-green-400">AI adds:</span> + tests + a11y + errors
+                <span className="text-green-600 dark:text-green-400">You get:</span> login + tests + a11y + errors
               </div>
             </div>
           </div>
@@ -418,6 +502,82 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* The Gap - What you'd need to know */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">The knowledge gap is real</h2>
+            <p className="text-muted-foreground">Here's what "production-ready" actually means. CodeBakers handles all of it.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Without */}
+            <div className="p-6 rounded-2xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">?</span>
+                </div>
+                <h3 className="font-bold text-red-700 dark:text-red-300">What you'd need to know</h3>
+              </div>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>Zod validation schemas for type-safe forms</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>Error boundaries and loading states</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>ARIA labels, focus management, keyboard nav</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>Rate limiting and security headers</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>Webhook signature verification</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>Idempotency keys for payment retries</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>Test patterns (unit, integration, e2e)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>... and 100+ other best practices</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* With */}
+            <div className="p-6 rounded-2xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                  <Tick02Icon className="h-4 w-4 text-white" />
+                </div>
+                <h3 className="font-bold text-green-700 dark:text-green-300">What you actually type</h3>
+              </div>
+              <div className="p-4 rounded-xl bg-white dark:bg-neutral-900 font-mono text-lg mb-4 border border-green-300 dark:border-green-800">
+                add login form
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                CodeBakers patterns inject all that knowledge into your AI. You get production-ready code without knowing the 100+ things that make it production-ready.
+              </p>
+              <div className="flex items-center gap-2 text-green-700 dark:text-green-300 font-medium text-sm">
+                <Tick02Icon className="h-4 w-4" />
+                <span>All best practices included automatically</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Quick Stats */}
       <section className="py-12 px-4 bg-foreground text-background">
         <div className="container mx-auto">
@@ -442,14 +602,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials - Just 2 */}
+      {/* Testimonials - Diverse skill levels */}
       <section className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
+        <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Developers love it</h2>
+            <h2 className="text-3xl font-bold mb-4">From first-timers to veterans</h2>
+            <p className="text-muted-foreground">Every skill level, same result: production-ready code.</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
               <div key={i} className="p-6 rounded-2xl bg-card border border-border">
                 <div className="flex gap-1 mb-4">
@@ -521,10 +682,12 @@ export default function HomePage() {
       <section className="py-24 px-4">
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Ready to vibe?
+            Ship like a senior dev.
+            <br />
+            <span className="text-muted-foreground">From day one.</span>
           </h2>
           <p className="text-xl text-muted-foreground mb-8">
-            Stop wrestling with prompts. Let your AI handle the details.
+            Whether you're learning or leading, CodeBakers makes your AI build production-ready code.
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">

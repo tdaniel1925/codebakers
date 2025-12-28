@@ -109,6 +109,31 @@ class CodeBakersServer {
   }
 
   /**
+   * Confirm download to server (non-blocking analytics)
+   */
+  private async confirmDownload(version: string, moduleCount: number): Promise<void> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
+      };
+
+      await fetch(`${this.apiUrl}/api/content/confirm`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          version,
+          moduleCount,
+          cliVersion: getCliVersion(),
+          command: 'auto-update',
+        }),
+      });
+    } catch {
+      // Silently ignore - this is just for analytics
+    }
+  }
+
+  /**
    * Automatically check for and apply pattern updates
    * Runs silently in background - no user intervention needed
    */
@@ -212,6 +237,21 @@ class CodeBakersServer {
         cliVersion: getCliVersion(),
       };
       fs.writeFileSync(versionPath, JSON.stringify(versionInfo, null, 2));
+
+      // Write notification file for AI to read and show to user
+      const notificationPath = path.join(claudeDir, '.update-notification.json');
+      const notification = {
+        type: 'patterns_updated',
+        previousVersion: installed?.version || 'unknown',
+        newVersion: content.version,
+        moduleCount,
+        updatedAt: new Date().toISOString(),
+        message: `CodeBakers patterns have been automatically updated from v${installed?.version || 'unknown'} to v${content.version} (${moduleCount} modules). Your AI tools now have the latest production patterns.`,
+      };
+      fs.writeFileSync(notificationPath, JSON.stringify(notification, null, 2));
+
+      // Confirm to server (non-blocking, fire-and-forget)
+      this.confirmDownload(content.version, moduleCount).catch(() => {});
 
       this.autoUpdateChecked = true;
       this.autoUpdateInProgress = false;
@@ -984,6 +1024,15 @@ class CodeBakersServer {
             required: ['request'],
           },
         },
+        {
+          name: 'check_update_notification',
+          description:
+            'ALWAYS CALL THIS AT THE START OF EACH SESSION. Checks if CodeBakers patterns were recently auto-updated and returns a notification message to show the user. If an update occurred, tell the user about it with the returned message. After showing, the notification is cleared.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {},
+          },
+        },
       ],
     }));
 
@@ -1110,6 +1159,9 @@ class CodeBakersServer {
 
         case 'add_api_route':
           return this.handleAddApiRoute(args as { request: string });
+
+        case 'check_update_notification':
+          return this.handleCheckUpdateNotification();
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -4837,6 +4889,44 @@ export default ${asyncKeyword}function ${pageName}Page() {${authCheck}
         text: `✅ **API Route Created**\n\n**Name:** ${routeName}\n**Path:** /api/${routePath}\n**Methods:** ${methods!.join(', ')}\n**File:** \`${path.relative(cwd, routeFilePath)}\`\n**Auth Required:** ${requiresAuth ? 'Yes' : 'No'}\n\n📝 **Next steps:**\n1. Implement the business logic\n2. Add validation with Zod\n3. Test the endpoint`,
       }],
     };
+  }
+
+  /**
+   * Check for update notifications and return message to show user
+   */
+  private async handleCheckUpdateNotification() {
+    const cwd = process.cwd();
+    const notificationPath = path.join(cwd, '.claude', '.update-notification.json');
+
+    try {
+      if (!fs.existsSync(notificationPath)) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: 'No update notification.',
+          }],
+        };
+      }
+
+      const notification = JSON.parse(fs.readFileSync(notificationPath, 'utf-8'));
+
+      // Delete the notification file after reading (so it only shows once)
+      fs.unlinkSync(notificationPath);
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `🍪 **CodeBakers Update**\n\n${notification.message}\n\n**Previous version:** ${notification.previousVersion}\n**New version:** ${notification.newVersion}\n**Modules:** ${notification.moduleCount}\n**Updated:** ${new Date(notification.updatedAt).toLocaleString()}`,
+        }],
+      };
+    } catch {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: 'No update notification.',
+        }],
+      };
+    }
   }
 
   private parseApiRouteRequest(request: string): {

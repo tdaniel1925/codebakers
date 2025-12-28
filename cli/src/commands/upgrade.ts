@@ -11,6 +11,32 @@ interface ContentResponse {
   modules: Record<string, string>;
 }
 
+interface ConfirmData {
+  version: string;
+  moduleCount: number;
+  cliVersion: string;
+  command: string;
+  projectName?: string;
+}
+
+/**
+ * Confirm download to server (non-blocking, fire-and-forget)
+ */
+async function confirmDownload(apiUrl: string, apiKey: string, data: ConfirmData): Promise<void> {
+  try {
+    await fetch(`${apiUrl}/api/content/confirm`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(data),
+    });
+  } catch {
+    // Silently ignore - this is just for analytics
+  }
+}
+
 /**
  * Upgrade CodeBakers patterns to the latest version
  */
@@ -100,6 +126,14 @@ export async function upgrade(): Promise<void> {
     };
     writeFileSync(join(claudeDir, '.version.json'), JSON.stringify(versionInfo, null, 2));
     console.log(chalk.green('  ✓ Version info saved'));
+
+    // Confirm download to server (non-blocking)
+    confirmDownload(apiUrl, apiKey, {
+      version: content.version,
+      moduleCount,
+      cliVersion: getCliVersion(),
+      command: 'upgrade',
+    }).catch(() => {}); // Silently ignore confirmation failures
 
     console.log(chalk.green(`\n  ✅ Upgraded to patterns v${content.version}!\n`));
 

@@ -39,6 +39,57 @@ interface GoOptions {
   verbose?: boolean;
 }
 
+interface ConfirmData {
+  version: string;
+  moduleCount: number;
+  cliVersion?: string;
+  command: string;
+  projectName?: string;
+}
+
+interface AuthInfo {
+  apiKey?: string;
+  trialId?: string;
+}
+
+/**
+ * Get CLI version from package.json
+ */
+function getCliVersion(): string {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pkg = require('../../package.json');
+    return pkg.version || '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
+/**
+ * Confirm download to server (non-blocking, fire-and-forget)
+ */
+async function confirmDownload(apiUrl: string, auth: AuthInfo, data: ConfirmData): Promise<void> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (auth.apiKey) {
+      headers['Authorization'] = `Bearer ${auth.apiKey}`;
+    }
+    if (auth.trialId) {
+      headers['X-Trial-ID'] = auth.trialId;
+    }
+
+    await fetch(`${apiUrl}/api/content/confirm`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+  } catch {
+    // Silently ignore - this is just for analytics
+  }
+}
+
 function log(message: string, options?: GoOptions): void {
   if (options?.verbose) {
     console.log(chalk.gray(`  [verbose] ${message}`));
@@ -317,7 +368,7 @@ async function installPatternsWithApiKey(apiKey: string, options: GoOptions = {}
     log('Response OK, parsing JSON...', options);
     const content: ContentResponse = await response.json();
     log(`Received version: ${content.version}, modules: ${Object.keys(content.modules || {}).length}`, options);
-    await writePatternFiles(cwd, content, spinner, options);
+    await writePatternFiles(cwd, content, spinner, options, { apiKey });
 
   } catch (error) {
     log(`Error: ${error instanceof Error ? error.message : String(error)}`, options);
@@ -363,13 +414,13 @@ async function installPatterns(trialId: string, options: GoOptions = {}): Promis
 
       const content: ContentResponse = await publicResponse.json();
       log(`Received version: ${content.version}, modules: ${Object.keys(content.modules || {}).length}`, options);
-      await writePatternFiles(cwd, content, spinner, options);
+      await writePatternFiles(cwd, content, spinner, options, { trialId });
       return;
     }
 
     const content: ContentResponse = await response.json();
     log(`Received version: ${content.version}, modules: ${Object.keys(content.modules || {}).length}`, options);
-    await writePatternFiles(cwd, content, spinner, options);
+    await writePatternFiles(cwd, content, spinner, options, { trialId });
 
   } catch (error) {
     log(`Error: ${error instanceof Error ? error.message : String(error)}`, options);
@@ -378,7 +429,13 @@ async function installPatterns(trialId: string, options: GoOptions = {}): Promis
   }
 }
 
-async function writePatternFiles(cwd: string, content: ContentResponse, spinner: ReturnType<typeof ora>, options: GoOptions = {}): Promise<void> {
+async function writePatternFiles(
+  cwd: string,
+  content: ContentResponse,
+  spinner: ReturnType<typeof ora>,
+  options: GoOptions = {},
+  auth?: AuthInfo
+): Promise<void> {
   log(`Writing pattern files to ${cwd}...`, options);
   // Check if patterns already exist
   const claudeMdPath = join(cwd, 'CLAUDE.md');
@@ -393,7 +450,8 @@ async function writePatternFiles(cwd: string, content: ContentResponse, spinner:
   }
 
   // Write pattern modules to .claude/
-  if (content.modules && Object.keys(content.modules).length > 0) {
+  const moduleCount = Object.keys(content.modules || {}).length;
+  if (content.modules && moduleCount > 0) {
     const modulesDir = join(cwd, '.claude');
     if (!existsSync(modulesDir)) {
       mkdirSync(modulesDir, { recursive: true });
@@ -415,5 +473,16 @@ async function writePatternFiles(cwd: string, content: ContentResponse, spinner:
   }
 
   spinner.succeed(`CodeBakers patterns installed (v${content.version})`);
-  console.log(chalk.gray(`  ${Object.keys(content.modules || {}).length} pattern modules ready\n`));
+  console.log(chalk.gray(`  ${moduleCount} pattern modules ready\n`));
+
+  // Confirm download to server (non-blocking)
+  if (auth) {
+    const apiUrl = getApiUrl();
+    confirmDownload(apiUrl, auth, {
+      version: content.version,
+      moduleCount,
+      cliVersion: getCliVersion(),
+      command: 'go',
+    }).catch(() => {}); // Silently ignore
+  }
 }
