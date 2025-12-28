@@ -44,7 +44,8 @@ export class ContentService {
       return {
         version: dbVersion.version,
         // IMPORTANT: Router and CLAUDE.md stay PLAIN TEXT so AI can read instructions
-        router: dbVersion.routerContent || '',
+        // Use claudeMdContent for router (legacy routerContent is deprecated)
+        router: dbVersion.claudeMdContent || dbVersion.routerContent || '',
         cursorRules: dbVersion.cursorRulesContent || '',
         claudeMd: dbVersion.claudeMdContent || '',
         // Only modules are obfuscated
