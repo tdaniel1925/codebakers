@@ -1062,6 +1062,155 @@ class CodeBakersServer {
             required: ['userMessage'],
           },
         },
+        // VAPI Voice AI Tools
+        {
+          name: 'vapi_connect',
+          description:
+            'Connect to VAPI (Voice AI Platform). Sets up VAPI API credentials for voice assistant integration. Use when user says "connect vapi", "setup voice", "configure vapi", or before using other vapi_* tools.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              apiKey: {
+                type: 'string',
+                description: 'VAPI API key from https://dashboard.vapi.ai',
+              },
+            },
+            required: ['apiKey'],
+          },
+        },
+        {
+          name: 'vapi_list_assistants',
+          description:
+            'List all VAPI voice assistants in your account. Shows assistant names, IDs, and configurations. Use when user asks "show my assistants", "list voice bots", or "what assistants do I have".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              limit: {
+                type: 'number',
+                description: 'Maximum number of assistants to return (default: 20)',
+              },
+            },
+          },
+        },
+        {
+          name: 'vapi_create_assistant',
+          description:
+            'Create a new VAPI voice assistant with CodeBakers best practices. Generates assistant with proper prompts, voice settings, and webhook configurations. Use when user says "create assistant", "new voice bot", or "setup voice agent".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Name for the assistant',
+              },
+              description: {
+                type: 'string',
+                description: 'What the assistant should do (e.g., "Customer support for a SaaS product")',
+              },
+              voice: {
+                type: 'string',
+                enum: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'],
+                description: 'Voice to use (default: alloy)',
+              },
+              webhookUrl: {
+                type: 'string',
+                description: 'Optional webhook URL for call events',
+              },
+            },
+            required: ['name', 'description'],
+          },
+        },
+        {
+          name: 'vapi_get_assistant',
+          description:
+            'Get details of a specific VAPI assistant including its configuration, prompts, and settings.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              assistantId: {
+                type: 'string',
+                description: 'The assistant ID to retrieve',
+              },
+            },
+            required: ['assistantId'],
+          },
+        },
+        {
+          name: 'vapi_update_assistant',
+          description:
+            'Update an existing VAPI assistant. Modify prompts, voice settings, or configurations.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              assistantId: {
+                type: 'string',
+                description: 'The assistant ID to update',
+              },
+              name: {
+                type: 'string',
+                description: 'New name for the assistant',
+              },
+              systemPrompt: {
+                type: 'string',
+                description: 'New system prompt for the assistant',
+              },
+              voice: {
+                type: 'string',
+                enum: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'],
+                description: 'New voice to use',
+              },
+            },
+            required: ['assistantId'],
+          },
+        },
+        {
+          name: 'vapi_get_calls',
+          description:
+            'Get recent call logs from VAPI. Shows call duration, status, transcripts, and costs. Use when user asks "show calls", "call history", or "what calls happened".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              assistantId: {
+                type: 'string',
+                description: 'Filter by assistant ID (optional)',
+              },
+              limit: {
+                type: 'number',
+                description: 'Maximum number of calls to return (default: 20)',
+              },
+            },
+          },
+        },
+        {
+          name: 'vapi_get_call',
+          description:
+            'Get details of a specific call including full transcript, recording URL, and analysis.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              callId: {
+                type: 'string',
+                description: 'The call ID to retrieve',
+              },
+            },
+            required: ['callId'],
+          },
+        },
+        {
+          name: 'vapi_generate_webhook',
+          description:
+            'Generate a VAPI webhook handler for your Next.js project. Creates API route with proper signature verification and event handling. Use when user says "add vapi webhook", "handle vapi events", or "setup call notifications".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              events: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Events to handle: call-started, call-ended, speech-update, transcript, function-call, hang, tool-calls',
+              },
+            },
+          },
+        },
       ],
     }));
 
@@ -1197,6 +1346,31 @@ class CodeBakersServer {
 
         case 'detect_intent':
           return this.handleDetectIntent(args as { userMessage: string });
+
+        // VAPI Voice AI handlers
+        case 'vapi_connect':
+          return this.handleVapiConnect(args as { apiKey: string });
+
+        case 'vapi_list_assistants':
+          return this.handleVapiListAssistants(args as { limit?: number });
+
+        case 'vapi_create_assistant':
+          return this.handleVapiCreateAssistant(args as { name: string; description: string; voice?: string; webhookUrl?: string });
+
+        case 'vapi_get_assistant':
+          return this.handleVapiGetAssistant(args as { assistantId: string });
+
+        case 'vapi_update_assistant':
+          return this.handleVapiUpdateAssistant(args as { assistantId: string; name?: string; systemPrompt?: string; voice?: string });
+
+        case 'vapi_get_calls':
+          return this.handleVapiGetCalls(args as { assistantId?: string; limit?: number });
+
+        case 'vapi_get_call':
+          return this.handleVapiGetCall(args as { callId: string });
+
+        case 'vapi_generate_webhook':
+          return this.handleVapiGenerateWebhook(args as { events?: string[] });
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -5464,6 +5638,492 @@ ${handlers.join('\n')}
         text: response,
       }],
     };
+  }
+
+  // ==================== VAPI Voice AI Handlers ====================
+
+  private getVapiKey(): string | null {
+    // Check environment variable first
+    if (process.env.VAPI_API_KEY) {
+      return process.env.VAPI_API_KEY;
+    }
+    // Check .env file in project
+    const cwd = process.cwd();
+    const envPath = path.join(cwd, '.env');
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf-8');
+      const match = envContent.match(/VAPI_API_KEY=(.+)/);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+    return null;
+  }
+
+  private async handleVapiConnect(args: { apiKey: string }) {
+    const { apiKey } = args;
+    const cwd = process.cwd();
+
+    let response = `# 🎙️ VAPI Connection Setup\n\n`;
+
+    try {
+      // Test the API key
+      const testResponse = await fetch('https://api.vapi.ai/assistant', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+        },
+      });
+
+      if (!testResponse.ok) {
+        response += `## ❌ Invalid API Key\n\n`;
+        response += `The API key could not be validated. Please check:\n`;
+        response += `1. Go to https://dashboard.vapi.ai\n`;
+        response += `2. Navigate to Settings → API Keys\n`;
+        response += `3. Copy your API key and try again\n`;
+        return { content: [{ type: 'text' as const, text: response }] };
+      }
+
+      // Save to .env file
+      const envPath = path.join(cwd, '.env');
+      let envContent = '';
+
+      if (fs.existsSync(envPath)) {
+        envContent = fs.readFileSync(envPath, 'utf-8');
+        if (envContent.includes('VAPI_API_KEY=')) {
+          envContent = envContent.replace(/VAPI_API_KEY=.*/g, `VAPI_API_KEY=${apiKey}`);
+        } else {
+          envContent += `\n# VAPI Voice AI\nVAPI_API_KEY=${apiKey}\n`;
+        }
+      } else {
+        envContent = `# VAPI Voice AI\nVAPI_API_KEY=${apiKey}\n`;
+      }
+
+      fs.writeFileSync(envPath, envContent);
+
+      response += `## ✅ VAPI Connected Successfully!\n\n`;
+      response += `API key saved to \`.env\` file.\n\n`;
+      response += `### Available Commands:\n`;
+      response += `- \`vapi_list_assistants\` - See your assistants\n`;
+      response += `- \`vapi_create_assistant\` - Create a new voice assistant\n`;
+      response += `- \`vapi_get_calls\` - View call history\n`;
+      response += `- \`vapi_generate_webhook\` - Add webhook handler to your project\n`;
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      response += `## ❌ Connection Failed\n\n`;
+      response += `Error: ${message}\n`;
+    }
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  private async handleVapiListAssistants(args: { limit?: number }) {
+    const { limit = 20 } = args;
+    const vapiKey = this.getVapiKey();
+
+    let response = `# 🎙️ VAPI Assistants\n\n`;
+
+    if (!vapiKey) {
+      response += `## ❌ Not Connected\n\n`;
+      response += `VAPI API key not found. Run \`vapi_connect\` first with your API key.\n`;
+      response += `Get your key at: https://dashboard.vapi.ai\n`;
+      return { content: [{ type: 'text' as const, text: response }] };
+    }
+
+    try {
+      const apiResponse = await fetch(`https://api.vapi.ai/assistant?limit=${limit}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${vapiKey}`,
+        },
+      });
+
+      if (!apiResponse.ok) {
+        throw new Error(`API error: ${apiResponse.status}`);
+      }
+
+      const assistants = await apiResponse.json();
+
+      if (!assistants || assistants.length === 0) {
+        response += `No assistants found.\n\n`;
+        response += `Create one with \`vapi_create_assistant\`!\n`;
+      } else {
+        response += `| Name | ID | Voice | Created |\n`;
+        response += `|------|-------|-------|--------|\n`;
+
+        for (const a of assistants) {
+          const created = new Date(a.createdAt).toLocaleDateString();
+          const voice = a.voice?.provider || 'default';
+          response += `| ${a.name || 'Unnamed'} | \`${a.id.slice(0, 8)}...\` | ${voice} | ${created} |\n`;
+        }
+
+        response += `\n**Total:** ${assistants.length} assistant(s)\n`;
+      }
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      response += `## ❌ Error\n\n`;
+      response += `Failed to fetch assistants: ${message}\n`;
+    }
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  private async handleVapiCreateAssistant(args: { name: string; description: string; voice?: string; webhookUrl?: string }) {
+    const { name, description, voice = 'alloy', webhookUrl } = args;
+    const vapiKey = this.getVapiKey();
+
+    let response = `# 🎙️ Create VAPI Assistant\n\n`;
+
+    if (!vapiKey) {
+      response += `## ❌ Not Connected\n\n`;
+      response += `VAPI API key not found. Run \`vapi_connect\` first.\n`;
+      return { content: [{ type: 'text' as const, text: response }] };
+    }
+
+    try {
+      // Build system prompt based on description
+      const systemPrompt = `You are ${name}, a helpful voice assistant. ${description}
+
+Guidelines:
+- Be conversational and natural
+- Keep responses concise (1-2 sentences when possible)
+- Ask clarifying questions if needed
+- Be friendly but professional`;
+
+      const assistantConfig: Record<string, unknown> = {
+        name,
+        model: {
+          provider: 'openai',
+          model: 'gpt-4o-mini',
+          systemPrompt,
+        },
+        voice: {
+          provider: 'openai',
+          voiceId: voice,
+        },
+        firstMessage: `Hi! I'm ${name}. How can I help you today?`,
+      };
+
+      if (webhookUrl) {
+        assistantConfig.serverUrl = webhookUrl;
+      }
+
+      const apiResponse = await fetch('https://api.vapi.ai/assistant', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${vapiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(assistantConfig),
+      });
+
+      if (!apiResponse.ok) {
+        const error = await apiResponse.json();
+        throw new Error(error.message || `API error: ${apiResponse.status}`);
+      }
+
+      const assistant = await apiResponse.json();
+
+      response += `## ✅ Assistant Created!\n\n`;
+      response += `| Property | Value |\n`;
+      response += `|----------|-------|\n`;
+      response += `| **Name** | ${assistant.name} |\n`;
+      response += `| **ID** | \`${assistant.id}\` |\n`;
+      response += `| **Voice** | ${voice} |\n`;
+      response += `| **Model** | gpt-4o-mini |\n`;
+
+      response += `\n### Next Steps:\n`;
+      response += `1. Test your assistant at https://dashboard.vapi.ai\n`;
+      response += `2. Add a phone number to receive calls\n`;
+      response += `3. Use \`vapi_generate_webhook\` to handle call events\n`;
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      response += `## ❌ Creation Failed\n\n`;
+      response += `Error: ${message}\n`;
+    }
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  private async handleVapiGetAssistant(args: { assistantId: string }) {
+    const { assistantId } = args;
+    const vapiKey = this.getVapiKey();
+
+    let response = `# 🎙️ Assistant Details\n\n`;
+
+    if (!vapiKey) {
+      response += `## ❌ Not Connected\n\nRun \`vapi_connect\` first.\n`;
+      return { content: [{ type: 'text' as const, text: response }] };
+    }
+
+    try {
+      const apiResponse = await fetch(`https://api.vapi.ai/assistant/${assistantId}`, {
+        headers: { 'Authorization': `Bearer ${vapiKey}` },
+      });
+
+      if (!apiResponse.ok) {
+        throw new Error(`API error: ${apiResponse.status}`);
+      }
+
+      const a = await apiResponse.json();
+
+      response += `## ${a.name || 'Unnamed Assistant'}\n\n`;
+      response += `| Property | Value |\n`;
+      response += `|----------|-------|\n`;
+      response += `| **ID** | \`${a.id}\` |\n`;
+      response += `| **Voice** | ${a.voice?.voiceId || 'default'} |\n`;
+      response += `| **Model** | ${a.model?.model || 'unknown'} |\n`;
+      response += `| **Created** | ${new Date(a.createdAt).toLocaleString()} |\n`;
+
+      if (a.model?.systemPrompt) {
+        response += `\n### System Prompt:\n\`\`\`\n${a.model.systemPrompt.slice(0, 500)}${a.model.systemPrompt.length > 500 ? '...' : ''}\n\`\`\`\n`;
+      }
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      response += `## ❌ Error\n\n${message}\n`;
+    }
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  private async handleVapiUpdateAssistant(args: { assistantId: string; name?: string; systemPrompt?: string; voice?: string }) {
+    const { assistantId, name, systemPrompt, voice } = args;
+    const vapiKey = this.getVapiKey();
+
+    let response = `# 🎙️ Update Assistant\n\n`;
+
+    if (!vapiKey) {
+      response += `## ❌ Not Connected\n\nRun \`vapi_connect\` first.\n`;
+      return { content: [{ type: 'text' as const, text: response }] };
+    }
+
+    try {
+      const updates: Record<string, unknown> = {};
+      if (name) updates.name = name;
+      if (systemPrompt) updates.model = { systemPrompt };
+      if (voice) updates.voice = { provider: 'openai', voiceId: voice };
+
+      const apiResponse = await fetch(`https://api.vapi.ai/assistant/${assistantId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${vapiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (!apiResponse.ok) {
+        throw new Error(`API error: ${apiResponse.status}`);
+      }
+
+      response += `## ✅ Assistant Updated!\n\n`;
+      response += `Updated fields:\n`;
+      if (name) response += `- Name: ${name}\n`;
+      if (systemPrompt) response += `- System prompt updated\n`;
+      if (voice) response += `- Voice: ${voice}\n`;
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      response += `## ❌ Update Failed\n\n${message}\n`;
+    }
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  private async handleVapiGetCalls(args: { assistantId?: string; limit?: number }) {
+    const { assistantId, limit = 20 } = args;
+    const vapiKey = this.getVapiKey();
+
+    let response = `# 🎙️ VAPI Call History\n\n`;
+
+    if (!vapiKey) {
+      response += `## ❌ Not Connected\n\nRun \`vapi_connect\` first.\n`;
+      return { content: [{ type: 'text' as const, text: response }] };
+    }
+
+    try {
+      let url = `https://api.vapi.ai/call?limit=${limit}`;
+      if (assistantId) url += `&assistantId=${assistantId}`;
+
+      const apiResponse = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${vapiKey}` },
+      });
+
+      if (!apiResponse.ok) {
+        throw new Error(`API error: ${apiResponse.status}`);
+      }
+
+      const calls = await apiResponse.json();
+
+      if (!calls || calls.length === 0) {
+        response += `No calls found.\n`;
+      } else {
+        response += `| Date | Duration | Status | Cost |\n`;
+        response += `|------|----------|--------|------|\n`;
+
+        for (const call of calls) {
+          const date = new Date(call.createdAt).toLocaleString();
+          const duration = call.endedAt ? Math.round((new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000) : 0;
+          const cost = call.cost ? `$${call.cost.toFixed(3)}` : '-';
+          response += `| ${date} | ${duration}s | ${call.status} | ${cost} |\n`;
+        }
+
+        response += `\n**Total:** ${calls.length} call(s)\n`;
+      }
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      response += `## ❌ Error\n\n${message}\n`;
+    }
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  private async handleVapiGetCall(args: { callId: string }) {
+    const { callId } = args;
+    const vapiKey = this.getVapiKey();
+
+    let response = `# 🎙️ Call Details\n\n`;
+
+    if (!vapiKey) {
+      response += `## ❌ Not Connected\n\nRun \`vapi_connect\` first.\n`;
+      return { content: [{ type: 'text' as const, text: response }] };
+    }
+
+    try {
+      const apiResponse = await fetch(`https://api.vapi.ai/call/${callId}`, {
+        headers: { 'Authorization': `Bearer ${vapiKey}` },
+      });
+
+      if (!apiResponse.ok) {
+        throw new Error(`API error: ${apiResponse.status}`);
+      }
+
+      const call = await apiResponse.json();
+
+      response += `| Property | Value |\n`;
+      response += `|----------|-------|\n`;
+      response += `| **ID** | \`${call.id}\` |\n`;
+      response += `| **Status** | ${call.status} |\n`;
+      response += `| **Started** | ${new Date(call.startedAt).toLocaleString()} |\n`;
+      if (call.endedAt) {
+        const duration = Math.round((new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000);
+        response += `| **Duration** | ${duration} seconds |\n`;
+      }
+      if (call.cost) response += `| **Cost** | $${call.cost.toFixed(4)} |\n`;
+      if (call.recordingUrl) response += `| **Recording** | [Listen](${call.recordingUrl}) |\n`;
+
+      if (call.transcript) {
+        response += `\n### Transcript:\n\`\`\`\n${call.transcript.slice(0, 1000)}${call.transcript.length > 1000 ? '...' : ''}\n\`\`\`\n`;
+      }
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      response += `## ❌ Error\n\n${message}\n`;
+    }
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  private handleVapiGenerateWebhook(args: { events?: string[] }) {
+    const { events = ['call-started', 'call-ended', 'transcript'] } = args;
+    const cwd = process.cwd();
+
+    let response = `# 🎙️ VAPI Webhook Generator\n\n`;
+
+    // Generate webhook handler code
+    const webhookCode = `import { NextRequest, NextResponse } from 'next/server';
+
+// VAPI Webhook Event Types
+type VapiEventType = ${events.map(e => `'${e}'`).join(' | ')};
+
+interface VapiWebhookPayload {
+  type: VapiEventType;
+  call?: {
+    id: string;
+    assistantId: string;
+    phoneNumber?: string;
+    customer?: {
+      number: string;
+      name?: string;
+    };
+  };
+  transcript?: string;
+  timestamp: string;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const payload: VapiWebhookPayload = await req.json();
+
+    console.log('[VAPI Webhook]', payload.type, payload.call?.id);
+
+    switch (payload.type) {
+${events.includes('call-started') ? `      case 'call-started':
+        // Handle call started
+        // Example: Log to database, send notification
+        console.log('Call started:', payload.call?.id);
+        break;
+` : ''}${events.includes('call-ended') ? `      case 'call-ended':
+        // Handle call ended
+        // Example: Save transcript, update CRM
+        console.log('Call ended:', payload.call?.id);
+        break;
+` : ''}${events.includes('transcript') ? `      case 'transcript':
+        // Handle real-time transcript updates
+        console.log('Transcript:', payload.transcript);
+        break;
+` : ''}${events.includes('function-call') ? `      case 'function-call':
+        // Handle function calls from assistant
+        // Return data to be spoken by the assistant
+        return NextResponse.json({ result: 'Function executed' });
+` : ''}      default:
+        console.log('Unhandled event:', payload.type);
+    }
+
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error('[VAPI Webhook Error]', error);
+    return NextResponse.json({ error: 'Webhook error' }, { status: 400 });
+  }
+}
+`;
+
+    // Check if API route directory exists
+    const apiDir = path.join(cwd, 'src', 'app', 'api', 'webhooks', 'vapi');
+    const routePath = path.join(apiDir, 'route.ts');
+
+    if (fs.existsSync(routePath)) {
+      response += `## ⚠️ Webhook Already Exists\n\n`;
+      response += `File: \`src/app/api/webhooks/vapi/route.ts\`\n\n`;
+      response += `Here's the updated code if you want to replace it:\n\n`;
+    } else {
+      // Create directory and file
+      fs.mkdirSync(apiDir, { recursive: true });
+      fs.writeFileSync(routePath, webhookCode);
+      response += `## ✅ Webhook Created!\n\n`;
+      response += `File: \`src/app/api/webhooks/vapi/route.ts\`\n\n`;
+    }
+
+    response += `### Generated Code:\n\`\`\`typescript\n${webhookCode}\n\`\`\`\n\n`;
+
+    response += `### Setup Instructions:\n`;
+    response += `1. Deploy your app to get a public URL\n`;
+    response += `2. Go to https://dashboard.vapi.ai → Your Assistant → Settings\n`;
+    response += `3. Set webhook URL to: \`https://your-domain.com/api/webhooks/vapi\`\n`;
+    response += `4. Select events: ${events.join(', ')}\n\n`;
+
+    response += `### Handling Events:\n`;
+    response += `- \`call-started\`: Triggered when a call begins\n`;
+    response += `- \`call-ended\`: Triggered when a call ends (with transcript)\n`;
+    response += `- \`transcript\`: Real-time transcript updates\n`;
+    response += `- \`function-call\`: When assistant calls a custom function\n`;
+
+    return { content: [{ type: 'text' as const, text: response }] };
   }
 
   async run(): Promise<void> {
