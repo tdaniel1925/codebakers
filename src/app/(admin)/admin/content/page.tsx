@@ -468,7 +468,7 @@ export default function AdminContentPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleView(version.id)}
-                        className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                        className="border-slate-600 bg-slate-800 text-white hover:bg-slate-700"
                       >
                         <Eye className="h-3 w-3 mr-1" />
                         View
@@ -863,14 +863,14 @@ export default function AdminContentPage() {
                 setShowCreateDialog(false);
                 resetForm();
               }}
-              className="border-slate-600 text-slate-300"
+              className="border-slate-600 bg-slate-800 text-white hover:bg-slate-700"
             >
               Cancel
             </Button>
             <Button
               onClick={handleCreate}
               disabled={isCreating || !newVersion.trim()}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isCreating ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -987,7 +987,7 @@ export default function AdminContentPage() {
             <Button
               variant="outline"
               onClick={() => setShowViewDialog(false)}
-              className="border-slate-600 text-slate-300"
+              className="border-slate-600 bg-slate-800 text-white hover:bg-slate-700"
             >
               Close
             </Button>

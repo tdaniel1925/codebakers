@@ -230,7 +230,7 @@ What would you like to work on today?`,
           <Button
             variant="outline"
             onClick={clearChat}
-            className="border-slate-600 text-slate-300"
+            className="border-slate-600 bg-slate-800 text-white hover:bg-slate-700"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             New Chat
@@ -417,7 +417,7 @@ What would you like to work on today?`,
             <Button
               variant="outline"
               onClick={() => setShowPreview(false)}
-              className="border-slate-600 text-slate-300"
+              className="border-slate-600 bg-slate-800 text-white hover:bg-slate-700"
             >
               <X className="h-4 w-4 mr-2" />
               Cancel
@@ -425,7 +425,7 @@ What would you like to work on today?`,
             <Button
               onClick={applyChanges}
               disabled={isSaving}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

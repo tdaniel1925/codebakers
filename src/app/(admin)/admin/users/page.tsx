@@ -316,9 +316,9 @@ export default function AdminUsersPage() {
                     className={
                       filterStatus === status
                         ? status === 'suspended'
-                          ? 'bg-red-600 hover:bg-red-700'
-                          : 'bg-blue-600 hover:bg-blue-700'
-                        : 'border-slate-600 text-slate-300'
+                          ? 'bg-red-600 hover:bg-red-700 text-white'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'border-slate-600 bg-slate-800 text-white hover:bg-slate-700 hover:text-white'
                     }
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}

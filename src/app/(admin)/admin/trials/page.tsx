@@ -263,7 +263,7 @@ export default function AdminTrialsPage() {
           variant="outline"
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="border-slate-700 text-slate-300"
+          className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
           Refresh

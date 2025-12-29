@@ -402,7 +402,7 @@ export default function AdminSubmissionsPage() {
                     variant="outline"
                     onClick={() => fetchSubmissionDetail(submission.id)}
                     disabled={isLoadingDetail}
-                    className="border-slate-600 text-slate-300"
+                    className="border-slate-600 bg-slate-800 text-white hover:bg-slate-700"
                   >
                     <Eye className="h-3 w-3 mr-1" />
                     View Details
@@ -601,7 +601,7 @@ export default function AdminSubmissionsPage() {
                 setShowDetailDialog(false);
                 setSelectedSubmission(null);
               }}
-              className="border-slate-600 text-slate-300"
+              className="border-slate-600 bg-slate-800 text-white hover:bg-slate-700"
             >
               Close
             </Button>
