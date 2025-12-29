@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Code2 } from 'lucide-react';
+import { Code2, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -24,9 +24,7 @@ import {
   UserIcon,
   Briefcase01Icon,
   Book02Icon,
-  CommandLineIcon,
 } from 'hugeicons-react';
-import { Monitor } from 'lucide-react';
 
 // Testimonials representing different skill levels
 const testimonials = [
@@ -49,6 +47,103 @@ const testimonials = [
     avatar: "JL",
   },
 ];
+
+function InstallSection() {
+  const [copied, setCopied] = useState(false);
+  const [isWindows, setIsWindows] = useState(false);
+
+  useEffect(() => {
+    // Detect OS on mount
+    setIsWindows(navigator.platform.toLowerCase().includes('win'));
+  }, []);
+
+  const macCommand = 'curl -fsSL codebakers.ai/install.sh | bash';
+  const winCommand = 'irm codebakers.ai/install.ps1 | iex';
+
+  const handleInstall = async () => {
+    const command = isWindows ? winCommand : macCommand;
+    await navigator.clipboard.writeText(command);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
+  return (
+    <section id="install" className="py-16 px-4 bg-gradient-to-b from-gray-950 to-background">
+      <div className="container mx-auto max-w-2xl text-center">
+        <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
+          <Rocket01Icon className="w-3 h-3 mr-1" />
+          One Click Install
+        </Badge>
+        <h2 className="text-3xl font-bold mb-4">
+          Install in 30 Seconds
+        </h2>
+        <p className="text-lg text-muted-foreground mb-8">
+          Click the button, paste in {isWindows ? 'PowerShell' : 'Terminal'}, done.
+        </p>
+
+        {/* Big Install Button */}
+        <Button
+          onClick={handleInstall}
+          size="lg"
+          className={`text-lg px-8 py-6 h-auto transition-all duration-300 ${
+            copied
+              ? 'bg-green-600 hover:bg-green-600'
+              : 'bg-red-600 hover:bg-red-700'
+          }`}
+        >
+          {copied ? (
+            <>
+              <Check className="mr-2 h-5 w-5" />
+              Copied! Now paste in {isWindows ? 'PowerShell' : 'Terminal'}
+            </>
+          ) : (
+            <>
+              <Copy className="mr-2 h-5 w-5" />
+              Copy Install Command
+            </>
+          )}
+        </Button>
+
+        {/* Show the command after copying */}
+        {copied && (
+          <div className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <p className="text-sm text-muted-foreground mb-2">Command copied:</p>
+            <code className="inline-block px-4 py-2 rounded-lg bg-black text-green-400 font-mono text-sm">
+              {isWindows ? winCommand : macCommand}
+            </code>
+          </div>
+        )}
+
+        {/* Instructions */}
+        <div className="mt-8 p-6 rounded-2xl bg-card border border-border text-left max-w-md mx-auto">
+          <h3 className="font-bold mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">1</span>
+            Click the button above
+          </h3>
+          <h3 className="font-bold mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">2</span>
+            Open {isWindows ? 'PowerShell' : 'Terminal'} and paste
+          </h3>
+          <h3 className="font-bold flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">3</span>
+            Open Claude Code and say &quot;Build me a todo app&quot;
+          </h3>
+        </div>
+
+        {/* OS toggle */}
+        <p className="mt-6 text-sm text-muted-foreground">
+          {isWindows ? 'On Mac/Linux?' : 'On Windows?'}{' '}
+          <button
+            onClick={() => setIsWindows(!isWindows)}
+            className="text-red-500 hover:text-red-400 underline"
+          >
+            Click here
+          </button>
+        </p>
+      </div>
+    </section>
+  );
+}
 
 export default function HomePage() {
   // Load Cal.com embed script
@@ -296,70 +391,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Install Section - One-liner install commands */}
-      <section id="install" className="py-16 px-4 bg-gradient-to-b from-gray-950 to-background">
-        <div className="container mx-auto max-w-3xl">
-          <div className="text-center mb-10">
-            <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
-              <Rocket01Icon className="w-3 h-3 mr-1" />
-              One Command Install
-            </Badge>
-            <h2 className="text-3xl font-bold mb-4">
-              Install in 30 Seconds
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              One command. Zero config. Works instantly.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Mac/Linux */}
-            <div className="p-6 rounded-2xl bg-card border border-border">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
-                  <CommandLineIcon className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold">Mac / Linux</h3>
-                  <p className="text-sm text-muted-foreground">Terminal</p>
-                </div>
-              </div>
-              <code className="block w-full text-left px-4 py-3 rounded-lg bg-black text-green-400 font-mono text-sm overflow-x-auto whitespace-nowrap mb-3">
-                curl -fsSL codebakers.ai/install.sh | bash
-              </code>
-              <p className="text-xs text-muted-foreground">
-                Installs CLI, connects to Claude Code, starts 7-day trial
-              </p>
-            </div>
-
-            {/* Windows */}
-            <div className="p-6 rounded-2xl bg-card border border-border">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                  <Monitor className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold">Windows</h3>
-                  <p className="text-sm text-muted-foreground">PowerShell</p>
-                </div>
-              </div>
-              <code className="block w-full text-left px-4 py-3 rounded-lg bg-black text-blue-400 font-mono text-sm overflow-x-auto whitespace-nowrap mb-3">
-                irm codebakers.ai/install.ps1 | iex
-              </code>
-              <p className="text-xs text-muted-foreground">
-                Installs CLI, connects to Claude Code, starts 7-day trial
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              After install, just open Claude Code and say{' '}
-              <span className="text-foreground font-medium">&quot;Build me a todo app&quot;</span>
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Install Section - Simple one-click install */}
+      <InstallSection />
 
       {/* Who It's For - Speak to all skill levels */}
       <section className="py-20 px-4">
