@@ -542,7 +542,7 @@ export function setCachedUpdateInfo(latestVersion: string): void {
  * Get the current CLI version from package.json
  */
 export function getCliVersion(): string {
-  return '3.3.0'; // Keep in sync with package.json
+  return '3.3.5'; // Keep in sync with package.json
 }
 
 // ============================================
@@ -580,4 +580,55 @@ export function setCachedPatternInfo(latestVersion: string): void {
 export function clearPatternCache(): void {
   config.set('lastPatternCheck', null);
   config.set('latestPatternVersion', null);
+}
+
+// ============================================
+// CLI Auto-Update Tracking
+// ============================================
+
+const CLI_UPDATE_COOLDOWN_HOURS = 24; // Don't retry auto-update for 24 hours after failure
+
+/**
+ * Check if we should attempt CLI auto-update
+ * Returns false if we recently attempted and failed
+ */
+export function shouldAttemptCliUpdate(): boolean {
+  const lastAttempt = config.get('lastCliUpdateAttempt') as string | undefined;
+  const lastAttemptVersion = config.get('lastCliUpdateAttemptVersion') as string | undefined;
+
+  if (!lastAttempt || typeof lastAttempt !== 'string') return true;
+
+  const hoursSinceAttempt = (Date.now() - new Date(lastAttempt).getTime()) / (1000 * 60 * 60);
+
+  // If we already successfully updated to this version, don't retry
+  const currentVersion = getCliVersion();
+  if (lastAttemptVersion === currentVersion) return false;
+
+  // If cooldown hasn't passed, don't retry
+  if (hoursSinceAttempt < CLI_UPDATE_COOLDOWN_HOURS) return false;
+
+  return true;
+}
+
+/**
+ * Record a CLI update attempt
+ */
+export function setCliUpdateAttempt(targetVersion: string, success: boolean): void {
+  config.set('lastCliUpdateAttempt', new Date().toISOString());
+  config.set('lastCliUpdateAttemptVersion', targetVersion);
+  config.set('lastCliUpdateSuccess', success);
+}
+
+/**
+ * Check if CLI auto-update is disabled
+ */
+export function isCliAutoUpdateDisabled(): boolean {
+  return config.get('disableCliAutoUpdate') === true;
+}
+
+/**
+ * Disable/enable CLI auto-update
+ */
+export function setCliAutoUpdateDisabled(disabled: boolean): void {
+  config.set('disableCliAutoUpdate', disabled);
 }

@@ -22,7 +22,8 @@ import { pushPatterns, pushPatternsInteractive } from './commands/push-patterns.
 import { go } from './commands/go.js';
 import { extend } from './commands/extend.js';
 import { billing } from './commands/billing.js';
-import { getCachedUpdateInfo, setCachedUpdateInfo, getCliVersion, getCachedPatternInfo, setCachedPatternInfo, getApiKey, getApiUrl, getTrialState, hasValidAccess } from './config.js';
+import { getCachedUpdateInfo, setCachedUpdateInfo, getCliVersion, getCachedPatternInfo, setCachedPatternInfo, getApiKey, getApiUrl, getTrialState, hasValidAccess, shouldAttemptCliUpdate, setCliUpdateAttempt, isCliAutoUpdateDisabled } from './config.js';
+import { execSync } from 'child_process';
 import { checkForUpdates } from './lib/api.js';
 import { existsSync, writeFileSync, readFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
@@ -31,7 +32,7 @@ import { join } from 'path';
 // Automatic Update Notification
 // ============================================
 
-const CURRENT_VERSION = '3.3.1';
+const CURRENT_VERSION = '3.3.5';
 
 async function checkForUpdatesInBackground(): Promise<void> {
   // Check if we have a valid cached result first (fast path)
@@ -95,6 +96,71 @@ function showUpdateBanner(currentVersion: string, latestVersion: string, isRecom
   │                                                         │
   ╰─────────────────────────────────────────────────────────╯
   `));
+}
+
+// ============================================
+// CLI Auto-Update
+// ============================================
+
+async function autoUpdateCli(): Promise<void> {
+  // Check if auto-update is disabled
+  if (isCliAutoUpdateDisabled()) return;
+
+  // Check if we should attempt update (cooldown, etc.)
+  if (!shouldAttemptCliUpdate()) return;
+
+  // Check for available updates
+  try {
+    const updateInfo = await checkForUpdates();
+
+    if (!updateInfo || !updateInfo.updateAvailable) return;
+
+    // Don't auto-update blocked versions - show warning instead
+    if (updateInfo.isBlocked) return;
+
+    const targetVersion = updateInfo.latestVersion;
+    const currentVersion = CURRENT_VERSION;
+
+    // Only auto-update if the version has auto-update enabled from server
+    if (!updateInfo.autoUpdateEnabled) return;
+
+    console.log(chalk.blue(`\n  🔄 Auto-updating CLI: ${chalk.gray(currentVersion)} → ${chalk.green(targetVersion)}...\n`));
+
+    try {
+      // Run npm install globally
+      execSync('npm install -g @codebakers/cli@latest', {
+        stdio: 'inherit',
+        timeout: 60000, // 60 second timeout
+      });
+
+      setCliUpdateAttempt(targetVersion, true);
+
+      console.log(chalk.green(`\n  ✓ CLI updated to v${targetVersion}!\n`));
+      console.log(chalk.gray('  The update will take effect on your next command.\n'));
+
+    } catch (installError) {
+      setCliUpdateAttempt(targetVersion, false);
+
+      // Check if it's a permission error
+      const errorMessage = installError instanceof Error ? installError.message : String(installError);
+      if (errorMessage.includes('EACCES') || errorMessage.includes('permission')) {
+        console.log(chalk.yellow(`
+  ⚠️  Auto-update failed (permission denied)
+
+  Run manually with: ${chalk.cyan('sudo npm i -g @codebakers/cli@latest')}
+  Or disable auto-update: ${chalk.cyan('codebakers config set disableCliAutoUpdate true')}
+        `));
+      } else {
+        console.log(chalk.yellow(`
+  ⚠️  Auto-update failed
+
+  Run manually: ${chalk.cyan('npm i -g @codebakers/cli@latest')}
+        `));
+      }
+    }
+  } catch {
+    // Silently fail - don't block CLI for update check
+  }
 }
 
 // ============================================
@@ -476,7 +542,11 @@ program
 
 // Add update check hook (runs before every command)
 program.hook('preAction', async () => {
-  // Run CLI update check and pattern auto-update in parallel
+  // Run CLI auto-update first (if enabled and conditions met)
+  // Then run pattern auto-update in parallel with update banner check
+  await autoUpdateCli();
+
+  // Run pattern auto-update and update banner check in parallel
   await Promise.all([
     checkForUpdatesInBackground(),
     autoUpdatePatterns(),
