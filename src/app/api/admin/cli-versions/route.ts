@@ -7,6 +7,22 @@ import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Compare two semantic version strings (e.g., "3.3.4" vs "3.10.0")
+ * Returns negative if a < b, positive if a > b, 0 if equal
+ */
+function compareVersions(a: string, b: string): number {
+  const partsA = a.split('.').map(Number);
+  const partsB = b.split('.').map(Number);
+
+  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+    const numA = partsA[i] || 0;
+    const numB = partsB[i] || 0;
+    if (numA !== numB) return numB - numA; // Descending order (newest first)
+  }
+  return 0;
+}
+
 const createVersionSchema = z.object({
   version: z.string().regex(/^\d+\.\d+\.\d+$/, 'Version must be in format X.Y.Z'),
   npmTag: z.string().default('latest'),
@@ -25,9 +41,10 @@ export async function GET(req: NextRequest) {
     autoRateLimit(req);
     await requireAdmin();
 
-    const versions = await db.query.cliVersions.findMany({
-      orderBy: [desc(cliVersions.createdAt)],
-    });
+    const versions = await db.query.cliVersions.findMany();
+
+    // Sort by semantic version (newest first)
+    versions.sort((a, b) => compareVersions(a.version, b.version));
 
     // Get publisher names
     const publisherIds = versions.map(v => v.publishedBy).filter(Boolean) as string[];
