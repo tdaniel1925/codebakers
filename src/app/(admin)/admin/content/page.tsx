@@ -15,6 +15,7 @@ import {
   ChevronUp,
   File,
   FileCode,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -125,6 +126,7 @@ export default function AdminContentPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isPublishing, setIsPublishing] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<VersionDetail | null>(null);
@@ -159,6 +161,38 @@ export default function AdminContentPage() {
       toast.error('Failed to load content versions');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSyncFromServer = async () => {
+    if (!confirm('This will sync all .claude/ files from the server and create a new active version. Continue?')) {
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const response = await fetch('/api/admin/sync-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activate: true }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sync content');
+      }
+
+      toast.success(`Synced! Created version ${data.version} with ${data.modules?.length || 0} modules`, {
+        description: 'Content is now live for all users',
+        duration: 5000,
+      });
+
+      fetchVersions();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to sync content');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -325,13 +359,28 @@ export default function AdminContentPage() {
             Upload and manage pattern files for users
           </p>
         </div>
-        <Button
-          onClick={() => setShowCreateDialog(true)}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Version
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleSyncFromServer}
+            disabled={isSyncing}
+            variant="outline"
+            className="border-green-600 text-green-400 hover:bg-green-900/20"
+          >
+            {isSyncing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Sync from Server
+          </Button>
+          <Button
+            onClick={() => setShowCreateDialog(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Version
+          </Button>
+        </div>
       </div>
 
       {/* Active Version Card */}
