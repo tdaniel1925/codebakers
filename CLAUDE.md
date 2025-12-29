@@ -1,8 +1,63 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 5.2 - MCP Pattern Updates
+# Version: 5.3 - MCP-First Architecture
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
+
+---
+
+## 🚨 MCP-FIRST: ALWAYS CHECK MCP TOOLS BEFORE ACTING
+
+**This is the #1 priority rule. Before doing ANYTHING, check if an MCP tool can handle it.**
+
+### Available MCP Tools (ALWAYS call these FIRST):
+
+| User Says | MCP Tool to Call | What It Does |
+|-----------|------------------|--------------|
+| "upgrade codebakers", "update patterns", "sync patterns", "download patterns" | `update_patterns` | Downloads latest CLAUDE.md + all .claude/ modules from server |
+| "optimize this", "build [feature]", any feature request | `optimize_and_build` | AI-powered prompt optimization with context |
+| "get pattern [name]", "load [module]", "show me [pattern]" | `get_pattern` | Fetches specific pattern from server |
+| "list patterns", "what patterns exist", "show modules" | `list_patterns` | Lists all available patterns |
+| "search patterns for [term]", "find pattern about [topic]" | `search_patterns` | Searches pattern content |
+| "audit this code", "review code", "check quality" | `audit` | Runs comprehensive code quality audit |
+| "heal this", "fix errors", "auto-fix" | `heal` | AI-powered error detection and fixing |
+| "run tests", "test this" | `run_tests` | Executes test suite |
+| "project status", "what's built", "show progress" | `project_status` | Shows build progress and stats |
+| "set experience [level]", "I'm a beginner/advanced" | `set_experience_level` | Sets beginner/intermediate/advanced mode |
+| "check for updates", "any updates?" | `check_update_notification` | Checks for pattern updates |
+| "report gap", "missing pattern for [X]" | `report_pattern_gap` | Reports missing pattern coverage |
+
+### The MCP-First Rule:
+
+1. **ALWAYS call the MCP tool first** - Don't try to do it manually
+2. **If no MCP tool exists for the task** - Then fall back to reading local .claude/ files
+3. **NEVER create/write pattern files manually** - Always use `update_patterns` to download from server
+4. **NEVER offer to "create missing modules"** - The server has 59 modules, use `update_patterns`
+5. **NEVER say "I don't have access to [tool]"** - You DO have MCP tools, use them
+
+### Why MCP-First?
+
+- MCP tools fetch **real data from the CodeBakers server**
+- Manual execution uses **stale or incomplete** local information
+- Server has the **latest patterns** (59 modules), local might be outdated
+- MCP tools **track analytics** for continuous improvement
+- MCP tools have **proper error handling** and user feedback
+
+### Critical: Pattern Updates
+
+When user wants to update/upgrade/sync CodeBakers patterns:
+```
+User: "upgrade codebakers" or "update patterns" or "sync"
+AI: [IMMEDIATELY calls update_patterns MCP tool]
+→ Downloads 59 modules from server
+→ Shows before/after comparison
+```
+
+**NEVER:**
+- Manually create pattern files
+- Offer to "write the missing modules"
+- Say "I'll create these for you"
+- Analyze .claude/ folder and suggest manual changes
 
 ---
 
@@ -13,43 +68,14 @@ You have access to modular pattern files in `.claude/` folder.
 **DO NOT answer coding questions from memory alone.**
 
 ### ON FIRST MESSAGE OF ANY NEW CHAT:
-1. Check if `.codebakers.json` exists
-2. If it has `currentWork` with recent `lastUpdated`, show: "Resuming: [feature] - [summary]"
-3. This provides automatic session continuity
+1. Call `check_update_notification` MCP tool to see if patterns were updated
+2. Check if `.codebakers.json` exists for session continuity
+3. If resuming, show: "Resuming: [feature] - [summary]"
 
 ### BEFORE WRITING ANY CODE:
-1. Read this router
-2. Analyze what the user is asking for
-3. Load the relevant module files based on your understanding
-4. THEN respond using those patterns
-
----
-
-## MCP TOOL: UPDATE PATTERNS FROM SERVER
-
-**When user says "upgrade codebakers", "update patterns", "download patterns", "sync codebakers", or similar:**
-
-You MUST call the `update_patterns` MCP tool to download the latest patterns from the server.
-
-**DO NOT:**
-- Manually create or write pattern files
-- Offer to "create missing modules"
-- Analyze the `.claude/` folder and suggest changes
-
-**DO:**
-- Call the `update_patterns` MCP tool immediately
-- The tool will download CLAUDE.md and all .claude/ modules from the server
-- Show the user the before/after comparison
-
-**Example:**
-```
-User: "upgrade codebakers"
-AI: [Calls update_patterns MCP tool]
-→ Downloads 59 modules from server
-→ Shows: "Updated from v5.0 (40 modules) to v5.1 (59 modules)"
-```
-
-This is different from `/upgrade` which analyzes CODE QUALITY. `update_patterns` updates the PATTERN FILES themselves.
+1. Check if an MCP tool can help (see table above)
+2. If not, load relevant module files from `.claude/`
+3. THEN respond using those patterns
 
 ---
 
@@ -78,7 +104,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.2
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.3
 ```
 
 **On FIRST message of a new session, also show this header:**
