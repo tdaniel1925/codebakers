@@ -155,29 +155,108 @@ export function getCliVersion(): string {
 
 /**
  * Check if there's a newer version of the CLI available
+ * Uses the CodeBakers API for controlled rollouts (only recommends stable, tested versions)
+ * Falls back to npm registry if API is unavailable
  */
 export async function checkForUpdates(): Promise<{
   currentVersion: string;
   latestVersion: string;
   updateAvailable: boolean;
+  autoUpdateEnabled: boolean;
+  autoUpdateVersion: string | null;
+  isBlocked: boolean;
 } | null> {
   try {
     const currentVersion = getCliVersion();
-    const response = await fetch('https://registry.npmjs.org/@codebakers/cli/latest', {
+    const apiUrl = getApiUrl();
+
+    // First, try the CodeBakers API for controlled rollout info
+    try {
+      const response = await fetch(`${apiUrl}/api/cli/version`, {
+        headers: {
+          'Accept': 'application/json',
+          'X-CLI-Version': currentVersion,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const latestVersion = data.stableVersion || data.latestVersion;
+        const autoUpdateVersion = data.autoUpdateVersion;
+        const isBlocked = data.isBlocked === true;
+
+        return {
+          currentVersion,
+          latestVersion,
+          updateAvailable: latestVersion !== currentVersion,
+          autoUpdateEnabled: data.autoUpdateEnabled === true,
+          autoUpdateVersion: autoUpdateVersion || null,
+          isBlocked,
+        };
+      }
+    } catch {
+      // API unavailable, fall through to npm
+    }
+
+    // Fallback: check npm registry directly
+    const npmResponse = await fetch('https://registry.npmjs.org/@codebakers/cli/latest', {
       headers: { 'Accept': 'application/json' },
     });
 
-    if (!response.ok) return null;
+    if (!npmResponse.ok) return null;
 
-    const data = await response.json();
-    const latestVersion = data.version;
+    const npmData = await npmResponse.json();
+    const latestVersion = npmData.version;
 
     return {
       currentVersion,
       latestVersion,
       updateAvailable: currentVersion !== latestVersion,
+      autoUpdateEnabled: false, // npm fallback doesn't have controlled rollout
+      autoUpdateVersion: null,
+      isBlocked: false,
     };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Report a CLI error to the server for tracking
+ * This helps identify problematic versions for blocking
+ */
+export async function reportCliError(
+  errorType: string,
+  errorMessage: string,
+  context?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const apiUrl = getApiUrl();
+    const cliVersion = getCliVersion();
+
+    // Fire and forget - don't block on error reporting
+    fetch(`${apiUrl}/api/cli/error-report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CLI-Version': cliVersion,
+      },
+      body: JSON.stringify({
+        cliVersion,
+        errorType,
+        errorMessage,
+        stackTrace: context?.stack,
+        context: JSON.stringify({
+          ...context,
+          nodeVersion: process.version,
+          platform: process.platform,
+          arch: process.arch,
+        }),
+      }),
+    }).catch(() => {
+      // Ignore reporting failures
+    });
+  } catch {
+    // Never fail on error reporting
   }
 }

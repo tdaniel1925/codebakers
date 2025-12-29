@@ -50,6 +50,13 @@
       "when": 1766825132574,
       "tag": "0006_add_trial_fingerprints",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1766972898913,
+      "tag": "0007_solid_arachne",
+      "breakpoints": true
     }
   ]
 }

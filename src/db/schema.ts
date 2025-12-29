@@ -390,3 +390,83 @@ export const trialFingerprints = pgTable('trial_fingerprints', {
 
 export type TrialFingerprint = typeof trialFingerprints.$inferSelect;
 export type NewTrialFingerprint = typeof trialFingerprints.$inferInsert;
+
+// CLI Version Status enum
+export const cliVersionStatusEnum = pgEnum('cli_version_status', ['draft', 'testing', 'stable', 'deprecated', 'blocked']);
+
+// CLI Versions - complete admin control over CLI version rollouts
+export const cliVersions = pgTable('cli_versions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Version info
+  version: text('version').notNull().unique(), // e.g., "1.2.5"
+  npmTag: text('npm_tag').default('latest'), // npm tag: latest, beta, next
+
+  // Status control
+  status: cliVersionStatusEnum('status').default('draft'),
+  // draft = just published, not rolled out
+  // testing = internal testing only
+  // stable = safe for all users (auto-update target)
+  // deprecated = still works, but users should update
+  // blocked = critical bug, prevent usage
+
+  // Feature flags for this version
+  minNodeVersion: text('min_node_version').default('18'), // Minimum Node.js required
+  features: text('features'), // JSON array of feature flags enabled
+
+  // Changelog
+  changelog: text('changelog'), // What's new in this version
+  breakingChanges: text('breaking_changes'), // Any breaking changes
+
+  // Rollout control
+  rolloutPercent: integer('rollout_percent').default(0), // 0-100, for gradual rollout
+  isAutoUpdateEnabled: boolean('is_auto_update_enabled').default(false), // Can MCP auto-update to this?
+
+  // Admin metadata
+  publishedBy: uuid('published_by').references(() => profiles.id, { onDelete: 'set null' }),
+  testedBy: uuid('tested_by').references(() => profiles.id, { onDelete: 'set null' }),
+  approvedBy: uuid('approved_by').references(() => profiles.id, { onDelete: 'set null' }),
+
+  // Error tracking
+  errorCount: integer('error_count').default(0), // Auto-incremented by error reports
+  lastErrorAt: timestamp('last_error_at'),
+
+  // Timestamps
+  publishedAt: timestamp('published_at'), // When it was published to npm
+  testedAt: timestamp('tested_at'), // When testing was completed
+  stableAt: timestamp('stable_at'), // When marked as stable
+  deprecatedAt: timestamp('deprecated_at'),
+  blockedAt: timestamp('blocked_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export type CliVersion = typeof cliVersions.$inferSelect;
+export type NewCliVersion = typeof cliVersions.$inferInsert;
+export type CliVersionStatus = 'draft' | 'testing' | 'stable' | 'deprecated' | 'blocked';
+
+// CLI Error Reports - track errors from CLI installations
+export const cliErrorReports = pgTable('cli_error_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Version info
+  cliVersion: text('cli_version').notNull(),
+  nodeVersion: text('node_version'),
+  platform: text('platform'), // win32, darwin, linux
+
+  // Error details
+  errorType: text('error_type').notNull(), // e.g., "install_failed", "mcp_crash", "api_error"
+  errorMessage: text('error_message'),
+  errorStack: text('error_stack'),
+  command: text('command'), // Which command failed
+
+  // Context
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'set null' }),
+  deviceHash: text('device_hash'), // For trial users
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export type CliErrorReport = typeof cliErrorReports.$inferSelect;
+export type NewCliErrorReport = typeof cliErrorReports.$inferInsert;

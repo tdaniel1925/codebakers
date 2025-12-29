@@ -13,6 +13,8 @@ import {
   Terminal,
   Rocket,
   Shield,
+  Apple,
+  Monitor,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -152,49 +154,92 @@ export default function QuickStartPage() {
             </CardContent>
           </Card>
 
-          {/* Single Step for Trial Users */}
+          {/* One-Liner Install for Trial Users */}
           <Card className="bg-neutral-900/80 border-neutral-800">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">1</div>
                 <div>
-                  <CardTitle className="text-white">Run This Command</CardTitle>
-                  <CardDescription className="text-neutral-400">Open a terminal in your project folder and run:</CardDescription>
+                  <CardTitle className="text-white">One-Line Install</CardTitle>
+                  <CardDescription className="text-neutral-400">Copy and paste into your terminal:</CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-lg text-green-400 border border-neutral-800">
-                  npx @codebakers/cli go
-                </code>
-                <Button
-                  onClick={() => copyToClipboard('npx @codebakers/cli go', 'go')}
-                  className="bg-red-600 hover:bg-red-700 shrink-0"
-                >
-                  {copied === 'go' ? (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy
-                    </>
-                  )}
-                </Button>
+            <CardContent className="space-y-6">
+              {/* Mac/Linux */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Apple className="h-4 w-4 text-neutral-400" />
+                  <span className="text-sm text-neutral-400 font-medium">Mac / Linux</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-green-400 border border-neutral-800 overflow-x-auto">
+                    curl -fsSL codebakers.ai/install.sh | bash
+                  </code>
+                  <Button
+                    onClick={() => copyToClipboard('curl -fsSL codebakers.ai/install.sh | bash', 'install-mac')}
+                    className="bg-red-600 hover:bg-red-700 shrink-0"
+                  >
+                    {copied === 'install-mac' ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Windows */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Monitor className="h-4 w-4 text-neutral-400" />
+                  <span className="text-sm text-neutral-400 font-medium">Windows (PowerShell)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-blue-400 border border-neutral-800 overflow-x-auto">
+                    irm codebakers.ai/install.ps1 | iex
+                  </code>
+                  <Button
+                    onClick={() => copyToClipboard('irm codebakers.ai/install.ps1 | iex', 'install-win')}
+                    className="bg-red-600 hover:bg-red-700 shrink-0"
+                  >
+                    {copied === 'install-win' ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-4">
                 <p className="text-green-300 text-sm">
-                  <strong>That's it!</strong> This command automatically:
+                  <strong>That's it!</strong> The installer automatically:
                 </p>
                 <ul className="mt-2 text-green-200/80 text-sm space-y-1 list-disc list-inside">
+                  <li>Installs the CodeBakers CLI globally</li>
+                  <li>Connects to Claude Code</li>
                   <li>Creates your free 7-day trial</li>
                   <li>Installs 40+ production patterns</li>
-                  <li>Configures your AI tools (Claude Code, Cursor)</li>
                 </ul>
+              </div>
+
+              {/* Alternative npx command */}
+              <div className="pt-4 border-t border-neutral-800">
+                <p className="text-xs text-neutral-500 mb-2">Alternative (if you prefer npx):</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded-lg bg-black px-3 py-2 font-mono text-xs text-neutral-400 border border-neutral-800">
+                    npx @codebakers/cli go
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard('npx @codebakers/cli go', 'go')}
+                    className="border-neutral-700 shrink-0"
+                  >
+                    {copied === 'go' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

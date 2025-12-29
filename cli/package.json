@@ -1,6 +1,6 @@
 {
   "name": "@codebakers/cli",
-  "version": "3.3.0",
+  "version": "3.3.1",
   "description": "CodeBakers CLI - Production patterns for AI-assisted development",
   "main": "dist/index.js",
   "bin": {
@@ -15,7 +15,8 @@
     "mcp": "tsx src/mcp/server.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "postpublish": "node scripts/register-version.js"
   },
   "keywords": [
     "codebakers",

@@ -24,7 +24,9 @@ import {
   UserIcon,
   Briefcase01Icon,
   Book02Icon,
+  CommandLineIcon,
 } from 'hugeicons-react';
+import { Monitor } from 'lucide-react';
 
 // Testimonials representing different skill levels
 const testimonials = [
@@ -290,6 +292,71 @@ export default function HomePage() {
               <Tick02Icon className="h-4 w-4 text-blue-500" />
               <span>No credit card</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Install Section - One-liner install commands */}
+      <section id="install" className="py-16 px-4 bg-gradient-to-b from-gray-950 to-background">
+        <div className="container mx-auto max-w-3xl">
+          <div className="text-center mb-10">
+            <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
+              <Rocket01Icon className="w-3 h-3 mr-1" />
+              One Command Install
+            </Badge>
+            <h2 className="text-3xl font-bold mb-4">
+              Install in 30 Seconds
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              One command. Zero config. Works instantly.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Mac/Linux */}
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
+                  <CommandLineIcon className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold">Mac / Linux</h3>
+                  <p className="text-sm text-muted-foreground">Terminal</p>
+                </div>
+              </div>
+              <code className="block w-full text-left px-4 py-3 rounded-lg bg-black text-green-400 font-mono text-sm overflow-x-auto whitespace-nowrap mb-3">
+                curl -fsSL codebakers.ai/install.sh | bash
+              </code>
+              <p className="text-xs text-muted-foreground">
+                Installs CLI, connects to Claude Code, starts 7-day trial
+              </p>
+            </div>
+
+            {/* Windows */}
+            <div className="p-6 rounded-2xl bg-card border border-border">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                  <Monitor className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold">Windows</h3>
+                  <p className="text-sm text-muted-foreground">PowerShell</p>
+                </div>
+              </div>
+              <code className="block w-full text-left px-4 py-3 rounded-lg bg-black text-blue-400 font-mono text-sm overflow-x-auto whitespace-nowrap mb-3">
+                irm codebakers.ai/install.ps1 | iex
+              </code>
+              <p className="text-xs text-muted-foreground">
+                Installs CLI, connects to Claude Code, starts 7-day trial
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              After install, just open Claude Code and say{' '}
+              <span className="text-foreground font-medium">&quot;Build me a todo app&quot;</span>
+            </p>
           </div>
         </div>
       </section>
@@ -650,8 +717,17 @@ export default function HomePage() {
             <div className="p-6 rounded-2xl bg-card border border-border">
               <h3 className="text-xl font-bold mb-2">Trial</h3>
               <div className="text-3xl font-bold mb-4">$0</div>
-              <p className="text-muted-foreground text-sm mb-6">7 days free, no signup</p>
-              <code className="block text-sm bg-muted px-3 py-2 rounded mb-4 text-red-500">npx @codebakers/cli go</code>
+              <p className="text-muted-foreground text-sm mb-4">7 days free, no signup</p>
+              <div className="space-y-2 text-left">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Mac/Linux:</span>
+                </div>
+                <code className="block text-xs bg-muted px-2 py-1.5 rounded text-red-500 overflow-x-auto whitespace-nowrap">curl -fsSL codebakers.ai/install.sh | bash</code>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                  <span>Windows:</span>
+                </div>
+                <code className="block text-xs bg-muted px-2 py-1.5 rounded text-red-500 overflow-x-auto whitespace-nowrap">irm codebakers.ai/install.ps1 | iex</code>
+              </div>
             </div>
 
             {/* Pro */}

@@ -23,6 +23,7 @@ import { go } from './commands/go.js';
 import { extend } from './commands/extend.js';
 import { billing } from './commands/billing.js';
 import { getCachedUpdateInfo, setCachedUpdateInfo, getCliVersion, getCachedPatternInfo, setCachedPatternInfo, getApiKey, getApiUrl, getTrialState, hasValidAccess } from './config.js';
+import { checkForUpdates } from './lib/api.js';
 import { existsSync, writeFileSync, readFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
@@ -30,37 +31,37 @@ import { join } from 'path';
 // Automatic Update Notification
 // ============================================
 
-const CURRENT_VERSION = '3.3.0';
+const CURRENT_VERSION = '3.3.1';
 
 async function checkForUpdatesInBackground(): Promise<void> {
   // Check if we have a valid cached result first (fast path)
   const cached = getCachedUpdateInfo();
   if (cached) {
     if (cached.latestVersion !== CURRENT_VERSION) {
-      showUpdateBanner(CURRENT_VERSION, cached.latestVersion);
+      showUpdateBanner(CURRENT_VERSION, cached.latestVersion, false);
     }
     return;
   }
 
-  // Fetch from npm registry (with timeout to not block CLI)
+  // Use the API-based version check (with controlled rollout support)
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+    const updateInfo = await checkForUpdates();
 
-    const response = await fetch('https://registry.npmjs.org/@codebakers/cli/latest', {
-      headers: { 'Accept': 'application/json' },
-      signal: controller.signal,
-    });
+    if (updateInfo) {
+      setCachedUpdateInfo(updateInfo.latestVersion);
 
-    clearTimeout(timeout);
+      // Show blocked version warning first (critical)
+      if (updateInfo.isBlocked) {
+        showBlockedVersionWarning(updateInfo.currentVersion, updateInfo.latestVersion);
+        return;
+      }
 
-    if (response.ok) {
-      const data = await response.json();
-      const latestVersion = data.version;
-      setCachedUpdateInfo(latestVersion);
-
-      if (latestVersion !== CURRENT_VERSION) {
-        showUpdateBanner(CURRENT_VERSION, latestVersion);
+      // Only show update banner if auto-update is enabled for this version
+      if (updateInfo.autoUpdateEnabled && updateInfo.autoUpdateVersion) {
+        showUpdateBanner(updateInfo.currentVersion, updateInfo.autoUpdateVersion, true);
+      } else if (updateInfo.updateAvailable) {
+        // Update available but not auto-update enabled - show regular banner
+        showUpdateBanner(updateInfo.currentVersion, updateInfo.latestVersion, false);
       }
     }
   } catch {
@@ -68,11 +69,27 @@ async function checkForUpdatesInBackground(): Promise<void> {
   }
 }
 
-function showUpdateBanner(currentVersion: string, latestVersion: string): void {
+function showBlockedVersionWarning(currentVersion: string, recommendedVersion: string): void {
+  console.log(chalk.red(`
+  ╭─────────────────────────────────────────────────────────╮
+  │                                                         │
+  │   ${chalk.bold('⚠️  VERSION BLOCKED')}                                   │
+  │                                                         │
+  │   Your CLI version ${chalk.gray(currentVersion)} has critical issues.       │
+  │   Please update immediately to ${chalk.green(recommendedVersion)}                   │
+  │                                                         │
+  │   Run ${chalk.cyan('npm i -g @codebakers/cli@latest')} to update        │
+  │                                                         │
+  ╰─────────────────────────────────────────────────────────╯
+  `));
+}
+
+function showUpdateBanner(currentVersion: string, latestVersion: string, isRecommended: boolean): void {
+  const updateType = isRecommended ? chalk.green('Recommended update') : chalk.bold('Update available!');
   console.log(chalk.yellow(`
   ╭─────────────────────────────────────────────────────────╮
   │                                                         │
-  │   ${chalk.bold('Update available!')} ${chalk.gray(currentVersion)} → ${chalk.green(latestVersion)}                     │
+  │   ${updateType} ${chalk.gray(currentVersion)} → ${chalk.green(latestVersion)}                     │
   │                                                         │
   │   Run ${chalk.cyan('npm i -g @codebakers/cli@latest')} to update        │
   │                                                         │
