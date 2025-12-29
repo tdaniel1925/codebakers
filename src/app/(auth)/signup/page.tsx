@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,7 +40,12 @@ function GitHubIcon({ className }: { className?: string }) {
 export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGitHubLoading, setIsGitHubLoading] = useState(false);
+  const [isWindows, setIsWindows] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setIsWindows(navigator.platform.toLowerCase().includes('win'));
+  }, []);
 
   const form = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
@@ -217,12 +222,17 @@ export default function SignupPage() {
 
         {/* CLI Trial Option */}
         <div className="mt-6 pt-6 border-t border-neutral-800">
-          <p className="text-center text-xs text-neutral-500 mb-2">
+          <p className="text-center text-xs text-neutral-500 mb-3">
             Want to try first? No signup needed:
           </p>
-          <code className="block w-full text-center text-sm bg-neutral-800/50 border border-neutral-700 rounded-lg px-4 py-2 text-red-400 font-mono">
-            npx @codebakers/cli go
-          </code>
+          <a
+            href={isWindows ? '/install-codebakers.bat' : '/install-codebakers.command'}
+            download
+            className="flex items-center justify-center gap-2 w-full text-sm bg-neutral-800/50 border border-neutral-700 rounded-lg px-4 py-2.5 text-red-400 hover:bg-neutral-700 hover:text-red-300 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Download Installer
+          </a>
           <p className="text-center text-xs text-neutral-500 mt-2">
             7-day free trial, instant access
           </p>
