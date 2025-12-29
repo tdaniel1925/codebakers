@@ -98,6 +98,9 @@ function InstallSection() {
             <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">3</span>
             Open Claude Code and start building!
           </h3>
+          <p className="mt-4 text-sm text-gray-500 text-center">
+            No account or API key required - free trial starts automatically
+          </p>
         </div>
 
         {/* OS toggle */}
