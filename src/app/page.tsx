@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Code2, Copy, Check } from 'lucide-react';
+import { Code2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -49,23 +49,15 @@ const testimonials = [
 ];
 
 function InstallSection() {
-  const [copied, setCopied] = useState(false);
   const [isWindows, setIsWindows] = useState(false);
 
   useEffect(() => {
-    // Detect OS on mount
     setIsWindows(navigator.platform.toLowerCase().includes('win'));
   }, []);
 
-  const macCommand = 'curl -fsSL codebakers.ai/install.sh | bash';
-  const winCommand = 'irm codebakers.ai/install.ps1 | iex';
-
-  const handleInstall = async () => {
-    const command = isWindows ? winCommand : macCommand;
-    await navigator.clipboard.writeText(command);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
-  };
+  const downloadUrl = isWindows
+    ? '/install-codebakers.bat'
+    : '/install-codebakers.command';
 
   return (
     <section id="install" className="py-16 px-4 bg-black">
@@ -74,70 +66,48 @@ function InstallSection() {
           <Rocket01Icon className="w-3 h-3 mr-1" />
           One Click Install
         </Badge>
-        <h2 className="text-3xl font-bold mb-4">
+        <h2 className="text-3xl font-bold mb-4 text-white">
           Install in 30 Seconds
         </h2>
-        <p className="text-lg text-muted-foreground mb-8">
-          Click the button, paste in {isWindows ? 'PowerShell' : 'Terminal'}, done.
+        <p className="text-lg text-gray-400 mb-8">
+          Download, double-click, done.
         </p>
 
-        {/* Big Install Button */}
-        <Button
-          onClick={handleInstall}
-          size="lg"
-          className={`text-lg px-8 py-6 h-auto transition-all duration-300 ${
-            copied
-              ? 'bg-green-600 hover:bg-green-600'
-              : 'bg-red-600 hover:bg-red-700'
-          }`}
-        >
-          {copied ? (
-            <>
-              <Check className="mr-2 h-5 w-5" />
-              Copied! Now paste in {isWindows ? 'PowerShell' : 'Terminal'}
-            </>
-          ) : (
-            <>
-              <Copy className="mr-2 h-5 w-5" />
-              Copy Install Command
-            </>
-          )}
-        </Button>
-
-        {/* Show the command after copying */}
-        {copied && (
-          <div className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <p className="text-sm text-muted-foreground mb-2">Command copied:</p>
-            <code className="inline-block px-4 py-2 rounded-lg bg-black text-green-400 font-mono text-sm">
-              {isWindows ? winCommand : macCommand}
-            </code>
-          </div>
-        )}
+        {/* Big Download Button */}
+        <a href={downloadUrl} download>
+          <Button
+            size="lg"
+            className="text-lg px-8 py-6 h-auto bg-red-600 hover:bg-red-700 transition-all duration-300"
+          >
+            <Download className="mr-2 h-5 w-5" />
+            Download Installer
+          </Button>
+        </a>
 
         {/* Instructions */}
-        <div className="mt-8 p-6 rounded-2xl bg-card border border-border text-left max-w-md mx-auto">
-          <h3 className="font-bold mb-3 flex items-center gap-2">
+        <div className="mt-8 p-6 rounded-2xl bg-gray-900 border border-gray-800 text-left max-w-md mx-auto">
+          <h3 className="font-bold mb-3 flex items-center gap-2 text-white">
             <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">1</span>
-            Click the button, paste in {isWindows ? 'PowerShell' : 'Terminal'}
+            Download and double-click the installer
           </h3>
-          <h3 className="font-bold mb-3 flex items-center gap-2">
+          <h3 className="font-bold mb-3 flex items-center gap-2 text-white">
             <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">2</span>
-            In your project: <code className="text-sm font-mono">codebakers go</code>
+            In your project: <code className="text-sm font-mono text-red-400">codebakers go</code>
           </h3>
-          <h3 className="font-bold flex items-center gap-2">
+          <h3 className="font-bold flex items-center gap-2 text-white">
             <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">3</span>
             Open Claude Code and start building!
           </h3>
         </div>
 
         {/* OS toggle */}
-        <p className="mt-6 text-sm text-muted-foreground">
-          {isWindows ? 'On Mac/Linux?' : 'On Windows?'}{' '}
+        <p className="mt-6 text-sm text-gray-500">
+          Downloading for {isWindows ? 'Windows' : 'Mac/Linux'}.{' '}
           <button
             onClick={() => setIsWindows(!isWindows)}
             className="text-red-500 hover:text-red-400 underline"
           >
-            Click here
+            Switch to {isWindows ? 'Mac/Linux' : 'Windows'}
           </button>
         </p>
       </div>
