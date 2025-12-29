@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 4.9 - Pattern Access Failure Modes
+# Version: 5.2 - MCP Pattern Updates
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
@@ -22,6 +22,34 @@ You have access to modular pattern files in `.claude/` folder.
 2. Analyze what the user is asking for
 3. Load the relevant module files based on your understanding
 4. THEN respond using those patterns
+
+---
+
+## MCP TOOL: UPDATE PATTERNS FROM SERVER
+
+**When user says "upgrade codebakers", "update patterns", "download patterns", "sync codebakers", or similar:**
+
+You MUST call the `update_patterns` MCP tool to download the latest patterns from the server.
+
+**DO NOT:**
+- Manually create or write pattern files
+- Offer to "create missing modules"
+- Analyze the `.claude/` folder and suggest changes
+
+**DO:**
+- Call the `update_patterns` MCP tool immediately
+- The tool will download CLAUDE.md and all .claude/ modules from the server
+- Show the user the before/after comparison
+
+**Example:**
+```
+User: "upgrade codebakers"
+AI: [Calls update_patterns MCP tool]
+→ Downloads 59 modules from server
+→ Shows: "Updated from v5.0 (40 modules) to v5.1 (59 modules)"
+```
+
+This is different from `/upgrade` which analyzes CODE QUALITY. `update_patterns` updates the PATTERN FILES themselves.
 
 ---
 
@@ -50,7 +78,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v4.9
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.2
 ```
 
 **On FIRST message of a new session, also show this header:**
