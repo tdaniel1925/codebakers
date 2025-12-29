@@ -460,26 +460,12 @@ export default function CliVersionsPage() {
                           size="sm"
                           onClick={() => updateVersion(version.id, { status: nextStatus })}
                           disabled={isUpdating === version.id}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className={nextStatus === 'deprecated' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'}
                         >
                           {isUpdating === version.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <>Promote to {nextStatus}</>
-                          )}
-                        </Button>
-                      )}
-                      {version.status === 'stable' && (
-                        <Button
-                          size="sm"
-                          onClick={() => updateVersion(version.id, { status: 'deprecated' })}
-                          disabled={isUpdating === version.id}
-                          className="bg-yellow-600 hover:bg-yellow-700"
-                        >
-                          {isUpdating === version.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>Promote to deprecated</>
                           )}
                         </Button>
                       )}
