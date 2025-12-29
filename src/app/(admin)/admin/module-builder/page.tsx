@@ -307,7 +307,7 @@ What would you like to work on today?`,
               )}
             </Button>
           </div>
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-slate-400 mt-2">
             Press Enter to send, Shift+Enter for new line
           </p>
         </div>

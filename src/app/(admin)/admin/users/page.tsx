@@ -423,10 +423,10 @@ export default function AdminUsersPage() {
                           <span className="text-slate-400">
                             {user.team.freeDownloadsUsed ?? 0}/{user.team.freeDownloadsLimit ?? 10}
                           </span>
-                          <Download className="h-3 w-3 text-slate-500" />
+                          <Download className="h-3 w-3 text-slate-400" />
                         </div>
                       ) : (
-                        <span className="text-slate-500">-</span>
+                        <span className="text-slate-400">-</span>
                       )}
                     </TableCell>
                     <TableCell className="text-slate-400">

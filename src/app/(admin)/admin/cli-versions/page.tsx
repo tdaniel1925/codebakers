@@ -290,9 +290,9 @@ export default function CliVersionsPage() {
         {versions.length === 0 ? (
           <Card className="bg-slate-800/50 border-slate-700">
             <CardContent className="py-12 text-center">
-              <Terminal className="h-12 w-12 mx-auto text-slate-500 mb-4" />
+              <Terminal className="h-12 w-12 mx-auto text-slate-400 mb-4" />
               <p className="text-slate-400">No CLI versions registered</p>
-              <p className="text-slate-500 text-sm mt-1">
+              <p className="text-slate-400 text-sm mt-1">
                 Add a version after publishing to npm
               </p>
             </CardContent>
@@ -443,7 +443,7 @@ export default function CliVersionsPage() {
                                 Save
                               </Button>
                             </div>
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="text-xs text-slate-400 mt-1">
                               Percentage of users who will receive this update
                             </p>
                           </div>
@@ -523,7 +523,7 @@ export default function CliVersionsPage() {
                                       <span className="text-red-400 font-mono">
                                         {err.errorType}
                                       </span>
-                                      <span className="text-slate-500 text-xs">
+                                      <span className="text-slate-400 text-xs">
                                         {new Date(err.createdAt).toLocaleString()}
                                       </span>
                                     </div>
@@ -544,14 +544,14 @@ export default function CliVersionsPage() {
                           <Label className="text-slate-400 text-sm">Version Timeline</Label>
                           <div className="flex flex-wrap gap-4 mt-3 text-sm">
                             <div>
-                              <span className="text-slate-500">Created:</span>{' '}
+                              <span className="text-slate-400">Created:</span>{' '}
                               <span className="text-white">
                                 {new Date(versionDetail.createdAt).toLocaleDateString()}
                               </span>
                             </div>
                             {versionDetail.testedAt && (
                               <div>
-                                <span className="text-slate-500">Tested:</span>{' '}
+                                <span className="text-slate-400">Tested:</span>{' '}
                                 <span className="text-blue-400">
                                   {new Date(versionDetail.testedAt).toLocaleDateString()}
                                 </span>
@@ -559,7 +559,7 @@ export default function CliVersionsPage() {
                             )}
                             {versionDetail.stableAt && (
                               <div>
-                                <span className="text-slate-500">Stable:</span>{' '}
+                                <span className="text-slate-400">Stable:</span>{' '}
                                 <span className="text-green-400">
                                   {new Date(versionDetail.stableAt).toLocaleDateString()}
                                 </span>
@@ -567,7 +567,7 @@ export default function CliVersionsPage() {
                             )}
                             {versionDetail.deprecatedAt && (
                               <div>
-                                <span className="text-slate-500">Deprecated:</span>{' '}
+                                <span className="text-slate-400">Deprecated:</span>{' '}
                                 <span className="text-yellow-400">
                                   {new Date(versionDetail.deprecatedAt).toLocaleDateString()}
                                 </span>
@@ -575,7 +575,7 @@ export default function CliVersionsPage() {
                             )}
                             {versionDetail.blockedAt && (
                               <div>
-                                <span className="text-slate-500">Blocked:</span>{' '}
+                                <span className="text-slate-400">Blocked:</span>{' '}
                                 <span className="text-red-400">
                                   {new Date(versionDetail.blockedAt).toLocaleDateString()}
                                 </span>

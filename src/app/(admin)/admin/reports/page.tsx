@@ -348,7 +348,7 @@ export default function AdminReportsPage() {
 
                       {report.modulePattern && (
                         <div className="text-sm">
-                          <span className="text-slate-500">Module shows: </span>
+                          <span className="text-slate-400">Module shows: </span>
                           <code className="bg-slate-900 px-2 py-0.5 rounded text-red-400">
                             {report.modulePattern}
                           </code>
@@ -357,14 +357,14 @@ export default function AdminReportsPage() {
 
                       {report.currentPattern && (
                         <div className="text-sm">
-                          <span className="text-slate-500">Should be: </span>
+                          <span className="text-slate-400">Should be: </span>
                           <code className="bg-slate-900 px-2 py-0.5 rounded text-green-400">
                             {report.currentPattern}
                           </code>
                         </div>
                       )}
 
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-slate-400">
                         Reported: {new Date(report.createdAt).toLocaleDateString()}
                         {report.fixedInVersion && (
                           <span className="ml-4">Fixed in: v{report.fixedInVersion}</span>

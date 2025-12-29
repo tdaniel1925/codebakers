@@ -27,7 +27,7 @@ export default function TrialPage() {
           {/* CLI Command */}
           <div className="max-w-md mx-auto mb-8">
             <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4">
-              <p className="text-neutral-500 text-sm mb-2 flex items-center gap-2">
+              <p className="text-neutral-400 text-sm mb-2 flex items-center gap-2">
                 <Terminal className="h-4 w-4" />
                 Run this command:
               </p>
@@ -37,7 +37,7 @@ export default function TrialPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-3 text-sm text-neutral-500">
+          <div className="flex flex-wrap justify-center gap-3 text-sm text-neutral-400">
             <span className="flex items-center gap-1">
               <CheckCircle className="h-4 w-4 text-green-500" />
               {TRIAL.ANONYMOUS_DAYS} days free

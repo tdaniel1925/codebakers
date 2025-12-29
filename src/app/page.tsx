@@ -438,7 +438,7 @@ export default function HomePage() {
       </section>
 
       {/* The Magic - Smart Triggers */}
-      <section className="py-20 px-4 bg-muted/30">
+      <section id="features" className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800">
@@ -511,7 +511,7 @@ export default function HomePage() {
       </section>
 
       {/* Before/After - Quick Visual */}
-      <section className="py-20 px-4">
+      <section id="compare" className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="rounded-2xl border-2 border-border bg-card overflow-hidden shadow-2xl">
             {/* IDE Header */}
@@ -647,11 +647,11 @@ export default function HomePage() {
       </section>
 
       {/* Quick Stats */}
-      <section className="py-12 px-4 bg-foreground text-background">
+      <section id="modules" className="py-12 px-4 bg-foreground text-background">
         <div className="container mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-red-400">39</div>
+              <div className="text-4xl font-bold text-red-400">{CODEBAKERS_STATS.moduleCount}</div>
               <div className="text-background/70 text-sm">Pattern Modules</div>
             </div>
             <div>
@@ -703,7 +703,7 @@ export default function HomePage() {
       </section>
 
       {/* Simple Pricing */}
-      <section className="py-20 px-4 bg-muted/30">
+      <section id="pricing" className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-4xl text-center">
           <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
             Simple Pricing

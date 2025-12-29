@@ -264,14 +264,14 @@ export default function AdminDashboardPage() {
                 <p className="text-xl font-bold text-green-400 mt-1">
                   {stats.trials.activeExtended}
                 </p>
-                <p className="text-xs text-slate-500">{stats.trials.extensionRate}% rate</p>
+                <p className="text-xs text-slate-400">{stats.trials.extensionRate}% rate</p>
               </div>
               <div className="bg-slate-900/50 rounded p-3">
                 <p className="text-slate-400 text-xs">Converted</p>
                 <p className="text-xl font-bold text-purple-400 mt-1">
                   {stats.trials.convertedTrials}
                 </p>
-                <p className="text-xs text-slate-500">{stats.trials.conversionRate}% rate</p>
+                <p className="text-xs text-slate-400">{stats.trials.conversionRate}% rate</p>
               </div>
               <div className="bg-slate-900/50 rounded p-3">
                 <p className="text-slate-400 text-xs">Flagged</p>

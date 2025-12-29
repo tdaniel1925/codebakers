@@ -383,7 +383,7 @@ export default function AdminSubmissionsPage() {
                 </div>
 
                 {/* Metadata */}
-                <div className="flex items-center justify-between text-xs text-slate-500">
+                <div className="flex items-center justify-between text-xs text-slate-400">
                   <div className="flex items-center gap-4">
                     {submission.basePattern && (
                       <span>Based on: <span className="text-slate-400">{submission.basePattern}</span></span>

@@ -170,7 +170,7 @@ export function AnalyticsContent({ stats, timeSaved }: AnalyticsContentProps) {
             </div>
           ) : (
             <div className="h-64 flex items-center justify-center">
-              <p className="text-neutral-500">No usage data yet. Start using patterns to see your analytics!</p>
+              <p className="text-neutral-400">No usage data yet. Start using patterns to see your analytics!</p>
             </div>
           )}
         </CardContent>
@@ -225,7 +225,7 @@ export function AnalyticsContent({ stats, timeSaved }: AnalyticsContentProps) {
             </div>
           ) : (
             <div className="h-64 flex items-center justify-center">
-              <p className="text-neutral-500">No patterns used yet. Start building to see your top patterns!</p>
+              <p className="text-neutral-400">No patterns used yet. Start building to see your top patterns!</p>
             </div>
           )}
         </CardContent>

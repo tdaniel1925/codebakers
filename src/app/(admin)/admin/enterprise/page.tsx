@@ -349,7 +349,7 @@ export default function AdminEnterprisePage() {
                           {inquiry.teamSize}
                         </span>
                       ) : (
-                        <span className="text-slate-500">-</span>
+                        <span className="text-slate-400">-</span>
                       )}
                     </TableCell>
                     <TableCell>

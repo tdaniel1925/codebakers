@@ -77,7 +77,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 </div>
               ))}
             </div>
-            <span className="text-sm text-neutral-500">
+            <span className="text-sm text-neutral-400">
               1,200+ developers shipping faster
             </span>
           </div>

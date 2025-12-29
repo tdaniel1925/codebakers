@@ -334,7 +334,7 @@ function BillingContent() {
 
                 {/* Payment method indicator */}
                 <div className="flex items-center gap-2 pt-2 border-t border-neutral-800">
-                  <span className="text-xs text-neutral-500">
+                  <span className="text-xs text-neutral-400">
                     {isEnterprise ? 'Custom pricing & onboarding' : 'Secure payment via PayPal'}
                   </span>
                 </div>

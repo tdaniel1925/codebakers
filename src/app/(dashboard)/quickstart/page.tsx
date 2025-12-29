@@ -226,7 +226,7 @@ export default function QuickStartPage() {
 
               {/* Alternative npx command */}
               <div className="pt-4 border-t border-neutral-800">
-                <p className="text-xs text-neutral-500 mb-2">Alternative (if you prefer npx):</p>
+                <p className="text-xs text-neutral-400 mb-2">Alternative (if you prefer npx):</p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 rounded-lg bg-black px-3 py-2 font-mono text-xs text-neutral-400 border border-neutral-800">
                     npx @codebakers/cli go
@@ -265,7 +265,7 @@ export default function QuickStartPage() {
                 </div>
                 <div className="space-y-2">
                   <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold mx-auto">2</div>
-                  <p className="text-white font-medium">Run Setup <span className="text-neutral-500 font-normal">(once)</span></p>
+                  <p className="text-white font-medium">Run Setup <span className="text-neutral-400 font-normal">(once)</span></p>
                   <p className="text-neutral-400 text-sm">One terminal command</p>
                 </div>
                 <div className="space-y-2">
@@ -333,7 +333,7 @@ export default function QuickStartPage() {
                     </>
                   )}
                 </Button>
-                <span className="text-xs text-neutral-500">(Old key stops working)</span>
+                <span className="text-xs text-neutral-400">(Old key stops working)</span>
               </div>
             </CardContent>
           </Card>
@@ -380,7 +380,7 @@ export default function QuickStartPage() {
                         {copied === 'setup' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                       </Button>
                     </div>
-                    <p className="text-sm text-neutral-500">
+                    <p className="text-sm text-neutral-400">
                       Paste your API key when prompted. Setup handles everything else.
                     </p>
                   </div>
@@ -420,7 +420,7 @@ export default function QuickStartPage() {
                     </p>
                     <div className="rounded-lg bg-black border border-neutral-800 p-4">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs text-neutral-500">mcp.json</span>
+                        <span className="text-xs text-neutral-400">mcp.json</span>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -483,19 +483,19 @@ export default function QuickStartPage() {
                 <p className="text-purple-400 font-mono text-sm">
                   "Build me a task management app"
                 </p>
-                <p className="text-neutral-500 text-xs mt-2">→ AI creates entire project, all files, installs dependencies</p>
+                <p className="text-neutral-400 text-xs mt-2">→ AI creates entire project, all files, installs dependencies</p>
               </div>
               <div className="bg-black rounded-lg p-4 border border-neutral-800">
                 <p className="text-purple-400 font-mono text-sm">
                   "Add user authentication with email and password"
                 </p>
-                <p className="text-neutral-500 text-xs mt-2">→ AI uses auth patterns to build login/signup</p>
+                <p className="text-neutral-400 text-xs mt-2">→ AI uses auth patterns to build login/signup</p>
               </div>
               <div className="bg-black rounded-lg p-4 border border-neutral-800">
                 <p className="text-purple-400 font-mono text-sm">
                   "Create a dashboard with stats cards and a data table"
                 </p>
-                <p className="text-neutral-500 text-xs mt-2">→ AI uses frontend patterns for production-ready UI</p>
+                <p className="text-neutral-400 text-xs mt-2">→ AI uses frontend patterns for production-ready UI</p>
               </div>
             </div>
 
@@ -521,7 +521,7 @@ export default function QuickStartPage() {
             </div>
             <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
           </div>
-          <CardDescription className="text-neutral-500">
+          <CardDescription className="text-neutral-400">
             For power users who prefer terminal commands
           </CardDescription>
         </CardHeader>
@@ -530,31 +530,31 @@ export default function QuickStartPage() {
             <div className="grid gap-3 text-sm">
               <div className="flex items-center gap-2">
                 <code className="text-red-400 font-mono w-48">codebakers go</code>
-                <span className="text-neutral-500">Start trial & install patterns (no API key)</span>
+                <span className="text-neutral-400">Start trial & install patterns (no API key)</span>
               </div>
               <div className="flex items-center gap-2">
                 <code className="text-red-400 font-mono w-48">codebakers setup</code>
-                <span className="text-neutral-500">Configure with API key (paid users)</span>
+                <span className="text-neutral-400">Configure with API key (paid users)</span>
               </div>
               <div className="flex items-center gap-2">
                 <code className="text-red-400 font-mono w-48">codebakers scaffold</code>
-                <span className="text-neutral-500">Create new project with full stack</span>
+                <span className="text-neutral-400">Create new project with full stack</span>
               </div>
               <div className="flex items-center gap-2">
                 <code className="text-red-400 font-mono w-48">codebakers init</code>
-                <span className="text-neutral-500">Add patterns to existing project</span>
+                <span className="text-neutral-400">Add patterns to existing project</span>
               </div>
               <div className="flex items-center gap-2">
                 <code className="text-red-400 font-mono w-48">codebakers generate</code>
-                <span className="text-neutral-500">Generate components, APIs, services</span>
+                <span className="text-neutral-400">Generate components, APIs, services</span>
               </div>
               <div className="flex items-center gap-2">
                 <code className="text-red-400 font-mono w-48">codebakers doctor</code>
-                <span className="text-neutral-500">Diagnose setup issues</span>
+                <span className="text-neutral-400">Diagnose setup issues</span>
               </div>
               <div className="flex items-center gap-2">
                 <code className="text-red-400 font-mono w-48">codebakers upgrade</code>
-                <span className="text-neutral-500">Update to latest patterns</span>
+                <span className="text-neutral-400">Update to latest patterns</span>
               </div>
             </div>
           </CardContent>

@@ -240,7 +240,7 @@ export default function EnterprisePage() {
                   )}
                 </Button>
 
-                <p className="text-xs text-neutral-500 text-center">
+                <p className="text-xs text-neutral-400 text-center">
                   We typically respond within 24 hours
                 </p>
               </form>

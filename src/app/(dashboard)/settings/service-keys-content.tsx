@@ -295,7 +295,7 @@ export function ServiceKeysContent({ initialKeys }: ServiceKeysContentProps) {
           <div key={category} className="space-y-4">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-white">{categoryLabels[category].label}</h2>
-              <span className="text-sm text-neutral-500">{categoryLabels[category].description}</span>
+              <span className="text-sm text-neutral-400">{categoryLabels[category].description}</span>
             </div>
 
             {categoryServices.map((service) => (

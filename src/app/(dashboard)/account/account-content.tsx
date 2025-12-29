@@ -206,7 +206,7 @@ export function AccountContent({ user, stats, team, apiKey }: AccountContentProp
                     {apiKey}_****...****
                   </code>
                 </div>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-400">
                   For security, the full key is only shown once when generated. Go to IDE Setup to generate a new key if needed.
                 </p>
               </div>

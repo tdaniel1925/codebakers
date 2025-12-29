@@ -592,15 +592,15 @@ export default function AdminContentPage() {
                   <div className="mt-3 pt-3 border-t border-slate-700">
                     <div className="grid grid-cols-3 gap-4 text-xs">
                       <div>
-                        <span className="text-slate-500">Lines:</span>
+                        <span className="text-slate-400">Lines:</span>
                         <span className="text-green-400 ml-2">{countLines(claudeMdContent).toLocaleString()}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Size:</span>
+                        <span className="text-slate-400">Size:</span>
                         <span className="text-green-400 ml-2">{formatSize(claudeMdContent)}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Sections:</span>
+                        <span className="text-slate-400">Sections:</span>
                         <span className="text-green-400 ml-2">{(claudeMdContent.match(/^##\s/gm) || []).length}</span>
                       </div>
                     </div>
@@ -656,15 +656,15 @@ export default function AdminContentPage() {
                   <div className="mt-3 pt-3 border-t border-slate-700">
                     <div className="grid grid-cols-3 gap-4 text-xs">
                       <div>
-                        <span className="text-slate-500">Lines:</span>
+                        <span className="text-slate-400">Lines:</span>
                         <span className="text-purple-400 ml-2">{countLines(cursorRulesContent).toLocaleString()}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Size:</span>
+                        <span className="text-slate-400">Size:</span>
                         <span className="text-purple-400 ml-2">{formatSize(cursorRulesContent)}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Sections:</span>
+                        <span className="text-slate-400">Sections:</span>
                         <span className="text-purple-400 ml-2">{(cursorRulesContent.match(/^##\s/gm) || []).length}</span>
                       </div>
                     </div>
@@ -721,17 +721,17 @@ export default function AdminContentPage() {
                     {/* Summary stats */}
                     <div className="grid grid-cols-3 gap-4 text-xs mb-3">
                       <div>
-                        <span className="text-slate-500">Modules:</span>
+                        <span className="text-slate-400">Modules:</span>
                         <span className="text-green-400 ml-2">{Object.keys(modulesContent).length}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Total Lines:</span>
+                        <span className="text-slate-400">Total Lines:</span>
                         <span className="text-green-400 ml-2">
                           {Object.values(modulesContent).reduce((acc, c) => acc + countLines(c), 0).toLocaleString()}
                         </span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Total Size:</span>
+                        <span className="text-slate-400">Total Size:</span>
                         <span className="text-green-400 ml-2">
                           {formatSize(Object.values(modulesContent).join(''))}
                         </span>
@@ -752,7 +752,7 @@ export default function AdminContentPage() {
                             <div className="flex items-center gap-2">
                               <FileCode className="h-3 w-3 text-blue-400" />
                               <span className="text-white font-mono">{name}</span>
-                              <span className="text-slate-500">{getModuleDescription(name, content)}</span>
+                              <span className="text-slate-400">{getModuleDescription(name, content)}</span>
                             </div>
                             <span className="text-slate-400">{countLines(content).toLocaleString()} lines</span>
                           </div>
@@ -812,17 +812,17 @@ export default function AdminContentPage() {
                     {/* Summary stats */}
                     <div className="grid grid-cols-3 gap-4 text-xs mb-3">
                       <div>
-                        <span className="text-slate-500">Modules:</span>
+                        <span className="text-slate-400">Modules:</span>
                         <span className="text-purple-400 ml-2">{Object.keys(cursorModulesContent).length}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Total Lines:</span>
+                        <span className="text-slate-400">Total Lines:</span>
                         <span className="text-purple-400 ml-2">
                           {Object.values(cursorModulesContent).reduce((acc, c) => acc + countLines(c), 0).toLocaleString()}
                         </span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Total Size:</span>
+                        <span className="text-slate-400">Total Size:</span>
                         <span className="text-purple-400 ml-2">
                           {formatSize(Object.values(cursorModulesContent).join(''))}
                         </span>
@@ -843,7 +843,7 @@ export default function AdminContentPage() {
                             <div className="flex items-center gap-2">
                               <FileCode className="h-3 w-3 text-purple-400" />
                               <span className="text-white font-mono">{name}</span>
-                              <span className="text-slate-500">{getModuleDescription(name, content)}</span>
+                              <span className="text-slate-400">{getModuleDescription(name, content)}</span>
                             </div>
                             <span className="text-slate-400">{countLines(content).toLocaleString()} lines</span>
                           </div>
@@ -914,7 +914,7 @@ export default function AdminContentPage() {
                     <File className="h-4 w-4 text-slate-400" />
                     <span className="text-white">CLAUDE.md</span>
                   </div>
-                  <span className={selectedVersion.claudeMdContent ? 'text-green-400' : 'text-slate-500'}>
+                  <span className={selectedVersion.claudeMdContent ? 'text-green-400' : 'text-slate-400'}>
                     {selectedVersion.claudeMdContent
                       ? `${selectedVersion.claudeMdContent.split('\n').length} lines`
                       : 'Not uploaded'}
@@ -927,7 +927,7 @@ export default function AdminContentPage() {
                     <File className="h-4 w-4 text-slate-400" />
                     <span className="text-white">.cursorrules</span>
                   </div>
-                  <span className={selectedVersion.cursorRulesContent ? 'text-green-400' : 'text-slate-500'}>
+                  <span className={selectedVersion.cursorRulesContent ? 'text-green-400' : 'text-slate-400'}>
                     {selectedVersion.cursorRulesContent
                       ? `${selectedVersion.cursorRulesContent.split('\n').length} lines`
                       : 'Not uploaded'}
@@ -941,14 +941,14 @@ export default function AdminContentPage() {
                       <FileCode className="h-4 w-4 text-slate-400" />
                       <span className="text-white">.claude/ folder</span>
                     </div>
-                    <span className={Object.keys(selectedVersion.modulesContent || {}).length > 0 ? 'text-green-400' : 'text-slate-500'}>
+                    <span className={Object.keys(selectedVersion.modulesContent || {}).length > 0 ? 'text-green-400' : 'text-slate-400'}>
                       {Object.keys(selectedVersion.modulesContent || {}).length} files
                     </span>
                   </div>
                   {Object.keys(selectedVersion.modulesContent || {}).length > 0 && (
                     <div className="mt-2 pt-2 border-t border-slate-700 space-y-1">
                       {Object.keys(selectedVersion.modulesContent).sort().map((name) => (
-                        <div key={name} className="text-xs text-slate-500 flex items-center gap-1">
+                        <div key={name} className="text-xs text-slate-400 flex items-center gap-1">
                           <FileCode className="h-3 w-3" />
                           {name}
                         </div>
@@ -964,14 +964,14 @@ export default function AdminContentPage() {
                       <FileCode className="h-4 w-4 text-slate-400" />
                       <span className="text-white">.cursorrules-modules/ folder</span>
                     </div>
-                    <span className={Object.keys(selectedVersion.cursorModulesContent || {}).length > 0 ? 'text-green-400' : 'text-slate-500'}>
+                    <span className={Object.keys(selectedVersion.cursorModulesContent || {}).length > 0 ? 'text-green-400' : 'text-slate-400'}>
                       {Object.keys(selectedVersion.cursorModulesContent || {}).length} files
                     </span>
                   </div>
                   {Object.keys(selectedVersion.cursorModulesContent || {}).length > 0 && (
                     <div className="mt-2 pt-2 border-t border-slate-700 space-y-1">
                       {Object.keys(selectedVersion.cursorModulesContent).sort().map((name) => (
-                        <div key={name} className="text-xs text-slate-500 flex items-center gap-1">
+                        <div key={name} className="text-xs text-slate-400 flex items-center gap-1">
                           <FileCode className="h-3 w-3" />
                           {name}
                         </div>

@@ -29,7 +29,7 @@ export default function CommandsPage() {
             Start a completely new project from scratch. The AI will ask discovery questions,
             create a detailed PRD, and build your app phase by phase with tests.
           </p>
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 text-sm text-neutral-400">
             Example: <code>/build a project management tool for remote teams</code>
           </p>
         </Link>
@@ -45,7 +45,7 @@ export default function CommandsPage() {
             Add new functionality to an existing project. The AI analyzes your codebase
             and integrates the new feature properly following your existing patterns.
           </p>
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 text-sm text-neutral-400">
             Example: <code>/feature add dark mode toggle</code>
           </p>
         </Link>
@@ -61,7 +61,7 @@ export default function CommandsPage() {
             Review your codebase for quality, security, and best practices. Generates
             a detailed report with prioritized recommendations.
           </p>
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 text-sm text-neutral-400">
             Great for existing projects to see how they compare to production standards.
           </p>
         </Link>
@@ -77,7 +77,7 @@ export default function CommandsPage() {
             View the current state of your project. Shows what's been built,
             what's in progress, and what's planned.
           </p>
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 text-sm text-neutral-400">
             Reads from <code>.codebakers.json</code> in your project root.
           </p>
         </Link>

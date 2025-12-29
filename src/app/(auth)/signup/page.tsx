@@ -134,7 +134,7 @@ export default function SignupPage() {
             <span className="w-full border-t border-neutral-700" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-neutral-900 px-2 text-neutral-500">or continue with email</span>
+            <span className="bg-neutral-900 px-2 text-neutral-400">or continue with email</span>
           </div>
         </div>
 
@@ -222,7 +222,7 @@ export default function SignupPage() {
 
         {/* CLI Trial Option */}
         <div className="mt-6 pt-6 border-t border-neutral-800">
-          <p className="text-center text-xs text-neutral-500 mb-3">
+          <p className="text-center text-xs text-neutral-400 mb-3">
             Want to try first? No signup needed:
           </p>
           <a
@@ -233,7 +233,7 @@ export default function SignupPage() {
             <Download className="h-4 w-4" />
             Download Installer
           </a>
-          <p className="text-center text-xs text-neutral-500 mt-2">
+          <p className="text-center text-xs text-neutral-400 mt-2">
             7-day free trial, instant access
           </p>
         </div>

@@ -527,7 +527,7 @@ export default function ModulesPage() {
                   ))}
                 </div>
               </div>
-              <div className="text-right text-sm text-neutral-500">
+              <div className="text-right text-sm text-neutral-400">
                 {module.lines.toLocaleString()} lines
               </div>
             </div>

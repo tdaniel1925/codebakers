@@ -122,7 +122,7 @@ export default async function PricingPage() {
 
         {/* Payment Methods */}
         <div className="text-center mt-8">
-          <p className="text-neutral-500 text-sm">
+          <p className="text-neutral-400 text-sm">
             Secure payments powered by PayPal. Pay with credit card, debit card, or PayPal balance.
           </p>
         </div>

@@ -436,13 +436,13 @@ export default function AdminTrialsPage() {
               <TableRow key={trial.id} className="border-slate-700">
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Monitor className="h-4 w-4 text-slate-500" />
+                    <Monitor className="h-4 w-4 text-slate-400" />
                     <div>
                       <p className="text-white font-mono text-xs">
                         {trial.deviceHash.substring(0, 12)}...
                       </p>
                       {trial.platform && (
-                        <p className="text-slate-500 text-xs">{trial.platform}</p>
+                        <p className="text-slate-400 text-xs">{trial.platform}</p>
                       )}
                     </div>
                   </div>
@@ -459,7 +459,7 @@ export default function AdminTrialsPage() {
                       <span className="text-sm">@{trial.githubUsername}</span>
                     </div>
                   ) : (
-                    <span className="text-slate-500">-</span>
+                    <span className="text-slate-400">-</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -468,7 +468,7 @@ export default function AdminTrialsPage() {
                       {trial.projectName}
                     </span>
                   ) : (
-                    <span className="text-slate-500">-</span>
+                    <span className="text-slate-400">-</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -491,7 +491,7 @@ export default function AdminTrialsPage() {
                         <span className="text-xs">Flagged</span>
                       </div>
                     ) : trial.status.isExpired ? (
-                      <div className="flex items-center gap-1 text-slate-500">
+                      <div className="flex items-center gap-1 text-slate-400">
                         <Clock className="h-4 w-4" />
                         <span className="text-xs">Expired</span>
                       </div>
