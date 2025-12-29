@@ -1033,6 +1033,20 @@ class CodeBakersServer {
             properties: {},
           },
         },
+        {
+          name: 'update_patterns',
+          description:
+            'Download and update CodeBakers pattern files from the server. Use when user says "upgrade codebakers", "update patterns", "download latest patterns", "sync codebakers", or when patterns are missing or outdated. This tool fetches the latest CLAUDE.md router and all .claude/ module files from the server and writes them to disk.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              force: {
+                type: 'boolean',
+                description: 'Force update even if already at latest version (default: false)',
+              },
+            },
+          },
+        },
       ],
     }));
 
@@ -1162,6 +1176,9 @@ class CodeBakersServer {
 
         case 'check_update_notification':
           return this.handleCheckUpdateNotification();
+
+        case 'update_patterns':
+          return this.handleUpdatePatterns(args as { force?: boolean });
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -5129,6 +5146,161 @@ export async function POST(request: NextRequest) {
     return `${imports.join('\n')}
 ${handlers.join('\n')}
 `;
+  }
+
+  /**
+   * Download and update CodeBakers patterns from server
+   * This is the MCP equivalent of the `codebakers upgrade` CLI command
+   */
+  private async handleUpdatePatterns(args: { force?: boolean }) {
+    const { force = false } = args;
+    const cwd = process.cwd();
+    const claudeMdPath = path.join(cwd, 'CLAUDE.md');
+    const claudeDir = path.join(cwd, '.claude');
+    const versionPath = path.join(claudeDir, '.version.json');
+
+    let response = `# 🔄 CodeBakers Pattern Update\n\n`;
+
+    try {
+      // Check current version
+      let currentVersion: string | null = null;
+      let currentModuleCount = 0;
+
+      if (fs.existsSync(versionPath)) {
+        try {
+          const versionInfo = JSON.parse(fs.readFileSync(versionPath, 'utf-8'));
+          currentVersion = versionInfo.version;
+          currentModuleCount = versionInfo.moduleCount || 0;
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      // Count current modules
+      if (fs.existsSync(claudeDir)) {
+        try {
+          const files = fs.readdirSync(claudeDir).filter(f => f.endsWith('.md'));
+          currentModuleCount = files.length;
+        } catch {
+          // Ignore read errors
+        }
+      }
+
+      response += `## Current Status\n`;
+      response += `- Version: ${currentVersion || 'Unknown'}\n`;
+      response += `- Modules: ${currentModuleCount}\n\n`;
+
+      // Fetch latest version info first
+      const versionResponse = await fetch(`${this.apiUrl}/api/content/version`, {
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!versionResponse.ok) {
+        throw new Error('Failed to check version from server');
+      }
+
+      const latestInfo = await versionResponse.json();
+      const latestVersion = latestInfo.version;
+      const latestModuleCount = latestInfo.moduleCount || 0;
+
+      response += `## Server Status\n`;
+      response += `- Latest Version: ${latestVersion}\n`;
+      response += `- Available Modules: ${latestModuleCount}\n\n`;
+
+      // Check if update needed
+      const needsUpdate = force || !currentVersion || currentVersion !== latestVersion || currentModuleCount < latestModuleCount;
+
+      if (!needsUpdate) {
+        response += `✅ **Already up to date!**\n\n`;
+        response += `Your patterns are current (v${latestVersion} with ${latestModuleCount} modules).\n`;
+        response += `Use \`force: true\` to re-download anyway.\n`;
+
+        return {
+          content: [{
+            type: 'text' as const,
+            text: response,
+          }],
+        };
+      }
+
+      response += `## Downloading Updates...\n\n`;
+
+      // Fetch full content
+      const contentResponse = await fetch(`${this.apiUrl}/api/content`, {
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!contentResponse.ok) {
+        const error = await contentResponse.json().catch(() => ({}));
+        throw new Error(error.error || error.message || 'Failed to fetch patterns');
+      }
+
+      const content = await contentResponse.json();
+      const moduleCount = content.modules ? Object.keys(content.modules).length : 0;
+
+      // Create .claude directory if needed
+      if (!fs.existsSync(claudeDir)) {
+        fs.mkdirSync(claudeDir, { recursive: true });
+        response += `✓ Created .claude/ directory\n`;
+      }
+
+      // Update CLAUDE.md router
+      if (content.router) {
+        fs.writeFileSync(claudeMdPath, content.router);
+        response += `✓ Updated CLAUDE.md (router)\n`;
+      }
+
+      // Update all modules
+      if (content.modules && moduleCount > 0) {
+        for (const [name, data] of Object.entries(content.modules)) {
+          fs.writeFileSync(path.join(claudeDir, name), data as string);
+        }
+        response += `✓ Updated ${moduleCount} modules in .claude/\n`;
+      }
+
+      // Save version info
+      const newVersionInfo = {
+        version: content.version || latestVersion,
+        moduleCount,
+        installedAt: currentVersion ? undefined : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        cliVersion: getCliVersion(),
+      };
+      fs.writeFileSync(versionPath, JSON.stringify(newVersionInfo, null, 2));
+      response += `✓ Saved version info\n`;
+
+      // Confirm download to server (non-blocking analytics)
+      this.confirmDownload(content.version || latestVersion, moduleCount).catch(() => {});
+
+      response += `\n## ✅ Update Complete!\n\n`;
+      response += `- **From:** v${currentVersion || 'none'} (${currentModuleCount} modules)\n`;
+      response += `- **To:** v${content.version || latestVersion} (${moduleCount} modules)\n\n`;
+
+      if (moduleCount > currentModuleCount) {
+        response += `🆕 **${moduleCount - currentModuleCount} new modules added!**\n\n`;
+      }
+
+      response += `Your patterns are now up to date. The new patterns will be used in your next response.\n`;
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      response += `\n## ❌ Update Failed\n\n`;
+      response += `Error: ${message}\n\n`;
+
+      if (message.includes('401') || message.includes('Invalid') || message.includes('expired')) {
+        response += `Your API key may be invalid or expired.\n`;
+        response += `Run \`codebakers setup\` in terminal to reconfigure.\n`;
+      } else {
+        response += `Please try again or run \`codebakers upgrade\` in terminal.\n`;
+      }
+    }
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: response,
+      }],
+    };
   }
 
   async run(): Promise<void> {
