@@ -117,26 +117,6 @@ try {
 }
 Write-Host ""
 
-# Start trial and install patterns
-if ($alreadyInstalled) {
-    Write-Host "Refreshing patterns..." -ForegroundColor Blue
-} else {
-    Write-Host "Starting your free trial..." -ForegroundColor Blue
-}
-Write-Host ""
-
-try {
-    $env:CODEBAKERS_NONINTERACTIVE = "1"
-    & codebakers go 2>$null
-} catch {
-    try {
-        & npx @codebakers/cli go 2>$null
-    } catch {
-        Write-Host "Running interactive setup..." -ForegroundColor Yellow
-        & npx @codebakers/cli go
-    }
-}
-
 Write-Host ""
 if ($alreadyInstalled) {
     Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Green
@@ -146,12 +126,21 @@ if ($alreadyInstalled) {
     Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Green
 } else {
     Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Green
-    Write-Host "║  ✅ CodeBakers is ready!                                  ║" -ForegroundColor Green
-    Write-Host "║                                                           ║" -ForegroundColor Green
-    Write-Host "║  Open Claude Code and start building:                     ║" -ForegroundColor Green
-    Write-Host '║  "Build me a todo app with authentication"               ║' -ForegroundColor Green
+    Write-Host "║  ✅ CodeBakers CLI installed!                             ║" -ForegroundColor Green
     Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Next steps:" -ForegroundColor Blue
+    Write-Host ""
+    Write-Host "  1. " -NoNewline
+    Write-Host "Go to your project folder:" -ForegroundColor White
+    Write-Host "     cd your-project" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  2. " -NoNewline
+    Write-Host "Start your free trial and install patterns:" -ForegroundColor White
+    Write-Host "     codebakers go" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  3. " -NoNewline
+    Write-Host "Open Claude Code and start building!" -ForegroundColor White
+    Write-Host '     "Build me a todo app with authentication"' -ForegroundColor Yellow
 }
-Write-Host ""
-Write-Host "Note: Restart Claude Code to load CodeBakers patterns." -ForegroundColor Yellow
 Write-Host ""

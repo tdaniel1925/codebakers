@@ -10,6 +10,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+WHITE='\033[1;37m'
 NC='\033[0m' # No Color
 
 echo ""
@@ -90,22 +91,6 @@ else
 fi
 echo ""
 
-# Start trial and install patterns
-if [ "$ALREADY_INSTALLED" = true ]; then
-    echo -e "${BLUE}Refreshing patterns...${NC}"
-else
-    echo -e "${BLUE}Starting your free trial...${NC}"
-fi
-echo ""
-
-# Run codebakers go to start trial
-cd "${PWD}"
-codebakers go --non-interactive 2>/dev/null || npx @codebakers/cli go --non-interactive 2>/dev/null || {
-    # If --non-interactive fails, try without it
-    echo -e "${YELLOW}Running interactive setup...${NC}"
-    codebakers go 2>/dev/null || npx @codebakers/cli go
-}
-
 echo ""
 if [ "$ALREADY_INSTALLED" = true ]; then
     echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
@@ -115,12 +100,18 @@ if [ "$ALREADY_INSTALLED" = true ]; then
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
 else
     echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  ✅ CodeBakers is ready!                                  ║${NC}"
-    echo -e "${GREEN}║                                                           ║${NC}"
-    echo -e "${GREEN}║  Open Claude Code and start building:                     ║${NC}"
-    echo -e "${GREEN}║  \"Build me a todo app with authentication\"               ║${NC}"
+    echo -e "${GREEN}║  ✅ CodeBakers CLI installed!                             ║${NC}"
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${BLUE}Next steps:${NC}"
+    echo ""
+    echo -e "  ${WHITE}1.${NC} Go to your project folder:"
+    echo -e "     ${YELLOW}cd your-project${NC}"
+    echo ""
+    echo -e "  ${WHITE}2.${NC} Start your free trial and install patterns:"
+    echo -e "     ${YELLOW}codebakers go${NC}"
+    echo ""
+    echo -e "  ${WHITE}3.${NC} Open Claude Code and start building!"
+    echo -e "     ${YELLOW}\"Build me a todo app with authentication\"${NC}"
 fi
-echo ""
-echo -e "${YELLOW}Note: Restart Claude Code to load CodeBakers patterns.${NC}"
 echo ""

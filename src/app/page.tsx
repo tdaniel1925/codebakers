@@ -118,15 +118,15 @@ function InstallSection() {
         <div className="mt-8 p-6 rounded-2xl bg-card border border-border text-left max-w-md mx-auto">
           <h3 className="font-bold mb-3 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">1</span>
-            Click the button above
+            Click the button, paste in {isWindows ? 'PowerShell' : 'Terminal'}
           </h3>
           <h3 className="font-bold mb-3 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">2</span>
-            Open {isWindows ? 'PowerShell' : 'Terminal'} and paste
+            In your project: <code className="text-sm font-mono">codebakers go</code>
           </h3>
           <h3 className="font-bold flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">3</span>
-            Open Claude Code and say &quot;Build me a todo app&quot;
+            Open Claude Code and start building!
           </h3>
         </div>
 
