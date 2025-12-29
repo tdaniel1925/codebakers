@@ -51,16 +51,47 @@ Write-Host "✓ Node.js $nodeVersion found" -ForegroundColor Green
 Write-Host "✓ npm $npmVersion found" -ForegroundColor Green
 Write-Host ""
 
-# Install CodeBakers CLI
-Write-Host "Installing CodeBakers CLI..." -ForegroundColor Blue
+# Check if CodeBakers is already installed
+$alreadyInstalled = $false
+$currentVersion = ""
+try {
+    $codebakersExists = Get-Command codebakers -ErrorAction SilentlyContinue
+    if ($codebakersExists) {
+        $alreadyInstalled = $true
+        $currentVersion = (& codebakers --version 2>$null) -replace '\s+', ''
+        Write-Host "CodeBakers is already installed (v$currentVersion)" -ForegroundColor Yellow
+        Write-Host "Updating to latest version..." -ForegroundColor Blue
+    } else {
+        Write-Host "Installing CodeBakers CLI..." -ForegroundColor Blue
+    }
+} catch {
+    Write-Host "Installing CodeBakers CLI..." -ForegroundColor Blue
+}
 
+# Install/Update CodeBakers CLI
 try {
     npm install -g @codebakers/cli@latest 2>$null
-    Write-Host "✓ CodeBakers CLI installed" -ForegroundColor Green
 } catch {
-    Write-Host "Failed to install CLI. Trying with elevated permissions..." -ForegroundColor Yellow
+    Write-Host "Trying with elevated permissions..." -ForegroundColor Yellow
     Start-Process npm -ArgumentList "install -g @codebakers/cli@latest" -Wait -NoNewWindow
-    Write-Host "✓ CodeBakers CLI installed" -ForegroundColor Green
+}
+
+# Get new version
+$newVersion = ""
+try {
+    $newVersion = (& codebakers --version 2>$null) -replace '\s+', ''
+} catch {
+    $newVersion = "latest"
+}
+
+if ($alreadyInstalled) {
+    if ($currentVersion -eq $newVersion) {
+        Write-Host "✓ Already on latest version (v$newVersion)" -ForegroundColor Green
+    } else {
+        Write-Host "✓ Updated from v$currentVersion to v$newVersion" -ForegroundColor Green
+    }
+} else {
+    Write-Host "✓ CodeBakers CLI installed (v$newVersion)" -ForegroundColor Green
 }
 Write-Host ""
 
@@ -70,8 +101,14 @@ Write-Host "Connecting to Claude Code..." -ForegroundColor Blue
 try {
     $claudeExists = Get-Command claude -ErrorAction SilentlyContinue
     if ($claudeExists) {
-        claude mcp add --transport stdio codebakers -- cmd /c "npx -y @codebakers/cli serve" 2>$null
-        Write-Host "✓ Connected to Claude Code" -ForegroundColor Green
+        # Check if already registered
+        $mcpList = & claude mcp list 2>$null
+        if ($mcpList -match "codebakers") {
+            Write-Host "✓ Already connected to Claude Code" -ForegroundColor Green
+        } else {
+            claude mcp add --transport stdio codebakers -- cmd /c "npx -y @codebakers/cli serve" 2>$null
+            Write-Host "✓ Connected to Claude Code" -ForegroundColor Green
+        }
     } else {
         Write-Host "⚠ Claude Code not detected - will connect when you open it" -ForegroundColor Yellow
     }
@@ -81,11 +118,14 @@ try {
 Write-Host ""
 
 # Start trial and install patterns
-Write-Host "Starting your free trial..." -ForegroundColor Blue
+if ($alreadyInstalled) {
+    Write-Host "Refreshing patterns..." -ForegroundColor Blue
+} else {
+    Write-Host "Starting your free trial..." -ForegroundColor Blue
+}
 Write-Host ""
 
 try {
-    # Try to run codebakers go
     $env:CODEBAKERS_NONINTERACTIVE = "1"
     & codebakers go 2>$null
 } catch {
@@ -98,12 +138,20 @@ try {
 }
 
 Write-Host ""
-Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Green
-Write-Host "║  ✅ CodeBakers is ready!                                  ║" -ForegroundColor Green
-Write-Host "║                                                           ║" -ForegroundColor Green
-Write-Host "║  Open Claude Code and start building:                     ║" -ForegroundColor Green
-Write-Host '║  "Build me a todo app with authentication"               ║' -ForegroundColor Green
-Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Green
+if ($alreadyInstalled) {
+    Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Green
+    Write-Host "║  ✅ CodeBakers updated!                                   ║" -ForegroundColor Green
+    Write-Host "║                                                           ║" -ForegroundColor Green
+    Write-Host "║  You're all set. Happy building!                          ║" -ForegroundColor Green
+    Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Green
+} else {
+    Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Green
+    Write-Host "║  ✅ CodeBakers is ready!                                  ║" -ForegroundColor Green
+    Write-Host "║                                                           ║" -ForegroundColor Green
+    Write-Host "║  Open Claude Code and start building:                     ║" -ForegroundColor Green
+    Write-Host '║  "Build me a todo app with authentication"               ║' -ForegroundColor Green
+    Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Green
+}
 Write-Host ""
 Write-Host "Note: Restart Claude Code to load CodeBakers patterns." -ForegroundColor Yellow
 Write-Host ""

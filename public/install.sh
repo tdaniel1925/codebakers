@@ -47,27 +47,55 @@ echo -e "${GREEN}✓ Node.js $(node -v) found${NC}"
 echo -e "${GREEN}✓ npm $(npm -v) found${NC}"
 echo ""
 
-# Install CodeBakers CLI
-echo -e "${BLUE}Installing CodeBakers CLI...${NC}"
+# Check if CodeBakers is already installed
+ALREADY_INSTALLED=false
+CURRENT_VERSION=""
+if command -v codebakers &> /dev/null; then
+    ALREADY_INSTALLED=true
+    CURRENT_VERSION=$(codebakers --version 2>/dev/null || echo "unknown")
+    echo -e "${YELLOW}CodeBakers is already installed (v${CURRENT_VERSION})${NC}"
+    echo -e "${BLUE}Updating to latest version...${NC}"
+else
+    echo -e "${BLUE}Installing CodeBakers CLI...${NC}"
+fi
+
+# Install/Update CodeBakers CLI
 npm install -g @codebakers/cli@latest --silent 2>/dev/null || npm install -g @codebakers/cli@latest
 
-echo -e "${GREEN}✓ CodeBakers CLI installed${NC}"
+NEW_VERSION=$(codebakers --version 2>/dev/null || echo "latest")
+if [ "$ALREADY_INSTALLED" = true ]; then
+    if [ "$CURRENT_VERSION" = "$NEW_VERSION" ]; then
+        echo -e "${GREEN}✓ Already on latest version (v${NEW_VERSION})${NC}"
+    else
+        echo -e "${GREEN}✓ Updated from v${CURRENT_VERSION} to v${NEW_VERSION}${NC}"
+    fi
+else
+    echo -e "${GREEN}✓ CodeBakers CLI installed (v${NEW_VERSION})${NC}"
+fi
 echo ""
 
 # Register MCP with Claude Code
 echo -e "${BLUE}Connecting to Claude Code...${NC}"
 
-# Check if claude command exists
 if command -v claude &> /dev/null; then
-    claude mcp add --transport stdio codebakers -- npx -y @codebakers/cli serve 2>/dev/null || true
-    echo -e "${GREEN}✓ Connected to Claude Code${NC}"
+    # Check if already registered
+    if claude mcp list 2>/dev/null | grep -q "codebakers"; then
+        echo -e "${GREEN}✓ Already connected to Claude Code${NC}"
+    else
+        claude mcp add --transport stdio codebakers -- npx -y @codebakers/cli serve 2>/dev/null || true
+        echo -e "${GREEN}✓ Connected to Claude Code${NC}"
+    fi
 else
     echo -e "${YELLOW}⚠ Claude Code not detected - will connect when you open it${NC}"
 fi
 echo ""
 
 # Start trial and install patterns
-echo -e "${BLUE}Starting your free trial...${NC}"
+if [ "$ALREADY_INSTALLED" = true ]; then
+    echo -e "${BLUE}Refreshing patterns...${NC}"
+else
+    echo -e "${BLUE}Starting your free trial...${NC}"
+fi
 echo ""
 
 # Run codebakers go to start trial
@@ -79,12 +107,20 @@ codebakers go --non-interactive 2>/dev/null || npx @codebakers/cli go --non-inte
 }
 
 echo ""
-echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║  ✅ CodeBakers is ready!                                  ║${NC}"
-echo -e "${GREEN}║                                                           ║${NC}"
-echo -e "${GREEN}║  Open Claude Code and start building:                     ║${NC}"
-echo -e "${GREEN}║  \"Build me a todo app with authentication\"               ║${NC}"
-echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+if [ "$ALREADY_INSTALLED" = true ]; then
+    echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║  ✅ CodeBakers updated!                                   ║${NC}"
+    echo -e "${GREEN}║                                                           ║${NC}"
+    echo -e "${GREEN}║  You're all set. Happy building!                          ║${NC}"
+    echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+else
+    echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║  ✅ CodeBakers is ready!                                  ║${NC}"
+    echo -e "${GREEN}║                                                           ║${NC}"
+    echo -e "${GREEN}║  Open Claude Code and start building:                     ║${NC}"
+    echo -e "${GREEN}║  \"Build me a todo app with authentication\"               ║${NC}"
+    echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+fi
 echo ""
 echo -e "${YELLOW}Note: Restart Claude Code to load CodeBakers patterns.${NC}"
 echo ""
