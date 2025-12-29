@@ -437,7 +437,25 @@ export default function CliVersionsPage() {
                           )}
                         </Button>
                       )}
-                      {nextStatus && (
+                      {/* Quick promote to stable for draft/testing */}
+                      {(version.status === 'draft' || version.status === 'testing') && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateVersion(version.id, { status: 'stable' })}
+                          disabled={isUpdating === version.id}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {isUpdating === version.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Promote to stable
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      {nextStatus && nextStatus !== 'stable' && (
                         <Button
                           size="sm"
                           onClick={() => updateVersion(version.id, { status: nextStatus })}
@@ -448,6 +466,20 @@ export default function CliVersionsPage() {
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <>Promote to {nextStatus}</>
+                          )}
+                        </Button>
+                      )}
+                      {version.status === 'stable' && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateVersion(version.id, { status: 'deprecated' })}
+                          disabled={isUpdating === version.id}
+                          className="bg-yellow-600 hover:bg-yellow-700"
+                        >
+                          {isUpdating === version.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>Promote to deprecated</>
                           )}
                         </Button>
                       )}
