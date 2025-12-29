@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 5.3 - MCP-First Architecture
+# Version: 5.4 - MCP-First + Intent Confirmation
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
@@ -26,6 +26,7 @@
 | "set experience [level]", "I'm a beginner/advanced" | `set_experience_level` | Sets beginner/intermediate/advanced mode |
 | "check for updates", "any updates?" | `check_update_notification` | Checks for pattern updates |
 | "report gap", "missing pattern for [X]" | `report_pattern_gap` | Reports missing pattern coverage |
+| Ambiguous request, need clarification | `detect_intent` | Analyzes user message, shows which tools would be called, asks for confirmation |
 
 ### The MCP-First Rule:
 
@@ -34,6 +35,32 @@
 3. **NEVER create/write pattern files manually** - Always use `update_patterns` to download from server
 4. **NEVER offer to "create missing modules"** - The server has 59 modules, use `update_patterns`
 5. **NEVER say "I don't have access to [tool]"** - You DO have MCP tools, use them
+
+### 🛡️ Confirmation Before Destructive Actions
+
+When user request is **ambiguous** or could match **multiple tools**, call `detect_intent` FIRST:
+
+```
+User: "upgrade" (ambiguous - could mean patterns OR code quality)
+AI: [Calls detect_intent MCP tool]
+→ Shows: "This could mean: 1) update_patterns (download files) OR 2) upgrade (code analysis)"
+→ Asks: "Which do you want?"
+→ User confirms
+→ THEN executes the chosen tool
+```
+
+**Destructive tools (ALWAYS confirm first):**
+- `update_patterns` - Overwrites local pattern files
+- `scaffold_project` - Creates new project files
+- `init_project` - Adds files to existing project
+- `heal` - Modifies code to fix errors
+- `design` - Generates component files
+
+**Read-only tools (safe, no confirmation needed):**
+- `list_patterns`, `search_patterns`, `get_pattern`
+- `project_status`, `get_status`, `get_experience_level`
+- `run_audit`, `run_tests`
+- `check_update_notification`
 
 ### Why MCP-First?
 
@@ -104,7 +131,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.3
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.4
 ```
 
 **On FIRST message of a new session, also show this header:**
