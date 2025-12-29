@@ -19,6 +19,7 @@ import {
   Bug,
   Users,
   Percent,
+  Download,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -117,6 +118,10 @@ export default function CliVersionsPage() {
   // Status update
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
+  // Import from npm
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported: number; total: number; latest?: string } | null>(null);
+
   useEffect(() => {
     fetchVersions();
   }, []);
@@ -185,6 +190,28 @@ export default function CliVersionsPage() {
     }
   };
 
+  const importFromNpm = async () => {
+    setIsImporting(true);
+    setImportResult(null);
+    try {
+      const res = await fetch('/api/admin/cli-versions/import-npm', {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to import from npm');
+      const data = await res.json();
+      setImportResult({
+        imported: data.data.imported,
+        total: data.data.total,
+        latest: data.data.latest,
+      });
+      await fetchVersions();
+    } catch (error) {
+      console.error('Failed to import from npm:', error);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const updateVersion = async (id: string, updates: Partial<CliVersion>) => {
     setIsUpdating(id);
     try {
@@ -244,10 +271,24 @@ export default function CliVersionsPage() {
             variant="outline"
             size="sm"
             onClick={fetchVersions}
-            className="border-slate-700"
+            className="border-slate-700 text-white hover:text-white"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={importFromNpm}
+            disabled={isImporting}
+            className="border-blue-700 text-blue-400 hover:bg-blue-900/20 hover:text-blue-300"
+          >
+            {isImporting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Import from npm
           </Button>
           <Button
             onClick={() => setShowNewDialog(true)}
@@ -258,6 +299,34 @@ export default function CliVersionsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Import Result Message */}
+      {importResult && (
+        <Card className="bg-blue-900/20 border-blue-700/50">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-blue-400" />
+              <div>
+                <p className="text-white">
+                  Imported {importResult.imported} new versions from npm
+                </p>
+                <p className="text-slate-400 text-sm">
+                  Total versions on npm: {importResult.total}
+                  {importResult.latest && ` • Latest: v${importResult.latest}`}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setImportResult(null)}
+                className="ml-auto text-slate-400"
+              >
+                <XCircle className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Current Auto-Update Target */}
       {stableVersion && (
@@ -292,9 +361,21 @@ export default function CliVersionsPage() {
             <CardContent className="py-12 text-center">
               <Terminal className="h-12 w-12 mx-auto text-slate-400 mb-4" />
               <p className="text-slate-400">No CLI versions registered</p>
-              <p className="text-slate-400 text-sm mt-1">
-                Add a version after publishing to npm
+              <p className="text-slate-400 text-sm mt-1 mb-4">
+                Import all versions from npm registry
               </p>
+              <Button
+                onClick={importFromNpm}
+                disabled={isImporting}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {isImporting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Import from npm
+              </Button>
             </CardContent>
           </Card>
         ) : (
