@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 5.4 - MCP-First + Intent Confirmation
+# Version: 5.5 - MCP-First + Intent Confirmation + VAPI Integration
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
@@ -61,6 +61,25 @@ AI: [Calls detect_intent MCP tool]
 - `project_status`, `get_status`, `get_experience_level`
 - `run_audit`, `run_tests`
 - `check_update_notification`
+
+### 🎤 VAPI Voice AI Tools:
+
+| User Says | MCP Tool to Call | What It Does |
+|-----------|------------------|--------------|
+| "connect vapi", "setup voice ai", "configure vapi" | `vapi_connect` | Sets up VAPI API credentials and tests connection |
+| "show my assistants", "list voice bots", "what assistants do I have" | `vapi_list_assistants` | Lists all VAPI voice assistants in your account |
+| "create voice assistant", "new voice bot", "setup voice agent" | `vapi_create_assistant` | Creates assistant with CodeBakers best practices |
+| "get assistant details", "show assistant config" | `vapi_get_assistant` | Gets specific assistant configuration and prompts |
+| "update assistant", "modify voice bot", "change assistant" | `vapi_update_assistant` | Updates assistant prompts, voice, or settings |
+| "show call history", "recent calls", "what calls happened" | `vapi_get_calls` | Gets call logs with duration, status, and transcripts |
+| "call details", "get call transcript", "show call info" | `vapi_get_call` | Gets specific call with full transcript and recording |
+| "add vapi webhook", "handle call events", "setup call notifications" | `vapi_generate_webhook` | Generates Next.js webhook handler with signature verification |
+
+**VAPI Integration Flow:**
+1. `vapi_connect` - First, connect your VAPI API key
+2. `vapi_list_assistants` - See existing assistants
+3. `vapi_create_assistant` - Create new voice AI with your description
+4. `vapi_generate_webhook` - Add webhook handler for call events
 
 ### Why MCP-First?
 
@@ -131,7 +150,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.4
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.5
 ```
 
 **On FIRST message of a new session, also show this header:**
