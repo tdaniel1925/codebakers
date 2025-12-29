@@ -93,7 +93,7 @@ export default function TrialPage() {
               </div>
               {/* Arrow */}
               <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2">
-                <ArrowRight className="h-8 w-8 text-neutral-700" />
+                <ArrowRight className="h-8 w-8 text-neutral-400" />
               </div>
             </div>
 
@@ -133,7 +133,7 @@ export default function TrialPage() {
               </div>
               {/* Arrow */}
               <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2">
-                <ArrowRight className="h-8 w-8 text-neutral-700" />
+                <ArrowRight className="h-8 w-8 text-neutral-400" />
               </div>
             </div>
 

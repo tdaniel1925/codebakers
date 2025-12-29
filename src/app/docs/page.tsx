@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CODEBAKERS_STATS } from '@/lib/stats';
 
 export const metadata = {
   title: 'Documentation - CodeBakers',
@@ -11,7 +12,7 @@ export default function DocsPage() {
       <h1>CodeBakers Documentation</h1>
 
       <p className="text-lg text-neutral-300">
-        CodeBakers gives your AI coding assistant access to 34 production-ready pattern modules,
+        CodeBakers gives your AI coding assistant access to {CODEBAKERS_STATS.moduleCount} production-ready pattern modules,
         helping you build faster with battle-tested code patterns.
       </p>
 
@@ -26,7 +27,7 @@ export default function DocsPage() {
       <h3>Key Features</h3>
 
       <ul>
-        <li><strong>34 Pattern Modules</strong> - Covering database, auth, API, frontend, payments, and more</li>
+        <li><strong>{CODEBAKERS_STATS.moduleCount} Pattern Modules</strong> - Covering database, auth, API, frontend, payments, and more</li>
         <li><strong>MCP Integration</strong> - Works seamlessly with Claude Code via Model Context Protocol</li>
         <li><strong>Smart Router</strong> - Automatically loads relevant patterns based on your request</li>
         <li><strong>Always Updated</strong> - Patterns are continuously improved with latest best practices</li>

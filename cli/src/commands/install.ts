@@ -4,6 +4,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { getApiKey, getApiUrl } from '../config.js';
 import { getCliVersion } from '../lib/api.js';
+import { CODEBAKERS_STATS } from '../lib/stats.js';
 
 interface ContentResponse {
   version: string;
@@ -94,7 +95,7 @@ export async function install(): Promise<void> {
     if (moduleCount > 0) {
       console.log(chalk.gray(`    - .claude/ (${moduleCount} pattern modules)`));
     }
-    console.log(chalk.blue('\n  Start building! Your AI now knows 114 production patterns.\n'));
+    console.log(chalk.blue(`\n  Start building! Your AI now knows ${CODEBAKERS_STATS.moduleCount} production modules.\n`));
   } catch (error) {
     spinner.fail('Installation failed');
     const message = error instanceof Error ? error.message : 'Unknown error';

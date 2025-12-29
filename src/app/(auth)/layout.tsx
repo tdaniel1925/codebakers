@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Code2, Check, Zap } from 'lucide-react';
+import { CODEBAKERS_STATS } from '@/lib/stats';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -40,7 +41,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
           {/* Simple value prop */}
           <p className="text-lg text-neutral-400 mb-8 max-w-md">
-            45K+ lines of battle-tested patterns for your AI assistant.
+            {CODEBAKERS_STATS.totalLinesDisplay} lines of battle-tested patterns for your AI assistant.
             <span className="text-white"> Start free, no credit card.</span>
           </p>
 
@@ -48,7 +49,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="flex flex-wrap gap-x-6 gap-y-3 mb-10">
             <div className="flex items-center gap-2 text-neutral-300">
               <Check className="w-4 h-4 text-red-500" />
-              <span className="text-sm">34 modules</span>
+              <span className="text-sm">{CODEBAKERS_STATS.moduleCount} modules</span>
             </div>
             <div className="flex items-center gap-2 text-neutral-300">
               <Check className="w-4 h-4 text-red-500" />

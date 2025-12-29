@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Code2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { CODEBAKERS_STATS } from '@/lib/stats';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
   FlashIcon,
@@ -448,7 +449,7 @@ export default function HomePage() {
               It's not magic. It's patterns.
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              39 modules of battle-tested code patterns. The AI reads them. Your code inherits them. Simple.
+              {CODEBAKERS_STATS.moduleCount} modules of battle-tested code patterns. The AI reads them. Your code inherits them. Simple.
             </p>
           </div>
 

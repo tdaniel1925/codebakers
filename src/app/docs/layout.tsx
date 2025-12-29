@@ -60,7 +60,7 @@ export default function DocsLayout({
             <Link href="/" className="flex items-center gap-2">
               <span className="text-xl font-bold text-red-500">CodeBakers</span>
             </Link>
-            <span className="hidden text-neutral-600 sm:inline">/</span>
+            <span className="hidden text-neutral-400 sm:inline">/</span>
             <Link href="/docs" className="hidden text-neutral-400 hover:text-white sm:inline">
               Docs
             </Link>

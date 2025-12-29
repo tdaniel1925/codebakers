@@ -1,6 +1,7 @@
 import { getServerSession } from '@/lib/auth';
 import { PricingCard } from '@/components/pricing-card';
 import { Badge } from '@/components/ui/badge';
+import { CODEBAKERS_STATS } from '@/lib/stats';
 
 const plans: Array<{
   name: string;
@@ -16,8 +17,8 @@ const plans: Array<{
     plan: 'pro',
     description: 'Perfect for solo developers',
     features: [
-      '40 production modules',
-      '50,000+ lines of patterns',
+      `${CODEBAKERS_STATS.moduleCount} production modules`,
+      `${CODEBAKERS_STATS.totalLinesDisplay} lines of patterns`,
       'Auto-testing included',
       'Full stack coverage',
       '1 seat',
@@ -88,7 +89,7 @@ export default async function PricingPage() {
           </h1>
           <p className="text-xl text-neutral-400 max-w-2xl mx-auto">
             Save 20+ hours per project. 10x ROI on your first build.
-            One subscription, 34 modules.
+            One subscription, {CODEBAKERS_STATS.moduleCount} modules.
           </p>
         </div>
 

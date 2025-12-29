@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { CODEBAKERS_STATS } from './stats';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-11-17.clover',
@@ -21,7 +22,7 @@ export const PLANS = {
     name: 'Pro',
     price: 49,
     seats: 1,
-    features: ['114 production patterns', 'Auto-testing', 'Full stack coverage'],
+    features: [`${CODEBAKERS_STATS.moduleCount} production modules`, 'Auto-testing', 'Full stack coverage'],
   },
   team: {
     name: 'Team',

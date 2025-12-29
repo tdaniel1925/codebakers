@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { CODEBAKERS_STATS } from '@/lib/stats';
 import {
   Check,
   Zap,
@@ -250,7 +251,7 @@ const steps = [
   {
     step: 3,
     title: 'Download Patterns',
-    description: 'Get all 34 modules synced to your project',
+    description: `Get all ${CODEBAKERS_STATS.moduleCount} modules synced to your project`,
     code: 'codebakers install',
   },
 ];
@@ -696,7 +697,7 @@ export default function HomePage() {
               {
                 icon: Code2,
                 title: 'Full Stack',
-                description: '34 modules covering every aspect of modern apps.',
+                description: `${CODEBAKERS_STATS.moduleCount} modules covering every aspect of modern apps.`,
               },
             ].map((feature, i) => (
               <motion.div

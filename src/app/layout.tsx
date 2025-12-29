@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { CODEBAKERS_STATS } from "@/lib/stats";
 import "./globals.css";
 
 const inter = Inter({
@@ -10,7 +11,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "CodeBakers - Ship Production-Ready Code from Day One",
-  description: "114 production patterns for Next.js, Supabase, Stripe, and more. Stop fighting AI revision loops.",
+  description: `${CODEBAKERS_STATS.moduleCount} production modules for Next.js, Supabase, Stripe, and more. Stop fighting AI revision loops.`,
 };
 
 export default function RootLayout({

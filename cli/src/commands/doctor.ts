@@ -5,6 +5,7 @@ import { homedir } from 'os';
 import { isHookInstalled } from './install-hook.js';
 import { getApiKey } from '../config.js';
 import { checkApiKeyValidity, checkForUpdates, getCliVersion } from '../lib/api.js';
+import { CODEBAKERS_STATS } from '../lib/stats.js';
 
 interface CheckResult {
   ok: boolean;
@@ -134,18 +135,18 @@ function checkProject(): CheckResult[] {
       const files = readdirSync(claudeDir).filter(f => f.endsWith('.md'));
       const moduleCount = files.length;
 
-      if (moduleCount >= 40) {
+      if (moduleCount >= 50) {
         results.push({ ok: true, message: `${moduleCount} modules present (full set)` });
       } else if (moduleCount >= 10) {
         results.push({
           ok: true,
           message: `${moduleCount} modules present (partial set)`,
-          details: 'Run: codebakers upgrade to get all 47 modules'
+          details: `Run: codebakers upgrade to get all ${CODEBAKERS_STATS.moduleCount} modules`
         });
       } else if (moduleCount > 0) {
         results.push({
           ok: false,
-          message: `Only ${moduleCount} modules found (expected 47)`,
+          message: `Only ${moduleCount} modules found (expected ${CODEBAKERS_STATS.moduleCount})`,
           details: 'Run: codebakers upgrade to get all modules'
         });
       } else {
