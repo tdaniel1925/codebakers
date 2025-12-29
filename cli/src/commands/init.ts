@@ -700,6 +700,35 @@ export async function init(): Promise<void> {
     // Write .cursorignore
     writeFileSync(join(cwd, '.cursorignore'), CURSORIGNORE_TEMPLATE);
 
+    // Create .cursor/mcp.json for MCP server configuration
+    const cursorDir = join(cwd, '.cursor');
+    if (!existsSync(cursorDir)) {
+      mkdirSync(cursorDir, { recursive: true });
+    }
+
+    const mcpConfigPath = join(cursorDir, 'mcp.json');
+    const isWindows = process.platform === 'win32';
+    const mcpConfig = {
+      mcpServers: {
+        codebakers: isWindows
+          ? { command: 'cmd', args: ['/c', 'npx', '-y', '@codebakers/cli', 'serve'] }
+          : { command: 'npx', args: ['-y', '@codebakers/cli', 'serve'] }
+      }
+    };
+
+    // Merge with existing MCP config if present
+    if (existsSync(mcpConfigPath)) {
+      try {
+        const existing = JSON.parse(readFileSync(mcpConfigPath, 'utf-8'));
+        existing.mcpServers = { ...existing.mcpServers, ...mcpConfig.mcpServers };
+        writeFileSync(mcpConfigPath, JSON.stringify(existing, null, 2));
+      } catch {
+        writeFileSync(mcpConfigPath, JSON.stringify(mcpConfig, null, 2));
+      }
+    } else {
+      writeFileSync(mcpConfigPath, JSON.stringify(mcpConfig, null, 2));
+    }
+
     // Create/merge .vscode/settings.json
     const vscodeDir = join(cwd, '.vscode');
     if (!existsSync(vscodeDir)) {
@@ -717,6 +746,7 @@ export async function init(): Promise<void> {
     }
 
     cursorSpinner.succeed('Cursor configuration installed!');
+    console.log(chalk.green('    ✓ MCP server configured (.cursor/mcp.json)'));
   } catch (error) {
     cursorSpinner.warn('Could not install Cursor files (continuing anyway)');
   }

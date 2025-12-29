@@ -2,6 +2,8 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { createInterface } from 'readline';
 import { execSync } from 'child_process';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { setApiKey, getApiKey, getApiUrl, syncServiceKeys, SERVICE_KEY_LABELS, type ServiceName } from '../config.js';
 import { validateApiKey, formatApiError, checkForUpdates, getCliVersion, type ApiError } from '../lib/api.js';
 import { showQuickStartGuide, formatFriendlyError, getNetworkError, getAuthError } from '../lib/progress.js';
@@ -136,55 +138,88 @@ export async function setup(): Promise<void> {
 
 function showFinalInstructions(): void {
   const isWindows = process.platform === 'win32';
+  const cwd = process.cwd();
 
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════'));
-  console.log(chalk.white.bold('\n  STEP 3: Connecting CodeBakers to Claude...\n'));
+  console.log(chalk.white.bold('\n  STEP 3: Connecting CodeBakers to your IDE...\n'));
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════\n'));
 
-  // Auto-install MCP server
+  // Install MCP for Claude Code CLI
   const mcpCmd = isWindows
     ? 'claude mcp add --transport stdio codebakers -- cmd /c npx -y @codebakers/cli serve'
     : 'claude mcp add --transport stdio codebakers -- npx -y @codebakers/cli serve';
 
+  let claudeCodeInstalled = false;
   try {
     execSync(mcpCmd, { stdio: 'pipe' });
-    console.log(chalk.green('  ✅ CodeBakers MCP server installed!\n'));
+    console.log(chalk.green('  ✅ Claude Code MCP server installed!\n'));
+    claudeCodeInstalled = true;
   } catch (error) {
-    // Check if it's already installed (command might fail if already exists)
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes('already exists') || errorMessage.includes('already registered')) {
-      console.log(chalk.green('  ✅ CodeBakers MCP server already installed!\n'));
+      console.log(chalk.green('  ✅ Claude Code MCP server already installed!\n'));
+      claudeCodeInstalled = true;
     } else {
-      console.log(chalk.yellow('  ⚠️  Could not auto-install MCP server.\n'));
-      console.log(chalk.white('  Run this command manually in your terminal:\n'));
-      console.log(chalk.bgBlue.white('\n  ' + mcpCmd + '  \n'));
-      console.log(chalk.yellow('\n  ⚠️  Then close this terminal and open a new one in your project.\n'));
-      return;
+      console.log(chalk.yellow('  ⚠️  Claude Code not detected (that\'s OK if using Cursor)\n'));
     }
+  }
+
+  // Install MCP for Cursor IDE (create .cursor/mcp.json)
+  const cursorDir = join(cwd, '.cursor');
+  const mcpConfigPath = join(cursorDir, 'mcp.json');
+  const mcpConfig = {
+    mcpServers: {
+      codebakers: isWindows
+        ? { command: 'cmd', args: ['/c', 'npx', '-y', '@codebakers/cli', 'serve'] }
+        : { command: 'npx', args: ['-y', '@codebakers/cli', 'serve'] }
+    }
+  };
+
+  try {
+    if (!existsSync(cursorDir)) {
+      mkdirSync(cursorDir, { recursive: true });
+    }
+
+    // Merge with existing MCP config if present
+    if (existsSync(mcpConfigPath)) {
+      const existing = JSON.parse(readFileSync(mcpConfigPath, 'utf-8'));
+      existing.mcpServers = { ...existing.mcpServers, ...mcpConfig.mcpServers };
+      writeFileSync(mcpConfigPath, JSON.stringify(existing, null, 2));
+    } else {
+      writeFileSync(mcpConfigPath, JSON.stringify(mcpConfig, null, 2));
+    }
+    console.log(chalk.green('  ✅ Cursor MCP server configured! (.cursor/mcp.json)\n'));
+  } catch (error) {
+    console.log(chalk.yellow('  ⚠️  Could not create Cursor MCP config\n'));
   }
 
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════'));
   console.log(chalk.white.bold('\n  🎉 Setup Complete!\n'));
   console.log(chalk.blue('  ══════════════════════════════════════════════════════════\n'));
 
-  console.log(chalk.yellow.bold('  ⚠️  RESTART REQUIRED - Follow these steps:\n'));
-
-  console.log(chalk.white('  For Claude Code:\n'));
-  console.log(chalk.gray('    1. Close this terminal completely (type ') + chalk.cyan('exit') + chalk.gray(')'));
-  console.log(chalk.gray('    2. Open a NEW terminal window'));
-  console.log(chalk.gray('    3. Navigate to your project folder'));
-  console.log(chalk.gray('    4. Run ') + chalk.cyan('claude') + chalk.gray(' to start Claude Code\n'));
+  console.log(chalk.yellow.bold('  ⚠️  RESTART REQUIRED:\n'));
 
   console.log(chalk.white('  For Cursor:\n'));
   console.log(chalk.gray('    1. Close Cursor completely (Cmd+Q / Alt+F4)'));
   console.log(chalk.gray('    2. Reopen Cursor'));
   console.log(chalk.gray('    3. Open Composer (Cmd+I / Ctrl+I)\n'));
 
+  if (claudeCodeInstalled) {
+    console.log(chalk.white('  For Claude Code:\n'));
+    console.log(chalk.gray('    1. Close this terminal completely (type ') + chalk.cyan('exit') + chalk.gray(')'));
+    console.log(chalk.gray('    2. Open a NEW terminal window'));
+    console.log(chalk.gray('    3. Navigate to your project folder'));
+    console.log(chalk.gray('    4. Run ') + chalk.cyan('claude') + chalk.gray(' to start Claude Code\n'));
+  }
+
   console.log(chalk.blue('  ──────────────────────────────────────────────────────────\n'));
 
-  console.log(chalk.white('  ✅ To verify CodeBakers is working, ask the AI:\n'));
-  console.log(chalk.green('    "Are you using CodeBakers?"\n'));
+  console.log(chalk.white('  Next step: Initialize patterns in your project:\n'));
+  console.log(chalk.cyan('    codebakers init\n'));
 
-  console.log(chalk.gray('  The AI should respond with its CodeBakers status.'));
+  console.log(chalk.white('  To verify CodeBakers is working, ask the AI:\n'));
+  console.log(chalk.green('    "update codebakers patterns"\n'));
+
+  console.log(chalk.gray('  The AI should call the update_patterns MCP tool.'));
   console.log(chalk.gray('  Need help? https://codebakers.ai/docs\n'));
 }
