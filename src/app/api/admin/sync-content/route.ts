@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { contentVersions } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { createClient } from '@/lib/supabase/server';
+import { isAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,14 +27,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin (you may want to add proper admin check)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin') {
+    // Check if user is admin
+    const admin = await isAdmin(user.id);
+    if (!admin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
