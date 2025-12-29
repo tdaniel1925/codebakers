@@ -68,7 +68,7 @@ function InstallSection() {
   };
 
   return (
-    <section id="install" className="py-16 px-4 bg-gradient-to-b from-gray-950 to-background">
+    <section id="install" className="py-16 px-4 bg-black">
       <div className="container mx-auto max-w-2xl text-center">
         <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
           <Rocket01Icon className="w-3 h-3 mr-1" />
@@ -242,16 +242,10 @@ export default function HomePage() {
         {/* Grid Background Pattern */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div
-            className="absolute inset-0 opacity-[0.12]"
+            className="absolute inset-0 opacity-[0.08]"
             style={{
-              backgroundImage: `linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)`,
-              backgroundSize: '80px 80px'
+              backgroundImage: `repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 80px), repeating-linear-gradient(90deg, #fff 0px, #fff 1px, transparent 1px, transparent 80px)`,
             }}
-          />
-          {/* Fade out at bottom */}
-          <div
-            className="absolute inset-x-0 bottom-0 h-40"
-            style={{ background: 'linear-gradient(to bottom, transparent, rgb(3 7 18))' }}
           />
         </div>
 
@@ -413,12 +407,12 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Beginners */}
-            <div className="p-8 rounded-2xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border border-green-200 dark:border-green-800">
-              <div className="w-14 h-14 rounded-xl bg-green-500 flex items-center justify-center mb-6">
+            <div className="p-8 rounded-2xl bg-white dark:bg-black border border-gray-200 dark:border-gray-800">
+              <div className="w-14 h-14 rounded-xl bg-red-600 flex items-center justify-center mb-6">
                 <Book02Icon className="h-7 w-7 text-white" />
               </div>
               <h3 className="text-xl font-bold mb-2">Just Starting?</h3>
-              <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-4">You don't know what you don't know.</p>
+              <p className="text-sm text-red-600 dark:text-red-400 font-medium mb-4">You don't know what you don't know.</p>
               <p className="text-muted-foreground mb-4">
                 You can build amazing things with AI—but how do you know if the code is secure? Accessible? Production-ready?
               </p>
@@ -428,12 +422,12 @@ export default function HomePage() {
             </div>
 
             {/* Mid-level / Indie */}
-            <div className="p-8 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 border border-amber-200 dark:border-amber-800">
-              <div className="w-14 h-14 rounded-xl bg-amber-500 flex items-center justify-center mb-6">
-                <Rocket01Icon className="h-7 w-7 text-white" />
+            <div className="p-8 rounded-2xl bg-white dark:bg-black border border-gray-200 dark:border-gray-800">
+              <div className="w-14 h-14 rounded-xl bg-black dark:bg-white flex items-center justify-center mb-6">
+                <Rocket01Icon className="h-7 w-7 text-white dark:text-black" />
               </div>
               <h3 className="text-xl font-bold mb-2">Building Fast?</h3>
-              <p className="text-sm text-amber-700 dark:text-amber-300 font-medium mb-4">You're tired of the back-and-forth.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-4">You're tired of the back-and-forth.</p>
               <p className="text-muted-foreground mb-4">
                 You've shipped before. You know the drill—prompt, fix, prompt again, add error handling, fix again. It's exhausting.
               </p>
@@ -443,12 +437,12 @@ export default function HomePage() {
             </div>
 
             {/* Experienced */}
-            <div className="p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20 border border-purple-200 dark:border-purple-800">
-              <div className="w-14 h-14 rounded-xl bg-purple-500 flex items-center justify-center mb-6">
+            <div className="p-8 rounded-2xl bg-white dark:bg-black border border-gray-200 dark:border-gray-800">
+              <div className="w-14 h-14 rounded-xl bg-red-600 flex items-center justify-center mb-6">
                 <Briefcase01Icon className="h-7 w-7 text-white" />
               </div>
               <h3 className="text-xl font-bold mb-2">Senior Dev?</h3>
-              <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mb-4">You know what good looks like.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-4">You know what good looks like.</p>
               <p className="text-muted-foreground mb-4">
                 You've been writing production code for years. You know about security, testing, edge cases—you just don't want to explain it every time.
               </p>
