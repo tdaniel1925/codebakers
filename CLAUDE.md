@@ -1,109 +1,8 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 5.5 - MCP-First + Intent Confirmation + VAPI Integration
+# Version: 4.9 - Pattern Access Failure Modes
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
-
----
-
-## 🚨 MCP-FIRST: ALWAYS CHECK MCP TOOLS BEFORE ACTING
-
-**This is the #1 priority rule. Before doing ANYTHING, check if an MCP tool can handle it.**
-
-### Available MCP Tools (ALWAYS call these FIRST):
-
-| User Says | MCP Tool to Call | What It Does |
-|-----------|------------------|--------------|
-| "upgrade codebakers", "update patterns", "sync patterns", "download patterns" | `update_patterns` | Downloads latest CLAUDE.md + all .claude/ modules from server |
-| "optimize this", "build [feature]", any feature request | `optimize_and_build` | AI-powered prompt optimization with context |
-| "get pattern [name]", "load [module]", "show me [pattern]" | `get_pattern` | Fetches specific pattern from server |
-| "list patterns", "what patterns exist", "show modules" | `list_patterns` | Lists all available patterns |
-| "search patterns for [term]", "find pattern about [topic]" | `search_patterns` | Searches pattern content |
-| "audit this code", "review code", "check quality" | `audit` | Runs comprehensive code quality audit |
-| "heal this", "fix errors", "auto-fix" | `heal` | AI-powered error detection and fixing |
-| "run tests", "test this" | `run_tests` | Executes test suite |
-| "project status", "what's built", "show progress" | `project_status` | Shows build progress and stats |
-| "set experience [level]", "I'm a beginner/advanced" | `set_experience_level` | Sets beginner/intermediate/advanced mode |
-| "check for updates", "any updates?" | `check_update_notification` | Checks for pattern updates |
-| "report gap", "missing pattern for [X]" | `report_pattern_gap` | Reports missing pattern coverage |
-| Ambiguous request, need clarification | `detect_intent` | Analyzes user message, shows which tools would be called, asks for confirmation |
-
-### The MCP-First Rule:
-
-1. **ALWAYS call the MCP tool first** - Don't try to do it manually
-2. **If no MCP tool exists for the task** - Then fall back to reading local .claude/ files
-3. **NEVER create/write pattern files manually** - Always use `update_patterns` to download from server
-4. **NEVER offer to "create missing modules"** - The server has 59 modules, use `update_patterns`
-5. **NEVER say "I don't have access to [tool]"** - You DO have MCP tools, use them
-
-### 🛡️ Confirmation Before Destructive Actions
-
-When user request is **ambiguous** or could match **multiple tools**, call `detect_intent` FIRST:
-
-```
-User: "upgrade" (ambiguous - could mean patterns OR code quality)
-AI: [Calls detect_intent MCP tool]
-→ Shows: "This could mean: 1) update_patterns (download files) OR 2) upgrade (code analysis)"
-→ Asks: "Which do you want?"
-→ User confirms
-→ THEN executes the chosen tool
-```
-
-**Destructive tools (ALWAYS confirm first):**
-- `update_patterns` - Overwrites local pattern files
-- `scaffold_project` - Creates new project files
-- `init_project` - Adds files to existing project
-- `heal` - Modifies code to fix errors
-- `design` - Generates component files
-
-**Read-only tools (safe, no confirmation needed):**
-- `list_patterns`, `search_patterns`, `get_pattern`
-- `project_status`, `get_status`, `get_experience_level`
-- `run_audit`, `run_tests`
-- `check_update_notification`
-
-### 🎤 VAPI Voice AI Tools:
-
-| User Says | MCP Tool to Call | What It Does |
-|-----------|------------------|--------------|
-| "connect vapi", "setup voice ai", "configure vapi" | `vapi_connect` | Sets up VAPI API credentials and tests connection |
-| "show my assistants", "list voice bots", "what assistants do I have" | `vapi_list_assistants` | Lists all VAPI voice assistants in your account |
-| "create voice assistant", "new voice bot", "setup voice agent" | `vapi_create_assistant` | Creates assistant with CodeBakers best practices |
-| "get assistant details", "show assistant config" | `vapi_get_assistant` | Gets specific assistant configuration and prompts |
-| "update assistant", "modify voice bot", "change assistant" | `vapi_update_assistant` | Updates assistant prompts, voice, or settings |
-| "show call history", "recent calls", "what calls happened" | `vapi_get_calls` | Gets call logs with duration, status, and transcripts |
-| "call details", "get call transcript", "show call info" | `vapi_get_call` | Gets specific call with full transcript and recording |
-| "add vapi webhook", "handle call events", "setup call notifications" | `vapi_generate_webhook` | Generates Next.js webhook handler with signature verification |
-
-**VAPI Integration Flow:**
-1. `vapi_connect` - First, connect your VAPI API key
-2. `vapi_list_assistants` - See existing assistants
-3. `vapi_create_assistant` - Create new voice AI with your description
-4. `vapi_generate_webhook` - Add webhook handler for call events
-
-### Why MCP-First?
-
-- MCP tools fetch **real data from the CodeBakers server**
-- Manual execution uses **stale or incomplete** local information
-- Server has the **latest patterns** (59 modules), local might be outdated
-- MCP tools **track analytics** for continuous improvement
-- MCP tools have **proper error handling** and user feedback
-
-### Critical: Pattern Updates
-
-When user wants to update/upgrade/sync CodeBakers patterns:
-```
-User: "upgrade codebakers" or "update patterns" or "sync"
-AI: [IMMEDIATELY calls update_patterns MCP tool]
-→ Downloads 59 modules from server
-→ Shows before/after comparison
-```
-
-**NEVER:**
-- Manually create pattern files
-- Offer to "write the missing modules"
-- Say "I'll create these for you"
-- Analyze .claude/ folder and suggest manual changes
 
 ---
 
@@ -114,14 +13,15 @@ You have access to modular pattern files in `.claude/` folder.
 **DO NOT answer coding questions from memory alone.**
 
 ### ON FIRST MESSAGE OF ANY NEW CHAT:
-1. Call `check_update_notification` MCP tool to see if patterns were updated
-2. Check if `.codebakers.json` exists for session continuity
-3. If resuming, show: "Resuming: [feature] - [summary]"
+1. Check if `.codebakers.json` exists
+2. If it has `currentWork` with recent `lastUpdated`, show: "Resuming: [feature] - [summary]"
+3. This provides automatic session continuity
 
 ### BEFORE WRITING ANY CODE:
-1. Check if an MCP tool can help (see table above)
-2. If not, load relevant module files from `.claude/`
-3. THEN respond using those patterns
+1. Read this router
+2. Analyze what the user is asking for
+3. Load the relevant module files based on your understanding
+4. THEN respond using those patterns
 
 ---
 
@@ -150,7 +50,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.5
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v4.9
 ```
 
 **On FIRST message of a new session, also show this header:**

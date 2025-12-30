@@ -44,3 +44,6 @@ cli/node_modules/
 cli/dist/
 
 .vercel
+
+# CodeBakers patterns (downloaded from server)
+.claude/
