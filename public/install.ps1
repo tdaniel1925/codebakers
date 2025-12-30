@@ -173,10 +173,14 @@ if ($alreadyInstalled) {
     Write-Host "║                                                           ║" -ForegroundColor Green
     Write-Host "║  You're all set. Happy building!                          ║" -ForegroundColor Green
     Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "⚠️  RESTART REQUIRED: Close and reopen Cursor to activate MCP tools" -ForegroundColor Yellow
 } else {
     Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Green
     Write-Host "║  ✅ CodeBakers CLI installed!                             ║" -ForegroundColor Green
     Write-Host "╚═══════════════════════════════════════════════════════════╝" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "⚠️  RESTART REQUIRED: Close and reopen Cursor to activate MCP tools" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Next steps:" -ForegroundColor Blue
     Write-Host ""
@@ -189,7 +193,7 @@ if ($alreadyInstalled) {
     Write-Host "     codebakers go" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "  3. " -NoNewline
-    Write-Host "Open Claude Code and start building!" -ForegroundColor White
+    Write-Host "Open Cursor or Claude Code and start building!" -ForegroundColor White
     Write-Host '     "Build me a todo app with authentication"' -ForegroundColor Yellow
 }
 Write-Host ""

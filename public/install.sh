@@ -137,10 +137,14 @@ if [ "$ALREADY_INSTALLED" = true ]; then
     echo -e "${GREEN}║                                                           ║${NC}"
     echo -e "${GREEN}║  You're all set. Happy building!                          ║${NC}"
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${YELLOW}⚠️  RESTART REQUIRED: Close and reopen Cursor to activate MCP tools${NC}"
 else
     echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
     echo -e "${GREEN}║  ✅ CodeBakers CLI installed!                             ║${NC}"
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${YELLOW}⚠️  RESTART REQUIRED: Close and reopen Cursor to activate MCP tools${NC}"
     echo ""
     echo -e "${BLUE}Next steps:${NC}"
     echo ""
@@ -150,7 +154,7 @@ else
     echo -e "  ${WHITE}2.${NC} Start your free trial and install patterns:"
     echo -e "     ${YELLOW}codebakers go${NC}"
     echo ""
-    echo -e "  ${WHITE}3.${NC} Open Claude Code and start building!"
+    echo -e "  ${WHITE}3.${NC} Open Cursor or Claude Code and start building!"
     echo -e "     ${YELLOW}\"Build me a todo app with authentication\"${NC}"
 fi
 echo ""
