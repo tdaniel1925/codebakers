@@ -65,6 +65,9 @@ class CodeBakersServer {
   private authMode: 'apiKey' | 'trial' | 'none';
   private autoUpdateChecked = false;
   private autoUpdateInProgress = false;
+  private pendingUpdate: { current: string; latest: string } | null = null;
+  private lastUpdateCheck = 0;
+  private updateCheckInterval = 60 * 60 * 1000; // Check every hour
 
   constructor() {
     this.apiKey = getApiKey();
@@ -90,6 +93,79 @@ class CodeBakersServer {
     this.checkAndAutoUpdate().catch(() => {
       // Silently ignore errors - don't interrupt user
     });
+
+    // Check for CLI version updates (non-blocking)
+    this.checkCliVersion().catch(() => {
+      // Silently ignore errors
+    });
+
+    // Start periodic update checks (every hour)
+    setInterval(() => {
+      this.checkCliVersion().catch(() => {});
+    }, this.updateCheckInterval);
+  }
+
+  /**
+   * Get update notice if a newer version is available
+   */
+  private getUpdateNotice(): string {
+    if (this.pendingUpdate) {
+      return `\n\n---\n🆕 **CodeBakers Update Available:** v${this.pendingUpdate.current} → v${this.pendingUpdate.latest}\nRestart Cursor/Claude Code to get new features!`;
+    }
+    return '';
+  }
+
+  /**
+   * Check if a newer CLI version is available and notify user
+   */
+  private async checkCliVersion(): Promise<void> {
+    try {
+      // Rate limit checks
+      const now = Date.now();
+      if (now - this.lastUpdateCheck < 5 * 60 * 1000) return; // Min 5 minutes between checks
+      this.lastUpdateCheck = now;
+
+      const currentVersion = getCliVersion();
+
+      // Fetch latest version from npm
+      const response = await fetch('https://registry.npmjs.org/@codebakers/cli/latest', {
+        headers: { 'Accept': 'application/json' },
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      const latestVersion = data.version;
+
+      if (latestVersion && latestVersion !== currentVersion) {
+        // Compare versions (simple comparison - assumes semver)
+        const current = currentVersion.split('.').map(Number);
+        const latest = latestVersion.split('.').map(Number);
+
+        const isNewer = latest[0] > current[0] ||
+          (latest[0] === current[0] && latest[1] > current[1]) ||
+          (latest[0] === current[0] && latest[1] === current[1] && latest[2] > current[2]);
+
+        if (isNewer) {
+          // Store pending update for inclusion in tool responses
+          this.pendingUpdate = { current: currentVersion, latest: latestVersion };
+
+          // Also log to stderr for immediate visibility
+          console.error(`\n╔════════════════════════════════════════════════════════════╗`);
+          console.error(`║  🆕 CodeBakers CLI Update Available: v${currentVersion} → v${latestVersion.padEnd(10)}║`);
+          console.error(`║                                                            ║`);
+          console.error(`║  Restart Cursor/Claude Code to get the latest features!   ║`);
+          console.error(`╚════════════════════════════════════════════════════════════╝\n`);
+        } else {
+          // No update available
+          this.pendingUpdate = null;
+        }
+      } else {
+        this.pendingUpdate = null;
+      }
+    } catch {
+      // Silently ignore - don't interrupt user experience
+    }
   }
 
   /**
@@ -1211,6 +1287,104 @@ class CodeBakersServer {
             },
           },
         },
+        // Ripple Detection Tool
+        {
+          name: 'ripple_check',
+          description:
+            'Detect all files affected by a change to a type, schema, function, or component. Use this BEFORE making breaking changes to understand impact, or AFTER to find files that need updating. Returns a list of files that import/use the entity and may need updates.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              entityName: {
+                type: 'string',
+                description: 'Name of the type, schema, function, or component that changed (e.g., "User", "createOrder", "Button")',
+              },
+              changeType: {
+                type: 'string',
+                enum: ['added_field', 'removed_field', 'renamed', 'type_changed', 'signature_changed', 'other'],
+                description: 'What kind of change was made',
+              },
+              changeDescription: {
+                type: 'string',
+                description: 'Brief description of the change (e.g., "added teamId field", "renamed email to emailAddress")',
+              },
+            },
+            required: ['entityName'],
+          },
+        },
+        // ============================================
+        // DEPENDENCY GUARDIAN - Auto-Coherence System
+        // ============================================
+        {
+          name: 'guardian_analyze',
+          description:
+            'AUTOMATIC: Analyzes code for consistency issues, broken contracts, and coherence problems. Runs silently after every code generation. Returns issues found with auto-fix suggestions. User never needs to call this directly.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              files: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Files that were just created or modified',
+              },
+              changeContext: {
+                type: 'string',
+                description: 'What change was made (e.g., "added user authentication", "created invoice API")',
+              },
+            },
+            required: ['files'],
+          },
+        },
+        {
+          name: 'guardian_heal',
+          description:
+            'AUTOMATIC: Fixes consistency issues, broken imports, type mismatches, and contract violations. Runs automatically when guardian_analyze finds issues. User never needs to call this directly.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              issues: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    file: { type: 'string' },
+                    issue: { type: 'string' },
+                    fix: { type: 'string' },
+                  },
+                },
+                description: 'Issues to fix (from guardian_analyze)',
+              },
+              autoFix: {
+                type: 'boolean',
+                description: 'Whether to automatically apply fixes (default: true)',
+              },
+            },
+            required: ['issues'],
+          },
+        },
+        {
+          name: 'guardian_verify',
+          description:
+            'AUTOMATIC: Verifies that all changes are coherent and the codebase compiles. Runs TypeScript check, verifies imports, and checks for common issues. Returns pass/fail with details.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              deep: {
+                type: 'boolean',
+                description: 'Run deep verification including cross-file contract checking (default: false for speed)',
+              },
+            },
+          },
+        },
+        {
+          name: 'guardian_status',
+          description:
+            'Shows the current coherence status of the project. Reports any known issues, pending fixes, and overall health score.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {},
+          },
+        },
       ],
     }));
 
@@ -1371,6 +1545,22 @@ class CodeBakersServer {
 
         case 'vapi_generate_webhook':
           return this.handleVapiGenerateWebhook(args as { events?: string[] });
+
+        case 'ripple_check':
+          return this.handleRippleCheck(args as { entityName: string; changeType?: string; changeDescription?: string });
+
+        // Dependency Guardian - Auto-Coherence System
+        case 'guardian_analyze':
+          return this.handleGuardianAnalyze(args as { files: string[]; changeContext?: string });
+
+        case 'guardian_heal':
+          return this.handleGuardianHeal(args as { issues: Array<{ file: string; issue: string; fix: string }>; autoFix?: boolean });
+
+        case 'guardian_verify':
+          return this.handleGuardianVerify(args as { deep?: boolean });
+
+        case 'guardian_status':
+          return this.handleGuardianStatus();
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -2547,6 +2737,9 @@ phase: development
         response += `---\n\n*Run with \`auto: true\` to automatically apply safe fixes.*`;
       }
 
+      // Add CLI update notice if available
+      response += this.getUpdateNotice();
+
       return {
         content: [{
           type: 'text' as const,
@@ -2558,7 +2751,7 @@ phase: development
       return {
         content: [{
           type: 'text' as const,
-          text: `# ❌ Healing Failed\n\nError: ${message}`,
+          text: `# ❌ Healing Failed\n\nError: ${message}${this.getUpdateNotice()}`,
         }],
       };
     }
@@ -2614,10 +2807,13 @@ Just describe what you want to build! I'll automatically:
 ---
 *CodeBakers is providing AI-assisted development patterns for this project.*`;
 
+    // Add CLI update notice if available
+    const statusWithNotice = statusText + this.getUpdateNotice();
+
     return {
       content: [{
         type: 'text' as const,
-        text: statusText,
+        text: statusWithNotice,
       }],
     };
   }
@@ -5406,6 +5602,7 @@ ${handlers.join('\n')}
         response += `✅ **Already up to date!**\n\n`;
         response += `Your patterns are current (v${latestVersion} with ${latestModuleCount} modules).\n`;
         response += `Use \`force: true\` to re-download anyway.\n`;
+        response += this.getUpdateNotice();
 
         return {
           content: [{
@@ -5486,6 +5683,9 @@ ${handlers.join('\n')}
         response += `Please try again or run \`codebakers upgrade\` in terminal.\n`;
       }
     }
+
+    // Add CLI update notice if available
+    response += this.getUpdateNotice();
 
     return {
       content: [{
@@ -6122,6 +6322,952 @@ ${events.includes('call-started') ? `      case 'call-started':
     response += `- \`call-ended\`: Triggered when a call ends (with transcript)\n`;
     response += `- \`transcript\`: Real-time transcript updates\n`;
     response += `- \`function-call\`: When assistant calls a custom function\n`;
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  // ============================================
+  // DEPENDENCY GUARDIAN - Auto-Coherence System
+  // ============================================
+
+  /**
+   * Guardian Analyze - Detects consistency issues in changed files
+   * Runs automatically after code generation
+   */
+  private handleGuardianAnalyze(args: { files: string[]; changeContext?: string }) {
+    const { files, changeContext } = args;
+    const cwd = process.cwd();
+
+    interface Issue {
+      file: string;
+      line: number;
+      issue: string;
+      severity: 'error' | 'warning' | 'info';
+      fix: string;
+      autoFixable: boolean;
+    }
+
+    const issues: Issue[] = [];
+    const analyzed: string[] = [];
+
+    // Helper to check if an import path resolves
+    const checkImportResolves = (importPath: string, fromFile: string): boolean => {
+      const fromDir = path.dirname(fromFile);
+
+      // Handle alias imports (@/)
+      if (importPath.startsWith('@/')) {
+        const aliasPath = path.join(cwd, 'src', importPath.slice(2));
+        return fs.existsSync(aliasPath + '.ts') ||
+               fs.existsSync(aliasPath + '.tsx') ||
+               fs.existsSync(path.join(aliasPath, 'index.ts')) ||
+               fs.existsSync(path.join(aliasPath, 'index.tsx'));
+      }
+
+      // Handle relative imports
+      if (importPath.startsWith('.')) {
+        const resolved = path.resolve(fromDir, importPath);
+        return fs.existsSync(resolved + '.ts') ||
+               fs.existsSync(resolved + '.tsx') ||
+               fs.existsSync(path.join(resolved, 'index.ts')) ||
+               fs.existsSync(path.join(resolved, 'index.tsx'));
+      }
+
+      // Node modules - assume they exist
+      return true;
+    };
+
+    // Helper to extract imports from a file
+    const extractImports = (content: string): Array<{ path: string; names: string[]; line: number }> => {
+      const imports: Array<{ path: string; names: string[]; line: number }> = [];
+      const lines = content.split('\n');
+
+      lines.forEach((line, i) => {
+        // Match: import { X, Y } from 'path'
+        const namedMatch = line.match(/import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/);
+        if (namedMatch) {
+          const names = namedMatch[1].split(',').map(n => n.trim().split(' as ')[0]);
+          imports.push({ path: namedMatch[2], names, line: i + 1 });
+        }
+
+        // Match: import X from 'path'
+        const defaultMatch = line.match(/import\s+(\w+)\s+from\s+['"]([^'"]+)['"]/);
+        if (defaultMatch && !namedMatch) {
+          imports.push({ path: defaultMatch[2], names: [defaultMatch[1]], line: i + 1 });
+        }
+      });
+
+      return imports;
+    };
+
+    // Helper to extract exports from a file
+    const extractExports = (content: string): string[] => {
+      const exports: string[] = [];
+
+      // Match: export const/function/class/type/interface X
+      const exportMatches = content.matchAll(/export\s+(const|function|class|type|interface)\s+(\w+)/g);
+      for (const match of exportMatches) {
+        exports.push(match[2]);
+      }
+
+      // Match: export { X, Y }
+      const namedExportMatch = content.match(/export\s+\{([^}]+)\}/);
+      if (namedExportMatch) {
+        const names = namedExportMatch[1].split(',').map(n => n.trim().split(' as ')[0]);
+        exports.push(...names);
+      }
+
+      // Match: export default
+      if (content.includes('export default')) {
+        exports.push('default');
+      }
+
+      return exports;
+    };
+
+    // Analyze each file
+    for (const file of files) {
+      const fullPath = path.isAbsolute(file) ? file : path.join(cwd, file);
+
+      if (!fs.existsSync(fullPath)) {
+        issues.push({
+          file,
+          line: 0,
+          issue: `File does not exist: ${file}`,
+          severity: 'error',
+          fix: `Create the file or remove the reference`,
+          autoFixable: false,
+        });
+        continue;
+      }
+
+      try {
+        const content = fs.readFileSync(fullPath, 'utf-8');
+        const lines = content.split('\n');
+        analyzed.push(file);
+
+        // Check 1: Broken imports
+        const imports = extractImports(content);
+        for (const imp of imports) {
+          if (!checkImportResolves(imp.path, fullPath)) {
+            issues.push({
+              file,
+              line: imp.line,
+              issue: `Broken import: '${imp.path}' does not resolve`,
+              severity: 'error',
+              fix: `Check the import path or create the missing module`,
+              autoFixable: false,
+            });
+          }
+        }
+
+        // Check 2: Unused imports (basic check)
+        for (const imp of imports) {
+          for (const name of imp.names) {
+            // Skip if it's a type-only import or if name appears elsewhere in file
+            const usageCount = (content.match(new RegExp(`\\b${name}\\b`, 'g')) || []).length;
+            if (usageCount === 1) { // Only appears in import
+              issues.push({
+                file,
+                line: imp.line,
+                issue: `Unused import: '${name}' is imported but never used`,
+                severity: 'warning',
+                fix: `Remove '${name}' from imports`,
+                autoFixable: true,
+              });
+            }
+          }
+        }
+
+        // Check 3: console.log in production code (not in test files)
+        if (!file.includes('.test.') && !file.includes('.spec.')) {
+          lines.forEach((line, i) => {
+            if (line.includes('console.log(') && !line.trim().startsWith('//')) {
+              issues.push({
+                file,
+                line: i + 1,
+                issue: `console.log found in production code`,
+                severity: 'warning',
+                fix: `Remove console.log or replace with proper logging`,
+                autoFixable: true,
+              });
+            }
+          });
+        }
+
+        // Check 4: TODO/FIXME comments
+        lines.forEach((line, i) => {
+          if (line.includes('TODO:') || line.includes('FIXME:')) {
+            issues.push({
+              file,
+              line: i + 1,
+              issue: `Unresolved TODO/FIXME comment`,
+              severity: 'info',
+              fix: `Complete the TODO or remove if no longer needed`,
+              autoFixable: false,
+            });
+          }
+        });
+
+        // Check 5: Type 'any' usage
+        lines.forEach((line, i) => {
+          if (line.includes(': any') || line.includes('<any>') || line.includes('as any')) {
+            issues.push({
+              file,
+              line: i + 1,
+              issue: `'any' type used - weakens type safety`,
+              severity: 'warning',
+              fix: `Replace 'any' with a proper type`,
+              autoFixable: false,
+            });
+          }
+        });
+
+        // Check 6: Missing error handling in async functions
+        if (content.includes('async ') && !content.includes('try {') && !content.includes('.catch(')) {
+          issues.push({
+            file,
+            line: 1,
+            issue: `Async function without error handling`,
+            severity: 'warning',
+            fix: `Add try/catch or .catch() to handle errors`,
+            autoFixable: false,
+          });
+        }
+
+        // Check 7: API routes without proper error handling
+        if (file.includes('/api/') && file.endsWith('route.ts')) {
+          if (!content.includes('try {') || !content.includes('catch')) {
+            issues.push({
+              file,
+              line: 1,
+              issue: `API route without try/catch error handling`,
+              severity: 'error',
+              fix: `Wrap handler logic in try/catch with proper error response`,
+              autoFixable: false,
+            });
+          }
+        }
+
+        // Check 8: Missing return type on exported functions
+        const funcMatches = content.matchAll(/export\s+(async\s+)?function\s+(\w+)\s*\([^)]*\)\s*{/g);
+        for (const match of funcMatches) {
+          const fullMatch = match[0];
+          if (!fullMatch.includes(':')) { // No return type
+            issues.push({
+              file,
+              line: 1,
+              issue: `Exported function '${match[2]}' missing return type`,
+              severity: 'info',
+              fix: `Add explicit return type annotation`,
+              autoFixable: false,
+            });
+          }
+        }
+
+      } catch (err) {
+        issues.push({
+          file,
+          line: 0,
+          issue: `Could not analyze file: ${err instanceof Error ? err.message : 'Unknown error'}`,
+          severity: 'error',
+          fix: `Check file permissions and encoding`,
+          autoFixable: false,
+        });
+      }
+    }
+
+    // Also check cross-file consistency
+    // Look for imports of the changed files from other files
+    const searchDirs = ['src', 'app', 'lib', 'components', 'services'];
+    const extensions = ['.ts', '.tsx'];
+
+    const searchDir = (dir: string) => {
+      if (!fs.existsSync(dir)) return;
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+          searchDir(fullPath);
+        } else if (entry.isFile() && extensions.some(ext => entry.name.endsWith(ext))) {
+          // Check if this file imports any of our changed files
+          const relativePath = path.relative(cwd, fullPath);
+          if (files.includes(relativePath)) continue; // Skip files we're already analyzing
+
+          try {
+            const content = fs.readFileSync(fullPath, 'utf-8');
+            const imports = extractImports(content);
+
+            for (const imp of imports) {
+              // Check if import matches any of our changed files
+              for (const changedFile of files) {
+                const changedBasename = path.basename(changedFile, path.extname(changedFile));
+                if (imp.path.includes(changedBasename)) {
+                  // This file imports a changed file - verify the imports still exist
+                  const changedFullPath = path.join(cwd, changedFile);
+                  if (fs.existsSync(changedFullPath)) {
+                    const changedContent = fs.readFileSync(changedFullPath, 'utf-8');
+                    const exports = extractExports(changedContent);
+
+                    for (const name of imp.names) {
+                      if (!exports.includes(name) && name !== 'default') {
+                        issues.push({
+                          file: relativePath,
+                          line: imp.line,
+                          issue: `Import '${name}' no longer exported from '${changedFile}'`,
+                          severity: 'error',
+                          fix: `Update import or add export to '${changedFile}'`,
+                          autoFixable: false,
+                        });
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } catch {
+            // Skip files that can't be read
+          }
+        }
+      }
+    };
+
+    for (const dir of searchDirs) {
+      searchDir(path.join(cwd, dir));
+    }
+
+    // Build response
+    let response = `# 🛡️ Dependency Guardian Analysis\n\n`;
+
+    if (changeContext) {
+      response += `**Context:** ${changeContext}\n\n`;
+    }
+
+    response += `**Files Analyzed:** ${analyzed.length}\n`;
+    response += `**Issues Found:** ${issues.length}\n\n`;
+
+    if (issues.length === 0) {
+      response += `## ✅ All Clear!\n\n`;
+      response += `No consistency issues detected. Code is coherent.\n`;
+    } else {
+      const errors = issues.filter(i => i.severity === 'error');
+      const warnings = issues.filter(i => i.severity === 'warning');
+      const infos = issues.filter(i => i.severity === 'info');
+      const autoFixable = issues.filter(i => i.autoFixable);
+
+      response += `| Severity | Count |\n`;
+      response += `|----------|-------|\n`;
+      response += `| 🔴 Errors | ${errors.length} |\n`;
+      response += `| 🟡 Warnings | ${warnings.length} |\n`;
+      response += `| 🔵 Info | ${infos.length} |\n`;
+      response += `| 🔧 Auto-fixable | ${autoFixable.length} |\n\n`;
+
+      if (errors.length > 0) {
+        response += `## 🔴 Errors (Must Fix)\n\n`;
+        for (const issue of errors) {
+          response += `### \`${issue.file}:${issue.line}\`\n`;
+          response += `**Issue:** ${issue.issue}\n`;
+          response += `**Fix:** ${issue.fix}\n\n`;
+        }
+      }
+
+      if (warnings.length > 0) {
+        response += `## 🟡 Warnings (Should Fix)\n\n`;
+        for (const issue of warnings) {
+          response += `- \`${issue.file}:${issue.line}\` - ${issue.issue}${issue.autoFixable ? ' 🔧' : ''}\n`;
+        }
+        response += `\n`;
+      }
+
+      if (infos.length > 0) {
+        response += `## 🔵 Info (Consider)\n\n`;
+        for (const issue of infos) {
+          response += `- \`${issue.file}:${issue.line}\` - ${issue.issue}\n`;
+        }
+        response += `\n`;
+      }
+
+      if (autoFixable.length > 0) {
+        response += `---\n\n`;
+        response += `**${autoFixable.length} issues can be auto-fixed.** Run \`guardian_heal\` to fix them automatically.\n`;
+      }
+    }
+
+    // Store issues for healing
+    const guardianStatePath = path.join(cwd, '.codebakers', 'guardian-state.json');
+    try {
+      fs.mkdirSync(path.dirname(guardianStatePath), { recursive: true });
+      fs.writeFileSync(guardianStatePath, JSON.stringify({
+        lastAnalysis: new Date().toISOString(),
+        filesAnalyzed: analyzed,
+        issues,
+        changeContext,
+      }, null, 2));
+    } catch {
+      // Ignore write errors
+    }
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  /**
+   * Guardian Heal - Auto-fixes issues found by guardian_analyze
+   */
+  private handleGuardianHeal(args: { issues: Array<{ file: string; issue: string; fix: string }>; autoFix?: boolean }) {
+    const { autoFix = true } = args;
+    const cwd = process.cwd();
+
+    // Load issues from state if not provided
+    let issues = args.issues;
+    if (!issues || issues.length === 0) {
+      const guardianStatePath = path.join(cwd, '.codebakers', 'guardian-state.json');
+      if (fs.existsSync(guardianStatePath)) {
+        try {
+          const state = JSON.parse(fs.readFileSync(guardianStatePath, 'utf-8'));
+          issues = state.issues?.filter((i: { autoFixable?: boolean }) => i.autoFixable) || [];
+        } catch {
+          issues = [];
+        }
+      }
+    }
+
+    if (issues.length === 0) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `# 🛡️ Guardian Heal\n\n✅ No issues to fix. Run \`guardian_analyze\` first to detect issues.`
+        }]
+      };
+    }
+
+    let response = `# 🛡️ Guardian Heal\n\n`;
+    const fixed: string[] = [];
+    const failed: string[] = [];
+
+    for (const issue of issues) {
+      const fullPath = path.join(cwd, issue.file);
+
+      if (!fs.existsSync(fullPath)) {
+        failed.push(`${issue.file}: File not found`);
+        continue;
+      }
+
+      try {
+        let content = fs.readFileSync(fullPath, 'utf-8');
+        let modified = false;
+
+        // Fix: Remove unused imports
+        if (issue.issue.includes('Unused import')) {
+          const match = issue.issue.match(/Unused import: '(\w+)'/);
+          if (match) {
+            const name = match[1];
+            // Remove from named imports
+            content = content.replace(new RegExp(`\\b${name}\\b,?\\s*`, 'g'), (m, offset) => {
+              // Only replace in import statements
+              const lineStart = content.lastIndexOf('\n', offset) + 1;
+              const line = content.substring(lineStart, content.indexOf('\n', offset));
+              if (line.includes('import')) {
+                modified = true;
+                return '';
+              }
+              return m;
+            });
+          }
+        }
+
+        // Fix: Remove console.log
+        if (issue.issue.includes('console.log')) {
+          const lines = content.split('\n');
+          const lineIndex = parseInt(issue.issue.match(/line (\d+)/)?.[1] || '0') - 1;
+          if (lineIndex >= 0 && lines[lineIndex]?.includes('console.log')) {
+            lines.splice(lineIndex, 1);
+            content = lines.join('\n');
+            modified = true;
+          }
+        }
+
+        if (modified && autoFix) {
+          fs.writeFileSync(fullPath, content);
+          fixed.push(issue.file);
+        } else if (!modified) {
+          failed.push(`${issue.file}: Could not auto-fix "${issue.issue}"`);
+        }
+      } catch (err) {
+        failed.push(`${issue.file}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    }
+
+    if (fixed.length > 0) {
+      response += `## ✅ Fixed (${fixed.length})\n\n`;
+      for (const file of fixed) {
+        response += `- \`${file}\`\n`;
+      }
+      response += `\n`;
+    }
+
+    if (failed.length > 0) {
+      response += `## ⚠️ Could Not Auto-Fix (${failed.length})\n\n`;
+      for (const msg of failed) {
+        response += `- ${msg}\n`;
+      }
+      response += `\nThese require manual intervention.\n`;
+    }
+
+    if (fixed.length > 0) {
+      response += `\n---\n\nRun \`guardian_verify\` to confirm all issues are resolved.\n`;
+    }
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  /**
+   * Guardian Verify - Verifies codebase coherence (TypeScript check, imports, etc.)
+   */
+  private handleGuardianVerify(args: { deep?: boolean }) {
+    const { deep = false } = args;
+    const cwd = process.cwd();
+
+    let response = `# 🛡️ Guardian Verify\n\n`;
+    const checks: Array<{ name: string; status: 'pass' | 'fail' | 'warn'; details: string }> = [];
+
+    // Check 1: TypeScript compilation
+    try {
+      execSync('npx tsc --noEmit', { cwd, stdio: 'pipe', timeout: 60000 });
+      checks.push({ name: 'TypeScript', status: 'pass', details: 'No type errors' });
+    } catch (err) {
+      const output = err instanceof Error && 'stdout' in err ? String((err as { stdout: Buffer }).stdout) : 'Unknown error';
+      const errorCount = (output.match(/error TS/g) || []).length;
+      checks.push({
+        name: 'TypeScript',
+        status: 'fail',
+        details: `${errorCount} type error${errorCount !== 1 ? 's' : ''} found`
+      });
+    }
+
+    // Check 2: Package.json exists and is valid
+    const pkgPath = path.join(cwd, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      try {
+        JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+        checks.push({ name: 'package.json', status: 'pass', details: 'Valid JSON' });
+      } catch {
+        checks.push({ name: 'package.json', status: 'fail', details: 'Invalid JSON' });
+      }
+    } else {
+      checks.push({ name: 'package.json', status: 'fail', details: 'File not found' });
+    }
+
+    // Check 3: Environment variables
+    const envExample = path.join(cwd, '.env.example');
+    const envLocal = path.join(cwd, '.env.local');
+    const env = path.join(cwd, '.env');
+
+    if (fs.existsSync(envExample)) {
+      checks.push({ name: '.env.example', status: 'pass', details: 'Exists for documentation' });
+    } else {
+      checks.push({ name: '.env.example', status: 'warn', details: 'Missing - should document required env vars' });
+    }
+
+    if (fs.existsSync(envLocal) || fs.existsSync(env)) {
+      checks.push({ name: '.env', status: 'pass', details: 'Environment configured' });
+    } else {
+      checks.push({ name: '.env', status: 'warn', details: 'No .env file - may need configuration' });
+    }
+
+    // Check 4: Git ignore includes sensitive files
+    const gitignore = path.join(cwd, '.gitignore');
+    if (fs.existsSync(gitignore)) {
+      const content = fs.readFileSync(gitignore, 'utf-8');
+      if (content.includes('.env') && content.includes('node_modules')) {
+        checks.push({ name: '.gitignore', status: 'pass', details: 'Properly configured' });
+      } else {
+        checks.push({ name: '.gitignore', status: 'warn', details: 'May be missing important entries' });
+      }
+    } else {
+      checks.push({ name: '.gitignore', status: 'warn', details: 'No .gitignore file' });
+    }
+
+    // Check 5: Deep mode - check all imports resolve
+    if (deep) {
+      let brokenImports = 0;
+      const searchDirs = ['src', 'app'];
+
+      const checkDir = (dir: string) => {
+        if (!fs.existsSync(dir)) return;
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+            checkDir(fullPath);
+          } else if (entry.isFile() && (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx'))) {
+            try {
+              const content = fs.readFileSync(fullPath, 'utf-8');
+              const importMatches = content.matchAll(/from\s+['"]([^'"]+)['"]/g);
+              for (const match of importMatches) {
+                const importPath = match[1];
+                if (importPath.startsWith('.') || importPath.startsWith('@/')) {
+                  // Check if resolves
+                  let resolved: string;
+                  if (importPath.startsWith('@/')) {
+                    resolved = path.join(cwd, 'src', importPath.slice(2));
+                  } else {
+                    resolved = path.resolve(path.dirname(fullPath), importPath);
+                  }
+
+                  const exists = fs.existsSync(resolved + '.ts') ||
+                                 fs.existsSync(resolved + '.tsx') ||
+                                 fs.existsSync(path.join(resolved, 'index.ts')) ||
+                                 fs.existsSync(path.join(resolved, 'index.tsx'));
+
+                  if (!exists) {
+                    brokenImports++;
+                  }
+                }
+              }
+            } catch {
+              // Skip unreadable files
+            }
+          }
+        }
+      };
+
+      for (const dir of searchDirs) {
+        checkDir(path.join(cwd, dir));
+      }
+
+      if (brokenImports === 0) {
+        checks.push({ name: 'Import Resolution', status: 'pass', details: 'All imports resolve' });
+      } else {
+        checks.push({ name: 'Import Resolution', status: 'fail', details: `${brokenImports} broken import${brokenImports !== 1 ? 's' : ''}` });
+      }
+    }
+
+    // Build response
+    const passed = checks.filter(c => c.status === 'pass').length;
+    const failed = checks.filter(c => c.status === 'fail').length;
+    const warned = checks.filter(c => c.status === 'warn').length;
+
+    const overallStatus = failed > 0 ? '❌ FAIL' : warned > 0 ? '⚠️ WARN' : '✅ PASS';
+
+    response += `## Overall: ${overallStatus}\n\n`;
+    response += `| Check | Status | Details |\n`;
+    response += `|-------|--------|--------|\n`;
+
+    for (const check of checks) {
+      const icon = check.status === 'pass' ? '✅' : check.status === 'fail' ? '❌' : '⚠️';
+      response += `| ${check.name} | ${icon} | ${check.details} |\n`;
+    }
+
+    response += `\n**Summary:** ${passed} passed, ${failed} failed, ${warned} warnings\n`;
+
+    if (failed > 0) {
+      response += `\n---\n\n⚠️ **Action Required:** Fix the failing checks before deploying.\n`;
+    }
+
+    // Update guardian state
+    const guardianStatePath = path.join(cwd, '.codebakers', 'guardian-state.json');
+    try {
+      let state: Record<string, unknown> = {};
+      if (fs.existsSync(guardianStatePath)) {
+        state = JSON.parse(fs.readFileSync(guardianStatePath, 'utf-8'));
+      }
+      state.lastVerification = new Date().toISOString();
+      state.verificationResult = { passed, failed, warned, checks };
+      fs.mkdirSync(path.dirname(guardianStatePath), { recursive: true });
+      fs.writeFileSync(guardianStatePath, JSON.stringify(state, null, 2));
+    } catch {
+      // Ignore write errors
+    }
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  /**
+   * Guardian Status - Shows overall project coherence health
+   */
+  private handleGuardianStatus() {
+    const cwd = process.cwd();
+    const guardianStatePath = path.join(cwd, '.codebakers', 'guardian-state.json');
+
+    let response = `# 🛡️ Dependency Guardian Status\n\n`;
+
+    // Check if guardian state exists
+    if (!fs.existsSync(guardianStatePath)) {
+      response += `## ⚪ Not Initialized\n\n`;
+      response += `Guardian hasn't analyzed this project yet.\n\n`;
+      response += `Run \`guardian_analyze\` on your files to start tracking coherence.\n`;
+      return { content: [{ type: 'text' as const, text: response }] };
+    }
+
+    try {
+      const state = JSON.parse(fs.readFileSync(guardianStatePath, 'utf-8'));
+
+      // Last analysis
+      if (state.lastAnalysis) {
+        const analysisTime = new Date(state.lastAnalysis);
+        const hoursAgo = Math.round((Date.now() - analysisTime.getTime()) / (1000 * 60 * 60));
+        response += `**Last Analysis:** ${hoursAgo < 1 ? 'Just now' : `${hoursAgo} hour${hoursAgo !== 1 ? 's' : ''} ago`}\n`;
+      }
+
+      // Last verification
+      if (state.lastVerification) {
+        const verifyTime = new Date(state.lastVerification);
+        const hoursAgo = Math.round((Date.now() - verifyTime.getTime()) / (1000 * 60 * 60));
+        response += `**Last Verification:** ${hoursAgo < 1 ? 'Just now' : `${hoursAgo} hour${hoursAgo !== 1 ? 's' : ''} ago`}\n`;
+      }
+
+      response += `\n`;
+
+      // Issue summary
+      if (state.issues && state.issues.length > 0) {
+        const errors = state.issues.filter((i: { severity: string }) => i.severity === 'error').length;
+        const warnings = state.issues.filter((i: { severity: string }) => i.severity === 'warning').length;
+
+        if (errors > 0) {
+          response += `## ❌ Issues Found\n\n`;
+          response += `- 🔴 ${errors} error${errors !== 1 ? 's' : ''}\n`;
+          response += `- 🟡 ${warnings} warning${warnings !== 1 ? 's' : ''}\n\n`;
+          response += `Run \`guardian_heal\` to auto-fix what's possible.\n`;
+        } else if (warnings > 0) {
+          response += `## ⚠️ Warnings\n\n`;
+          response += `- 🟡 ${warnings} warning${warnings !== 1 ? 's' : ''} (no critical errors)\n\n`;
+        } else {
+          response += `## ✅ All Clear\n\n`;
+          response += `No known issues in the codebase.\n`;
+        }
+      } else {
+        response += `## ✅ No Issues\n\n`;
+        response += `Last analysis found no problems.\n`;
+      }
+
+      // Verification result
+      if (state.verificationResult) {
+        const { passed, failed, warned } = state.verificationResult;
+        response += `\n### Verification Summary\n`;
+        response += `✅ ${passed} checks passed\n`;
+        if (failed > 0) response += `❌ ${failed} checks failed\n`;
+        if (warned > 0) response += `⚠️ ${warned} warnings\n`;
+      }
+
+      // Health score
+      const issueCount = state.issues?.length || 0;
+      const errorCount = state.issues?.filter((i: { severity: string }) => i.severity === 'error').length || 0;
+      const verifyFailed = state.verificationResult?.failed || 0;
+
+      let healthScore = 100;
+      healthScore -= errorCount * 20;
+      healthScore -= verifyFailed * 15;
+      healthScore -= (issueCount - errorCount) * 5;
+      healthScore = Math.max(0, Math.min(100, healthScore));
+
+      response += `\n---\n\n`;
+      response += `## Health Score: ${healthScore}/100 ${healthScore >= 80 ? '🟢' : healthScore >= 50 ? '🟡' : '🔴'}\n`;
+
+    } catch {
+      response += `## ⚠️ State Corrupted\n\n`;
+      response += `Could not read guardian state. Run \`guardian_analyze\` to rebuild.\n`;
+    }
+
+    // Add update notice if available
+    response += this.getUpdateNotice();
+
+    return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  /**
+   * Ripple Check - Detect all files affected by a change to a type/schema/function
+   * Searches the codebase for imports and usages of the entity
+   */
+  private handleRippleCheck(args: { entityName: string; changeType?: string; changeDescription?: string }) {
+    const { entityName, changeType, changeDescription } = args;
+    const cwd = process.cwd();
+
+    let response = `# 🌊 Ripple Check: \`${entityName}\`\n\n`;
+
+    if (changeType || changeDescription) {
+      response += `**Change:** ${changeDescription || changeType || 'Unknown'}\n\n`;
+    }
+
+    // Define search directories
+    const searchDirs = ['src', 'app', 'lib', 'components', 'services', 'types', 'utils', 'hooks'];
+    const extensions = ['.ts', '.tsx', '.js', '.jsx'];
+
+    interface FileMatch {
+      file: string;
+      importLine?: string;
+      usageLines: string[];
+      lineNumbers: number[];
+      isDefinition: boolean;
+    }
+
+    const matches: FileMatch[] = [];
+    let definitionFile: string | null = null;
+
+    // Helper to search a directory recursively
+    const searchDir = (dir: string) => {
+      if (!fs.existsSync(dir)) return;
+
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+          searchDir(fullPath);
+        } else if (entry.isFile() && extensions.some(ext => entry.name.endsWith(ext))) {
+          try {
+            const content = fs.readFileSync(fullPath, 'utf-8');
+            const lines = content.split('\n');
+
+            // Check if file contains the entity
+            if (!content.includes(entityName)) continue;
+
+            const relativePath = path.relative(cwd, fullPath);
+            const match: FileMatch = {
+              file: relativePath,
+              usageLines: [],
+              lineNumbers: [],
+              isDefinition: false,
+            };
+
+            lines.forEach((line, i) => {
+              const lineNum = i + 1;
+
+              // Check for import statements
+              if (line.includes('import') && line.includes(entityName)) {
+                match.importLine = line.trim();
+              }
+
+              // Check for type/interface/function/const definition
+              const defPatterns = [
+                `type ${entityName}`,
+                `interface ${entityName}`,
+                `function ${entityName}`,
+                `const ${entityName}`,
+                `class ${entityName}`,
+                `export type ${entityName}`,
+                `export interface ${entityName}`,
+                `export function ${entityName}`,
+                `export const ${entityName}`,
+                `export class ${entityName}`,
+              ];
+
+              if (defPatterns.some(p => line.includes(p))) {
+                match.isDefinition = true;
+                definitionFile = relativePath;
+              }
+
+              // Check for usage (not just import or definition)
+              if (line.includes(entityName) && !line.includes('import ')) {
+                match.usageLines.push(line.trim().substring(0, 100));
+                match.lineNumbers.push(lineNum);
+              }
+            });
+
+            // Only add if there are usages (not just definition)
+            if (match.usageLines.length > 0) {
+              matches.push(match);
+            }
+          } catch {
+            // Skip files that can't be read
+          }
+        }
+      }
+    };
+
+    // Search all directories
+    for (const dir of searchDirs) {
+      searchDir(path.join(cwd, dir));
+    }
+
+    // Sort: definition first, then by number of usages
+    matches.sort((a, b) => {
+      if (a.isDefinition && !b.isDefinition) return -1;
+      if (!a.isDefinition && b.isDefinition) return 1;
+      return b.usageLines.length - a.usageLines.length;
+    });
+
+    // Generate report
+    if (matches.length === 0) {
+      response += `## ✅ No usages found\n\n`;
+      response += `The entity \`${entityName}\` was not found in the codebase, or has no usages.\n`;
+      response += `This change is safe to make without ripple effects.\n`;
+    } else {
+      // Summary
+      response += `## 📊 Impact Summary\n\n`;
+      response += `| Metric | Count |\n`;
+      response += `|--------|-------|\n`;
+      response += `| Files affected | ${matches.length} |\n`;
+      response += `| Total usages | ${matches.reduce((sum, m) => sum + m.usageLines.length, 0)} |\n`;
+      if (definitionFile) {
+        response += `| Definition | \`${definitionFile}\` |\n`;
+      }
+      response += `\n`;
+
+      // Categorize by impact level
+      const highImpact = matches.filter(m => m.usageLines.length >= 5);
+      const mediumImpact = matches.filter(m => m.usageLines.length >= 2 && m.usageLines.length < 5);
+      const lowImpact = matches.filter(m => m.usageLines.length === 1);
+
+      if (highImpact.length > 0) {
+        response += `## 🔴 High Impact (5+ usages)\n\n`;
+        for (const m of highImpact) {
+          response += `### \`${m.file}\`${m.isDefinition ? ' (DEFINITION)' : ''}\n`;
+          if (m.importLine) response += `Import: \`${m.importLine}\`\n`;
+          response += `Usages (${m.usageLines.length}):\n`;
+          for (let i = 0; i < Math.min(5, m.usageLines.length); i++) {
+            response += `- Line ${m.lineNumbers[i]}: \`${m.usageLines[i].substring(0, 80)}${m.usageLines[i].length > 80 ? '...' : ''}\`\n`;
+          }
+          if (m.usageLines.length > 5) {
+            response += `- ... and ${m.usageLines.length - 5} more\n`;
+          }
+          response += `\n`;
+        }
+      }
+
+      if (mediumImpact.length > 0) {
+        response += `## 🟡 Medium Impact (2-4 usages)\n\n`;
+        for (const m of mediumImpact) {
+          response += `- \`${m.file}\` (${m.usageLines.length} usages)\n`;
+        }
+        response += `\n`;
+      }
+
+      if (lowImpact.length > 0) {
+        response += `## 🟢 Low Impact (1 usage)\n\n`;
+        for (const m of lowImpact) {
+          response += `- \`${m.file}\`\n`;
+        }
+        response += `\n`;
+      }
+
+      // Recommendations
+      response += `## 💡 Recommendations\n\n`;
+
+      if (changeType === 'added_field') {
+        response += `**Adding a field is usually safe.** Optional fields won't break existing code.\n`;
+        response += `If the field is required, update these files to provide the new field.\n`;
+      } else if (changeType === 'removed_field') {
+        response += `**Removing a field is breaking.** Check each file above to remove usages of the deleted field.\n`;
+        response += `Run \`npx tsc --noEmit\` after making changes to find remaining issues.\n`;
+      } else if (changeType === 'renamed') {
+        response += `**Renaming is breaking.** Update all files above to use the new name.\n`;
+        response += `Consider using IDE "Rename Symbol" for safer refactoring.\n`;
+      } else if (changeType === 'type_changed') {
+        response += `**Type changes may break.** Review each usage to ensure compatibility.\n`;
+        response += `Run \`npx tsc --noEmit\` to find type errors.\n`;
+      } else if (changeType === 'signature_changed') {
+        response += `**Signature changes are breaking.** Update all call sites with new parameters.\n`;
+      } else {
+        response += `1. Review the high-impact files first\n`;
+        response += `2. Run \`npx tsc --noEmit\` after changes to catch type errors\n`;
+        response += `3. Run tests to verify functionality\n`;
+      }
+
+      response += `\n---\n`;
+      response += `*Run this check again after making changes to verify all ripples are addressed.*\n`;
+    }
 
     return { content: [{ type: 'text' as const, text: response }] };
   }

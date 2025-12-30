@@ -484,6 +484,83 @@ ${ctaButton('Accept Invitation', inviteUrl)}
   }
 
   /**
+   * Send enterprise inquiry notification to sales team
+   */
+  static async sendEnterpriseInquiry(inquiry: {
+    name: string;
+    email: string;
+    company: string;
+    teamSize?: string | null;
+    useCase?: string | null;
+  }) {
+    const salesEmail = process.env.SALES_EMAIL || 'enterprise@codebakers.dev';
+
+    const content = `
+<h1 style="margin: 0 0 16px 0; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center;">
+  🎯 New Enterprise Inquiry
+</h1>
+
+<div style="background-color: #0a0a0a; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #262626;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+    <tr>
+      <td style="padding: 12px 0; border-bottom: 1px solid #262626;">
+        <strong style="color: #a3a3a3; display: inline-block; width: 100px;">Name:</strong>
+        <span style="color: #ffffff;">${inquiry.name}</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 12px 0; border-bottom: 1px solid #262626;">
+        <strong style="color: #a3a3a3; display: inline-block; width: 100px;">Email:</strong>
+        <a href="mailto:${inquiry.email}" style="color: #dc2626; text-decoration: none;">${inquiry.email}</a>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 12px 0; border-bottom: 1px solid #262626;">
+        <strong style="color: #a3a3a3; display: inline-block; width: 100px;">Company:</strong>
+        <span style="color: #ffffff;">${inquiry.company}</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 12px 0; border-bottom: 1px solid #262626;">
+        <strong style="color: #a3a3a3; display: inline-block; width: 100px;">Team Size:</strong>
+        <span style="color: #ffffff;">${inquiry.teamSize || 'Not specified'}</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 12px 0;">
+        <strong style="color: #a3a3a3; display: block; margin-bottom: 8px;">Use Case:</strong>
+        <span style="color: #ffffff; display: block; white-space: pre-wrap;">${inquiry.useCase || 'Not specified'}</span>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<p style="margin: 0; font-size: 14px; color: #525252; text-align: center;">
+  Reply directly to this email to respond to the inquiry.
+</p>
+    `.trim();
+
+    const text = `
+New Enterprise Inquiry
+
+Name: ${inquiry.name}
+Email: ${inquiry.email}
+Company: ${inquiry.company}
+Team Size: ${inquiry.teamSize || 'Not specified'}
+Use Case: ${inquiry.useCase || 'Not specified'}
+
+Reply to this email to respond.
+    `.trim();
+
+    return this.send({
+      to: salesEmail,
+      subject: `🎯 Enterprise Inquiry from ${inquiry.company}`,
+      html: baseTemplate(content),
+      text,
+    });
+  }
+
+  /**
    * Send subscription confirmation
    */
   static async sendSubscriptionConfirmation(email: string, plan: string) {

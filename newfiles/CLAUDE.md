@@ -1,8 +1,64 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 4.9 - Pattern Access Failure Modes
+# Version: 5.4 - MCP-First Architecture + VAPI Integration
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
+
+---
+
+## 🚨 MCP-FIRST: ALWAYS CHECK MCP TOOLS BEFORE ACTING
+
+**This is the #1 priority rule. Before doing ANYTHING, check if an MCP tool can handle it.**
+
+### Available MCP Tools (ALWAYS call these FIRST):
+
+| User Says | MCP Tool to Call | What It Does |
+|-----------|------------------|--------------|
+| "upgrade codebakers", "update patterns", "download patterns" | `update_patterns` | Downloads latest CLAUDE.md + 59 modules from server |
+| "audit my code", "review code", "check quality" | `run_audit` | Runs comprehensive code audit |
+| "fix this", "auto-fix", "heal" | `heal` | AI-powered error diagnosis and repair |
+| "create project", "new project", "scaffold" | `scaffold_project` | Creates complete project from description |
+| "init codebakers", "add patterns" | `init_project` | Adds patterns to existing project |
+| "what's my status", "where am I", "progress" | `project_status` | Shows build progress and current state |
+| "run tests", "test this" | `run_tests` | Executes test suite |
+| "deploy", "check vercel" | `vercel_logs` | Gets Vercel deployment logs |
+| "billing", "subscription", "upgrade plan" | `billing_action` | Opens billing portal or shows plan info |
+| "add a page", "create page" | `add_page` | Scaffolds new page with patterns |
+| "add api route", "create endpoint" | `add_api_route` | Creates API route with best practices |
+| Ambiguous request | `detect_intent` | Analyzes intent and asks for confirmation |
+
+### VAPI Voice AI Tools:
+
+| User Says | MCP Tool to Call | What It Does |
+|-----------|------------------|--------------|
+| "connect vapi", "setup voice ai" | `vapi_connect` | Sets up VAPI API credentials |
+| "show my assistants", "list voice bots" | `vapi_list_assistants` | Lists all VAPI voice assistants |
+| "create voice assistant", "new voice bot" | `vapi_create_assistant` | Creates assistant with best practices |
+| "get assistant details" | `vapi_get_assistant` | Gets specific assistant configuration |
+| "update assistant", "modify voice bot" | `vapi_update_assistant` | Updates assistant settings |
+| "show call history", "recent calls" | `vapi_get_calls` | Gets call logs with transcripts |
+| "call details", "get call info" | `vapi_get_call` | Gets specific call transcript/recording |
+| "add vapi webhook", "handle call events" | `vapi_generate_webhook` | Generates Next.js webhook handler |
+
+### MCP-First Rule:
+
+1. **ALWAYS** check if the user's request maps to an MCP tool above
+2. **ALWAYS** call the MCP tool instead of doing it manually
+3. **NEVER** offer to "create pattern files" - use `update_patterns`
+4. **NEVER** manually write audit reports - use `run_audit`
+5. **NEVER** manually write webhook handlers - use tool generators
+
+### Confirmation Before Destructive Actions:
+
+Before executing tools that modify files, use `detect_intent` to confirm:
+```
+User: "upgrade everything"
+AI: [Calls detect_intent first]
+→ Shows: "I detected you want to update CodeBakers patterns. This will:
+   - Download 59 pattern files
+   - Update CLAUDE.md to v5.4
+   Proceed? [Yes] [No]"
+```
 
 ---
 
@@ -50,7 +106,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v4.9
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.4
 ```
 
 **On FIRST message of a new session, also show this header:**
@@ -65,6 +121,57 @@ If you write code WITHOUT loading patterns, you MUST instead show:
 ```
 
 **This is NON-NEGOTIABLE. Users pay for CodeBakers and must see it's active.**
+
+---
+
+## PRE-COMMIT ENFORCEMENT (HARD VALIDATION)
+
+**Code that ignores patterns will be BLOCKED from committing.**
+
+A pre-commit hook validates all code against CodeBakers patterns:
+
+### What Gets Validated:
+
+| File Type | Required Patterns | Forbidden Patterns |
+|-----------|-------------------|-------------------|
+| API Routes | try/catch error handling, NextResponse.json | console.log, `any` type |
+| Components | Valid React exports, proper structure | Direct DOM manipulation |
+| Services | Proper exports | TODO throws |
+| Database | Drizzle patterns | Raw SQL queries |
+
+### Universal Rules (All Files):
+
+- No `@ts-ignore` or `@ts-nocheck` comments
+- No `FIXME:`, `HACK:`, or `XXX:` comments in committed code
+- Environment variables must have fallbacks or type guards
+
+### How It Works:
+
+1. **Pre-commit hook** runs `validate-codebakers-compliance.js`
+2. **Scans staged files** for pattern violations
+3. **Blocks commit** if errors found
+4. **Shows specific fixes** needed
+
+### Commands:
+
+```bash
+# Validate all files
+npm run validate
+
+# Validate staged files only (what pre-commit runs)
+npm run validate:staged
+
+# Strict mode (warnings also block)
+npm run validate:strict
+```
+
+### Install the Hook:
+
+```bash
+npm run prepare
+```
+
+**This ensures AI-generated code CANNOT bypass patterns - commit is blocked until compliant.**
 
 ---
 
@@ -544,63 +651,63 @@ At the START of every new chat:
 
 ## MODULE REFERENCE
 
-| Module | Lines | Primary Use |
-|--------|-------|-------------|
-| 00-core | 2,130 | Standards, types, errors (REQUIRED) |
-| 01-database | 650 | Drizzle, queries, migrations |
-| 02-auth | 1,240 | Auth, 2FA, OAuth, security |
-| 03-api | 1,640 | Routes, validation, rate limits |
-| 04-frontend | 1,770 | React, forms, states, i18n |
-| 05-payments | 1,570 | Stripe, subscriptions, money |
-| **06-integrations (SPLIT)** | | |
-| 06a-voice | 450 | VAPI Voice AI, webhooks |
-| 06b-email | 600 | Nylas, Resend, React Email templates |
-| 06c-communications | 400 | Twilio SMS, GoHighLevel CRM |
-| 06d-background-jobs | 500 | Inngest, scheduled tasks, cron |
-| 06e-documents | 450 | PDF, Excel, Word generation |
-| 06f-api-patterns | 400 | Unknown API integration protocol |
-| 07-performance | 710 | Caching, optimization |
-| 08-testing | 820 | Tests, CI/CD, monitoring |
-| **09-design (SPLIT)** | | |
-| 09a-layouts | 500 | Navigation, page layouts, theme |
-| 09b-accessibility | 350 | WCAG compliance, keyboard, focus |
-| 09c-seo | 300 | Metadata, sitemap, structured data |
-| 09-design | 2,500 | Components, dashboards, marketing, design clone |
-| 10-generators | 2,920 | Scaffolding, templates |
-| 11-realtime | 1,940 | WebSockets, notifications |
-| 12-saas | 1,270 | Multi-tenant, feature flags |
-| 13-mobile | 1,060 | React Native, Expo, mobile |
-| 14-ai | 890 | OpenAI, Anthropic, RAG, embeddings |
-| 15-research | 520 | Market research, competitive analysis |
-| 16-planning | 570 | PRD, roadmap, specs |
-| 17-marketing | 790 | Growth, campaigns, messaging |
-| 18-launch | 690 | Launch playbook, go-live |
-| 19-audit | 720 | Pre-flight checks, project upgrade |
-| 20-operations | 1,330 | Monitoring, runbooks, incidents |
-| 21-experts-core | 880 | Backend/frontend/security experts |
-| 22-experts-health | 780 | Healthcare, HIPAA compliance |
-| 23-experts-finance | 1,090 | Fintech, PCI, banking |
-| 24-experts-legal | 2,510 | Legal tech, contracts, privacy |
-| **25-experts-industry (SPLIT)** | | |
-| 25a-ecommerce | 300 | Products, carts, orders, inventory |
-| 25b-education | 400 | Courses, lessons, progress, certificates |
-| 25c-voice-vapi | 350 | Voice AI assistants, VAPI integration |
-| 25d-b2b | 400 | Multi-tenancy, RBAC, SSO, API keys |
-| 25e-kids-coppa | 350 | COPPA compliance, parental consent |
-| 26-analytics | 920 | PostHog, Mixpanel, funnels |
-| 27-search | 1,130 | Full-text, Algolia, autocomplete |
-| 28-email-design | 800 | HTML emails, MJML, React Email |
-| 29-data-viz | 950 | Charts, Recharts, D3, dashboards |
-| 30-motion | 880 | Framer Motion, GSAP, animations |
-| 31-iconography | 630 | Lucide, Heroicons, SVG icons |
-| 32-print | 990 | PDF generation, print stylesheets |
-| 33-cicd | 1,100 | CI/CD pipelines, GitHub Actions |
-| 34-integration-contracts | 650 | Cross-system integration patterns |
-| 35-environment | 1,200 | Environment vars, secrets management |
-| 36-pre-launch | 1,400 | Comprehensive pre-launch checklist |
-| 37-quality-gates | 1,100 | Code quality, linting enforcement |
-| 38-troubleshooting | 1,500 | Common issues, debugging, fixes |
-| 39-self-healing | 1,800 | Auto-detect errors, fix with AI |
+| Module | Lines | Keywords | Primary Use |
+|--------|-------|----------|-------------|
+| 00-core | 2,130 | types, errors, standards, zod | Standards, types, errors (REQUIRED) |
+| 01-database | 650 | drizzle, postgres, sql, schema, migration | Drizzle, queries, migrations |
+| 02-auth | 1,240 | login, signup, oauth, session, jwt | Auth, 2FA, OAuth, security |
+| 03-api | 1,640 | route, endpoint, rest, validation | Routes, validation, rate limits |
+| 04-frontend | 1,770 | react, form, component, state, i18n | React, forms, states, i18n |
+| 05-payments | 1,570 | stripe, subscription, billing, checkout | Stripe, subscriptions, money |
+| **06-integrations (SPLIT)** | | | |
+| 06a-voice | 450 | vapi, voice, call, phone | VAPI Voice AI, webhooks |
+| 06b-email | 600 | resend, nylas, smtp, template | Nylas, Resend, React Email templates |
+| 06c-communications | 400 | twilio, sms, gohighlevel, crm | Twilio SMS, GoHighLevel CRM |
+| 06d-background-jobs | 500 | inngest, cron, queue, scheduled | Inngest, scheduled tasks, cron |
+| 06e-documents | 450 | pdf, excel, word, docx | PDF, Excel, Word generation |
+| 06f-api-patterns | 400 | third-party, external-api, integration | Unknown API integration protocol |
+| 07-performance | 710 | cache, redis, optimization, lazy | Caching, optimization |
+| 08-testing | 820 | playwright, vitest, test, ci | Tests, CI/CD, monitoring |
+| **09-design (SPLIT)** | | | |
+| 09a-layouts | 500 | navigation, sidebar, header, theme | Navigation, page layouts, theme |
+| 09b-accessibility | 350 | a11y, wcag, keyboard, aria, focus | WCAG compliance, keyboard, focus |
+| 09c-seo | 300 | metadata, sitemap, opengraph, schema | Metadata, sitemap, structured data |
+| 09-design | 2,500 | ui, component, dashboard, clone | Components, dashboards, marketing, design clone |
+| 10-generators | 2,920 | scaffold, template, generate, create | Scaffolding, templates |
+| 11-realtime | 1,940 | websocket, supabase-realtime, live, push | WebSockets, notifications |
+| 12-saas | 1,270 | multi-tenant, feature-flag, tier | Multi-tenant, feature flags |
+| 13-mobile | 1,060 | react-native, expo, ios, android | React Native, Expo, mobile |
+| 14-ai | 890 | openai, anthropic, rag, embedding, llm | OpenAI, Anthropic, RAG, embeddings |
+| 15-research | 520 | market, competitor, analysis | Market research, competitive analysis |
+| 16-planning | 570 | prd, roadmap, spec, architecture | PRD, roadmap, specs |
+| 17-marketing | 790 | growth, campaign, messaging, landing | Growth, campaigns, messaging |
+| 18-launch | 690 | deploy, go-live, checklist | Launch playbook, go-live |
+| 19-audit | 720 | review, quality, security-scan | Pre-flight checks, project upgrade |
+| 20-operations | 1,330 | monitoring, logging, incident, alerting | Monitoring, runbooks, incidents |
+| 21-experts-core | 880 | backend, frontend, security, expert | Backend/frontend/security experts |
+| 22-experts-health | 780 | healthcare, hipaa, phi, medical | Healthcare, HIPAA compliance |
+| 23-experts-finance | 1,090 | fintech, pci, banking, money | Fintech, PCI, banking |
+| 24-experts-legal | 2,510 | legal, contract, gdpr, privacy | Legal tech, contracts, privacy |
+| **25-experts-industry (SPLIT)** | | | |
+| 25a-ecommerce | 300 | product, cart, order, inventory, shop | Products, carts, orders, inventory |
+| 25b-education | 400 | course, lesson, lms, certificate | Courses, lessons, progress, certificates |
+| 25c-voice-vapi | 350 | voice-ai, assistant, vapi | Voice AI assistants, VAPI integration |
+| 25d-b2b | 400 | enterprise, rbac, sso, api-key | Multi-tenancy, RBAC, SSO, API keys |
+| 25e-kids-coppa | 350 | coppa, parental, child, age-gate | COPPA compliance, parental consent |
+| 26-analytics | 920 | posthog, mixpanel, funnel, tracking | PostHog, Mixpanel, funnels |
+| 27-search | 1,130 | algolia, full-text, autocomplete | Full-text, Algolia, autocomplete |
+| 28-email-design | 800 | mjml, react-email, html-email | HTML emails, MJML, React Email |
+| 29-data-viz | 950 | chart, recharts, d3, graph | Charts, Recharts, D3, dashboards |
+| 30-motion | 880 | framer-motion, gsap, animation | Framer Motion, GSAP, animations |
+| 31-iconography | 630 | lucide, heroicons, icon, svg | Lucide, Heroicons, SVG icons |
+| 32-print | 990 | pdf, print, stylesheet | PDF generation, print stylesheets |
+| 33-cicd | 1,100 | github-actions, deploy, pipeline | CI/CD pipelines, GitHub Actions |
+| 34-integration-contracts | 650 | contract, cross-system, interface | Cross-system integration patterns |
+| 35-environment | 1,200 | env, secrets, dotenv, config | Environment vars, secrets management |
+| 36-pre-launch | 1,400 | checklist, launch, production | Comprehensive pre-launch checklist |
+| 37-quality-gates | 1,100 | lint, eslint, prettier, quality | Code quality, linting enforcement |
+| 38-troubleshooting | 1,500 | debug, error, fix, issue | Common issues, debugging, fixes |
+| 39-self-healing | 1,800 | auto-fix, ai-repair, recovery | Auto-detect errors, fix with AI |
 
 **Module Loading Guide:**
 - For **voice/calls**: Load `06a-voice`
@@ -618,6 +725,13 @@ At the START of every new chat:
 - For **voice AI/VAPI**: Load `25c-voice-vapi`
 - For **B2B/multi-tenant**: Load `25d-b2b`
 - For **kids apps/COPPA**: Load `25e-kids-coppa`
+
+**Edge Case Modules (load with base module):**
+- For **refunds/disputes/chargebacks**: Load `05a-payments-edge-cases` with `05-payments`
+- For **account lockout/password reset**: Load `02a-auth-edge-cases` with `02-auth`
+- For **rate limiting/timeouts/uploads**: Load `03a-api-edge-cases` with `03-api`
+- For **connection drops/presence**: Load `11a-realtime-edge-cases` with `11-realtime`
+- For **transactions/deadlocks/migrations**: Load `01a-database-edge-cases` with `01-database`
 
 ---
 
@@ -688,6 +802,26 @@ npm test
 ```
 
 **If tests FAIL:** Fix them immediately. A feature is NOT complete until tests pass.
+
+---
+
+## CLI COMMANDS
+
+These are terminal commands users run directly (not slash commands for AI):
+
+| Command | Purpose |
+|---------|---------|
+| `codebakers go` | Start free trial instantly (no signup required) - downloads patterns and activates trial |
+| `codebakers setup` | Set up CodeBakers with existing account (prompts for API key) |
+| `codebakers doctor` | Diagnose installation issues, check MCP connection |
+| `codebakers upgrade` | Download latest patterns and update CLAUDE.md |
+| `codebakers extend` | Request trial extension (if trial expired) |
+| `codebakers serve` | Start MCP server (used by Cursor/Claude Code) |
+
+**New User Flow:**
+1. Install CLI: `npm install -g @codebakers/cli`
+2. Go to project: `cd your-project`
+3. Start trial: `codebakers go` ← This is the main entry point
 
 ---
 

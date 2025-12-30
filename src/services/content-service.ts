@@ -8,9 +8,34 @@ const CONTENT_DIR = join(process.cwd(), 'src', 'content');
 // Re-export obfuscation functions for backwards compatibility
 export { obfuscateContent as encodeContent, deobfuscateContent as decodeContent };
 
+// Cache for encoded content (avoids re-obfuscating on every request)
+interface CachedContent {
+  data: {
+    version: string;
+    router: string;
+    cursorRules: string;
+    claudeMd: string;
+    modules: Record<string, string>;
+    cursorModules: Record<string, string>;
+  };
+  timestamp: number;
+  versionId: string;
+}
+
+let contentCache: CachedContent | null = null;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export class ContentService {
   /**
+   * Invalidate the content cache (call when content is updated)
+   */
+  static invalidateCache() {
+    contentCache = null;
+  }
+
+  /**
    * Get encoded content - prioritizes database version, falls back to filesystem
+   * Uses in-memory caching to avoid re-obfuscating on every request
    * @param version Optional specific version string to fetch (e.g., "15.2")
    */
   static async getEncodedContent(version?: string) {
@@ -20,6 +45,17 @@ export class ContentService {
       : await ContentManagementService.getActiveVersion();
 
     if (dbVersion) {
+      // Check cache - only for active version (non-specific requests)
+      if (!version && contentCache) {
+        const cacheValid =
+          contentCache.versionId === dbVersion.id &&
+          Date.now() - contentCache.timestamp < CACHE_TTL;
+
+        if (cacheValid) {
+          return contentCache.data;
+        }
+      }
+
       const modules: Record<string, string> = {};
       const cursorModules: Record<string, string> = {};
 
@@ -41,7 +77,7 @@ export class ContentService {
         }
       }
 
-      return {
+      const result = {
         version: dbVersion.version,
         // IMPORTANT: Router and CLAUDE.md stay PLAIN TEXT so AI can read instructions
         // Use claudeMdContent for router (legacy routerContent is deprecated)
@@ -52,6 +88,17 @@ export class ContentService {
         modules,
         cursorModules,
       };
+
+      // Cache for future requests (only for active version)
+      if (!version) {
+        contentCache = {
+          data: result,
+          timestamp: Date.now(),
+          versionId: dbVersion.id,
+        };
+      }
+
+      return result;
     }
 
     // Fallback to filesystem

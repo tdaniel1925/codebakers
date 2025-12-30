@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db, enterpriseInquiries } from '@/db';
 import { handleApiError, autoRateLimit } from '@/lib/api-utils';
 import { ValidationError } from '@/lib/errors';
+import { EmailService } from '@/services/email-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,12 +46,20 @@ export async function POST(req: NextRequest) {
       })
       .returning();
 
-    // TODO: Send notification email to sales team
-    // await sendEmail({
-    //   to: 'enterprise@codebakers.dev',
-    //   subject: `New Enterprise Inquiry from ${company}`,
-    //   body: `Name: ${name}\nEmail: ${email}\nCompany: ${company}\nTeam Size: ${teamSize}\nUse Case: ${useCase}`,
-    // });
+    // Send notification email to sales team
+    try {
+      await EmailService.sendEnterpriseInquiry({
+        name,
+        email,
+        company,
+        teamSize: teamSize || null,
+        useCase: useCase || null,
+      });
+      console.log('[Enterprise Inquiry] Notification sent to sales team');
+    } catch (emailError) {
+      // Log but don't fail the request - inquiry is already saved
+      console.error('[Enterprise Inquiry] Failed to send notification:', emailError);
+    }
 
     console.log('[Enterprise Inquiry] New inquiry received:', {
       id: inquiry.id,

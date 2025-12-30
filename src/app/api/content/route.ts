@@ -88,6 +88,15 @@ async function handleApiKeyRequest(req: NextRequest, apiKey: string) {
   // Include trial info in response
   const trialStatus = TeamService.getTrialStatus(team);
 
+  // Create ETag from version for caching
+  const etag = `"cb-${content.version}"`;
+  const ifNoneMatch = req.headers.get('if-none-match');
+
+  // Return 304 Not Modified if client has current version
+  if (ifNoneMatch === etag) {
+    return new NextResponse(null, { status: 304, headers: { 'ETag': etag } });
+  }
+
   return NextResponse.json({
     ...content,
     _meta: {
@@ -95,6 +104,11 @@ async function handleApiKeyRequest(req: NextRequest, apiKey: string) {
       ...(trialStatus.type === 'trial_locked' && {
         projectName: trialStatus.projectName,
       }),
+    },
+  }, {
+    headers: {
+      'ETag': etag,
+      'Cache-Control': 'private, max-age=300', // 5 min client cache
     },
   });
 }
@@ -157,7 +171,7 @@ async function handleTrialRequest(req: NextRequest, trialId: string) {
         error: 'Trial locked to another project',
         code: 'TRIAL_PROJECT_LIMIT',
         lockedProject: trial.projectName || trial.projectId,
-        message: 'Your trial is locked to another project. Upgrade to use multiple projects.',
+        message: `Your free trial is locked to "${trial.projectName || trial.projectId}". Free trials are limited to one project - upgrade to Pro to use CodeBakers in multiple projects.`,
         upgradeUrl: 'https://codebakers.ai/billing',
       },
       { status: 402 }
@@ -184,6 +198,15 @@ async function handleTrialRequest(req: NextRequest, trialId: string) {
     ? Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
 
+  // Create ETag from version for caching
+  const etag = `"cb-${content.version}"`;
+  const ifNoneMatch = req.headers.get('if-none-match');
+
+  // Return 304 Not Modified if client has current version
+  if (ifNoneMatch === etag) {
+    return new NextResponse(null, { status: 304, headers: { 'ETag': etag } });
+  }
+
   return NextResponse.json({
     ...content,
     _meta: {
@@ -192,6 +215,11 @@ async function handleTrialRequest(req: NextRequest, trialId: string) {
       daysRemaining,
       canExtend: trial.trialStage === 'anonymous',
       ...(trial.projectName && { projectName: trial.projectName }),
+    },
+  }, {
+    headers: {
+      'ETag': etag,
+      'Cache-Control': 'private, max-age=300', // 5 min client cache
     },
   });
 }
