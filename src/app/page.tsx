@@ -332,8 +332,7 @@ export default function HomePage() {
             >
               <Button
                 size="lg"
-                variant="outline"
-                className="border-2 border-gray-600 hover:bg-gray-800 text-white h-14 px-8 text-lg font-semibold w-full sm:w-auto group rounded-xl"
+                className="bg-gray-800 hover:bg-gray-700 text-white h-14 px-8 text-lg font-semibold w-full sm:w-auto rounded-xl transition-colors"
               >
                 <Calendar03Icon className="mr-2 h-5 w-5" />
                 Book a Demo
@@ -779,7 +778,7 @@ export default function HomePage() {
               data-cal-namespace="30min"
               data-cal-config='{"layout":"month_view"}'
             >
-              <Button size="lg" variant="outline" className="h-14 px-10 text-lg font-semibold w-full sm:w-auto rounded-xl border-2">
+              <Button size="lg" className="bg-gray-800 hover:bg-gray-700 text-white h-14 px-10 text-lg font-semibold w-full sm:w-auto rounded-xl transition-colors">
                 <Calendar03Icon className="mr-2 h-5 w-5" />
                 Book a Demo
               </Button>
