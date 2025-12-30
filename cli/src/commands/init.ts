@@ -700,13 +700,15 @@ export async function init(): Promise<void> {
     // Write .cursorignore
     writeFileSync(join(cwd, '.cursorignore'), CURSORIGNORE_TEMPLATE);
 
-    // Create .cursor/mcp.json for MCP server configuration
-    const cursorDir = join(cwd, '.cursor');
-    if (!existsSync(cursorDir)) {
-      mkdirSync(cursorDir, { recursive: true });
+    // Create GLOBAL ~/.cursor/mcp.json for MCP server configuration
+    // Cursor reads MCP config from global location, not project-local
+    const homeDir = process.env.USERPROFILE || process.env.HOME || '';
+    const globalCursorDir = join(homeDir, '.cursor');
+    if (!existsSync(globalCursorDir)) {
+      mkdirSync(globalCursorDir, { recursive: true });
     }
 
-    const mcpConfigPath = join(cursorDir, 'mcp.json');
+    const mcpConfigPath = join(globalCursorDir, 'mcp.json');
     const isWindows = process.platform === 'win32';
     const mcpConfig = {
       mcpServers: {
@@ -746,7 +748,7 @@ export async function init(): Promise<void> {
     }
 
     cursorSpinner.succeed('Cursor configuration installed!');
-    console.log(chalk.green('    ✓ MCP server configured (.cursor/mcp.json)'));
+    console.log(chalk.green('    ✓ MCP server configured (~/.cursor/mcp.json)'));
   } catch (error) {
     cursorSpinner.warn('Could not install Cursor files (continuing anyway)');
   }

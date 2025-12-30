@@ -164,8 +164,10 @@ function showFinalInstructions(): void {
     }
   }
 
-  // Install MCP for Cursor IDE (create .cursor/mcp.json)
-  const cursorDir = join(cwd, '.cursor');
+  // Install MCP for Cursor IDE (create GLOBAL ~/.cursor/mcp.json)
+  // Cursor reads MCP config from global location, not project-local
+  const homeDir = process.env.USERPROFILE || process.env.HOME || '';
+  const cursorDir = join(homeDir, '.cursor');
   const mcpConfigPath = join(cursorDir, 'mcp.json');
   const mcpConfig = {
     mcpServers: {
@@ -188,7 +190,7 @@ function showFinalInstructions(): void {
     } else {
       writeFileSync(mcpConfigPath, JSON.stringify(mcpConfig, null, 2));
     }
-    console.log(chalk.green('  ✅ Cursor MCP server configured! (.cursor/mcp.json)\n'));
+    console.log(chalk.green('  ✅ Cursor MCP server configured! (~/.cursor/mcp.json)\n'));
   } catch (error) {
     console.log(chalk.yellow('  ⚠️  Could not create Cursor MCP config\n'));
   }
