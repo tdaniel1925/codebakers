@@ -89,6 +89,45 @@ if command -v claude &> /dev/null; then
 else
     echo -e "${YELLOW}⚠ Claude Code not detected - will connect when you open it${NC}"
 fi
+
+# Register MCP with Cursor IDE
+echo -e "${BLUE}Connecting to Cursor IDE...${NC}"
+
+CURSOR_DIR="$HOME/.cursor"
+MCP_CONFIG="$CURSOR_DIR/mcp.json"
+
+# Create .cursor directory if it doesn't exist
+mkdir -p "$CURSOR_DIR"
+
+# Create or merge MCP config
+if [ -f "$MCP_CONFIG" ]; then
+    # Check if codebakers already in config
+    if grep -q "codebakers" "$MCP_CONFIG" 2>/dev/null; then
+        echo -e "${GREEN}✓ Already connected to Cursor${NC}"
+    else
+        # Merge with existing config using temporary file
+        TMP_CONFIG=$(mktemp)
+        # Use node to merge JSON (more reliable than jq which may not be installed)
+        node -e "
+            const fs = require('fs');
+            const existing = JSON.parse(fs.readFileSync('$MCP_CONFIG', 'utf-8'));
+            existing.mcpServers = existing.mcpServers || {};
+            existing.mcpServers.codebakers = { command: 'npx', args: ['-y', '@codebakers/cli', 'serve'] };
+            fs.writeFileSync('$MCP_CONFIG', JSON.stringify(existing, null, 2));
+        " 2>/dev/null && echo -e "${GREEN}✓ Connected to Cursor${NC}" || echo -e "${YELLOW}⚠ Could not update Cursor config${NC}"
+    fi
+else
+    # Create new config
+    echo '{
+  "mcpServers": {
+    "codebakers": {
+      "command": "npx",
+      "args": ["-y", "@codebakers/cli", "serve"]
+    }
+  }
+}' > "$MCP_CONFIG"
+    echo -e "${GREEN}✓ Connected to Cursor${NC}"
+fi
 echo ""
 
 echo ""

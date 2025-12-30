@@ -117,6 +117,55 @@ try {
 }
 Write-Host ""
 
+# Register MCP with Cursor IDE
+Write-Host "Connecting to Cursor IDE..." -ForegroundColor Blue
+
+$cursorDir = Join-Path $env:USERPROFILE ".cursor"
+$mcpConfigPath = Join-Path $cursorDir "mcp.json"
+
+# Create .cursor directory if it doesn't exist
+if (-not (Test-Path $cursorDir)) {
+    New-Item -ItemType Directory -Path $cursorDir -Force | Out-Null
+}
+
+# Create or merge MCP config
+try {
+    if (Test-Path $mcpConfigPath) {
+        # Check if codebakers already in config
+        $existingContent = Get-Content $mcpConfigPath -Raw
+        if ($existingContent -match "codebakers") {
+            Write-Host "✓ Already connected to Cursor" -ForegroundColor Green
+        } else {
+            # Merge with existing config
+            $existing = $existingContent | ConvertFrom-Json
+            if (-not $existing.mcpServers) {
+                $existing | Add-Member -NotePropertyName "mcpServers" -NotePropertyValue @{} -Force
+            }
+            $existing.mcpServers | Add-Member -NotePropertyName "codebakers" -NotePropertyValue @{
+                command = "cmd"
+                args = @("/c", "npx", "-y", "@codebakers/cli", "serve")
+            } -Force
+            $existing | ConvertTo-Json -Depth 10 | Set-Content $mcpConfigPath
+            Write-Host "✓ Connected to Cursor" -ForegroundColor Green
+        }
+    } else {
+        # Create new config
+        $newConfig = @{
+            mcpServers = @{
+                codebakers = @{
+                    command = "cmd"
+                    args = @("/c", "npx", "-y", "@codebakers/cli", "serve")
+                }
+            }
+        }
+        $newConfig | ConvertTo-Json -Depth 10 | Set-Content $mcpConfigPath
+        Write-Host "✓ Connected to Cursor" -ForegroundColor Green
+    }
+} catch {
+    Write-Host "⚠ Could not update Cursor config" -ForegroundColor Yellow
+}
+Write-Host ""
+
 Write-Host ""
 if ($alreadyInstalled) {
     Write-Host "╔═══════════════════════════════════════════════════════════╗" -ForegroundColor Green
