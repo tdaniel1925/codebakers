@@ -15,15 +15,13 @@ export async function GET(req: NextRequest) {
   try {
     const content = await ContentService.getEncodedContent();
 
-    // Count modules (both .claude and .cursorrules-modules)
+    // Count modules - only .claude/ modules are the main patterns
+    // .cursorrules-modules is a legacy/separate feature
     const claudeModuleCount = Object.keys(content.modules || {}).length;
-    const cursorModuleCount = Object.keys(content.cursorModules || {}).length;
 
     return NextResponse.json({
       version: content.version,
-      moduleCount: claudeModuleCount + cursorModuleCount,
-      claudeModules: claudeModuleCount,
-      cursorModules: cursorModuleCount,
+      moduleCount: claudeModuleCount, // Primary module count (.claude/ folder)
     });
   } catch (error) {
     console.error('Error fetching version:', error);
