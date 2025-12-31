@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 async function pushV45() {
-  const apiKey = 'cb_b45e0612_45cf7c78c36c57cbfb3c5ca21565fc3d7ca9b9a7c3dbf5f1';
+  const apiKey = process.env.CODEBAKERS_ADMIN_KEY || 'cb_8417b96d_1348ff738073e7fc495540d6cd4f8e50a91da2bf5c9c2f2e';
   const apiUrl = 'https://codebakers.ai';
 
   // Read the files
@@ -18,7 +18,7 @@ async function pushV45() {
   console.log('CLAUDE.md size:', (claudeMdContent.length / 1024).toFixed(1), 'KB');
   console.log('.cursorrules size:', (cursorRulesContent.length / 1024).toFixed(1), 'KB');
 
-  const changelog = `v5.0 Split Large Modules: Split 3 large modules (3000+ lines each) into smaller focused modules (<600 lines). 06-integrations split into 6 modules (voice, email, communications, background-jobs, documents, api-patterns). 09-design split into 3 modules (layouts, accessibility, seo). 25-experts-industry split into 5 modules (ecommerce, education, voice-vapi, b2b, kids-coppa). Updated MODULE REFERENCE with loading guide.`;
+  const changelog = `v5.5 Session Protocol Fix: Added "STEP 0: SESSION START" as FIRST section - AI must read DEVLOG.md and .codebakers.json BEFORE responding. Added Dependency Guardian auto-coherence system. Fixed issue where AI lost context between sessions.`;
 
   console.log('\nPushing to', apiUrl + '/api/admin/content/push');
 
@@ -30,7 +30,7 @@ async function pushV45() {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        version: '5.0',
+        version: '5.5',
         claudeMdContent,
         cursorRulesContent,
         changelog,

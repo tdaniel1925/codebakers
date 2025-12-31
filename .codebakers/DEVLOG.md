@@ -1,5 +1,30 @@
 # Development Log
 
+## 2025-12-31 - Fix Obfuscation Regex Bug
+**Session:** 2025-12-31T11:00:00Z
+**Task Size:** SMALL
+**Status:** Completed
+
+### What was done:
+- Fixed critical regex bug in `deobfuscateContent()` function
+- Regex was looking for `</CB64>>` but files have `<</CB64>>`
+- This caused API pattern delivery to fail silently
+
+### Problem solved:
+- MCP tools returning "No patterns found" when patterns exist
+- API `/api/patterns` was failing to decode obfuscated content
+- Cursor AI couldn't load patterns via MCP
+
+### Files changed:
+- `src/services/obfuscation-service.ts` - Fixed regex from `<\/CB64>>` to `<<\/CB64>>`
+
+### Root cause:
+Line 15 creates closing marker `<</CB64>>` (two `<`)
+Line 23 regex expected `</CB64>>` (one `<`)
+Mismatch caused regex.match() to return null, falling to broken fallback.
+
+---
+
 ## 2025-12-31 - Session Protocol & Version Sync v5.5
 **Session:** 2025-12-31T10:00:00Z
 **Task Size:** MEDIUM

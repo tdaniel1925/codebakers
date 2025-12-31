@@ -19,8 +19,8 @@ export function obfuscateContent(content: string): string {
  * Deobfuscate content (for admin/testing)
  */
 export function deobfuscateContent(obfuscated: string): string {
-  // Extract content between markers
-  const match = obfuscated.match(/<<CB64>>\n([\s\S]*?)\n<\/CB64>>/);
+  // Extract content between markers (note: closing tag has << not just <)
+  const match = obfuscated.match(/<<CB64>>\n([\s\S]*?)\n<<\/CB64>>/);
   if (!match) {
     // Try without markers (raw base64)
     try {
