@@ -1385,6 +1385,126 @@ class CodeBakersServer {
             properties: {},
           },
         },
+        // ============================================
+        // PROJECT TRACKING - Server-Side Dashboard
+        // ============================================
+        {
+          name: 'project_sync',
+          description:
+            'Sync project progress to the CodeBakers server for dashboard visualization. Call this after completing builds, features, tests, or other significant milestones. Data appears on the web dashboard at codebakers.ai/projects.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              projectStatus: {
+                type: 'string',
+                enum: ['discovery', 'planning', 'building', 'testing', 'completed', 'paused', 'failed'],
+                description: 'Current project status',
+              },
+              overallProgress: {
+                type: 'number',
+                description: 'Overall progress percentage (0-100)',
+              },
+              phases: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    phaseNumber: { type: 'number' },
+                    phaseName: { type: 'string' },
+                    phaseDescription: { type: 'string' },
+                    status: { type: 'string', enum: ['pending', 'in_progress', 'completed', 'skipped', 'failed'] },
+                    progress: { type: 'number' },
+                    aiConfidence: { type: 'number' },
+                  },
+                },
+                description: 'Build phases to sync',
+              },
+              events: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    eventType: { type: 'string' },
+                    eventTitle: { type: 'string' },
+                    eventDescription: { type: 'string' },
+                    filePath: { type: 'string' },
+                    fileAction: { type: 'string' },
+                    linesChanged: { type: 'number' },
+                    riskLevel: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+                  },
+                },
+                description: 'Timeline events to record',
+              },
+              testRuns: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    testType: { type: 'string' },
+                    testCommand: { type: 'string' },
+                    passed: { type: 'boolean' },
+                    totalTests: { type: 'number' },
+                    passedTests: { type: 'number' },
+                    failedTests: { type: 'number' },
+                    skippedTests: { type: 'number' },
+                    durationMs: { type: 'number' },
+                  },
+                },
+                description: 'Test run results to sync',
+              },
+              riskFlags: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    riskLevel: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+                    riskCategory: { type: 'string' },
+                    riskTitle: { type: 'string' },
+                    riskDescription: { type: 'string' },
+                    triggerFile: { type: 'string' },
+                    aiRecommendation: { type: 'string' },
+                  },
+                },
+                description: 'Risk flags to create',
+              },
+              resources: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    resourceType: { type: 'string' },
+                    inputTokens: { type: 'number' },
+                    outputTokens: { type: 'number' },
+                    totalTokens: { type: 'number' },
+                    durationMs: { type: 'number' },
+                    estimatedCostMillicents: { type: 'number' },
+                  },
+                },
+                description: 'Resource usage to track (API calls, tokens, etc.)',
+              },
+              createSnapshot: {
+                type: 'object',
+                properties: {
+                  snapshotName: { type: 'string' },
+                  snapshotDescription: { type: 'string' },
+                  isAutomatic: { type: 'boolean' },
+                  gitCommitHash: { type: 'string' },
+                  gitBranch: { type: 'string' },
+                },
+                description: 'Create a rollback snapshot',
+              },
+            },
+          },
+        },
+        {
+          name: 'project_dashboard_url',
+          description:
+            'Get the URL to view the project dashboard on codebakers.ai. Use when user says "show dashboard", "view progress online", or "open project page".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {},
+          },
+        },
       ],
     }));
 
@@ -1561,6 +1681,66 @@ class CodeBakersServer {
 
         case 'guardian_status':
           return this.handleGuardianStatus();
+
+        // Project Tracking - Server-Side Dashboard
+        case 'project_sync':
+          return this.handleProjectSync(args as {
+            projectStatus?: string;
+            overallProgress?: number;
+            phases?: Array<{
+              phaseNumber: number;
+              phaseName: string;
+              phaseDescription?: string;
+              status?: string;
+              progress?: number;
+              aiConfidence?: number;
+            }>;
+            events?: Array<{
+              eventType: string;
+              eventTitle: string;
+              eventDescription?: string;
+              filePath?: string;
+              fileAction?: string;
+              linesChanged?: number;
+              riskLevel?: string;
+            }>;
+            testRuns?: Array<{
+              testType: string;
+              testCommand?: string;
+              passed: boolean;
+              totalTests: number;
+              passedTests: number;
+              failedTests: number;
+              skippedTests: number;
+              durationMs?: number;
+            }>;
+            riskFlags?: Array<{
+              riskLevel: string;
+              riskCategory: string;
+              riskTitle: string;
+              riskDescription?: string;
+              triggerFile?: string;
+              aiRecommendation?: string;
+            }>;
+            resources?: Array<{
+              resourceType: string;
+              inputTokens?: number;
+              outputTokens?: number;
+              totalTokens?: number;
+              durationMs?: number;
+              estimatedCostMillicents?: number;
+            }>;
+            createSnapshot?: {
+              snapshotName: string;
+              snapshotDescription?: string;
+              isAutomatic?: boolean;
+              gitCommitHash?: string;
+              gitBranch?: string;
+            };
+          });
+
+        case 'project_dashboard_url':
+          return this.handleProjectDashboardUrl();
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -7074,6 +7254,312 @@ ${events.includes('call-started') ? `      case 'call-started':
     response += this.getUpdateNotice();
 
     return { content: [{ type: 'text' as const, text: response }] };
+  }
+
+  // ============================================================================
+  // PROJECT TRACKING - Server-Side Dashboard
+  // ============================================================================
+
+  /**
+   * Sync project progress to the CodeBakers server
+   */
+  private async handleProjectSync(args: {
+    projectStatus?: string;
+    overallProgress?: number;
+    phases?: Array<{
+      phaseNumber: number;
+      phaseName: string;
+      phaseDescription?: string;
+      status?: string;
+      progress?: number;
+      aiConfidence?: number;
+    }>;
+    events?: Array<{
+      eventType: string;
+      eventTitle: string;
+      eventDescription?: string;
+      filePath?: string;
+      fileAction?: string;
+      linesChanged?: number;
+      riskLevel?: string;
+    }>;
+    testRuns?: Array<{
+      testType: string;
+      testCommand?: string;
+      passed: boolean;
+      totalTests: number;
+      passedTests: number;
+      failedTests: number;
+      skippedTests: number;
+      durationMs?: number;
+    }>;
+    riskFlags?: Array<{
+      riskLevel: string;
+      riskCategory: string;
+      riskTitle: string;
+      riskDescription?: string;
+      triggerFile?: string;
+      aiRecommendation?: string;
+    }>;
+    resources?: Array<{
+      resourceType: string;
+      inputTokens?: number;
+      outputTokens?: number;
+      totalTokens?: number;
+      durationMs?: number;
+      estimatedCostMillicents?: number;
+    }>;
+    createSnapshot?: {
+      snapshotName: string;
+      snapshotDescription?: string;
+      isAutomatic?: boolean;
+      gitCommitHash?: string;
+      gitBranch?: string;
+    };
+  }) {
+    const cwd = process.cwd();
+
+    try {
+      // Import API functions dynamically
+      const apiModule = await import('../lib/api.js');
+      const { getOrCreateProject, syncProjectData, createProjectHash } = apiModule;
+
+      // Read package.json for project info
+      let projectName = path.basename(cwd);
+      let packageName: string | undefined;
+
+      const packageJsonPath = path.join(cwd, 'package.json');
+      if (fs.existsSync(packageJsonPath)) {
+        try {
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+          projectName = packageJson.name || projectName;
+          packageName = packageJson.name;
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      // Create project hash
+      const projectHash = createProjectHash(cwd, packageName);
+
+      // Read .codebakers.json for detected stack
+      let detectedStack: Record<string, string> | undefined;
+      const codebakersPath = path.join(cwd, '.codebakers.json');
+      if (fs.existsSync(codebakersPath)) {
+        try {
+          const codebakersState = JSON.parse(fs.readFileSync(codebakersPath, 'utf-8'));
+          if (codebakersState.stack) {
+            detectedStack = codebakersState.stack;
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      // Get or create project on server
+      const authHeaders = this.getAuthHeaders();
+      const { projectId, isNew } = await getOrCreateProject(
+        projectHash,
+        projectName,
+        undefined,
+        detectedStack,
+        authHeaders
+      );
+
+      // Build sync data
+      const syncData: Record<string, unknown> = {};
+
+      // Add project status if provided
+      if (args.projectStatus || args.overallProgress !== undefined) {
+        const projectUpdate: Record<string, unknown> = {};
+        if (args.projectStatus) {
+          projectUpdate.status = args.projectStatus;
+        }
+        if (args.overallProgress !== undefined) {
+          projectUpdate.overallProgress = args.overallProgress;
+        }
+        syncData.project = projectUpdate;
+      }
+
+      // Add phases if provided
+      if (args.phases && args.phases.length > 0) {
+        syncData.phases = args.phases.map(p => ({
+          phaseNumber: p.phaseNumber,
+          phaseName: p.phaseName,
+          phaseDescription: p.phaseDescription,
+          status: p.status as 'pending' | 'in_progress' | 'completed' | 'skipped' | 'failed' | undefined,
+          progress: p.progress,
+          aiConfidence: p.aiConfidence,
+        }));
+      }
+
+      // Add events if provided
+      if (args.events && args.events.length > 0) {
+        syncData.events = args.events.map(e => ({
+          eventType: e.eventType,
+          eventTitle: e.eventTitle,
+          eventDescription: e.eventDescription,
+          filePath: e.filePath,
+          fileAction: e.fileAction,
+          linesChanged: e.linesChanged,
+          riskLevel: e.riskLevel as 'low' | 'medium' | 'high' | 'critical' | undefined,
+        }));
+      }
+
+      // Add test runs if provided
+      if (args.testRuns && args.testRuns.length > 0) {
+        syncData.testRuns = args.testRuns;
+      }
+
+      // Add risk flags if provided
+      if (args.riskFlags && args.riskFlags.length > 0) {
+        syncData.riskFlags = args.riskFlags.map(r => ({
+          riskLevel: r.riskLevel as 'low' | 'medium' | 'high' | 'critical',
+          riskCategory: r.riskCategory,
+          riskTitle: r.riskTitle,
+          riskDescription: r.riskDescription,
+          triggerFile: r.triggerFile,
+          aiRecommendation: r.aiRecommendation,
+        }));
+      }
+
+      // Add resources if provided
+      if (args.resources && args.resources.length > 0) {
+        syncData.resources = args.resources;
+      }
+
+      // Add snapshot if provided
+      if (args.createSnapshot) {
+        // Get git info if available
+        let gitCommitHash: string | undefined;
+        let gitBranch: string | undefined;
+
+        try {
+          gitCommitHash = execSync('git rev-parse HEAD', { cwd, encoding: 'utf-8' }).trim();
+          gitBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd, encoding: 'utf-8' }).trim();
+        } catch {
+          // Git not available or not a repo
+        }
+
+        syncData.createSnapshot = {
+          snapshotName: args.createSnapshot.snapshotName,
+          snapshotDescription: args.createSnapshot.snapshotDescription,
+          isAutomatic: args.createSnapshot.isAutomatic,
+          gitCommitHash: args.createSnapshot.gitCommitHash || gitCommitHash,
+          gitBranch: args.createSnapshot.gitBranch || gitBranch,
+        };
+      }
+
+      // Sync to server
+      const result = await syncProjectData(projectId, syncData, authHeaders);
+
+      // Build response
+      let response = `# 📊 Project Synced to Dashboard\n\n`;
+
+      if (isNew) {
+        response += `✨ **New project registered:** ${projectName}\n\n`;
+      }
+
+      response += `**Project ID:** \`${projectId}\`\n\n`;
+
+      response += `## Synced Data\n\n`;
+
+      const synced = result.synced;
+      if (synced.project) response += `- ✅ Project status updated\n`;
+      if (synced.phases > 0) response += `- ✅ ${synced.phases} phase(s) synced\n`;
+      if (synced.events > 0) response += `- ✅ ${synced.events} event(s) recorded\n`;
+      if (synced.testRuns > 0) response += `- ✅ ${synced.testRuns} test run(s) logged\n`;
+      if (synced.riskFlags > 0) response += `- ✅ ${synced.riskFlags} risk flag(s) created\n`;
+      if (synced.resources > 0) response += `- ✅ ${synced.resources} resource record(s) added\n`;
+      if (synced.snapshot) response += `- ✅ Rollback snapshot created\n`;
+
+      response += `\n---\n\n`;
+      response += `📈 **View Dashboard:** https://codebakers.ai/projects/${projectId}\n`;
+
+      // Add update notice if available
+      response += this.getUpdateNotice();
+
+      return { content: [{ type: 'text' as const, text: response }] };
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      let response = `# ❌ Sync Failed\n\n`;
+      response += `Could not sync project to server.\n\n`;
+      response += `**Error:** ${errorMessage}\n\n`;
+      response += `This may be due to:\n`;
+      response += `- Network connectivity issues\n`;
+      response += `- Invalid API key or expired trial\n`;
+      response += `- Server maintenance\n\n`;
+      response += `Your local project is unaffected. Try again later.\n`;
+
+      return { content: [{ type: 'text' as const, text: response }] };
+    }
+  }
+
+  /**
+   * Get the URL to view the project dashboard
+   */
+  private async handleProjectDashboardUrl() {
+    const cwd = process.cwd();
+
+    try {
+      const { getOrCreateProject, createProjectHash } = await import('../lib/api.js');
+
+      // Read package.json for project info
+      let projectName = path.basename(cwd);
+      let packageName: string | undefined;
+
+      const packageJsonPath = path.join(cwd, 'package.json');
+      if (fs.existsSync(packageJsonPath)) {
+        try {
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+          projectName = packageJson.name || projectName;
+          packageName = packageJson.name;
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      // Create project hash
+      const projectHash = createProjectHash(cwd, packageName);
+
+      // Get or create project on server (this ensures the project exists)
+      const authHeaders = this.getAuthHeaders();
+      const { projectId } = await getOrCreateProject(
+        projectHash,
+        projectName,
+        undefined,
+        undefined,
+        authHeaders
+      );
+
+      const dashboardUrl = `https://codebakers.ai/projects/${projectId}`;
+
+      let response = `# 📊 Project Dashboard\n\n`;
+      response += `**Project:** ${projectName}\n\n`;
+      response += `**Dashboard URL:**\n${dashboardUrl}\n\n`;
+      response += `Open this URL in your browser to view:\n`;
+      response += `- 📈 Build progress and phases\n`;
+      response += `- 🧪 Test run history and results\n`;
+      response += `- 📁 File tree evolution\n`;
+      response += `- 🔗 Dependency graph\n`;
+      response += `- ⚠️ Risk flags and recommendations\n`;
+      response += `- 💰 Resource usage (tokens, API calls)\n`;
+      response += `- 📸 Rollback snapshots\n`;
+
+      // Add update notice if available
+      response += this.getUpdateNotice();
+
+      return { content: [{ type: 'text' as const, text: response }] };
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      let response = `# ❌ Could Not Get Dashboard URL\n\n`;
+      response += `**Error:** ${errorMessage}\n\n`;
+      response += `Make sure you are logged in with a valid API key or trial.\n`;
+
+      return { content: [{ type: 'text' as const, text: response }] };
+    }
   }
 
   /**

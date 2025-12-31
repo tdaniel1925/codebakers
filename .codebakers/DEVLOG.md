@@ -1,5 +1,44 @@
 # Development Log
 
+## 2025-12-30 - Project Tracking Dashboard Complete
+**Session:** 2025-12-30T12:00:00Z
+**Task Size:** LARGE
+**Status:** Completed
+
+### What was done:
+- Built complete project tracking system with CLI-to-server sync
+- Database schema: projects, project_phases, project_tasks, project_snapshots, project_activity
+- API endpoints: /api/projects, /api/projects/[id], /api/projects/[id]/sync
+- Dashboard UI: projects list page, project detail page with tabs
+- CLI MCP tools: project_status, sync to server
+- Dual auth: requireAuthOrApiKey() supports both Bearer tokens and session auth
+- Playwright tests: 7 passing, 6 skipped (by design)
+- Added TEST_API_KEY to .env.local for automated testing
+
+### Key files:
+- `src/db/schema.ts` - Project tracking tables
+- `src/services/project-tracking-service.ts` - Business logic
+- `src/app/api/projects/route.ts` - List/create projects
+- `src/app/api/projects/[id]/route.ts` - Get/update project
+- `src/app/api/projects/[id]/sync/route.ts` - Bulk sync endpoint
+- `src/app/(dashboard)/projects/page.tsx` - Projects list UI
+- `src/app/(dashboard)/projects/[id]/page.tsx` - Project detail UI
+- `tests/project-tracking.spec.ts` - Playwright tests
+- `cli/src/mcp/tools/project-tools.ts` - MCP tools for CLI
+
+### One-click installer reminder:
+- Mac/Linux: `curl -fsSL codebakers.ai/install.sh | bash`
+- Windows: `irm codebakers.ai/install.ps1 | iex`
+- Alternative: `npx @codebakers/cli go`
+- Quickstart page: `src/app/(dashboard)/quickstart/page.tsx`
+
+### Production status:
+- TypeScript: ✅ No errors
+- Build: ✅ Passes
+- Tests: ✅ 7 passed, 6 skipped
+
+---
+
 ## 2025-12-26 - Split Large Modules v5.0
 **Session:** 2025-12-26T16:30:00Z
 **Task Size:** LARGE

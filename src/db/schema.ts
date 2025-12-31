@@ -470,3 +470,445 @@ export const cliErrorReports = pgTable('cli_error_reports', {
 
 export type CliErrorReport = typeof cliErrorReports.$inferSelect;
 export type NewCliErrorReport = typeof cliErrorReports.$inferInsert;
+
+// ============================================
+// PROJECT TRACKING - Agency-Style Build Dashboard
+// ============================================
+
+// Project Status enum
+export const projectStatusEnum = pgEnum('project_status', ['discovery', 'planning', 'building', 'testing', 'completed', 'paused', 'failed']);
+
+// Phase Status enum
+export const phaseStatusEnum = pgEnum('phase_status', ['pending', 'in_progress', 'completed', 'skipped', 'failed']);
+
+// Feature Status enum
+export const featureStatusEnum = pgEnum('feature_status', ['pending', 'in_progress', 'completed', 'blocked', 'failed']);
+
+// Event Type enum
+export const eventTypeEnum = pgEnum('event_type', [
+  'project_started', 'project_completed', 'project_paused', 'project_failed',
+  'phase_started', 'phase_completed', 'phase_skipped', 'phase_failed',
+  'feature_started', 'feature_completed', 'feature_blocked', 'feature_failed',
+  'file_created', 'file_modified', 'file_deleted',
+  'test_started', 'test_passed', 'test_failed',
+  'approval_requested', 'approval_granted', 'approval_rejected',
+  'snapshot_created', 'snapshot_restored',
+  'ai_decision', 'ai_confidence', 'risk_flagged',
+  'docs_generated', 'dependency_added', 'dependency_removed'
+]);
+
+// Risk Level enum
+export const riskLevelEnum = pgEnum('risk_level', ['low', 'medium', 'high', 'critical']);
+
+// Projects - Main project record (server-side backup of .codebakers.json)
+export const projects = pgTable('projects', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+
+  // Project identification
+  projectHash: text('project_hash').notNull(), // Hash of project path/git remote
+  projectName: text('project_name').notNull(),
+  projectDescription: text('project_description'),
+
+  // Status and progress
+  status: projectStatusEnum('status').default('discovery'),
+  currentPhaseId: uuid('current_phase_id'),
+  overallProgress: integer('overall_progress').default(0), // 0-100
+
+  // Stack detection (from package.json)
+  detectedStack: text('detected_stack'), // JSON: { framework, database, auth, ui, payments }
+
+  // PRD and planning
+  prdContent: text('prd_content'), // Full PRD markdown
+  discoveryAnswers: text('discovery_answers'), // JSON: User's answers to discovery questions
+
+  // AI Configuration
+  aiModel: text('ai_model').default('claude-sonnet'),
+  patternsUsed: text('patterns_used'), // JSON array of pattern names
+
+  // Resource tracking totals
+  totalApiCalls: integer('total_api_calls').default(0),
+  totalTokensUsed: integer('total_tokens_used').default(0),
+  totalFilesCreated: integer('total_files_created').default(0),
+  totalFilesModified: integer('total_files_modified').default(0),
+  totalTestsRun: integer('total_tests_run').default(0),
+  totalTestsPassed: integer('total_tests_passed').default(0),
+
+  // Timestamps
+  startedAt: timestamp('started_at').defaultNow(),
+  completedAt: timestamp('completed_at'),
+  lastActivityAt: timestamp('last_activity_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Project Phases - Phases within a project build
+export const projectPhases = pgTable('project_phases', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+
+  // Phase info
+  phaseNumber: integer('phase_number').notNull(),
+  phaseName: text('phase_name').notNull(), // e.g., "Foundation", "Authentication", "Core Features"
+  phaseDescription: text('phase_description'),
+
+  // Status
+  status: phaseStatusEnum('status').default('pending'),
+  progress: integer('progress').default(0), // 0-100
+
+  // Patterns to use for this phase
+  requiredPatterns: text('required_patterns'), // JSON array
+
+  // AI confidence and notes
+  aiConfidence: integer('ai_confidence'), // 0-100
+  aiNotes: text('ai_notes'), // AI's reasoning for this phase
+  alternativesConsidered: text('alternatives_considered'), // JSON: What else was considered
+
+  // Approval checkpoint
+  requiresApproval: boolean('requires_approval').default(false),
+  approvedAt: timestamp('approved_at'),
+  approvedBy: text('approved_by'), // Could be user ID or 'auto'
+
+  // Resource tracking for this phase
+  apiCallsUsed: integer('api_calls_used').default(0),
+  tokensUsed: integer('tokens_used').default(0),
+
+  // Timestamps
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  estimatedDuration: integer('estimated_duration'), // Minutes (AI estimate)
+  actualDuration: integer('actual_duration'), // Minutes
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Project Features - Individual features within phases
+export const projectFeatures = pgTable('project_features', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  phaseId: uuid('phase_id').references(() => projectPhases.id, { onDelete: 'cascade' }).notNull(),
+
+  // Feature info
+  featureName: text('feature_name').notNull(),
+  featureDescription: text('feature_description'),
+  featureType: text('feature_type'), // e.g., "Authentication", "Form", "API Endpoint"
+
+  // Status
+  status: featureStatusEnum('status').default('pending'),
+  blockedReason: text('blocked_reason'),
+
+  // Files involved
+  filesCreated: text('files_created'), // JSON array of file paths
+  filesModified: text('files_modified'), // JSON array of file paths
+
+  // Patterns used
+  patternsApplied: text('patterns_applied'), // JSON array
+
+  // AI metadata
+  aiConfidence: integer('ai_confidence'),
+  aiReasoning: text('ai_reasoning'),
+
+  // Timestamps
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Project Events - Timeline of everything that happened
+export const projectEvents = pgTable('project_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  phaseId: uuid('phase_id').references(() => projectPhases.id, { onDelete: 'set null' }),
+  featureId: uuid('feature_id').references(() => projectFeatures.id, { onDelete: 'set null' }),
+
+  // Event details
+  eventType: eventTypeEnum('event_type').notNull(),
+  eventTitle: text('event_title').notNull(), // Human-readable title
+  eventDescription: text('event_description'),
+  eventData: text('event_data'), // JSON with event-specific data
+
+  // For file events
+  filePath: text('file_path'),
+  fileAction: text('file_action'), // create, modify, delete
+  linesChanged: integer('lines_changed'),
+
+  // For AI decisions
+  aiConfidence: integer('ai_confidence'),
+  alternativesConsidered: text('alternatives_considered'), // JSON
+
+  // For risk flags
+  riskLevel: riskLevelEnum('risk_level'),
+  riskReason: text('risk_reason'),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Project Test Runs - Test execution tracking
+export const projectTestRuns = pgTable('project_test_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  phaseId: uuid('phase_id').references(() => projectPhases.id, { onDelete: 'set null' }),
+  featureId: uuid('feature_id').references(() => projectFeatures.id, { onDelete: 'set null' }),
+
+  // Test info
+  testType: text('test_type').notNull(), // unit, integration, e2e, playwright, vitest
+  testCommand: text('test_command'), // The command that was run
+
+  // Results
+  passed: boolean('passed').notNull(),
+  totalTests: integer('total_tests').default(0),
+  passedTests: integer('passed_tests').default(0),
+  failedTests: integer('failed_tests').default(0),
+  skippedTests: integer('skipped_tests').default(0),
+
+  // Output
+  stdout: text('stdout'),
+  stderr: text('stderr'),
+  failureDetails: text('failure_details'), // JSON array of failed test details
+
+  // Duration
+  durationMs: integer('duration_ms'),
+
+  // Timestamps
+  startedAt: timestamp('started_at').defaultNow(),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Project Files - File tree tracking for evolution visualization
+export const projectFiles = pgTable('project_files', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+
+  // File info
+  filePath: text('file_path').notNull(),
+  fileName: text('file_name').notNull(),
+  fileType: text('file_type'), // ts, tsx, css, json, md, etc.
+  isDirectory: boolean('is_directory').default(false),
+
+  // Metrics
+  lineCount: integer('line_count'),
+  complexity: integer('complexity'), // Cyclomatic complexity if available
+
+  // Parent tracking for tree structure
+  parentPath: text('parent_path'),
+  depth: integer('depth').default(0),
+
+  // Status
+  status: text('status').default('active'), // active, deleted, renamed
+  renamedFrom: text('renamed_from'),
+
+  // Which feature created/modified this
+  createdByFeatureId: uuid('created_by_feature_id').references(() => projectFeatures.id, { onDelete: 'set null' }),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow(),
+  modifiedAt: timestamp('modified_at'),
+  deletedAt: timestamp('deleted_at'),
+});
+
+// Project Dependencies - Dependency graph tracking
+export const projectDependencies = pgTable('project_dependencies', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+
+  // Source file/component
+  sourceFile: text('source_file').notNull(),
+  sourceType: text('source_type'), // component, service, api, hook, util
+
+  // Target file/component it depends on
+  targetFile: text('target_file').notNull(),
+  targetType: text('target_type'),
+
+  // Dependency type
+  dependencyType: text('dependency_type'), // import, api-call, db-query, event
+  importName: text('import_name'), // What was imported
+
+  // Created during which feature
+  featureId: uuid('feature_id').references(() => projectFeatures.id, { onDelete: 'set null' }),
+
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Project Snapshots - Rollback points
+export const projectSnapshots = pgTable('project_snapshots', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  phaseId: uuid('phase_id').references(() => projectPhases.id, { onDelete: 'set null' }),
+
+  // Snapshot info
+  snapshotName: text('snapshot_name').notNull(),
+  snapshotDescription: text('snapshot_description'),
+  isAutomatic: boolean('is_automatic').default(false), // Auto-created at phase completion
+
+  // Git reference (if using git)
+  gitCommitHash: text('git_commit_hash'),
+  gitBranch: text('git_branch'),
+
+  // State at snapshot time
+  projectState: text('project_state'), // JSON of .codebakers.json at this point
+  fileTree: text('file_tree'), // JSON of file tree structure
+
+  // Restored tracking
+  wasRestored: boolean('was_restored').default(false),
+  restoredAt: timestamp('restored_at'),
+
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Project Docs - Auto-generated documentation
+export const projectDocs = pgTable('project_docs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  featureId: uuid('feature_id').references(() => projectFeatures.id, { onDelete: 'set null' }),
+
+  // Doc info
+  docType: text('doc_type').notNull(), // api, component, service, readme, architecture
+  docTitle: text('doc_title').notNull(),
+  docPath: text('doc_path'), // Where it was written (if file)
+
+  // Content
+  content: text('content').notNull(),
+  format: text('format').default('markdown'), // markdown, jsdoc, openapi
+
+  // Auto-update tracking
+  isAutoGenerated: boolean('is_auto_generated').default(true),
+  lastGeneratedAt: timestamp('last_generated_at').defaultNow(),
+  sourceFiles: text('source_files'), // JSON array of files this doc describes
+
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Project Resources - Detailed resource usage tracking
+export const projectResources = pgTable('project_resources', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  phaseId: uuid('phase_id').references(() => projectPhases.id, { onDelete: 'set null' }),
+  featureId: uuid('feature_id').references(() => projectFeatures.id, { onDelete: 'set null' }),
+
+  // Resource type
+  resourceType: text('resource_type').notNull(), // api_call, tokens, time
+
+  // API call tracking
+  apiEndpoint: text('api_endpoint'),
+  apiMethod: text('api_method'),
+
+  // Token usage
+  inputTokens: integer('input_tokens'),
+  outputTokens: integer('output_tokens'),
+  totalTokens: integer('total_tokens'),
+
+  // Time tracking
+  durationMs: integer('duration_ms'),
+
+  // Cost estimate (in millicents - $0.001 = 100)
+  estimatedCostMillicents: integer('estimated_cost_millicents'),
+
+  // Metadata
+  metadata: text('metadata'), // JSON for additional context
+
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Project Risk Flags - Areas needing human review
+export const projectRiskFlags = pgTable('project_risk_flags', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  phaseId: uuid('phase_id').references(() => projectPhases.id, { onDelete: 'set null' }),
+  featureId: uuid('feature_id').references(() => projectFeatures.id, { onDelete: 'set null' }),
+
+  // Risk info
+  riskLevel: riskLevelEnum('risk_level').notNull(),
+  riskCategory: text('risk_category').notNull(), // security, performance, complexity, external-dep
+  riskTitle: text('risk_title').notNull(),
+  riskDescription: text('risk_description'),
+
+  // What triggered the flag
+  triggerFile: text('trigger_file'),
+  triggerCode: text('trigger_code'), // Code snippet that triggered
+  triggerReason: text('trigger_reason'),
+
+  // AI recommendation
+  aiRecommendation: text('ai_recommendation'),
+
+  // Resolution
+  isResolved: boolean('is_resolved').default(false),
+  resolution: text('resolution'),
+  resolvedAt: timestamp('resolved_at'),
+
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Relations for project tracking
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  team: one(teams, {
+    fields: [projects.teamId],
+    references: [teams.id],
+  }),
+  phases: many(projectPhases),
+  features: many(projectFeatures),
+  events: many(projectEvents),
+  testRuns: many(projectTestRuns),
+  files: many(projectFiles),
+  dependencies: many(projectDependencies),
+  snapshots: many(projectSnapshots),
+  docs: many(projectDocs),
+  resources: many(projectResources),
+  riskFlags: many(projectRiskFlags),
+}));
+
+export const projectPhasesRelations = relations(projectPhases, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [projectPhases.projectId],
+    references: [projects.id],
+  }),
+  features: many(projectFeatures),
+  events: many(projectEvents),
+  testRuns: many(projectTestRuns),
+  snapshots: many(projectSnapshots),
+  resources: many(projectResources),
+  riskFlags: many(projectRiskFlags),
+}));
+
+export const projectFeaturesRelations = relations(projectFeatures, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [projectFeatures.projectId],
+    references: [projects.id],
+  }),
+  phase: one(projectPhases, {
+    fields: [projectFeatures.phaseId],
+    references: [projectPhases.id],
+  }),
+  events: many(projectEvents),
+  testRuns: many(projectTestRuns),
+  files: many(projectFiles),
+  dependencies: many(projectDependencies),
+  docs: many(projectDocs),
+  resources: many(projectResources),
+  riskFlags: many(projectRiskFlags),
+}));
+
+// Types for project tracking
+export type Project = typeof projects.$inferSelect;
+export type NewProject = typeof projects.$inferInsert;
+export type ProjectPhase = typeof projectPhases.$inferSelect;
+export type NewProjectPhase = typeof projectPhases.$inferInsert;
+export type ProjectFeature = typeof projectFeatures.$inferSelect;
+export type NewProjectFeature = typeof projectFeatures.$inferInsert;
+export type ProjectEvent = typeof projectEvents.$inferSelect;
+export type NewProjectEvent = typeof projectEvents.$inferInsert;
+export type ProjectTestRun = typeof projectTestRuns.$inferSelect;
+export type NewProjectTestRun = typeof projectTestRuns.$inferInsert;
+export type ProjectFile = typeof projectFiles.$inferSelect;
+export type NewProjectFile = typeof projectFiles.$inferInsert;
+export type ProjectDependency = typeof projectDependencies.$inferSelect;
+export type NewProjectDependency = typeof projectDependencies.$inferInsert;
+export type ProjectSnapshot = typeof projectSnapshots.$inferSelect;
+export type NewProjectSnapshot = typeof projectSnapshots.$inferInsert;
+export type ProjectDoc = typeof projectDocs.$inferSelect;
+export type NewProjectDoc = typeof projectDocs.$inferInsert;
+export type ProjectResource = typeof projectResources.$inferSelect;
+export type NewProjectResource = typeof projectResources.$inferInsert;
+export type ProjectRiskFlag = typeof projectRiskFlags.$inferSelect;
+export type NewProjectRiskFlag = typeof projectRiskFlags.$inferInsert;

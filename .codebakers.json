@@ -19,29 +19,32 @@
     ]
   },
   "currentWork": {
-    "lastUpdated": "2025-12-21T12:00:00Z",
-    "activeFeature": "Website messaging overhaul",
+    "lastUpdated": "2025-12-30T12:00:00Z",
+    "activeFeature": "Project Tracking Dashboard",
     "status": "completed",
-    "summary": "Complete website overhaul to fix messaging confusion. Users were thinking CodeBakers was an app builder (like Lovable/Replit) instead of a prompt enhancer for their IDE. Now the value prop is clear: 'Your prompts suck. We fix them.'",
+    "summary": "Built complete project tracking system: database schema, API endpoints, dashboard UI, CLI MCP tools, dual auth (API key + session), Playwright tests. Production ready.",
     "pendingTasks": [],
     "completedThisSession": [
-      "Rewrote hero: 'Your prompts suck. We fix them.' with IDE visual",
-      "Added 'How It Works' 3-step visual showing IDE workflow",
-      "Redesigned Interactive Demo as 'Prompt Optimizer Demo'",
-      "Added callout: 'CodeBakers is NOT an app builder'",
-      "Replaced 'The Problem' section with 'Two Problems, One Solution'",
-      "Updated all CTAs from 'Start Building' to 'Upgrade My Prompts'",
-      "Added IDE-style input with mac window chrome in demo",
-      "Emphasized 'Works INSIDE your IDE' throughout",
-      "Updated final CTA copy for prompt enhancement focus",
-      "Production build verification - passed"
+      "Database schema: projects, project_phases, project_tasks, project_snapshots, project_activity",
+      "API: /api/projects, /api/projects/[id], /api/projects/[id]/sync",
+      "Dashboard UI: projects list, project detail with tabs",
+      "CLI MCP tools: project_status, sync to server",
+      "requireAuthOrApiKey() for dual auth (Bearer + session)",
+      "Playwright tests: 7 passing, 6 skipped",
+      "Added TEST_API_KEY for automated testing"
     ],
     "keyFiles": [
-      "src/app/page.tsx",
-      "src/components/interactive-demo.tsx",
-      "src/app/api/optimize-prompt/route.ts"
+      "src/db/schema.ts",
+      "src/services/project-tracking-service.ts",
+      "src/app/api/projects/route.ts",
+      "src/app/api/projects/[id]/route.ts",
+      "src/app/api/projects/[id]/sync/route.ts",
+      "src/app/(dashboard)/projects/page.tsx",
+      "src/app/(dashboard)/projects/[id]/page.tsx",
+      "tests/project-tracking.spec.ts",
+      "cli/src/mcp/tools/project-tools.ts"
     ],
-    "notes": "Key messaging now emphasizes: (1) CodeBakers works INSIDE Cursor/Claude Code, (2) It's a prompt enhancer not an app builder, (3) Two problems: bad prompts + long prompts = we solve both."
+    "notes": "One-click installer exists: curl -fsSL codebakers.ai/install.sh | bash (Mac/Linux) or irm codebakers.ai/install.ps1 | iex (Windows). Quickstart page at src/app/(dashboard)/quickstart/page.tsx shows the flow."
   },
   "context": {
     "src\\db\\schema.ts": {

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { db, profiles } from '@/db';
 import { eq } from 'drizzle-orm';
 import { AuthenticationError, AuthorizationError } from '@/lib/errors';
+import { ApiKeyService } from '@/services/api-key-service';
+import { NextRequest } from 'next/server';
 
 export async function getServerSession() {
   const supabase = await createClient();
@@ -35,4 +37,55 @@ export async function requireAdmin() {
     throw new AuthorizationError('Admin access required');
   }
   return session;
+}
+
+/**
+ * Authenticate via API key (Bearer token) or Supabase session
+ * Returns user ID and team info for authorization checks
+ *
+ * Priority:
+ * 1. API key in Authorization header (for CLI)
+ * 2. Supabase session cookie (for dashboard)
+ */
+export async function requireAuthOrApiKey(req: NextRequest): Promise<{
+  userId: string;
+  teamId: string;
+  authMethod: 'api_key' | 'session';
+}> {
+  // Check for API key first
+  const authHeader = req.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const apiKey = authHeader.slice(7);
+    const validation = await ApiKeyService.validate(apiKey);
+
+    if (!validation.valid || !validation.team || !validation.team.ownerId) {
+      throw new AuthenticationError('Invalid API key');
+    }
+
+    return {
+      userId: validation.team.ownerId,
+      teamId: validation.team.id,
+      authMethod: 'api_key',
+    };
+  }
+
+  // Fall back to Supabase session
+  const session = await getServerSession();
+  if (!session) {
+    throw new AuthenticationError('Authentication required');
+  }
+
+  // Get the user's team
+  const { TeamService } = await import('@/services/team-service');
+  const team = await TeamService.getByOwnerId(session.user.id);
+
+  if (!team) {
+    throw new AuthenticationError('No team found for user');
+  }
+
+  return {
+    userId: session.user.id,
+    teamId: team.id,
+    authMethod: 'session',
+  };
 }
