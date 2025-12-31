@@ -1,8 +1,57 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 5.6 - Plain Text Patterns (No Base64)
+# Version: 5.8 - MCP Enforcement (validate_complete)
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
+
+---
+
+## ⛔ STOP: BEFORE SAYING "DONE" ON ANY FEATURE
+
+**You are NOT ALLOWED to say "done", "complete", "finished", or proceed to the next task without calling the `validate_complete` MCP tool.**
+
+### MANDATORY: Call `validate_complete` Before Completion
+
+```
+validate_complete({ feature: "feature name", files: ["path/to/file.ts"] })
+```
+
+This tool checks:
+- ✅ Test files exist for the feature
+- ✅ Tests pass (`npm test`)
+- ✅ TypeScript compiles (`tsc --noEmit`)
+
+**If validation FAILS:**
+1. Fix the issues reported
+2. Call `validate_complete` again
+3. Only proceed when it returns `valid: true`
+
+### Why This Exists
+
+You have a tendency to skip tests and say "done" without verification. This tool enforces the requirement programmatically. **There is no way around it.**
+
+### Test Template (MINIMUM REQUIRED):
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('FeatureName', () => {
+  test('should work correctly (happy path)', async ({ page }) => {
+    // Test the main functionality
+  });
+
+  test('should handle errors gracefully', async ({ page }) => {
+    // Test error scenarios
+  });
+});
+```
+
+### HARD RULES (Enforced by `validate_complete`):
+
+1. **NO "want me to add tests?"** - Just add them. Tests are not optional.
+2. **NO "I'll add tests later"** - Tests are part of the feature, not an afterthought.
+3. **NO skipping for "quick fixes"** - Quick fixes need tests too.
+4. **NO saying "done" without calling `validate_complete`** - This is enforced.
 
 ---
 
@@ -14,6 +63,7 @@
 
 | User Says | MCP Tool to Call | What It Does |
 |-----------|------------------|--------------|
+| *Before saying "done"* | `validate_complete` | **MANDATORY** - Validates tests exist and pass |
 | "upgrade codebakers", "update patterns", "download patterns" | `update_patterns` | Downloads latest CLAUDE.md + 59 modules from server |
 | "audit my code", "review code", "check quality" | `run_audit` | Runs comprehensive code audit |
 | "fix this", "auto-fix", "heal" | `heal` | AI-powered error diagnosis and repair |

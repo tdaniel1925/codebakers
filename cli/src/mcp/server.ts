@@ -877,6 +877,26 @@ class CodeBakersServer {
           },
         },
         {
+          name: 'validate_complete',
+          description:
+            'MANDATORY: Call this BEFORE saying "done" or "complete" on any feature. Validates that tests exist, tests pass, and TypeScript compiles. Returns { valid: true } or { valid: false, missing: [...] }. You are NOT ALLOWED to complete a feature without calling this first.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              feature: {
+                type: 'string',
+                description: 'Name of the feature being completed (e.g., "login page", "payment form")',
+              },
+              files: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Files that were created/modified for this feature',
+              },
+            },
+            required: ['feature'],
+          },
+        },
+        {
           name: 'report_pattern_gap',
           description:
             'Report when a user request cannot be fully handled by existing patterns. This helps improve CodeBakers by tracking what patterns are missing. The AI should automatically call this when it encounters something outside pattern coverage.',
@@ -1595,6 +1615,9 @@ class CodeBakersServer {
 
         case 'run_tests':
           return this.handleRunTests(args as { filter?: string; watch?: boolean });
+
+        case 'validate_complete':
+          return this.handleValidateComplete(args as { feature: string; files?: string[] });
 
         case 'report_pattern_gap':
           return this.handleReportPatternGap(args as { category: string; request: string; context?: string; handledWith?: string; wasSuccessful?: boolean });
@@ -3768,6 +3791,127 @@ Just describe what you want to build! I'll automatically:
         type: 'text' as const,
         text: response,
       }],
+    };
+  }
+
+  /**
+   * MANDATORY: Validate that a feature is complete before AI can say "done"
+   * Checks: tests exist, tests pass, TypeScript compiles
+   */
+  private handleValidateComplete(args: { feature: string; files?: string[] }) {
+    const { feature, files = [] } = args;
+    const cwd = process.cwd();
+    const issues: string[] = [];
+    let testsExist = false;
+    let testsPass = false;
+    let typescriptPass = false;
+
+    // Step 1: Check if test files exist
+    try {
+      const testDirs = ['tests', 'test', '__tests__', 'src/__tests__', 'src/tests'];
+      const testExtensions = ['.test.ts', '.test.tsx', '.spec.ts', '.spec.tsx'];
+
+      for (const dir of testDirs) {
+        const testDir = path.join(cwd, dir);
+        if (fs.existsSync(testDir)) {
+          const testFiles = fs.readdirSync(testDir, { recursive: true })
+            .filter((f: string | Buffer) => testExtensions.some(ext => String(f).endsWith(ext)));
+          if (testFiles.length > 0) {
+            testsExist = true;
+            break;
+          }
+        }
+      }
+
+      // Also check for test files adjacent to source files
+      if (!testsExist && files.length > 0) {
+        for (const file of files) {
+          const testFile = file.replace(/\.tsx?$/, '.test.ts');
+          const specFile = file.replace(/\.tsx?$/, '.spec.ts');
+          if (fs.existsSync(path.join(cwd, testFile)) || fs.existsSync(path.join(cwd, specFile))) {
+            testsExist = true;
+            break;
+          }
+        }
+      }
+
+      if (!testsExist) {
+        issues.push('NO_TESTS: No test files found. You MUST write tests before completing this feature.');
+      }
+    } catch {
+      issues.push('NO_TESTS: Could not verify test files exist.');
+    }
+
+    // Step 2: Run tests
+    if (testsExist) {
+      try {
+        let testCommand = 'npm test';
+        const pkgPath = path.join(cwd, 'package.json');
+        if (fs.existsSync(pkgPath)) {
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+          const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+          if (deps['@playwright/test']) testCommand = 'npx playwright test';
+          else if (deps['vitest']) testCommand = 'npx vitest run';
+          else if (deps['jest']) testCommand = 'npx jest';
+        }
+
+        execSync(testCommand, {
+          cwd,
+          encoding: 'utf-8',
+          timeout: 120000,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        testsPass = true;
+      } catch (error) {
+        const execError = error as { stderr?: string };
+        issues.push(`TESTS_FAIL: Tests are failing. Fix them before completing.\n${execError.stderr?.slice(0, 500) || ''}`);
+      }
+    }
+
+    // Step 3: Run TypeScript check
+    try {
+      execSync('npx tsc --noEmit', {
+        cwd,
+        encoding: 'utf-8',
+        timeout: 60000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      typescriptPass = true;
+    } catch (error) {
+      const execError = error as { stdout?: string; stderr?: string };
+      const output = execError.stdout || execError.stderr || '';
+      issues.push(`TYPESCRIPT_ERRORS: TypeScript compilation failed.\n${output.slice(0, 500)}`);
+    }
+
+    // Generate response
+    const valid = testsExist && testsPass && typescriptPass;
+
+    let response = `# ✅ Feature Validation: ${feature}\n\n`;
+    response += `| Check | Status |\n|-------|--------|\n`;
+    response += `| Tests exist | ${testsExist ? '✅ PASS' : '❌ FAIL'} |\n`;
+    response += `| Tests pass | ${testsPass ? '✅ PASS' : testsExist ? '❌ FAIL' : '⏭️ SKIP'} |\n`;
+    response += `| TypeScript compiles | ${typescriptPass ? '✅ PASS' : '❌ FAIL'} |\n\n`;
+
+    if (valid) {
+      response += `## ✅ Feature is COMPLETE\n\n`;
+      response += `All validation checks passed. You may now mark this feature as done.\n`;
+    } else {
+      response += `## ❌ Feature is NOT COMPLETE\n\n`;
+      response += `**You are NOT ALLOWED to say "done" or "complete" until all checks pass.**\n\n`;
+      response += `### Issues to fix:\n\n`;
+      for (const issue of issues) {
+        response += `- ${issue}\n\n`;
+      }
+      response += `---\n\n**Fix these issues and call \`validate_complete\` again.**`;
+    }
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: response,
+      }],
+      // Return structured data for programmatic use
+      isError: !valid,
     };
   }
 

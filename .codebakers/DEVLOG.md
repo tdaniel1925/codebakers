@@ -1,5 +1,70 @@
 # Development Log
 
+## 2025-12-31 - MCP Enforcement v5.8
+**Session:** 2025-12-31T18:00:00Z
+**Task Size:** MEDIUM
+**Status:** Completed
+
+### What was done:
+- Created `validate_complete` MCP tool that AI MUST call before saying "done"
+- Tool checks: tests exist, tests pass, TypeScript compiles
+- Created `scripts/validate-codebakers.js` pre-commit hook script
+- Pre-commit validates: no @ts-ignore, no FIXME/HACK/XXX, no hardcoded secrets, API routes have error handling
+- Updated CLAUDE.md with "⛔ STOP: BEFORE SAYING 'DONE'" enforcement section
+- Pushed v5.8 to production successfully
+
+### Problem solved:
+- Even with v5.7's prominent test checklist, AI could read instructions but still ignore them
+- AI would say "done" without actually running validation
+- Needed programmatic enforcement, not just stronger language
+
+### Two-layer enforcement:
+1. **MCP Tool**: AI cannot complete features without calling `validate_complete` - tool returns pass/fail
+2. **Pre-commit Hook**: Blocks git commits if validation fails - catches anything AI missed
+
+### Files changed:
+- `cli/src/mcp/server.ts` - Added validate_complete tool (definition + handler)
+- `scripts/validate-codebakers.js` - New pre-commit validation script
+- `CLAUDE.md` - v5.8, added MCP enforcement section
+- `.cursorrules` - v5.8, added MCP enforcement section
+- `scripts/push-v45.js` - Updated for v5.8 push
+- `newfiles/CLAUDE.md` - v5.8 copy
+- `newfiles/.cursorrules` - v5.8 copy
+
+### Key insight:
+Language-based instructions ("MUST", "MANDATORY") can still be ignored. Programmatic enforcement via MCP tools creates an actual gate the AI has to pass through. If `validate_complete` returns `{ valid: false }`, the AI can see it failed and must fix issues.
+
+---
+
+## 2025-12-31 - Mandatory Test Enforcement v5.7
+**Session:** 2025-12-31T15:00:00Z
+**Task Size:** MEDIUM
+**Status:** Completed
+
+### What was done:
+- Added prominent "AFTER EVERY FEATURE: MANDATORY CHECKLIST" near top of CLAUDE.md
+- Test requirement now impossible to miss (within first 50 lines)
+- Includes 4-step checklist: WRITE TESTS → RUN TESTS → TYPECHECK → SHOW TEST CODE
+- Added HARD RULES preventing common AI excuses
+- Updated .cursorrules with same checklist
+
+### Problem solved:
+- AI was skipping tests because MANDATORY TESTS section was at line 827
+- AI would say "want me to add tests?" instead of just adding them
+- Features shipped without any test coverage
+
+### Files changed:
+- `CLAUDE.md` - v5.7, added AFTER EVERY FEATURE checklist at top
+- `.cursorrules` - v5.7, added AFTER EVERY FEATURE checklist
+- `scripts/push-v45.js` - Updated for v5.7
+- `newfiles/CLAUDE.md` - v5.7 copy
+- `newfiles/.cursorrules` - v5.7 copy
+
+### Key insight:
+Test requirements must be at the TOP of the file, not buried at line 827. AI reads the beginning of files and may not reach critical instructions at the bottom.
+
+---
+
 ## 2025-12-31 - Remove Base64 Encoding v5.6
 **Session:** 2025-12-31T12:00:00Z
 **Task Size:** MEDIUM

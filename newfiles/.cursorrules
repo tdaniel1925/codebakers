@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 5.5 - MCP-First Architecture + VAPI + Dependency Guardian
+# Version: 5.8 - MCP Enforcement (validate_complete)
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
@@ -30,6 +30,55 @@
 
 ---
 
+## ⛔ STOP: BEFORE SAYING "DONE" ON ANY FEATURE
+
+**You are NOT ALLOWED to say "done", "complete", "finished", or proceed to the next task without calling the `validate_complete` MCP tool.**
+
+### MANDATORY: Call `validate_complete` Before Completion
+
+```
+validate_complete({ feature: "feature name", files: ["path/to/file.ts"] })
+```
+
+This tool checks:
+- ✅ Test files exist for the feature
+- ✅ Tests pass (`npm test`)
+- ✅ TypeScript compiles (`tsc --noEmit`)
+
+**If validation FAILS:**
+1. Fix the issues reported
+2. Call `validate_complete` again
+3. Only proceed when it returns `valid: true`
+
+### Why This Exists
+
+You have a tendency to skip tests and say "done" without verification. This tool enforces the requirement programmatically. **There is no way around it.**
+
+### Test Template (MINIMUM REQUIRED):
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('FeatureName', () => {
+  test('should work correctly (happy path)', async ({ page }) => {
+    // Test the main functionality
+  });
+
+  test('should handle errors gracefully', async ({ page }) => {
+    // Test error scenarios
+  });
+});
+```
+
+### HARD RULES (Enforced by `validate_complete`):
+
+1. **NO "want me to add tests?"** - Just add them. Tests are not optional.
+2. **NO "I'll add tests later"** - Tests are part of the feature, not an afterthought.
+3. **NO skipping for "quick fixes"** - Quick fixes need tests too.
+4. **NO saying "done" without calling `validate_complete`** - This is enforced.
+
+---
+
 ## 🚨 MCP-FIRST: ALWAYS CHECK MCP TOOLS BEFORE ACTING
 
 **This is the #1 priority rule. Before doing ANYTHING, check if an MCP tool can handle it.**
@@ -38,6 +87,7 @@
 
 | User Says | MCP Tool to Call | What It Does |
 |-----------|------------------|--------------|
+| *Before saying "done"* | `validate_complete` | **MANDATORY** - Validates tests exist and pass |
 | "upgrade codebakers", "update patterns", "download patterns" | `update_patterns` | Downloads latest CLAUDE.md + 59 modules from server |
 | "audit my code", "review code", "check quality" | `run_audit` | Runs comprehensive code audit |
 | "fix this", "auto-fix", "heal" | `heal` | AI-powered error diagnosis and repair |
@@ -63,6 +113,25 @@
 | "show call history", "recent calls" | `vapi_get_calls` | Gets call logs with transcripts |
 | "call details", "get call info" | `vapi_get_call` | Gets specific call transcript/recording |
 | "add vapi webhook", "handle call events" | `vapi_generate_webhook` | Generates Next.js webhook handler |
+
+### Refactoring Tools:
+
+| User Says | MCP Tool to Call | What It Does |
+|-----------|------------------|--------------|
+| "check impact", "what files use X", "ripple check" | `ripple_check` | Finds all files affected by a type/schema/function change |
+
+**Ripple Check Usage:**
+- Run BEFORE making breaking changes to see impact
+- Run AFTER changes to verify all files updated
+- Provides categorized list: high/medium/low impact
+- Gives specific recommendations based on change type
+
+Example:
+```
+User: "I need to add a teamId field to the User type"
+AI: [Calls ripple_check with entityName="User", changeType="added_field"]
+→ Shows all files using User type with impact levels
+```
 
 ### MCP-First Rule:
 
@@ -530,16 +599,11 @@ What would you like to do?
 
 ---
 
-## MODULE FORMAT (IMPORTANT)
+## MODULE FORMAT
 
-All pattern files in `.claude/` are **base64 encoded** for protection.
+All pattern files in `.claude/` are **plain text markdown** - just read them directly.
 
-When you read a file that starts with `<<CB64>>`, you must:
-1. Extract the base64 content between `<<CB64>>` and `<</CB64>>` markers
-2. Decode it from base64 to get the actual pattern content
-3. Use the decoded content for your response
-
-**Always decode before using any pattern from `.claude/` files.**
+No decoding needed. Just open the file and use the patterns.
 
 ---
 
@@ -560,20 +624,6 @@ When you read a file that starts with `<<CB64>>`, you must:
    ```
 3. **Read just that section** - Once you find line numbers, read only that part
 4. **NEVER skip** - If a pattern exists, you MUST access it somehow
-
-### Problem: Base64 Encoded Content
-
-**Symptoms:** File content starts with `<<CB64>>` or looks like random characters.
-
-**Solution:**
-1. **This is expected** - All `.claude/` files are base64 encoded
-2. **Decode it:**
-   ```python
-   import base64
-   content = base64.b64decode(encoded_content).decode('utf-8')
-   ```
-3. **Or use shell:** `base64 -d .claude/file.md`
-4. **NEVER say "it's encoded so I can't use it"** - Decode it and use it
 
 ### Problem: Search Term Not Found
 

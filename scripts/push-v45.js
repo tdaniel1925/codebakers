@@ -18,7 +18,7 @@ async function pushV45() {
   console.log('CLAUDE.md size:', (claudeMdContent.length / 1024).toFixed(1), 'KB');
   console.log('.cursorrules size:', (cursorRulesContent.length / 1024).toFixed(1), 'KB');
 
-  const changelog = `v5.6 Plain Text Patterns: Removed base64 encoding from pattern files. AI can now read .claude/ files directly without decoding. Fixed issue where AI would see base64 and skip patterns entirely.`;
+  const changelog = `v5.8 MCP Enforcement: Added validate_complete MCP tool that MUST be called before saying "done". Tool checks tests exist, tests pass, TypeScript compiles. AI cannot complete features without passing validation. Pre-commit hook script added.`;
 
   console.log('\nPushing to', apiUrl + '/api/admin/content/push');
 
@@ -30,7 +30,7 @@ async function pushV45() {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        version: '5.6',
+        version: '5.8',
         claudeMdContent,
         cursorRulesContent,
         changelog,
