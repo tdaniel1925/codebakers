@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 5.5 - MCP-First Architecture + VAPI + Dependency Guardian
+# Version: 5.6 - Plain Text Patterns (No Base64)
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
@@ -549,16 +549,11 @@ What would you like to do?
 
 ---
 
-## MODULE FORMAT (IMPORTANT)
+## MODULE FORMAT
 
-All pattern files in `.claude/` are **base64 encoded** for protection.
+All pattern files in `.claude/` are **plain text markdown** - just read them directly.
 
-When you read a file that starts with `<<CB64>>`, you must:
-1. Extract the base64 content between `<<CB64>>` and `<</CB64>>` markers
-2. Decode it from base64 to get the actual pattern content
-3. Use the decoded content for your response
-
-**Always decode before using any pattern from `.claude/` files.**
+No decoding needed. Just open the file and use the patterns.
 
 ---
 
@@ -579,20 +574,6 @@ When you read a file that starts with `<<CB64>>`, you must:
    ```
 3. **Read just that section** - Once you find line numbers, read only that part
 4. **NEVER skip** - If a pattern exists, you MUST access it somehow
-
-### Problem: Base64 Encoded Content
-
-**Symptoms:** File content starts with `<<CB64>>` or looks like random characters.
-
-**Solution:**
-1. **This is expected** - All `.claude/` files are base64 encoded
-2. **Decode it:**
-   ```python
-   import base64
-   content = base64.b64decode(encoded_content).decode('utf-8')
-   ```
-3. **Or use shell:** `base64 -d .claude/file.md`
-4. **NEVER say "it's encoded so I can't use it"** - Decode it and use it
 
 ### Problem: Search Term Not Found
 

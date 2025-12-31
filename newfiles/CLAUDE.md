@@ -1,32 +1,8 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 5.5 - MCP-First Architecture + VAPI + Dependency Guardian
+# Version: 5.6 - Plain Text Patterns (No Base64)
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
-
----
-
-## 🚨 STEP 0: SESSION START (DO THIS FIRST - BEFORE ANYTHING ELSE)
-
-**This is MANDATORY on EVERY new chat session. Do this BEFORE responding to the user.**
-
-1. **Read `.codebakers/DEVLOG.md`** (if exists) - understand what was done recently
-2. **Read `.codebakers.json`** - check `currentWork` for active tasks and context
-3. **Run `git log --oneline -5`** - see recent commits
-4. **Check `.codebakers/BLOCKED.md`** - show any blockers to user
-
-### Show on Session Start:
-```
-📋 Session Resume:
-- Last work: [from devlog top entry]
-- Recent commits: [from git log]
-- Active task: [from currentWork if exists]
-- Blockers: [from BLOCKED.md if exists]
-```
-
-**WHY THIS MATTERS:** Without this step, you will lose context and repeat mistakes. The previous AI session may have built features, made decisions, or documented important information you need to know.
-
-**FAILURE TO DO THIS = USER FRUSTRATION.** They will have to re-explain everything.
 
 ---
 
@@ -64,24 +40,23 @@
 | "call details", "get call info" | `vapi_get_call` | Gets specific call transcript/recording |
 | "add vapi webhook", "handle call events" | `vapi_generate_webhook` | Generates Next.js webhook handler |
 
-### MCP-First Rule:
+### Refactoring Tools:
 
-1. **ALWAYS** check if the user's request maps to an MCP tool above
-2. **ALWAYS** call the MCP tool instead of doing it manually
-3. **NEVER** offer to "create pattern files" - use `update_patterns`
-4. **NEVER** manually write audit reports - use `run_audit`
-5. **NEVER** manually write webhook handlers - use tool generators
+| User Says | MCP Tool to Call | What It Does |
+|-----------|------------------|--------------|
+| "check impact", "what files use X", "ripple check" | `ripple_check` | Finds all files affected by a type/schema/function change |
 
-### Confirmation Before Destructive Actions:
+**Ripple Check Usage:**
+- Run BEFORE making breaking changes to see impact
+- Run AFTER changes to verify all files updated
+- Provides categorized list: high/medium/low impact
+- Gives specific recommendations based on change type
 
-Before executing tools that modify files, use `detect_intent` to confirm:
+Example:
 ```
-User: "upgrade everything"
-AI: [Calls detect_intent first]
-→ Shows: "I detected you want to update CodeBakers patterns. This will:
-   - Download 59 pattern files
-   - Update CLAUDE.md to v5.5
-   Proceed? [Yes] [No]"
+User: "I need to add a teamId field to the User type"
+AI: [Calls ripple_check with entityName="User", changeType="added_field"]
+→ Shows all files using User type with impact levels
 ```
 
 ### 🛡️ Dependency Guardian (Auto-Coherence System):
@@ -140,6 +115,26 @@ User sees: Clean, working code. No errors.
 User just asks for things. Code is always coherent. No manual debugging.
 Guardian runs silently in the background ensuring everything works together.
 
+### MCP-First Rule:
+
+1. **ALWAYS** check if the user's request maps to an MCP tool above
+2. **ALWAYS** call the MCP tool instead of doing it manually
+3. **NEVER** offer to "create pattern files" - use `update_patterns`
+4. **NEVER** manually write audit reports - use `run_audit`
+5. **NEVER** manually write webhook handlers - use tool generators
+
+### Confirmation Before Destructive Actions:
+
+Before executing tools that modify files, use `detect_intent` to confirm:
+```
+User: "upgrade everything"
+AI: [Calls detect_intent first]
+→ Shows: "I detected you want to update CodeBakers patterns. This will:
+   - Download 59 pattern files
+   - Update CLAUDE.md to v5.4
+   Proceed? [Yes] [No]"
+```
+
 ---
 
 ## CRITICAL: READ THIS BEFORE EVERY RESPONSE
@@ -186,7 +181,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.5
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.4
 ```
 
 **On FIRST message of a new session, also show this header:**
@@ -530,16 +525,11 @@ What would you like to do?
 
 ---
 
-## MODULE FORMAT (IMPORTANT)
+## MODULE FORMAT
 
-All pattern files in `.claude/` are **base64 encoded** for protection.
+All pattern files in `.claude/` are **plain text markdown** - just read them directly.
 
-When you read a file that starts with `<<CB64>>`, you must:
-1. Extract the base64 content between `<<CB64>>` and `<</CB64>>` markers
-2. Decode it from base64 to get the actual pattern content
-3. Use the decoded content for your response
-
-**Always decode before using any pattern from `.claude/` files.**
+No decoding needed. Just open the file and use the patterns.
 
 ---
 
@@ -560,20 +550,6 @@ When you read a file that starts with `<<CB64>>`, you must:
    ```
 3. **Read just that section** - Once you find line numbers, read only that part
 4. **NEVER skip** - If a pattern exists, you MUST access it somehow
-
-### Problem: Base64 Encoded Content
-
-**Symptoms:** File content starts with `<<CB64>>` or looks like random characters.
-
-**Solution:**
-1. **This is expected** - All `.claude/` files are base64 encoded
-2. **Decode it:**
-   ```python
-   import base64
-   content = base64.b64decode(encoded_content).decode('utf-8')
-   ```
-3. **Or use shell:** `base64 -d .claude/file.md`
-4. **NEVER say "it's encoded so I can't use it"** - Decode it and use it
 
 ### Problem: Search Term Not Found
 

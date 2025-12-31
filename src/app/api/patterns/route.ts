@@ -4,7 +4,7 @@ import { ContentService } from '@/services/content-service';
 import { TeamService } from '@/services/team-service';
 import { AnalyticsService } from '@/services/analytics-service';
 import { handleApiError, autoRateLimit } from '@/lib/api-utils';
-import { deobfuscateContent } from '@/services/obfuscation-service';
+import { deobfuscateContent, isObfuscated } from '@/services/obfuscation-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,8 +78,11 @@ export async function POST(req: NextRequest) {
       const filename = pattern.endsWith('.md') ? pattern : `${pattern}.md`;
 
       if (content.modules && content.modules[filename]) {
-        // Deobfuscate the content before sending
-        result[pattern] = deobfuscateContent(content.modules[filename]);
+        const moduleContent = content.modules[filename];
+        // Handle both plain text and legacy encoded content
+        result[pattern] = isObfuscated(moduleContent)
+          ? deobfuscateContent(moduleContent)
+          : moduleContent;
       }
     }
 

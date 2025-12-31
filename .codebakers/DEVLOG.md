@@ -1,5 +1,37 @@
 # Development Log
 
+## 2025-12-31 - Remove Base64 Encoding v5.6
+**Session:** 2025-12-31T12:00:00Z
+**Task Size:** MEDIUM
+**Status:** Completed
+
+### What was done:
+- Removed base64 encoding from pattern files
+- Patterns now stored/served as plain text markdown
+- AI can read `.claude/` files directly without decoding
+- Created decode-patterns.js script for existing files
+- Updated content-service.ts to serve plain text
+- Updated /api/patterns route to handle both formats
+
+### Problem solved:
+- AI was seeing base64 content and not decoding it
+- "No patterns found" because AI couldn't read patterns
+- Friction in pattern access led to AI skipping patterns
+
+### Files changed:
+- `.claude/*.md` - All 59 files decoded to plain text
+- `src/services/content-service.ts` - Removed obfuscation
+- `src/app/api/patterns/route.ts` - Handle both formats
+- `CLAUDE.md` - v5.6, removed base64 instructions
+- `.cursorrules` - v5.6, removed base64 instructions
+- `newfiles/CLAUDE.md` - v5.6 copy
+- `scripts/decode-patterns.js` - New decode utility
+
+### Key insight:
+Base64 "protection" was security theater causing real usability problems. Plain text patterns = AI actually uses them.
+
+---
+
 ## 2025-12-31 - Fix Obfuscation Regex Bug
 **Session:** 2025-12-31T11:00:00Z
 **Task Size:** SMALL

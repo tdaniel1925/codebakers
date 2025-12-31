@@ -1,12 +1,13 @@
 import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { ContentManagementService } from './content-management-service';
-import { obfuscateContent, deobfuscateContent } from './obfuscation-service';
+import { deobfuscateContent } from './obfuscation-service';
 
 const CONTENT_DIR = join(process.cwd(), 'src', 'content');
 
-// Re-export obfuscation functions for backwards compatibility
-export { obfuscateContent as encodeContent, deobfuscateContent as decodeContent };
+// Re-export for backwards compatibility (encoding removed - patterns now plain text)
+export { deobfuscateContent as decodeContent };
+export const encodeContent = (content: string) => content; // No-op, keep plain text
 
 // Cache for encoded content (avoids re-obfuscating on every request)
 interface CachedContent {
@@ -56,26 +57,10 @@ export class ContentService {
         }
       }
 
-      const modules: Record<string, string> = {};
-      const cursorModules: Record<string, string> = {};
-
-      // Obfuscate modules from database (.claude/ folder)
-      if (dbVersion.modulesContent) {
-        for (const [filename, content] of Object.entries(dbVersion.modulesContent as Record<string, string>)) {
-          if (content) {
-            modules[filename] = obfuscateContent(content);
-          }
-        }
-      }
-
-      // Obfuscate cursor modules from database (.cursorrules-modules/ folder)
-      if (dbVersion.cursorModulesContent) {
-        for (const [filename, content] of Object.entries(dbVersion.cursorModulesContent as Record<string, string>)) {
-          if (content) {
-            cursorModules[filename] = obfuscateContent(content);
-          }
-        }
-      }
+      // Modules are now served as plain text (no encoding)
+      // This allows AI to read them directly without MCP decoding
+      const modules: Record<string, string> = (dbVersion.modulesContent as Record<string, string>) || {};
+      const cursorModules: Record<string, string> = (dbVersion.cursorModulesContent as Record<string, string>) || {};
 
       const result = {
         version: dbVersion.version,
@@ -128,25 +113,25 @@ export class ContentService {
   }
 
   /**
-   * Read obfuscated content from filesystem (legacy)
+   * Read content from filesystem (legacy fallback)
+   * Modules are now served as plain text (no encoding)
    */
   private static getEncodedContentFromFilesystem() {
     const routerPath = join(CONTENT_DIR, 'router.md');
     const modulesDir = join(CONTENT_DIR, 'modules');
 
-    // Read router (stays plain text)
+    // Read router
     let router = '';
     if (existsSync(routerPath)) {
       router = readFileSync(routerPath, 'utf-8');
     }
 
-    // Read and obfuscate modules
+    // Read modules as plain text (no encoding)
     const modules: Record<string, string> = {};
     if (existsSync(modulesDir)) {
       const files = readdirSync(modulesDir).filter((f) => f.endsWith('.md'));
       for (const file of files) {
-        const content = readFileSync(join(modulesDir, file), 'utf-8');
-        modules[file] = obfuscateContent(content);
+        modules[file] = readFileSync(join(modulesDir, file), 'utf-8');
       }
     }
 
