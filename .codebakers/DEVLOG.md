@@ -1,5 +1,33 @@
 # Development Log
 
+## 2025-12-31 - Session Protocol & Version Sync v5.5
+**Session:** 2025-12-31T10:00:00Z
+**Task Size:** MEDIUM
+**Status:** Completed
+
+### What was done:
+- Fixed AI not reading DEVLOG.md at session start
+- Added "STEP 0: SESSION START" as FIRST priority section (before MCP-FIRST)
+- Added Dependency Guardian section to all pattern files
+- Synced all files to v5.5 (was v5.4)
+- Updated CLAUDE.md, .cursorrules, and newfiles/ copies
+
+### Problem solved:
+- AI was not aware of previous work (one-click installer, etc.)
+- Session protocols were buried at line 258, now at top
+- Missing Dependency Guardian auto-coherence system
+
+### Files changed:
+- `CLAUDE.md` - v5.5, added STEP 0, added Dependency Guardian
+- `.cursorrules` - v5.5, added STEP 0, added Dependency Guardian
+- `newfiles/CLAUDE.md` - v5.5, added STEP 0, added Dependency Guardian
+- `newfiles/.cursorrules` - v5.5, added STEP 0, added Dependency Guardian
+
+### Key insight:
+The SESSION START PROTOCOL must be the FIRST section AI reads, not buried. Now it's impossible to miss.
+
+---
+
 ## 2025-12-30 - Project Tracking Dashboard Complete
 **Session:** 2025-12-30T12:00:00Z
 **Task Size:** LARGE

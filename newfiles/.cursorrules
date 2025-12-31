@@ -1,8 +1,32 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 5.4 - MCP-First Architecture + VAPI Integration
+# Version: 5.5 - MCP-First Architecture + VAPI + Dependency Guardian
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
+
+---
+
+## 🚨 STEP 0: SESSION START (DO THIS FIRST - BEFORE ANYTHING ELSE)
+
+**This is MANDATORY on EVERY new chat session. Do this BEFORE responding to the user.**
+
+1. **Read `.codebakers/DEVLOG.md`** (if exists) - understand what was done recently
+2. **Read `.codebakers.json`** - check `currentWork` for active tasks and context
+3. **Run `git log --oneline -5`** - see recent commits
+4. **Check `.codebakers/BLOCKED.md`** - show any blockers to user
+
+### Show on Session Start:
+```
+📋 Session Resume:
+- Last work: [from devlog top entry]
+- Recent commits: [from git log]
+- Active task: [from currentWork if exists]
+- Blockers: [from BLOCKED.md if exists]
+```
+
+**WHY THIS MATTERS:** Without this step, you will lose context and repeat mistakes. The previous AI session may have built features, made decisions, or documented important information you need to know.
+
+**FAILURE TO DO THIS = USER FRUSTRATION.** They will have to re-explain everything.
 
 ---
 
@@ -56,9 +80,65 @@ User: "upgrade everything"
 AI: [Calls detect_intent first]
 → Shows: "I detected you want to update CodeBakers patterns. This will:
    - Download 59 pattern files
-   - Update CLAUDE.md to v5.4
+   - Update CLAUDE.md to v5.5
    Proceed? [Yes] [No]"
 ```
+
+### 🛡️ Dependency Guardian (Auto-Coherence System):
+
+**AUTOMATIC - User never needs to call these directly. They run silently.**
+
+| Tool | When It Runs | What It Does |
+|------|--------------|--------------|
+| `guardian_analyze` | After every code generation | Scans for broken imports, type errors, unused code, contract violations |
+| `guardian_heal` | When issues are found | Auto-fixes what's possible (unused imports, console.logs, etc.) |
+| `guardian_verify` | After fixes applied | Runs TypeScript check, verifies all imports resolve |
+| `guardian_status` | On request | Shows overall project health score |
+
+**How It Works (100% Automatic):**
+
+```
+User: "Add a login page"
+
+AI: [Generates login page code]
+    ↓
+    [guardian_analyze runs AUTOMATICALLY]
+    - Checks imports resolve
+    - Verifies types match
+    - Looks for common issues
+    ↓
+    [Issues found?]
+    YES → [guardian_heal runs AUTOMATICALLY]
+          - Fixes broken imports
+          - Removes unused code
+          - Updates types
+          ↓
+          [guardian_verify confirms fix]
+    NO  → Continue
+    ↓
+User sees: Clean, working code. No errors.
+```
+
+**What Guardian Checks:**
+- ❌ Broken imports (file doesn't exist)
+- ❌ Missing exports (import something not exported)
+- ❌ Type mismatches (string vs number, etc.)
+- ❌ API routes without error handling
+- ⚠️ Unused imports
+- ⚠️ console.log in production code
+- ⚠️ `any` type usage
+- ⚠️ Missing return types
+- 🔵 TODO/FIXME comments
+
+**Auto-Fix Capabilities:**
+- ✅ Remove unused imports
+- ✅ Remove console.log statements
+- ✅ Add missing error handling patterns
+- ✅ Update import paths
+
+**The User Experience:**
+User just asks for things. Code is always coherent. No manual debugging.
+Guardian runs silently in the background ensuring everything works together.
 
 ---
 
@@ -106,7 +186,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.4
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.5
 ```
 
 **On FIRST message of a new session, also show this header:**
