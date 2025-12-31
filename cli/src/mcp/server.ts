@@ -897,6 +897,31 @@ class CodeBakersServer {
           },
         },
         {
+          name: 'discover_patterns',
+          description:
+            'MANDATORY: Call this BEFORE writing or modifying ANY code. Searches codebase for similar implementations and identifies relevant patterns. Returns existing code patterns you MUST follow. You are NOT ALLOWED to write code without calling this first.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              task: {
+                type: 'string',
+                description: 'What you are about to do (e.g., "add signup form", "fix auth bug", "create payment endpoint")',
+              },
+              files: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Files you plan to create or modify',
+              },
+              keywords: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Keywords to search for in codebase (e.g., ["auth", "login", "user"])',
+              },
+            },
+            required: ['task'],
+          },
+        },
+        {
           name: 'report_pattern_gap',
           description:
             'Report when a user request cannot be fully handled by existing patterns. This helps improve CodeBakers by tracking what patterns are missing. The AI should automatically call this when it encounters something outside pattern coverage.',
@@ -1618,6 +1643,9 @@ class CodeBakersServer {
 
         case 'validate_complete':
           return this.handleValidateComplete(args as { feature: string; files?: string[] });
+
+        case 'discover_patterns':
+          return this.handleDiscoverPatterns(args as { task: string; files?: string[]; keywords?: string[] });
 
         case 'report_pattern_gap':
           return this.handleReportPatternGap(args as { category: string; request: string; context?: string; handledWith?: string; wasSuccessful?: boolean });
@@ -3796,15 +3824,49 @@ Just describe what you want to build! I'll automatically:
 
   /**
    * MANDATORY: Validate that a feature is complete before AI can say "done"
-   * Checks: tests exist, tests pass, TypeScript compiles
+   * Checks: discover_patterns was called, tests exist, tests pass, TypeScript compiles
    */
   private handleValidateComplete(args: { feature: string; files?: string[] }) {
     const { feature, files = [] } = args;
     const cwd = process.cwd();
     const issues: string[] = [];
+    let patternsDiscovered = false;
     let testsExist = false;
     let testsPass = false;
     let typescriptPass = false;
+
+    // Step 0: Check if discover_patterns was called (compliance tracking)
+    try {
+      const stateFile = path.join(cwd, '.codebakers.json');
+      if (fs.existsSync(stateFile)) {
+        const state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+        const compliance = state.compliance as { discoveries?: unknown[] } | undefined;
+
+        if (compliance?.discoveries && Array.isArray(compliance.discoveries)) {
+          // Check if there's a recent discovery (within last 30 minutes)
+          const recentDiscovery = compliance.discoveries.find((d: unknown) => {
+            const discovery = d as { timestamp?: string; task?: string };
+            if (!discovery.timestamp) return false;
+            const age = Date.now() - new Date(discovery.timestamp).getTime();
+            return age < 30 * 60 * 1000; // 30 minutes
+          });
+
+          if (recentDiscovery) {
+            patternsDiscovered = true;
+          } else {
+            issues.push('PATTERNS_NOT_CHECKED: You did not call `discover_patterns` before writing code. You MUST check existing patterns first.');
+          }
+        } else {
+          issues.push('PATTERNS_NOT_CHECKED: You did not call `discover_patterns` before writing code. You MUST check existing patterns first.');
+        }
+      } else {
+        // No state file - patterns weren't discovered
+        issues.push('PATTERNS_NOT_CHECKED: You did not call `discover_patterns` before writing code. You MUST check existing patterns first.');
+      }
+    } catch {
+      // If we can't read state, warn but don't fail
+      issues.push('PATTERNS_UNKNOWN: Could not verify if `discover_patterns` was called. Please call it before continuing.');
+    }
 
     // Step 1: Check if test files exist
     try {
@@ -3884,10 +3946,11 @@ Just describe what you want to build! I'll automatically:
     }
 
     // Generate response
-    const valid = testsExist && testsPass && typescriptPass;
+    const valid = patternsDiscovered && testsExist && testsPass && typescriptPass;
 
     let response = `# ✅ Feature Validation: ${feature}\n\n`;
     response += `| Check | Status |\n|-------|--------|\n`;
+    response += `| Patterns discovered | ${patternsDiscovered ? '✅ PASS' : '❌ FAIL'} |\n`;
     response += `| Tests exist | ${testsExist ? '✅ PASS' : '❌ FAIL'} |\n`;
     response += `| Tests pass | ${testsPass ? '✅ PASS' : testsExist ? '❌ FAIL' : '⏭️ SKIP'} |\n`;
     response += `| TypeScript compiles | ${typescriptPass ? '✅ PASS' : '❌ FAIL'} |\n\n`;
@@ -3902,7 +3965,11 @@ Just describe what you want to build! I'll automatically:
       for (const issue of issues) {
         response += `- ${issue}\n\n`;
       }
-      response += `---\n\n**Fix these issues and call \`validate_complete\` again.**`;
+      if (!patternsDiscovered) {
+        response += `---\n\n**First, call \`discover_patterns\` to check existing code patterns. Then fix remaining issues and call \`validate_complete\` again.**`;
+      } else {
+        response += `---\n\n**Fix these issues and call \`validate_complete\` again.**`;
+      }
     }
 
     return {
@@ -3913,6 +3980,251 @@ Just describe what you want to build! I'll automatically:
       // Return structured data for programmatic use
       isError: !valid,
     };
+  }
+
+  /**
+   * discover_patterns - START gate for pattern compliance
+   * MUST be called before writing any code
+   */
+  private handleDiscoverPatterns(args: { task: string; files?: string[]; keywords?: string[] }) {
+    const { task, files = [], keywords = [] } = args;
+    const cwd = process.cwd();
+
+    // Extract keywords from task if not provided
+    const taskKeywords = this.extractKeywords(task);
+    const allKeywords = [...new Set([...keywords, ...taskKeywords])];
+
+    // Results to return
+    const patterns: string[] = [];
+    const existingCode: { file: string; lines: string; snippet: string }[] = [];
+    const mustFollow: string[] = [];
+
+    // Step 1: Identify relevant .claude/ patterns based on keywords
+    const patternMap: Record<string, string[]> = {
+      'auth': ['02-auth.md'],
+      'login': ['02-auth.md'],
+      'signup': ['02-auth.md'],
+      'password': ['02-auth.md'],
+      'session': ['02-auth.md'],
+      'oauth': ['02-auth.md'],
+      'payment': ['05-payments.md'],
+      'stripe': ['05-payments.md'],
+      'billing': ['05-payments.md'],
+      'subscription': ['05-payments.md'],
+      'checkout': ['05-payments.md'],
+      'database': ['01-database.md'],
+      'schema': ['01-database.md'],
+      'drizzle': ['01-database.md'],
+      'query': ['01-database.md'],
+      'api': ['03-api.md'],
+      'route': ['03-api.md'],
+      'endpoint': ['03-api.md'],
+      'form': ['04-frontend.md'],
+      'component': ['04-frontend.md'],
+      'react': ['04-frontend.md'],
+      'email': ['06b-email.md'],
+      'resend': ['06b-email.md'],
+      'voice': ['06a-voice.md'],
+      'vapi': ['06a-voice.md'],
+      'test': ['08-testing.md'],
+      'playwright': ['08-testing.md'],
+    };
+
+    for (const keyword of allKeywords) {
+      const lowerKeyword = keyword.toLowerCase();
+      for (const [key, patternFiles] of Object.entries(patternMap)) {
+        if (lowerKeyword.includes(key) || key.includes(lowerKeyword)) {
+          patterns.push(...patternFiles);
+        }
+      }
+    }
+
+    // Always include 00-core.md
+    if (!patterns.includes('00-core.md')) {
+      patterns.unshift('00-core.md');
+    }
+
+    // Deduplicate
+    const uniquePatterns = [...new Set(patterns)];
+
+    // Step 2: Search codebase for similar implementations
+    const searchDirs = ['src/services', 'src/lib', 'src/app/api', 'src/components', 'lib', 'services'];
+    const searchExtensions = ['.ts', '.tsx'];
+
+    for (const keyword of allKeywords.slice(0, 5)) { // Limit to avoid too many searches
+      for (const dir of searchDirs) {
+        const searchDir = path.join(cwd, dir);
+        if (!fs.existsSync(searchDir)) continue;
+
+        try {
+          const files = this.findFilesRecursive(searchDir, searchExtensions);
+          for (const file of files.slice(0, 20)) { // Limit files per dir
+            try {
+              const content = fs.readFileSync(file, 'utf-8');
+              const lines = content.split('\n');
+
+              for (let i = 0; i < lines.length; i++) {
+                if (lines[i].toLowerCase().includes(keyword.toLowerCase())) {
+                  // Found a match - extract context
+                  const startLine = Math.max(0, i - 2);
+                  const endLine = Math.min(lines.length - 1, i + 5);
+                  const snippet = lines.slice(startLine, endLine + 1).join('\n');
+
+                  const relativePath = path.relative(cwd, file);
+
+                  // Avoid duplicates
+                  if (!existingCode.some(e => e.file === relativePath && Math.abs(parseInt(e.lines.split('-')[0]) - (startLine + 1)) < 5)) {
+                    existingCode.push({
+                      file: relativePath,
+                      lines: `${startLine + 1}-${endLine + 1}`,
+                      snippet: snippet.slice(0, 300),
+                    });
+                  }
+
+                  // Only get first match per file
+                  break;
+                }
+              }
+            } catch {
+              // Skip unreadable files
+            }
+          }
+        } catch {
+          // Skip inaccessible dirs
+        }
+      }
+    }
+
+    // Step 3: Extract patterns from existing code
+    if (existingCode.length > 0) {
+      // Look for common patterns in existing code
+      for (const code of existingCode) {
+        if (code.snippet.includes('.insert(')) {
+          mustFollow.push(`Use .insert() for creating new records (found in ${code.file})`);
+        }
+        if (code.snippet.includes('.upsert(')) {
+          mustFollow.push(`Use .upsert() for create-or-update operations (found in ${code.file})`);
+        }
+        if (code.snippet.includes('try {') && code.snippet.includes('catch')) {
+          mustFollow.push(`Wrap database/API operations in try/catch (found in ${code.file})`);
+        }
+        if (code.snippet.includes('NextResponse.json')) {
+          mustFollow.push(`Use NextResponse.json() for API responses (found in ${code.file})`);
+        }
+        if (code.snippet.includes('z.object')) {
+          mustFollow.push(`Use Zod for input validation (found in ${code.file})`);
+        }
+      }
+    }
+
+    // Deduplicate mustFollow
+    const uniqueMustFollow = [...new Set(mustFollow)];
+
+    // Step 4: Log discovery to .codebakers.json for compliance tracking
+    try {
+      const stateFile = path.join(cwd, '.codebakers.json');
+      let state: Record<string, unknown> = {};
+      if (fs.existsSync(stateFile)) {
+        state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+      }
+
+      if (!state.compliance) {
+        state.compliance = { discoveries: [], violations: [] };
+      }
+
+      const compliance = state.compliance as { discoveries: unknown[]; violations: unknown[] };
+      compliance.discoveries.push({
+        task,
+        patterns: uniquePatterns,
+        existingCodeChecked: existingCode.map(e => e.file),
+        timestamp: new Date().toISOString(),
+      });
+
+      // Keep only last 50 discoveries
+      if (compliance.discoveries.length > 50) {
+        compliance.discoveries = compliance.discoveries.slice(-50);
+      }
+
+      fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
+    } catch {
+      // Ignore state file errors
+    }
+
+    // Generate response
+    let response = `# 🔍 Pattern Discovery: ${task}\n\n`;
+    response += `## ⛔ MANDATORY: You MUST follow these patterns before writing code\n\n`;
+
+    response += `### 📦 Patterns to Load\n\n`;
+    response += `Load these from \`.claude/\` folder:\n`;
+    for (const pattern of uniquePatterns) {
+      response += `- \`${pattern}\`\n`;
+    }
+
+    if (existingCode.length > 0) {
+      response += `\n### 🔎 Existing Code to Follow\n\n`;
+      response += `Found ${existingCode.length} relevant implementation(s):\n\n`;
+      for (const code of existingCode.slice(0, 5)) { // Limit output
+        response += `**${code.file}:${code.lines}**\n`;
+        response += `\`\`\`typescript\n${code.snippet}\n\`\`\`\n\n`;
+      }
+    }
+
+    if (uniqueMustFollow.length > 0) {
+      response += `### ✅ Patterns You MUST Follow\n\n`;
+      for (const rule of uniqueMustFollow) {
+        response += `- ${rule}\n`;
+      }
+    }
+
+    response += `\n---\n\n`;
+    response += `## ⚠️ BEFORE WRITING CODE:\n\n`;
+    response += `1. ✅ Read the patterns listed above\n`;
+    response += `2. ✅ Check the existing code snippets\n`;
+    response += `3. ✅ Follow the same patterns in your new code\n`;
+    response += `4. ✅ When done, call \`validate_complete\` to verify\n\n`;
+    response += `**You are NOT ALLOWED to skip these steps.**`;
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: response,
+      }],
+    };
+  }
+
+  /**
+   * Extract keywords from a task description
+   */
+  private extractKeywords(task: string): string[] {
+    const words = task.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 2);
+
+    // Filter out common words
+    const stopWords = ['the', 'and', 'for', 'add', 'fix', 'create', 'make', 'build', 'implement', 'update', 'modify', 'change', 'new', 'with', 'from', 'this', 'that'];
+    return words.filter(w => !stopWords.includes(w));
+  }
+
+  /**
+   * Find files recursively with given extensions
+   */
+  private findFilesRecursive(dir: string, extensions: string[]): string[] {
+    const results: string[] = [];
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+          results.push(...this.findFilesRecursive(fullPath, extensions));
+        } else if (entry.isFile() && extensions.some(ext => entry.name.endsWith(ext))) {
+          results.push(fullPath);
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
+    return results;
   }
 
   private async handleReportPatternGap(args: { category: string; request: string; context?: string; handledWith?: string; wasSuccessful?: boolean }) {

@@ -18,7 +18,7 @@ async function pushV45() {
   console.log('CLAUDE.md size:', (claudeMdContent.length / 1024).toFixed(1), 'KB');
   console.log('.cursorrules size:', (cursorRulesContent.length / 1024).toFixed(1), 'KB');
 
-  const changelog = `v5.8 MCP Enforcement: Added validate_complete MCP tool that MUST be called before saying "done". Tool checks tests exist, tests pass, TypeScript compiles. AI cannot complete features without passing validation. Pre-commit hook script added.`;
+  const changelog = `v5.9 Two-Gate Enforcement: Added discover_patterns MCP tool (START gate) that must be called BEFORE writing code. Searches codebase for existing patterns and code to follow. Enhanced validate_complete (END gate) to verify discover_patterns was called. Compliance tracking in .codebakers.json.`;
 
   console.log('\nPushing to', apiUrl + '/api/admin/content/push');
 
@@ -30,7 +30,7 @@ async function pushV45() {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        version: '5.8',
+        version: '5.9',
         claudeMdContent,
         cursorRulesContent,
         changelog,

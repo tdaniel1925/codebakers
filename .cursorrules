@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 5.8 - MCP Enforcement (validate_complete)
+# Version: 5.9 - Two-Gate Enforcement (discover_patterns + validate_complete)
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
@@ -30,52 +30,66 @@
 
 ---
 
-## ⛔ STOP: BEFORE SAYING "DONE" ON ANY FEATURE
+## ⛔ TWO-GATE ENFORCEMENT SYSTEM
 
-**You are NOT ALLOWED to say "done", "complete", "finished", or proceed to the next task without calling the `validate_complete` MCP tool.**
+**You MUST pass through TWO gates for every feature:**
 
-### MANDATORY: Call `validate_complete` Before Completion
+### 🚪 GATE 1: BEFORE WRITING CODE → `discover_patterns`
+
+```
+discover_patterns({ task: "what you're about to do", keywords: ["relevant", "keywords"] })
+```
+
+This tool:
+- 🔍 Searches codebase for similar implementations
+- 📦 Identifies relevant `.claude/` patterns to load
+- ✅ Shows existing code patterns you MUST follow
+- 📝 Logs discovery for compliance tracking
+
+**You are NOT ALLOWED to write code without calling this first.**
+
+### 🚪 GATE 2: BEFORE SAYING "DONE" → `validate_complete`
 
 ```
 validate_complete({ feature: "feature name", files: ["path/to/file.ts"] })
 ```
 
 This tool checks:
+- ✅ `discover_patterns` was called (compliance tracking)
 - ✅ Test files exist for the feature
 - ✅ Tests pass (`npm test`)
 - ✅ TypeScript compiles (`tsc --noEmit`)
 
-**If validation FAILS:**
-1. Fix the issues reported
-2. Call `validate_complete` again
-3. Only proceed when it returns `valid: true`
+**You are NOT ALLOWED to say "done" without calling this.**
 
-### Why This Exists
+### The Complete Workflow
 
-You have a tendency to skip tests and say "done" without verification. This tool enforces the requirement programmatically. **There is no way around it.**
-
-### Test Template (MINIMUM REQUIRED):
-
-```typescript
-import { test, expect } from '@playwright/test';
-
-test.describe('FeatureName', () => {
-  test('should work correctly (happy path)', async ({ page }) => {
-    // Test the main functionality
-  });
-
-  test('should handle errors gracefully', async ({ page }) => {
-    // Test error scenarios
-  });
-});
+```
+1. User asks for feature
+2. Call discover_patterns → Get patterns to follow
+3. Read the patterns from .claude/ folder
+4. Write code following the patterns
+5. Write tests
+6. Call validate_complete → Verify everything passes
+7. ONLY THEN say "done"
 ```
 
-### HARD RULES (Enforced by `validate_complete`):
+### Why Two Gates?
 
-1. **NO "want me to add tests?"** - Just add them. Tests are not optional.
-2. **NO "I'll add tests later"** - Tests are part of the feature, not an afterthought.
-3. **NO skipping for "quick fixes"** - Quick fixes need tests too.
-4. **NO saying "done" without calling `validate_complete`** - This is enforced.
+| Problem | Gate 1 Solves | Gate 2 Solves |
+|---------|---------------|---------------|
+| AI ignores existing patterns | ✅ Forces pattern discovery | |
+| AI uses .update() when .insert() is correct | ✅ Shows existing code to follow | |
+| AI skips tests | | ✅ Blocks completion without tests |
+| AI says "done" without verification | | ✅ Requires passing validation |
+
+### HARD RULES (Enforced by MCP tools):
+
+1. **NO writing code without `discover_patterns`** - Gate 1 blocks you
+2. **NO "want me to add tests?"** - Just add them. Tests are not optional.
+3. **NO "I'll add tests later"** - Tests are part of the feature.
+4. **NO saying "done" without `validate_complete`** - Gate 2 blocks you.
+5. **NO ignoring existing code patterns** - `discover_patterns` shows them to you.
 
 ---
 
@@ -87,7 +101,8 @@ test.describe('FeatureName', () => {
 
 | User Says | MCP Tool to Call | What It Does |
 |-----------|------------------|--------------|
-| *Before saying "done"* | `validate_complete` | **MANDATORY** - Validates tests exist and pass |
+| *Before writing ANY code* | `discover_patterns` | **MANDATORY** - Finds patterns and existing code to follow |
+| *Before saying "done"* | `validate_complete` | **MANDATORY** - Validates patterns used, tests exist and pass |
 | "upgrade codebakers", "update patterns", "download patterns" | `update_patterns` | Downloads latest CLAUDE.md + 59 modules from server |
 | "audit my code", "review code", "check quality" | `run_audit` | Runs comprehensive code audit |
 | "fix this", "auto-fix", "heal" | `heal` | AI-powered error diagnosis and repair |

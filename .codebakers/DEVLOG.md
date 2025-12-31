@@ -1,5 +1,40 @@
 # Development Log
 
+## 2025-12-31 - Two-Gate Enforcement v5.9
+**Session:** 2025-12-31T18:10:00Z
+**Task Size:** MEDIUM
+**Status:** Completed
+
+### What was done:
+- Added `discover_patterns` MCP tool (START gate) - must call before writing code
+- Enhanced `validate_complete` to check if `discover_patterns` was called (END gate)
+- Tool searches codebase for similar implementations and suggests patterns
+- Logs discoveries to `.codebakers.json` for compliance tracking
+- Updated CLAUDE.md and .cursorrules with two-gate enforcement section
+- Pushed v5.9 to production, CLI v3.3.18
+
+### Problem solved:
+- AI was ignoring existing code patterns (using .update() instead of .insert())
+- AI would write code without checking how similar features were implemented
+- Now AI MUST call `discover_patterns` first, which shows existing code to follow
+
+### Two-gate system:
+1. **GATE 1 (START)**: `discover_patterns` - searches codebase, identifies patterns
+2. **GATE 2 (END)**: `validate_complete` - checks Gate 1 was called, tests pass, TS compiles
+
+### Files changed:
+- `cli/src/mcp/server.ts` - Added discover_patterns tool + handler, enhanced validate_complete
+- `CLAUDE.md` - v5.9, two-gate enforcement section
+- `.cursorrules` - v5.9, two-gate enforcement section
+- `scripts/push-v45.js` - Updated for v5.9
+- `newfiles/CLAUDE.md` - v5.9 copy
+- `newfiles/.cursorrules` - v5.9 copy
+
+### Key insight:
+Having just an END gate (validate_complete) wasn't enough - AI could still ignore patterns DURING development. Adding a START gate (discover_patterns) forces AI to see existing code before writing new code.
+
+---
+
 ## 2025-12-31 - MCP Enforcement v5.8
 **Session:** 2025-12-31T18:00:00Z
 **Task Size:** MEDIUM
