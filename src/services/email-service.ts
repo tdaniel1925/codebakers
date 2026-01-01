@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { logger } from '@/lib/logger';
 
 const FROM_EMAIL = 'CodeBakers <hello@codebakers.dev>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://codebakers.dev';
@@ -101,7 +102,7 @@ export class EmailService {
   static async send({ to, subject, html, text }: SendEmailOptions) {
     const resend = getResendClient();
     if (!resend) {
-      console.warn('[EmailService] RESEND_API_KEY not configured, skipping email');
+      logger.warn('EmailService: RESEND_API_KEY not configured, skipping email');
       return { success: false, error: 'Email not configured' };
     }
 
@@ -115,14 +116,14 @@ export class EmailService {
       });
 
       if (error) {
-        console.error('[EmailService] Send failed:', error);
+        logger.error('EmailService: Send failed', { error: error.message });
         return { success: false, error: error.message };
       }
 
-      console.log('[EmailService] Email sent:', data?.id);
+      logger.info('EmailService: Email sent', { emailId: data?.id, to });
       return { success: true, id: data?.id };
     } catch (err) {
-      console.error('[EmailService] Error:', err);
+      logger.error('EmailService: Error sending email', { error: err instanceof Error ? err.message : 'Unknown error', to });
       return { success: false, error: 'Failed to send email' };
     }
   }

@@ -4,6 +4,7 @@ import { db, enterpriseInquiries } from '@/db';
 import { handleApiError, autoRateLimit } from '@/lib/api-utils';
 import { ValidationError } from '@/lib/errors';
 import { EmailService } from '@/services/email-service';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,14 +56,17 @@ export async function POST(req: NextRequest) {
         teamSize: teamSize || null,
         useCase: useCase || null,
       });
-      console.log('[Enterprise Inquiry] Notification sent to sales team');
+      logger.info('Enterprise Inquiry: Notification sent to sales team', { inquiryId: inquiry.id, company });
     } catch (emailError) {
       // Log but don't fail the request - inquiry is already saved
-      console.error('[Enterprise Inquiry] Failed to send notification:', emailError);
+      logger.error('Enterprise Inquiry: Failed to send notification', {
+        error: emailError instanceof Error ? emailError.message : 'Unknown error',
+        inquiryId: inquiry.id
+      });
     }
 
-    console.log('[Enterprise Inquiry] New inquiry received:', {
-      id: inquiry.id,
+    logger.info('Enterprise Inquiry: New inquiry received', {
+      inquiryId: inquiry.id,
       company,
       email,
     });
@@ -72,7 +76,7 @@ export async function POST(req: NextRequest) {
       message: 'Inquiry submitted successfully',
     });
   } catch (error) {
-    console.error('POST /api/enterprise/inquiry error:', error);
+    logger.error('POST /api/enterprise/inquiry error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return handleApiError(error);
   }
 }

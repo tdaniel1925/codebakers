@@ -3,6 +3,7 @@ import { verifyPayPalWebhook } from '@/lib/paypal';
 import { TeamService } from '@/services/team-service';
 import { PricingService } from '@/services/pricing-service';
 import { subscriptionPlanSchema } from '@/lib/validations';
+import { logger, getRequestId } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,8 @@ interface PayPalWebhookEvent {
 }
 
 export async function POST(req: NextRequest) {
+  const requestId = getRequestId(req.headers);
+
   try {
     const body = await req.text();
     const event: PayPalWebhookEvent = JSON.parse(body);
@@ -49,7 +52,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (!isValid) {
-        console.error('[PayPal Webhook] Signature verification failed');
+        logger.error('PayPal Webhook: Signature verification failed', { requestId, eventId: event.id });
         return NextResponse.json(
           { error: 'Invalid signature', code: 'INVALID_SIGNATURE' },
           { status: 401 }
@@ -60,39 +63,39 @@ export async function POST(req: NextRequest) {
     // Handle different event types
     switch (event.event_type) {
       case 'BILLING.SUBSCRIPTION.ACTIVATED':
-        await handleSubscriptionActivated(event.resource);
+        await handleSubscriptionActivated(event.resource, requestId);
         break;
 
       case 'BILLING.SUBSCRIPTION.UPDATED':
-        await handleSubscriptionUpdated(event.resource);
+        await handleSubscriptionUpdated(event.resource, requestId);
         break;
 
       case 'BILLING.SUBSCRIPTION.CANCELLED':
       case 'BILLING.SUBSCRIPTION.EXPIRED':
-        await handleSubscriptionCanceled(event.resource);
+        await handleSubscriptionCanceled(event.resource, requestId);
         break;
 
       case 'BILLING.SUBSCRIPTION.SUSPENDED':
-        await handleSubscriptionSuspended(event.resource);
+        await handleSubscriptionSuspended(event.resource, requestId);
         break;
 
       case 'PAYMENT.SALE.COMPLETED':
         // Payment successful - subscription should already be active
-        console.log('[PayPal Webhook] Payment completed:', event.id);
+        logger.info('PayPal Webhook: Payment completed', { requestId, eventId: event.id });
         break;
 
       case 'PAYMENT.SALE.DENIED':
       case 'PAYMENT.SALE.REFUNDED':
-        await handlePaymentIssue(event.resource);
+        await handlePaymentIssue(event.resource, requestId);
         break;
 
       default:
-        console.log(`[PayPal Webhook] Unhandled event: ${event.event_type}`);
+        logger.info(`PayPal Webhook: Unhandled event ${event.event_type}`, { requestId, eventType: event.event_type });
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('[PayPal Webhook] Processing error:', error);
+    logger.error('PayPal Webhook: Processing error', { requestId }, error instanceof Error ? error : undefined);
     // Return 500 to allow PayPal to retry - silent failures mask subscription state issues
     return NextResponse.json(
       { error: 'Webhook processing failed', details: error instanceof Error ? error.message : 'Unknown error' },
@@ -102,10 +105,10 @@ export async function POST(req: NextRequest) {
 }
 
 // Event handlers
-async function handleSubscriptionActivated(resource: PayPalResource) {
+async function handleSubscriptionActivated(resource: PayPalResource, requestId: string) {
   const teamId = resource.custom_id;
   if (!teamId) {
-    console.error('[PayPal Webhook] No teamId in subscription resource');
+    logger.error('PayPal Webhook: No teamId in subscription resource', { requestId, subscriptionId: resource.id });
     return;
   }
 
@@ -116,7 +119,7 @@ async function handleSubscriptionActivated(resource: PayPalResource) {
   // Validate plan using Zod schema
   const planResult = subscriptionPlanSchema.safeParse(matchingPlan?.plan);
   if (!planResult.success) {
-    console.error('[PayPal Webhook] Invalid or missing plan for PayPal plan_id:', resource.plan_id);
+    logger.error('PayPal Webhook: Invalid or missing plan', { requestId, planId: resource.plan_id });
     throw new Error(`Invalid plan mapping for PayPal plan_id: ${resource.plan_id}`);
   }
 
@@ -127,13 +130,13 @@ async function handleSubscriptionActivated(resource: PayPalResource) {
     seatLimit: matchingPlan?.seats || 1,
   });
 
-  console.log('[PayPal Webhook] Subscription activated for team:', teamId);
+  logger.billingEvent('Subscription activated', teamId, requestId, { subscriptionId: resource.id });
 }
 
-async function handleSubscriptionUpdated(resource: PayPalResource) {
+async function handleSubscriptionUpdated(resource: PayPalResource, requestId: string) {
   const team = await TeamService.getByPayPalSubscriptionId(resource.id);
   if (!team) {
-    console.error('[PayPal Webhook] No team found for subscription:', resource.id);
+    logger.error('PayPal Webhook: No team found for subscription', { requestId, subscriptionId: resource.id });
     return;
   }
 
@@ -142,13 +145,13 @@ async function handleSubscriptionUpdated(resource: PayPalResource) {
     subscriptionStatus: status === 'active' ? 'active' : status,
   });
 
-  console.log('[PayPal Webhook] Subscription updated for team:', team.id, 'status:', status);
+  logger.billingEvent('Subscription updated', team.id, requestId, { status });
 }
 
-async function handleSubscriptionCanceled(resource: PayPalResource) {
+async function handleSubscriptionCanceled(resource: PayPalResource, requestId: string) {
   const team = await TeamService.getByPayPalSubscriptionId(resource.id);
   if (!team) {
-    console.error('[PayPal Webhook] No team found for subscription:', resource.id);
+    logger.error('PayPal Webhook: No team found for subscription', { requestId, subscriptionId: resource.id });
     return;
   }
 
@@ -156,13 +159,13 @@ async function handleSubscriptionCanceled(resource: PayPalResource) {
     subscriptionStatus: 'canceled',
   });
 
-  console.log('[PayPal Webhook] Subscription canceled for team:', team.id);
+  logger.billingEvent('Subscription canceled', team.id, requestId);
 }
 
-async function handleSubscriptionSuspended(resource: PayPalResource) {
+async function handleSubscriptionSuspended(resource: PayPalResource, requestId: string) {
   const team = await TeamService.getByPayPalSubscriptionId(resource.id);
   if (!team) {
-    console.error('[PayPal Webhook] No team found for subscription:', resource.id);
+    logger.error('PayPal Webhook: No team found for subscription', { requestId, subscriptionId: resource.id });
     return;
   }
 
@@ -170,13 +173,13 @@ async function handleSubscriptionSuspended(resource: PayPalResource) {
     subscriptionStatus: 'past_due',
   });
 
-  console.log('[PayPal Webhook] Subscription suspended for team:', team.id);
+  logger.billingEvent('Subscription suspended', team.id, requestId);
 }
 
-async function handlePaymentIssue(resource: PayPalResource) {
+async function handlePaymentIssue(resource: PayPalResource, requestId: string) {
   const team = await TeamService.getByPayPalSubscriptionId(resource.id);
   if (!team) {
-    console.error('[PayPal Webhook] No team found for subscription:', resource.id);
+    logger.error('PayPal Webhook: No team found for subscription', { requestId, subscriptionId: resource.id });
     return;
   }
 
@@ -184,5 +187,5 @@ async function handlePaymentIssue(resource: PayPalResource) {
     subscriptionStatus: 'past_due',
   });
 
-  console.log('[PayPal Webhook] Payment issue for team:', team.id);
+  logger.billingEvent('Payment issue', team.id, requestId);
 }

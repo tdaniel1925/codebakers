@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySquareWebhook } from '@/lib/square';
 import { TeamService } from '@/services/team-service';
+import { logger, getRequestId } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,8 @@ interface SquareWebhookEvent {
 }
 
 export async function POST(req: NextRequest) {
+  const requestId = getRequestId(req.headers);
+
   try {
     // Get signature header
     const signature = req.headers.get('x-square-hmacsha256-signature');
@@ -45,7 +48,7 @@ export async function POST(req: NextRequest) {
     const isValid = verifySquareWebhook(signature, body, webhookUrl);
 
     if (!isValid) {
-      console.error('[Square Webhook] Signature verification failed');
+      logger.error('Square Webhook: Signature verification failed', { requestId });
       return NextResponse.json(
         { error: 'Invalid signature', code: 'INVALID_SIGNATURE' },
         { status: 401 }
@@ -57,45 +60,45 @@ export async function POST(req: NextRequest) {
     // Handle different event types
     switch (event.type) {
       case 'subscription.created':
-        await handleSubscriptionCreated(event.data.object.subscription);
+        await handleSubscriptionCreated(event.data.object.subscription, requestId);
         break;
 
       case 'subscription.updated':
-        await handleSubscriptionUpdated(event.data.object.subscription);
+        await handleSubscriptionUpdated(event.data.object.subscription, requestId);
         break;
 
       case 'subscription.canceled':
-        await handleSubscriptionCanceled(event.data.object.subscription);
+        await handleSubscriptionCanceled(event.data.object.subscription, requestId);
         break;
 
       case 'invoice.payment_made':
         // Payment successful - subscription should already be active
-        console.log('[Square Webhook] Invoice payment made:', event.event_id);
+        logger.info('Square Webhook: Invoice payment made', { requestId, eventId: event.event_id });
         break;
 
       case 'invoice.payment_failed':
-        await handlePaymentFailed(event.data.object.subscription);
+        await handlePaymentFailed(event.data.object.subscription, requestId);
         break;
 
       default:
-        console.log(`[Square Webhook] Unhandled event: ${event.type}`);
+        logger.info(`Square Webhook: Unhandled event ${event.type}`, { requestId, eventType: event.type });
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('[Square Webhook] Processing error:', error);
+    logger.error('Square Webhook: Processing error', { requestId }, error instanceof Error ? error : undefined);
     // Always return 200 to prevent retries for processing errors
     return NextResponse.json({ received: true, error: 'Processing failed' });
   }
 }
 
 // Event handlers
-async function handleSubscriptionCreated(subscription: SquareSubscription | undefined) {
+async function handleSubscriptionCreated(subscription: SquareSubscription | undefined, requestId: string) {
   if (!subscription) return;
 
   const team = await TeamService.getBySquareCustomerId(subscription.customer_id);
   if (!team) {
-    console.error('[Square Webhook] No team found for customer:', subscription.customer_id);
+    logger.error('Square Webhook: No team found for customer', { requestId, customerId: subscription.customer_id });
     return;
   }
 
@@ -104,15 +107,15 @@ async function handleSubscriptionCreated(subscription: SquareSubscription | unde
     subscriptionStatus: subscription.status.toLowerCase() === 'active' ? 'active' : 'pending',
   });
 
-  console.log('[Square Webhook] Subscription created for team:', team.id);
+  logger.billingEvent('Subscription created', team.id, requestId, { subscriptionId: subscription.id });
 }
 
-async function handleSubscriptionUpdated(subscription: SquareSubscription | undefined) {
+async function handleSubscriptionUpdated(subscription: SquareSubscription | undefined, requestId: string) {
   if (!subscription) return;
 
   const team = await TeamService.getBySquareCustomerId(subscription.customer_id);
   if (!team) {
-    console.error('[Square Webhook] No team found for customer:', subscription.customer_id);
+    logger.error('Square Webhook: No team found for customer', { requestId, customerId: subscription.customer_id });
     return;
   }
 
@@ -122,15 +125,15 @@ async function handleSubscriptionUpdated(subscription: SquareSubscription | unde
     subscriptionStatus: status === 'active' ? 'active' : status,
   });
 
-  console.log('[Square Webhook] Subscription updated for team:', team.id, 'status:', status);
+  logger.billingEvent('Subscription updated', team.id, requestId, { status });
 }
 
-async function handleSubscriptionCanceled(subscription: SquareSubscription | undefined) {
+async function handleSubscriptionCanceled(subscription: SquareSubscription | undefined, requestId: string) {
   if (!subscription) return;
 
   const team = await TeamService.getBySquareCustomerId(subscription.customer_id);
   if (!team) {
-    console.error('[Square Webhook] No team found for customer:', subscription.customer_id);
+    logger.error('Square Webhook: No team found for customer', { requestId, customerId: subscription.customer_id });
     return;
   }
 
@@ -138,15 +141,15 @@ async function handleSubscriptionCanceled(subscription: SquareSubscription | und
     subscriptionStatus: 'canceled',
   });
 
-  console.log('[Square Webhook] Subscription canceled for team:', team.id);
+  logger.billingEvent('Subscription canceled', team.id, requestId);
 }
 
-async function handlePaymentFailed(subscription: SquareSubscription | undefined) {
+async function handlePaymentFailed(subscription: SquareSubscription | undefined, requestId: string) {
   if (!subscription) return;
 
   const team = await TeamService.getBySquareCustomerId(subscription.customer_id);
   if (!team) {
-    console.error('[Square Webhook] No team found for customer:', subscription.customer_id);
+    logger.error('Square Webhook: No team found for customer', { requestId, customerId: subscription.customer_id });
     return;
   }
 
@@ -154,5 +157,5 @@ async function handlePaymentFailed(subscription: SquareSubscription | undefined)
     subscriptionStatus: 'past_due',
   });
 
-  console.log('[Square Webhook] Payment failed for team:', team.id);
+  logger.billingEvent('Payment failed', team.id, requestId);
 }

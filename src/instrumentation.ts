@@ -20,12 +20,13 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     // Validate environment variables on startup
     const { validateServerEnv } = await import('@/lib/env');
+    const { logger } = await import('@/lib/logger');
 
     try {
       validateServerEnv();
-      console.log('Environment variables validated successfully');
+      logger.info('Instrumentation: Environment variables validated successfully');
     } catch (error) {
-      console.error('Failed to validate environment:', error);
+      logger.error('Instrumentation: Failed to validate environment', { error: error instanceof Error ? error.message : 'Unknown error' });
       Sentry.captureException(error);
       // In production, fail hard. In development, warn but continue.
       if (process.env.NODE_ENV === 'production') {

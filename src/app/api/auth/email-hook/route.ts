@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { EmailService } from '@/services/email-service';
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual, randomUUID } from 'crypto';
+import { logger } from '@/lib/logger';
 
 // Supabase Auth Hook secret in format: v1,whsec_<base64_secret>
 const HOOK_SECRET = process.env.SUPABASE_AUTH_HOOK_SECRET;
@@ -37,21 +38,21 @@ function verifyWebhook(
   }
 ): boolean {
   if (!HOOK_SECRET) {
-    console.warn('[EmailHook] SUPABASE_AUTH_HOOK_SECRET not configured');
+    logger.warn('EmailHook: SUPABASE_AUTH_HOOK_SECRET not configured');
     return false;
   }
 
   const { webhookId, webhookTimestamp, webhookSignature } = headers;
 
   if (!webhookId || !webhookTimestamp || !webhookSignature) {
-    console.warn('[EmailHook] Missing webhook headers');
+    logger.warn('EmailHook: Missing webhook headers');
     return false;
   }
 
   // Extract the base64 secret from v1,whsec_<base64>
   const secretMatch = HOOK_SECRET.match(/whsec_(.+)$/);
   if (!secretMatch) {
-    console.error('[EmailHook] Invalid secret format, expected v1,whsec_<base64>');
+    logger.error('EmailHook: Invalid secret format, expected v1,whsec_<base64>');
     return false;
   }
 
@@ -61,7 +62,7 @@ function verifyWebhook(
   const timestamp = parseInt(webhookTimestamp, 10);
   const now = Math.floor(Date.now() / 1000);
   if (Math.abs(now - timestamp) > 300) {
-    console.warn('[EmailHook] Timestamp outside tolerance');
+    logger.warn('EmailHook: Timestamp outside tolerance', { timestamp, now });
     return false;
   }
 
@@ -93,11 +94,12 @@ function verifyWebhook(
     }
   }
 
-  console.warn('[EmailHook] No matching signature found');
+  logger.warn('EmailHook: No matching signature found');
   return false;
 }
 
 export async function POST(req: NextRequest) {
+  const requestId = randomUUID();
   try {
     const rawBody = await req.text();
 
@@ -110,14 +112,14 @@ export async function POST(req: NextRequest) {
 
     // Verify the request is from Supabase
     if (HOOK_SECRET && !verifyWebhook(rawBody, webhookHeaders)) {
-      console.error('[EmailHook] Invalid signature');
+      logger.error('EmailHook: Invalid signature', { requestId });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
     const payload: EmailHookPayload = JSON.parse(rawBody);
     const { user, email_data } = payload;
 
-    console.log('[EmailHook] Received:', email_data.email_action_type, 'for', user.email);
+    logger.authEvent('EmailHook: Received', user.id, requestId, { actionType: email_data.email_action_type, email: user.email });
 
     // Build the confirmation URL
     const baseUrl = email_data.site_url || process.env.NEXT_PUBLIC_APP_URL || 'https://codebakers.dev';
@@ -147,20 +149,20 @@ export async function POST(req: NextRequest) {
         break;
 
       default:
-        console.warn('[EmailHook] Unknown email action type:', email_data.email_action_type);
+        logger.warn('EmailHook: Unknown email action type', { requestId, actionType: email_data.email_action_type });
         return NextResponse.json({ error: 'Unknown email type' }, { status: 400 });
     }
 
     if (!result.success) {
-      console.error('[EmailHook] Failed to send email:', result.error);
+      logger.error('EmailHook: Failed to send email', { requestId, error: result.error, email: user.email });
       return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
     }
 
-    console.log('[EmailHook] Email sent successfully:', result.id);
+    logger.authEvent('EmailHook: Email sent successfully', user.id, requestId, { emailId: result.id });
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    console.error('[EmailHook] Error:', error);
+    logger.error('EmailHook: Error', { requestId, error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
