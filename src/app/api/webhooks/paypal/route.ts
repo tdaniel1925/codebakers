@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyPayPalWebhook } from '@/lib/paypal';
 import { TeamService } from '@/services/team-service';
 import { PricingService } from '@/services/pricing-service';
+import { TrialService } from '@/services/trial-service';
 import { subscriptionPlanSchema } from '@/lib/validations';
 import { logger, getRequestId } from '@/lib/logger';
 
@@ -129,6 +130,21 @@ async function handleSubscriptionActivated(resource: PayPalResource, requestId: 
     subscriptionPlan: planResult.data,
     seatLimit: matchingPlan?.seats || 1,
   });
+
+  // Mark any associated trial as converted
+  const subscriberEmail = resource.subscriber?.email_address;
+  if (subscriberEmail) {
+    const convertedTrial = await TrialService.markAsConverted(teamId, {
+      email: subscriberEmail,
+    });
+
+    if (convertedTrial) {
+      logger.billingEvent('Trial converted to paid', teamId, requestId, {
+        trialId: convertedTrial.id,
+        plan: planResult.data,
+      });
+    }
+  }
 
   logger.billingEvent('Subscription activated', teamId, requestId, { subscriptionId: resource.id });
 }

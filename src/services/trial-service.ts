@@ -230,6 +230,65 @@ export class TrialService {
   }
 
   /**
+   * Mark a trial as converted when user subscribes
+   * Links the trial fingerprint to the paid team
+   */
+  static async markAsConverted(
+    teamId: string,
+    identifier: { visitorId?: string; githubId?: string; email?: string }
+  ): Promise<TrialFingerprint | null> {
+    // Try to find trial by various identifiers
+    let trial: TrialFingerprint | null = null;
+
+    if (identifier.visitorId) {
+      trial = await this.getByDeviceHash(identifier.visitorId);
+    }
+
+    if (!trial && identifier.githubId) {
+      trial = await this.getByGithubId(identifier.githubId);
+    }
+
+    if (!trial && identifier.email) {
+      const found = await db.query.trialFingerprints.findFirst({
+        where: eq(trialFingerprints.email, identifier.email),
+      });
+      trial = found || null;
+    }
+
+    if (!trial) {
+      return null; // No trial to convert (user might have gone straight to paid)
+    }
+
+    // Already converted
+    if (trial.trialStage === 'converted') {
+      return trial;
+    }
+
+    const [updated] = await db
+      .update(trialFingerprints)
+      .set({
+        trialStage: 'converted',
+        convertedToTeamId: teamId,
+        convertedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(trialFingerprints.id, trial.id))
+      .returning();
+
+    return updated || null;
+  }
+
+  /**
+   * Get trial by team ID (for users who converted)
+   */
+  static async getByTeamId(teamId: string): Promise<TrialFingerprint | null> {
+    const trial = await db.query.trialFingerprints.findFirst({
+      where: eq(trialFingerprints.convertedToTeamId, teamId),
+    });
+    return trial || null;
+  }
+
+  /**
    * Get trial statistics for admin dashboard
    */
   static async getStats(): Promise<TrialStats> {

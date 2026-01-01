@@ -1,0 +1,375 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e6] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e7]:
+      - img [ref=e8]
+    - generic [ref=e11]:
+      - button "Open issues overlay" [ref=e12]:
+        - generic [ref=e13]:
+          - generic [ref=e14]: "2"
+          - generic [ref=e15]: "3"
+        - generic [ref=e16]:
+          - text: Issue
+          - generic [ref=e17]: s
+      - button "Collapse issues badge" [ref=e18]:
+        - img [ref=e19]
+  - generic [ref=e21]:
+    - navigation [ref=e22]:
+      - generic [ref=e23]:
+        - link "CodeBakers" [ref=e24] [cursor=pointer]:
+          - /url: /
+          - img [ref=e26]
+          - generic [ref=e30]: CodeBakers
+        - generic [ref=e31]:
+          - link "Smart Prompts" [ref=e32] [cursor=pointer]:
+            - /url: "#smart-prompts"
+          - link "Features" [ref=e33] [cursor=pointer]:
+            - /url: "#features"
+          - link "Compare" [ref=e34] [cursor=pointer]:
+            - /url: "#compare"
+          - link "Modules" [ref=e35] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Pricing" [ref=e36] [cursor=pointer]:
+            - /url: "#pricing"
+          - button "Toggle theme" [ref=e37]:
+            - img
+            - generic [ref=e38]: Toggle theme
+          - link "Login" [ref=e39] [cursor=pointer]:
+            - /url: /login
+            - button "Login" [ref=e40]
+          - link "Start Free" [ref=e41] [cursor=pointer]:
+            - /url: /signup
+            - button "Start Free" [ref=e42]:
+              - text: Start Free
+              - img
+    - generic [ref=e44]:
+      - heading "Your prompts Cursor / Claude Code suck. We fix them." [level=1] [ref=e45]:
+        - text: Your
+        - generic [ref=e46]:
+          - text: prompts
+          - generic:
+            - generic: Cursor / Claude Code
+            - img
+        - text: suck.
+        - text: We fix them.
+      - paragraph [ref=e47]: Get production-ready code on the first try.
+      - generic [ref=e49]:
+        - generic [ref=e55]: cursor / claude code
+        - generic [ref=e56]:
+          - generic [ref=e57]:
+            - generic [ref=e58]:
+              - generic [ref=e59]:
+                - generic [ref=e61]: "1"
+                - generic [ref=e62]: What you type
+              - generic [ref=e63]: add login form
+            - generic [ref=e64]:
+              - generic [ref=e65]:
+                - img [ref=e67]
+                - generic [ref=e70]: What AI receives
+              - generic [ref=e71]:
+                - text: Build login with
+                - strong [ref=e72]: React Hook Form + Zod
+                - text: ", loading states, error handling, toast notifications,"
+                - strong [ref=e73]: accessibility
+                - text: ", keyboard nav, and"
+                - strong [ref=e74]: Playwright tests
+                - text: ...
+          - generic [ref=e76]:
+            - img [ref=e77]
+            - text: Production-ready code. First prompt. No revisions.
+      - generic [ref=e79]:
+        - generic [ref=e80]: "Works inside:"
+        - generic [ref=e81]:
+          - generic [ref=e82]: Cursor
+          - generic [ref=e83]: •
+          - generic [ref=e84]: Claude Code
+      - generic [ref=e85]:
+        - link "Upgrade My Prompts" [ref=e86] [cursor=pointer]:
+          - /url: /signup
+          - button "Upgrade My Prompts" [ref=e87]:
+            - text: Upgrade My Prompts
+            - img
+        - button "Book a Demo" [ref=e88]:
+          - button "Book a Demo" [ref=e89]:
+            - img
+            - text: Book a Demo
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - img [ref=e92]
+          - generic [ref=e95]: 7-day free trial
+        - generic [ref=e96]:
+          - img [ref=e97]
+          - generic [ref=e99]: No signup required
+        - generic [ref=e100]:
+          - img [ref=e101]
+          - generic [ref=e103]: No credit card
+    - generic [ref=e105]:
+      - generic [ref=e106]:
+        - img
+        - text: One Click Install
+      - heading "Install in 30 Seconds" [level=2] [ref=e107]
+      - paragraph [ref=e108]: Download, double-click, done.
+      - link "Download Installer" [ref=e109] [cursor=pointer]:
+        - /url: /install-codebakers.bat
+        - button "Download Installer" [ref=e110]:
+          - img
+          - text: Download Installer
+      - generic [ref=e111]:
+        - heading "1 Download and double-click the installer" [level=3] [ref=e112]:
+          - generic [ref=e113]: "1"
+          - text: Download and double-click the installer
+        - 'heading "2 In your project: codebakers go" [level=3] [ref=e114]':
+          - generic [ref=e115]: "2"
+          - text: "In your project:"
+          - code [ref=e116]: codebakers go
+        - heading "3 Open Claude Code and start building!" [level=3] [ref=e117]:
+          - generic [ref=e118]: "3"
+          - text: Open Claude Code and start building!
+        - paragraph [ref=e119]: No account or API key required - free trial starts automatically
+      - paragraph [ref=e120]:
+        - text: Downloading for Windows.
+        - button "Switch to Mac/Linux" [ref=e121]
+    - generic [ref=e123]:
+      - generic [ref=e124]:
+        - generic [ref=e125]: For Every Developer
+        - heading "Your skill level doesn't matter. Your output does." [level=2] [ref=e126]:
+          - text: Your skill level doesn't matter.
+          - text: Your output does.
+        - paragraph [ref=e127]: Whether you're writing your first app or your hundredth, CodeBakers fills the gaps you don't even know you have.
+      - generic [ref=e128]:
+        - generic [ref=e129]:
+          - img [ref=e131]
+          - heading "Just Starting?" [level=3] [ref=e135]
+          - paragraph [ref=e136]: You don't know what you don't know.
+          - paragraph [ref=e137]: You can build amazing things with AI—but how do you know if the code is secure? Accessible? Production-ready?
+          - paragraph [ref=e138]: CodeBakers knows. It automatically adds the things experienced developers would add—so you ship like a pro from day one.
+        - generic [ref=e139]:
+          - img [ref=e141]
+          - heading "Building Fast?" [level=3] [ref=e146]
+          - paragraph [ref=e147]: You're tired of the back-and-forth.
+          - paragraph [ref=e148]: You've shipped before. You know the drill—prompt, fix, prompt again, add error handling, fix again. It's exhausting.
+          - paragraph [ref=e149]: Skip the iteration loop. Your first prompt produces code that's already complete—tests, errors, loading states, all of it.
+        - generic [ref=e150]:
+          - img [ref=e152]
+          - heading "Senior Dev?" [level=3] [ref=e157]
+          - paragraph [ref=e158]: You know what good looks like.
+          - paragraph [ref=e159]: You've been writing production code for years. You know about security, testing, edge cases—you just don't want to explain it every time.
+          - paragraph [ref=e160]: Stop teaching AI your standards. CodeBakers already knows them. Get code written the way you'd write it—without the monologue.
+      - paragraph [ref=e162]:
+        - text: The difference? Without CodeBakers, AI writes code like a tutorial.
+        - text: With CodeBakers, AI writes code like your best engineer on their best day.
+    - generic [ref=e164]:
+      - generic [ref=e165]:
+        - generic [ref=e166]:
+          - img
+          - text: How It Works
+        - heading "It's not magic. It's patterns." [level=2] [ref=e167]
+        - paragraph [ref=e168]: 59 modules of battle-tested code patterns. The AI reads them. Your code inherits them. Simple.
+      - generic [ref=e169]:
+        - generic [ref=e170]:
+          - img [ref=e172]
+          - heading "Forget Something? AI Won't." [level=3] [ref=e176]
+          - paragraph [ref=e177]: Touched auth code? AI reminds you to review security. Built a form? It suggests accessibility checks. Like having a senior dev watching over your shoulder.
+          - generic [ref=e178]:
+            - text: "[AUTO-TRIGGER]"
+            - text: Auth code changed.
+            - text: Security review suggested.
+        - generic [ref=e179]:
+          - img [ref=e181]
+          - heading "Level Up While You Build" [level=3] [ref=e186]
+          - paragraph [ref=e187]: When AI catches a mistake, it doesn't just fix it—it can teach you why. Every bug becomes a lesson. Every fix makes you better.
+          - generic [ref=e188]:
+            - text: "Fixed: API key in client code"
+            - text: Want to learn why this matters?
+            - text: /learn
+        - generic [ref=e189]:
+          - img [ref=e191]
+          - heading "Never Ship Broken Code" [level=3] [ref=e194]
+          - paragraph [ref=e195]: Tests, error handling, loading states, accessibility—automatically included. You don't ask for them. You don't need to know to ask. They're just there.
+          - generic [ref=e196]:
+            - text: "You type: add login"
+            - text: "You get: login + tests + a11y + errors"
+    - generic [ref=e199]:
+      - generic [ref=e205]: your-project
+      - generic [ref=e206]:
+        - generic [ref=e207]:
+          - generic [ref=e208]:
+            - paragraph [ref=e209]: "What you type:"
+            - generic [ref=e210]: add stripe checkout
+          - generic [ref=e211]:
+            - paragraph [ref=e212]: "What you get:"
+            - generic [ref=e213]:
+              - generic [ref=e214]:
+                - img [ref=e215]
+                - generic [ref=e217]: Webhook handlers with signature verification
+              - generic [ref=e218]:
+                - img [ref=e219]
+                - generic [ref=e221]: Error recovery & idempotency
+              - generic [ref=e222]:
+                - img [ref=e223]
+                - generic [ref=e225]: Database sync & loading states
+              - generic [ref=e226]:
+                - img [ref=e227]
+                - generic [ref=e229]: Playwright tests included
+        - generic [ref=e231]:
+          - img
+          - text: Production-ready. First prompt. No revisions.
+    - generic [ref=e233]:
+      - generic [ref=e234]:
+        - heading "The knowledge gap is real" [level=2] [ref=e235]
+        - paragraph [ref=e236]: Here's what "production-ready" actually means. CodeBakers handles all of it.
+      - generic [ref=e237]:
+        - generic [ref=e238]:
+          - generic [ref=e239]:
+            - generic [ref=e241]: "?"
+            - heading "What you'd need to know" [level=3] [ref=e242]
+          - list [ref=e243]:
+            - listitem [ref=e244]:
+              - generic [ref=e245]: •
+              - generic [ref=e246]: Zod validation schemas for type-safe forms
+            - listitem [ref=e247]:
+              - generic [ref=e248]: •
+              - generic [ref=e249]: Error boundaries and loading states
+            - listitem [ref=e250]:
+              - generic [ref=e251]: •
+              - generic [ref=e252]: ARIA labels, focus management, keyboard nav
+            - listitem [ref=e253]:
+              - generic [ref=e254]: •
+              - generic [ref=e255]: Rate limiting and security headers
+            - listitem [ref=e256]:
+              - generic [ref=e257]: •
+              - generic [ref=e258]: Webhook signature verification
+            - listitem [ref=e259]:
+              - generic [ref=e260]: •
+              - generic [ref=e261]: Idempotency keys for payment retries
+            - listitem [ref=e262]:
+              - generic [ref=e263]: •
+              - generic [ref=e264]: Test patterns (unit, integration, e2e)
+            - listitem [ref=e265]:
+              - generic [ref=e266]: •
+              - generic [ref=e267]: ... and 100+ other best practices
+        - generic [ref=e268]:
+          - generic [ref=e269]:
+            - img [ref=e271]
+            - heading "What you actually type" [level=3] [ref=e273]
+          - generic [ref=e274]: add login form
+          - paragraph [ref=e275]: CodeBakers patterns inject all that knowledge into your AI. You get production-ready code without knowing the 100+ things that make it production-ready.
+          - generic [ref=e276]:
+            - img [ref=e277]
+            - generic [ref=e279]: All best practices included automatically
+    - generic [ref=e282]:
+      - generic [ref=e283]:
+        - generic [ref=e284]: "59"
+        - generic [ref=e285]: Pattern Modules
+      - generic [ref=e286]:
+        - generic [ref=e287]: "9"
+        - generic [ref=e288]: Smart Triggers
+      - generic [ref=e289]:
+        - generic [ref=e290]: 90%
+        - generic [ref=e291]: Less Prompting
+      - generic [ref=e292]:
+        - generic [ref=e293]: 1st
+        - generic [ref=e294]: Prompt Success
+    - generic [ref=e296]:
+      - generic [ref=e297]:
+        - heading "From first-timers to veterans" [level=2] [ref=e298]
+        - paragraph [ref=e299]: "Every skill level, same result: production-ready code."
+      - generic [ref=e300]:
+        - generic [ref=e301]:
+          - generic [ref=e302]:
+            - img [ref=e303]
+            - img [ref=e305]
+            - img [ref=e307]
+            - img [ref=e309]
+            - img [ref=e311]
+          - paragraph [ref=e313]: "\"I'm learning to code and had no idea auth needed security reviews. CodeBakers caught things I didn't even know to worry about.\""
+          - generic [ref=e314]:
+            - generic [ref=e315]: MC
+            - generic [ref=e316]:
+              - paragraph [ref=e317]: Maya Chen
+              - paragraph [ref=e318]: Career Changer, 6 months coding
+        - generic [ref=e319]:
+          - generic [ref=e320]:
+            - img [ref=e321]
+            - img [ref=e323]
+            - img [ref=e325]
+            - img [ref=e327]
+            - img [ref=e329]
+          - paragraph [ref=e331]: "\"I know what production code should look like—I just don't want to explain it every time. Now I don't have to.\""
+          - generic [ref=e332]:
+            - generic [ref=e333]: DP
+            - generic [ref=e334]:
+              - paragraph [ref=e335]: David Park
+              - paragraph [ref=e336]: Staff Engineer, 12 years exp
+        - generic [ref=e337]:
+          - generic [ref=e338]:
+            - img [ref=e339]
+            - img [ref=e341]
+            - img [ref=e343]
+            - img [ref=e345]
+            - img [ref=e347]
+          - paragraph [ref=e349]: "\"Shipped my SaaS in 3 weeks instead of 3 months. The AI writes code like a senior dev reviewed it.\""
+          - generic [ref=e350]:
+            - generic [ref=e351]: JL
+            - generic [ref=e352]:
+              - paragraph [ref=e353]: Jordan Lee
+              - paragraph [ref=e354]: Indie Hacker
+    - generic [ref=e356]:
+      - generic [ref=e357]: Simple Pricing
+      - heading "Start free. Scale when ready." [level=2] [ref=e358]
+      - paragraph [ref=e359]: 7-day free trial. No credit card required.
+      - generic [ref=e360]:
+        - generic [ref=e361]:
+          - heading "Trial" [level=3] [ref=e362]
+          - generic [ref=e363]: $0
+          - paragraph [ref=e364]: 7 days free, no signup
+          - generic [ref=e365]:
+            - generic [ref=e367]: "Mac/Linux:"
+            - code [ref=e368]: curl -fsSL codebakers.ai/install.sh | bash
+            - generic [ref=e370]: "Windows:"
+            - code [ref=e371]: irm codebakers.ai/install.ps1 | iex
+        - generic [ref=e372]:
+          - generic [ref=e373]: Most Popular
+          - heading "Pro" [level=3] [ref=e374]
+          - generic [ref=e375]: $49/mo
+          - paragraph [ref=e376]: 1 seat, unlimited projects
+          - link "Get Pro" [ref=e377] [cursor=pointer]:
+            - /url: /signup
+            - button "Get Pro" [ref=e378]
+        - generic [ref=e379]:
+          - heading "Team" [level=3] [ref=e380]
+          - generic [ref=e381]: $149/mo
+          - paragraph [ref=e382]: 5 seats, shared keys
+          - link "Get Team" [ref=e383] [cursor=pointer]:
+            - /url: /signup
+            - button "Get Team" [ref=e384]
+    - generic [ref=e386]:
+      - heading "Ship like a senior dev. From day one." [level=2] [ref=e387]:
+        - text: Ship like a senior dev.
+        - text: From day one.
+      - paragraph [ref=e388]: Whether you're learning or leading, CodeBakers makes your AI build production-ready code.
+      - generic [ref=e389]:
+        - link "Start Building Free" [ref=e390] [cursor=pointer]:
+          - /url: /signup
+          - button "Start Building Free" [ref=e391]:
+            - text: Start Building Free
+            - img
+        - button "Book a Demo" [ref=e392]:
+          - button "Book a Demo" [ref=e393]:
+            - img
+            - text: Book a Demo
+      - paragraph [ref=e394]: Works inside Cursor & Claude Code • 2-minute setup • Cancel anytime
+    - contentinfo [ref=e395]:
+      - generic [ref=e396]:
+        - generic [ref=e397]: © 2025 CodeBakers
+        - generic [ref=e398]:
+          - link "Pricing" [ref=e399] [cursor=pointer]:
+            - /url: /pricing
+          - link "Login" [ref=e400] [cursor=pointer]:
+            - /url: /login
+          - button "Book Demo" [ref=e401]
+  - region "Notifications alt+T"
+  - alert [ref=e402]
+```

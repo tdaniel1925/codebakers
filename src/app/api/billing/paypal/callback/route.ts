@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPayPalSubscription } from '@/lib/paypal';
 import { TeamService } from '@/services/team-service';
 import { PricingService } from '@/services/pricing-service';
+import { TrialService } from '@/services/trial-service';
 import { autoRateLimit } from '@/lib/api-utils';
+import { logger } from '@/lib/logger';
+import { db, profiles } from '@/db';
+import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,12 +59,32 @@ export async function GET(req: NextRequest) {
       seatLimit: planDetails?.seats || 1,
     });
 
+    // Mark any associated trial as converted
+    if (team.ownerId) {
+      const owner = await db.query.profiles.findFirst({
+        where: eq(profiles.id, team.ownerId),
+      });
+
+      if (owner?.email) {
+        const convertedTrial = await TrialService.markAsConverted(teamId, {
+          email: owner.email,
+        });
+
+        if (convertedTrial) {
+          logger.billingEvent('Trial converted to paid', teamId, 'paypal-callback', {
+            trialId: convertedTrial.id,
+            plan,
+          });
+        }
+      }
+    }
+
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     return NextResponse.redirect(
       new URL('/dashboard?success=true&provider=paypal', appUrl)
     );
   } catch (error) {
-    console.error('PayPal callback error:', error);
+    logger.error('PayPal callback error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.redirect(
       new URL('/billing?error=callback_failed', req.url)
     );

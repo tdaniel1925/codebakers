@@ -18,7 +18,7 @@ async function pushV45() {
   console.log('CLAUDE.md size:', (claudeMdContent.length / 1024).toFixed(1), 'KB');
   console.log('.cursorrules size:', (cursorRulesContent.length / 1024).toFixed(1), 'KB');
 
-  const changelog = `v5.9 Two-Gate Enforcement: Added discover_patterns MCP tool (START gate) that must be called BEFORE writing code. Searches codebase for existing patterns and code to follow. Enhanced validate_complete (END gate) to verify discover_patterns was called. Compliance tracking in .codebakers.json.`;
+  const changelog = `v6.0 Server-Side Enforcement: All patterns now served from server in real-time. discover_patterns creates server-tracked session with session token. validate_complete verifies with server before completion. Local .claude/ folder no longer needed. Migration automatically backs up old files and creates minimal CLAUDE.md/.cursorrules.`;
 
   console.log('\nPushing to', apiUrl + '/api/admin/content/push');
 
@@ -30,7 +30,7 @@ async function pushV45() {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        version: '5.9',
+        version: '6.0',
         claudeMdContent,
         cursorRulesContent,
         changelog,

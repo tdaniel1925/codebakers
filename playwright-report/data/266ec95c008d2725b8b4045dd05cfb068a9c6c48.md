@@ -1,0 +1,223 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - link "CodeBakers" [ref=e6] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e7]:
+          - link "Smart Prompts" [ref=e8] [cursor=pointer]:
+            - /url: /#smart-prompts
+          - link "Demo" [ref=e9] [cursor=pointer]:
+            - /url: /#demo
+          - link "Pricing" [ref=e10] [cursor=pointer]:
+            - /url: /pricing
+          - link "Compare" [ref=e11] [cursor=pointer]:
+            - /url: /compare
+          - link "Sign In" [ref=e12] [cursor=pointer]:
+            - /url: /login
+            - button "Sign In" [ref=e13]
+          - link "Get Started" [ref=e14] [cursor=pointer]:
+            - /url: /signup
+            - button "Get Started" [ref=e15]
+    - main [ref=e16]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - heading "Pays for itself in one project" [level=1] [ref=e20]
+          - paragraph [ref=e21]: Save 20+ hours per project. 10x ROI on your first build. One subscription, 59 modules.
+        - generic [ref=e22]:
+          - generic [ref=e23]: 7-Day Free Trial
+          - paragraph [ref=e24]: Try CodeBakers free for 7 days - no signup required
+          - paragraph [ref=e25]:
+            - text: Run
+            - code [ref=e26]: npx @codebakers/cli go
+            - text: to start instantly
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - generic [ref=e29]: Most Popular
+            - generic [ref=e30]:
+              - heading "Pro" [level=2] [ref=e31]
+              - paragraph [ref=e32]: Perfect for solo developers
+            - generic [ref=e33]:
+              - generic [ref=e34]: $49
+              - text: /month
+            - list [ref=e35]:
+              - listitem [ref=e36]:
+                - img [ref=e37]
+                - generic [ref=e39]: 59 production modules
+              - listitem [ref=e40]:
+                - img [ref=e41]
+                - generic [ref=e43]: 50K+ lines of patterns
+              - listitem [ref=e44]:
+                - img [ref=e45]
+                - generic [ref=e47]: Auto-testing included
+              - listitem [ref=e48]:
+                - img [ref=e49]
+                - generic [ref=e51]: Full stack coverage
+              - listitem [ref=e52]:
+                - img [ref=e53]
+                - generic [ref=e55]: 1 seat
+              - listitem [ref=e56]:
+                - img [ref=e57]
+                - generic [ref=e59]: Email support
+            - button "Get Started" [ref=e60]:
+              - img
+              - text: Get Started
+            - paragraph [ref=e61]: Pay with credit card or PayPal
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - heading "Team" [level=2] [ref=e64]
+              - paragraph [ref=e65]: For growing teams
+            - generic [ref=e66]:
+              - generic [ref=e67]: $149
+              - text: /month
+            - list [ref=e68]:
+              - listitem [ref=e69]:
+                - img [ref=e70]
+                - generic [ref=e72]: Everything in Pro
+              - listitem [ref=e73]:
+                - img [ref=e74]
+                - generic [ref=e76]: 5 team seats
+              - listitem [ref=e77]:
+                - img [ref=e78]
+                - generic [ref=e80]: Team management dashboard
+              - listitem [ref=e81]:
+                - img [ref=e82]
+                - generic [ref=e84]: Shared API keys
+              - listitem [ref=e85]:
+                - img [ref=e86]
+                - generic [ref=e88]: Priority support
+              - listitem [ref=e89]:
+                - img [ref=e90]
+                - generic [ref=e92]: Slack community
+            - button "Get Started" [ref=e93]:
+              - img
+              - text: Get Started
+            - paragraph [ref=e94]: Pay with credit card or PayPal
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - heading "Agency" [level=2] [ref=e97]
+              - paragraph [ref=e98]: For agencies & consultancies
+            - generic [ref=e99]:
+              - generic [ref=e100]: $349
+              - text: /month
+            - list [ref=e101]:
+              - listitem [ref=e102]:
+                - img [ref=e103]
+                - generic [ref=e105]: Everything in Team
+              - listitem [ref=e106]:
+                - img [ref=e107]
+                - generic [ref=e109]: Unlimited seats
+              - listitem [ref=e110]:
+                - img [ref=e111]
+                - generic [ref=e113]: White-label support
+              - listitem [ref=e114]:
+                - img [ref=e115]
+                - generic [ref=e117]: Custom patterns on request
+              - listitem [ref=e118]:
+                - img [ref=e119]
+                - generic [ref=e121]: Dedicated support
+              - listitem [ref=e122]:
+                - img [ref=e123]
+                - generic [ref=e125]: Training sessions
+            - button "Get Started" [ref=e126]:
+              - img
+              - text: Get Started
+            - paragraph [ref=e127]: Pay with credit card or PayPal
+          - generic [ref=e128]:
+            - generic [ref=e129]:
+              - heading "Enterprise" [level=2] [ref=e130]
+              - paragraph [ref=e131]: Unlimited teams & custom SLA
+            - generic [ref=e132]: Custom
+            - list [ref=e133]:
+              - listitem [ref=e134]:
+                - img [ref=e135]
+                - generic [ref=e137]: Everything in Agency
+              - listitem [ref=e138]:
+                - img [ref=e139]
+                - generic [ref=e141]: Unlimited teams
+              - listitem [ref=e142]:
+                - img [ref=e143]
+                - generic [ref=e145]: Custom SLA (99.9% uptime)
+              - listitem [ref=e146]:
+                - img [ref=e147]
+                - generic [ref=e149]: Dedicated account manager
+              - listitem [ref=e150]:
+                - img [ref=e151]
+                - generic [ref=e153]: Custom pattern development
+              - listitem [ref=e154]:
+                - img [ref=e155]
+                - generic [ref=e157]: SSO/SAML integration
+              - listitem [ref=e158]:
+                - img [ref=e159]
+                - generic [ref=e161]: Invoice billing
+              - listitem [ref=e162]:
+                - img [ref=e163]
+                - generic [ref=e165]: On-premise deployment option
+            - button "Contact Us" [ref=e166]:
+              - img
+              - text: Contact Us
+            - paragraph [ref=e167]: Custom pricing & onboarding
+        - paragraph [ref=e169]: Secure payments powered by PayPal. Pay with credit card, debit card, or PayPal balance.
+        - generic [ref=e170]:
+          - heading "Frequently Asked Questions" [level=2] [ref=e171]
+          - generic [ref=e172]:
+            - generic [ref=e173]:
+              - heading "Which AI tools does this work with?" [level=3] [ref=e174]
+              - paragraph [ref=e175]: CodeBakers works with Cursor IDE and Claude Code CLI via MCP (Model Context Protocol) for secure, on-demand pattern access.
+            - generic [ref=e176]:
+              - heading "Can I pay without a PayPal account?" [level=3] [ref=e177]
+              - paragraph [ref=e178]: Yes! PayPal supports guest checkout with credit or debit cards. You don't need to create a PayPal account to subscribe.
+            - generic [ref=e179]:
+              - heading "Can I cancel anytime?" [level=3] [ref=e180]
+              - paragraph [ref=e181]: Yes, you can cancel your subscription at any time. You'll retain access until the end of your billing period. No questions asked.
+            - generic [ref=e182]:
+              - heading "What tech stack do the patterns cover?" [level=3] [ref=e183]
+              - paragraph [ref=e184]: Next.js 14+, React, TypeScript, Supabase, Drizzle ORM, Stripe, shadcn/ui, Tailwind CSS, Zod, React Hook Form, Playwright, and many integrations like Resend, VAPI, Inngest, and more.
+            - generic [ref=e185]:
+              - heading "How are patterns delivered?" [level=3] [ref=e186]
+              - paragraph [ref=e187]: "Install our CLI, login with your API key, and run `codebakers install` in your project. Patterns are downloaded and configured automatically."
+    - contentinfo [ref=e188]:
+      - generic [ref=e189]:
+        - generic [ref=e190]:
+          - generic [ref=e191]:
+            - heading "CodeBakers" [level=3] [ref=e192]
+            - paragraph [ref=e193]: Ship production-ready code from day one with 34 battle-tested pattern modules.
+          - generic [ref=e194]:
+            - heading "Product" [level=4] [ref=e195]
+            - list [ref=e196]:
+              - listitem [ref=e197]:
+                - link "Smart Prompts" [ref=e198] [cursor=pointer]:
+                  - /url: /#smart-prompts
+              - listitem [ref=e199]:
+                - link "Demo" [ref=e200] [cursor=pointer]:
+                  - /url: /#demo
+              - listitem [ref=e201]:
+                - link "Pricing" [ref=e202] [cursor=pointer]:
+                  - /url: /pricing
+              - listitem [ref=e203]:
+                - link "Compare" [ref=e204] [cursor=pointer]:
+                  - /url: /compare
+          - generic [ref=e205]:
+            - heading "Support" [level=4] [ref=e206]
+            - list [ref=e207]:
+              - listitem [ref=e208]:
+                - link "Documentation" [ref=e209] [cursor=pointer]:
+                  - /url: /setup
+          - generic [ref=e210]:
+            - heading "Legal" [level=4] [ref=e211]
+            - list [ref=e212]:
+              - listitem [ref=e213]:
+                - link "Privacy" [ref=e214] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e215]:
+                - link "Terms" [ref=e216] [cursor=pointer]:
+                  - /url: "#"
+        - generic [ref=e217]: © 2025 CodeBakers. All rights reserved.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e223] [cursor=pointer]:
+    - img [ref=e224]
+  - alert [ref=e227]
+```
