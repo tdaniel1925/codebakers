@@ -912,3 +912,145 @@ export type ProjectResource = typeof projectResources.$inferSelect;
 export type NewProjectResource = typeof projectResources.$inferInsert;
 export type ProjectRiskFlag = typeof projectRiskFlags.$inferSelect;
 export type NewProjectRiskFlag = typeof projectRiskFlags.$inferInsert;
+
+// ============================================
+// SERVER-SIDE ENFORCEMENT v6.0
+// ============================================
+
+// Enforcement Session Status enum
+export const enforcementSessionStatusEnum = pgEnum('enforcement_session_status', [
+  'active',      // Session in progress
+  'completed',   // Both gates passed
+  'failed',      // END gate failed
+  'expired',     // Session timed out without END gate
+]);
+
+// Enforcement Sessions - Track AI coding sessions with gate compliance
+export const enforcementSessions = pgTable('enforcement_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Who is this for
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }),
+  apiKeyId: uuid('api_key_id').references(() => apiKeys.id, { onDelete: 'set null' }),
+  deviceHash: text('device_hash'), // For trial users without team
+
+  // Session identification
+  sessionToken: text('session_token').notNull().unique(), // Generated token for this session
+  projectHash: text('project_hash'), // Hash of project for context
+  projectName: text('project_name'),
+
+  // Task context from discover_patterns call
+  task: text('task').notNull(), // What the AI is working on
+  plannedFiles: text('planned_files'), // JSON array of files AI plans to modify
+  keywords: text('keywords'), // JSON array of search keywords
+
+  // Gate compliance
+  startGatePassed: boolean('start_gate_passed').default(true), // discover_patterns was called
+  startGateAt: timestamp('start_gate_at').defaultNow(),
+  endGatePassed: boolean('end_gate_passed').default(false), // validate_complete was called
+  endGateAt: timestamp('end_gate_at'),
+
+  // Patterns discovered and returned
+  patternsReturned: text('patterns_returned'), // JSON array of pattern names returned
+  codeExamplesReturned: integer('code_examples_returned').default(0),
+
+  // Validation results (when END gate called)
+  validationPassed: boolean('validation_passed'),
+  validationIssues: text('validation_issues'), // JSON array of issues found
+  testsRun: boolean('tests_run').default(false),
+  testsPassed: boolean('tests_passed'),
+  typescriptPassed: boolean('typescript_passed'),
+
+  // Session status
+  status: enforcementSessionStatusEnum('status').default('active'),
+
+  // Timing
+  expiresAt: timestamp('expires_at').notNull(), // Sessions expire after 2 hours
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Pattern Discoveries - Log each discover_patterns call for analytics
+export const patternDiscoveries = pgTable('pattern_discoveries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').references(() => enforcementSessions.id, { onDelete: 'cascade' }).notNull(),
+
+  // What was searched
+  task: text('task').notNull(),
+  keywords: text('keywords'), // JSON array
+
+  // What was found
+  patternsMatched: text('patterns_matched'), // JSON array of { pattern, relevance }
+  codebaseMatches: text('codebase_matches'), // JSON array of { file, snippet, pattern }
+
+  // Response metrics
+  responseTimeMs: integer('response_time_ms'),
+
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Pattern Validations - Log each validate_complete call
+export const patternValidations = pgTable('pattern_validations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').references(() => enforcementSessions.id, { onDelete: 'cascade' }).notNull(),
+
+  // Feature being validated
+  featureName: text('feature_name').notNull(),
+  featureDescription: text('feature_description'),
+
+  // What was checked
+  filesModified: text('files_modified'), // JSON array
+  testsWritten: text('tests_written'), // JSON array of test file paths
+
+  // Results
+  passed: boolean('passed').notNull(),
+  issues: text('issues'), // JSON array of { type, message, severity }
+
+  // Individual checks
+  startGateVerified: boolean('start_gate_verified'), // Was discover_patterns called?
+  testsExist: boolean('tests_exist'),
+  testsPass: boolean('tests_pass'),
+  typescriptCompiles: boolean('typescript_compiles'),
+
+  // Response metrics
+  responseTimeMs: integer('response_time_ms'),
+
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Relations for enforcement
+export const enforcementSessionsRelations = relations(enforcementSessions, ({ one, many }) => ({
+  team: one(teams, {
+    fields: [enforcementSessions.teamId],
+    references: [teams.id],
+  }),
+  apiKey: one(apiKeys, {
+    fields: [enforcementSessions.apiKeyId],
+    references: [apiKeys.id],
+  }),
+  discoveries: many(patternDiscoveries),
+  validations: many(patternValidations),
+}));
+
+export const patternDiscoveriesRelations = relations(patternDiscoveries, ({ one }) => ({
+  session: one(enforcementSessions, {
+    fields: [patternDiscoveries.sessionId],
+    references: [enforcementSessions.id],
+  }),
+}));
+
+export const patternValidationsRelations = relations(patternValidations, ({ one }) => ({
+  session: one(enforcementSessions, {
+    fields: [patternValidations.sessionId],
+    references: [enforcementSessions.id],
+  }),
+}));
+
+// Types for enforcement
+export type EnforcementSession = typeof enforcementSessions.$inferSelect;
+export type NewEnforcementSession = typeof enforcementSessions.$inferInsert;
+export type PatternDiscovery = typeof patternDiscoveries.$inferSelect;
+export type NewPatternDiscovery = typeof patternDiscoveries.$inferInsert;
+export type PatternValidation = typeof patternValidations.$inferSelect;
+export type NewPatternValidation = typeof patternValidations.$inferInsert;
+export type EnforcementSessionStatus = 'active' | 'completed' | 'failed' | 'expired';

@@ -68,6 +68,7 @@ class CodeBakersServer {
   private pendingUpdate: { current: string; latest: string } | null = null;
   private lastUpdateCheck = 0;
   private updateCheckInterval = 60 * 60 * 1000; // Check every hour
+  private currentSessionToken: string | null = null; // v6.0: Server-side enforcement session
 
   constructor() {
     this.apiKey = getApiKey();
@@ -3823,52 +3824,32 @@ Just describe what you want to build! I'll automatically:
   }
 
   /**
-   * MANDATORY: Validate that a feature is complete before AI can say "done"
-   * Checks: discover_patterns was called, tests exist, tests pass, TypeScript compiles
+   * MANDATORY: Validate that a feature is complete before AI can say "done" (v6.0 Server-Side)
+   * Runs local checks (tests, TypeScript), then validates with server
    */
-  private handleValidateComplete(args: { feature: string; files?: string[] }) {
+  private async handleValidateComplete(args: { feature: string; files?: string[] }) {
     const { feature, files = [] } = args;
     const cwd = process.cwd();
-    const issues: string[] = [];
-    let patternsDiscovered = false;
     let testsExist = false;
     let testsPass = false;
     let typescriptPass = false;
+    const testsWritten: string[] = [];
 
-    // Step 0: Check if discover_patterns was called (compliance tracking)
-    try {
-      const stateFile = path.join(cwd, '.codebakers.json');
-      if (fs.existsSync(stateFile)) {
-        const state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
-        const compliance = state.compliance as { discoveries?: unknown[] } | undefined;
-
-        if (compliance?.discoveries && Array.isArray(compliance.discoveries)) {
-          // Check if there's a recent discovery (within last 30 minutes)
-          const recentDiscovery = compliance.discoveries.find((d: unknown) => {
-            const discovery = d as { timestamp?: string; task?: string };
-            if (!discovery.timestamp) return false;
-            const age = Date.now() - new Date(discovery.timestamp).getTime();
-            return age < 30 * 60 * 1000; // 30 minutes
-          });
-
-          if (recentDiscovery) {
-            patternsDiscovered = true;
-          } else {
-            issues.push('PATTERNS_NOT_CHECKED: You did not call `discover_patterns` before writing code. You MUST check existing patterns first.');
-          }
-        } else {
-          issues.push('PATTERNS_NOT_CHECKED: You did not call `discover_patterns` before writing code. You MUST check existing patterns first.');
+    // Step 1: Get session token (from memory or state file)
+    let sessionToken = this.currentSessionToken;
+    if (!sessionToken) {
+      try {
+        const stateFile = path.join(cwd, '.codebakers.json');
+        if (fs.existsSync(stateFile)) {
+          const state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+          sessionToken = (state.currentSessionToken as string | undefined) || null;
         }
-      } else {
-        // No state file - patterns weren't discovered
-        issues.push('PATTERNS_NOT_CHECKED: You did not call `discover_patterns` before writing code. You MUST check existing patterns first.');
+      } catch {
+        // Ignore errors
       }
-    } catch {
-      // If we can't read state, warn but don't fail
-      issues.push('PATTERNS_UNKNOWN: Could not verify if `discover_patterns` was called. Please call it before continuing.');
     }
 
-    // Step 1: Check if test files exist
+    // Step 2: Check if test files exist and find them
     try {
       const testDirs = ['tests', 'test', '__tests__', 'src/__tests__', 'src/tests'];
       const testExtensions = ['.test.ts', '.test.tsx', '.spec.ts', '.spec.tsx'];
@@ -3880,31 +3861,31 @@ Just describe what you want to build! I'll automatically:
             .filter((f: string | Buffer) => testExtensions.some(ext => String(f).endsWith(ext)));
           if (testFiles.length > 0) {
             testsExist = true;
-            break;
+            testsWritten.push(...testFiles.map(f => path.join(dir, String(f))));
           }
         }
       }
 
       // Also check for test files adjacent to source files
-      if (!testsExist && files.length > 0) {
+      if (files.length > 0) {
         for (const file of files) {
           const testFile = file.replace(/\.tsx?$/, '.test.ts');
           const specFile = file.replace(/\.tsx?$/, '.spec.ts');
-          if (fs.existsSync(path.join(cwd, testFile)) || fs.existsSync(path.join(cwd, specFile))) {
+          if (fs.existsSync(path.join(cwd, testFile))) {
             testsExist = true;
-            break;
+            testsWritten.push(testFile);
+          }
+          if (fs.existsSync(path.join(cwd, specFile))) {
+            testsExist = true;
+            testsWritten.push(specFile);
           }
         }
       }
-
-      if (!testsExist) {
-        issues.push('NO_TESTS: No test files found. You MUST write tests before completing this feature.');
-      }
     } catch {
-      issues.push('NO_TESTS: Could not verify test files exist.');
+      // Ignore errors
     }
 
-    // Step 2: Run tests
+    // Step 3: Run tests locally
     if (testsExist) {
       try {
         let testCommand = 'npm test';
@@ -3924,13 +3905,12 @@ Just describe what you want to build! I'll automatically:
           stdio: ['pipe', 'pipe', 'pipe'],
         });
         testsPass = true;
-      } catch (error) {
-        const execError = error as { stderr?: string };
-        issues.push(`TESTS_FAIL: Tests are failing. Fix them before completing.\n${execError.stderr?.slice(0, 500) || ''}`);
+      } catch {
+        testsPass = false;
       }
     }
 
-    // Step 3: Run TypeScript check
+    // Step 4: Run TypeScript check locally
     try {
       execSync('npx tsc --noEmit', {
         cwd,
@@ -3939,257 +3919,346 @@ Just describe what you want to build! I'll automatically:
         stdio: ['pipe', 'pipe', 'pipe'],
       });
       typescriptPass = true;
-    } catch (error) {
-      const execError = error as { stdout?: string; stderr?: string };
-      const output = execError.stdout || execError.stderr || '';
-      issues.push(`TYPESCRIPT_ERRORS: TypeScript compilation failed.\n${output.slice(0, 500)}`);
+    } catch {
+      typescriptPass = false;
     }
 
-    // Generate response
-    const valid = patternsDiscovered && testsExist && testsPass && typescriptPass;
+    // Step 5: Call server API for validation
+    if (sessionToken) {
+      try {
+        const response = await fetch(`${this.apiUrl}/api/patterns/validate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...this.getAuthHeaders(),
+          },
+          body: JSON.stringify({
+            sessionToken,
+            featureName: feature,
+            featureDescription: `Feature implementation for: ${feature}`,
+            filesModified: files,
+            testsWritten,
+            testsRun: testsExist,
+            testsPassed: testsPass,
+            typescriptPassed: typescriptPass,
+          }),
+        });
 
-    let response = `# ✅ Feature Validation: ${feature}\n\n`;
-    response += `| Check | Status |\n|-------|--------|\n`;
-    response += `| Patterns discovered | ${patternsDiscovered ? '✅ PASS' : '❌ FAIL'} |\n`;
-    response += `| Tests exist | ${testsExist ? '✅ PASS' : '❌ FAIL'} |\n`;
-    response += `| Tests pass | ${testsPass ? '✅ PASS' : testsExist ? '❌ FAIL' : '⏭️ SKIP'} |\n`;
-    response += `| TypeScript compiles | ${typescriptPass ? '✅ PASS' : '❌ FAIL'} |\n\n`;
+        const result = await response.json();
 
-    if (valid) {
-      response += `## ✅ Feature is COMPLETE\n\n`;
-      response += `All validation checks passed. You may now mark this feature as done.\n`;
+        // Save validation result for pre-commit hook
+        try {
+          const stateFile = path.join(cwd, '.codebakers.json');
+          let state: Record<string, unknown> = {};
+          if (fs.existsSync(stateFile)) {
+            state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+          }
+
+          // Save validation details for pre-commit hook
+          state.lastValidation = {
+            passed: result.passed,
+            timestamp: new Date().toISOString(),
+            feature,
+            issues: result.issues || [],
+            testsExist,
+            testsPassed: testsPass,
+            typescriptPassed: typescriptPass,
+          };
+
+          // Clear session token only if validation passed
+          if (result.passed) {
+            this.currentSessionToken = null;
+            delete state.currentSessionToken;
+            state.lastValidationAt = new Date().toISOString();
+            state.lastValidationPassed = true;
+          }
+
+          fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
+        } catch {
+          // Ignore errors
+        }
+
+        // Generate response from server result
+        let responseText = `# ✅ Feature Validation: ${feature}\n\n`;
+        responseText += `## Server Validation Result\n\n`;
+        responseText += `**Status:** ${result.passed ? '✅ PASSED' : '❌ FAILED'}\n\n`;
+
+        if (result.issues && result.issues.length > 0) {
+          responseText += `### Issues:\n\n`;
+          for (const issue of result.issues) {
+            const icon = issue.severity === 'error' ? '❌' : '⚠️';
+            responseText += `${icon} **${issue.type}**: ${issue.message}\n\n`;
+          }
+        }
+
+        responseText += `### Local Checks:\n\n`;
+        responseText += `| Check | Status |\n|-------|--------|\n`;
+        responseText += `| Tests exist | ${testsExist ? '✅ PASS' : '❌ FAIL'} |\n`;
+        responseText += `| Tests pass | ${testsPass ? '✅ PASS' : testsExist ? '❌ FAIL' : '⏭️ SKIP'} |\n`;
+        responseText += `| TypeScript compiles | ${typescriptPass ? '✅ PASS' : '❌ FAIL'} |\n\n`;
+
+        if (result.passed) {
+          responseText += `## ✅ Feature is COMPLETE\n\n`;
+          responseText += `Server has recorded this completion. You may now mark this feature as done.\n`;
+        } else {
+          responseText += `## ❌ Feature is NOT COMPLETE\n\n`;
+          responseText += `**${result.nextSteps || 'Fix the issues above and try again.'}**\n`;
+        }
+
+        return {
+          content: [{
+            type: 'text' as const,
+            text: responseText,
+          }],
+          isError: !result.passed,
+        };
+      } catch (error) {
+        // Server unreachable - fall back to local validation
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        const valid = testsExist && testsPass && typescriptPass;
+
+        let responseText = `# ✅ Feature Validation: ${feature}\n\n`;
+        responseText += `## ⚠️ OFFLINE MODE - Server Unreachable\n\n`;
+        responseText += `Error: ${message}\n\n`;
+        responseText += `### Local Checks Only:\n\n`;
+        responseText += `| Check | Status |\n|-------|--------|\n`;
+        responseText += `| Tests exist | ${testsExist ? '✅ PASS' : '❌ FAIL'} |\n`;
+        responseText += `| Tests pass | ${testsPass ? '✅ PASS' : testsExist ? '❌ FAIL' : '⏭️ SKIP'} |\n`;
+        responseText += `| TypeScript compiles | ${typescriptPass ? '✅ PASS' : '❌ FAIL'} |\n\n`;
+        responseText += `**Note:** Server validation skipped due to connection error.\n`;
+
+        return {
+          content: [{
+            type: 'text' as const,
+            text: responseText,
+          }],
+          isError: !valid,
+        };
+      }
     } else {
-      response += `## ❌ Feature is NOT COMPLETE\n\n`;
-      response += `**You are NOT ALLOWED to say "done" or "complete" until all checks pass.**\n\n`;
-      response += `### Issues to fix:\n\n`;
-      for (const issue of issues) {
-        response += `- ${issue}\n\n`;
-      }
-      if (!patternsDiscovered) {
-        response += `---\n\n**First, call \`discover_patterns\` to check existing code patterns. Then fix remaining issues and call \`validate_complete\` again.**`;
-      } else {
-        response += `---\n\n**Fix these issues and call \`validate_complete\` again.**`;
-      }
-    }
+      // No session token - cannot validate with server
+      let responseText = `# ❌ Feature Validation: ${feature}\n\n`;
+      responseText += `## ⛔ NO SESSION TOKEN\n\n`;
+      responseText += `You must call \`discover_patterns\` BEFORE writing code to get a session token.\n\n`;
+      responseText += `### Local Checks (not sufficient for completion):\n\n`;
+      responseText += `| Check | Status |\n|-------|--------|\n`;
+      responseText += `| Tests exist | ${testsExist ? '✅ PASS' : '❌ FAIL'} |\n`;
+      responseText += `| Tests pass | ${testsPass ? '✅ PASS' : testsExist ? '❌ FAIL' : '⏭️ SKIP'} |\n`;
+      responseText += `| TypeScript compiles | ${typescriptPass ? '✅ PASS' : '❌ FAIL'} |\n\n`;
+      responseText += `**You CANNOT complete this feature without a valid session.**\n`;
+      responseText += `Call \`discover_patterns\` first, then implement the feature, then call \`validate_complete\` again.`;
 
-    return {
-      content: [{
-        type: 'text' as const,
-        text: response,
-      }],
-      // Return structured data for programmatic use
-      isError: !valid,
-    };
+      return {
+        content: [{
+          type: 'text' as const,
+          text: responseText,
+        }],
+        isError: true,
+      };
+    }
   }
 
   /**
-   * discover_patterns - START gate for pattern compliance
+   * discover_patterns - START gate for pattern compliance (v6.0 Server-Side)
    * MUST be called before writing any code
+   * Calls server API to get patterns and creates enforcement session
    */
-  private handleDiscoverPatterns(args: { task: string; files?: string[]; keywords?: string[] }) {
+  private async handleDiscoverPatterns(args: { task: string; files?: string[]; keywords?: string[] }) {
     const { task, files = [], keywords = [] } = args;
     const cwd = process.cwd();
 
-    // Extract keywords from task if not provided
-    const taskKeywords = this.extractKeywords(task);
-    const allKeywords = [...new Set([...keywords, ...taskKeywords])];
-
-    // Results to return
-    const patterns: string[] = [];
-    const existingCode: { file: string; lines: string; snippet: string }[] = [];
-    const mustFollow: string[] = [];
-
-    // Step 1: Identify relevant .claude/ patterns based on keywords
-    const patternMap: Record<string, string[]> = {
-      'auth': ['02-auth.md'],
-      'login': ['02-auth.md'],
-      'signup': ['02-auth.md'],
-      'password': ['02-auth.md'],
-      'session': ['02-auth.md'],
-      'oauth': ['02-auth.md'],
-      'payment': ['05-payments.md'],
-      'stripe': ['05-payments.md'],
-      'billing': ['05-payments.md'],
-      'subscription': ['05-payments.md'],
-      'checkout': ['05-payments.md'],
-      'database': ['01-database.md'],
-      'schema': ['01-database.md'],
-      'drizzle': ['01-database.md'],
-      'query': ['01-database.md'],
-      'api': ['03-api.md'],
-      'route': ['03-api.md'],
-      'endpoint': ['03-api.md'],
-      'form': ['04-frontend.md'],
-      'component': ['04-frontend.md'],
-      'react': ['04-frontend.md'],
-      'email': ['06b-email.md'],
-      'resend': ['06b-email.md'],
-      'voice': ['06a-voice.md'],
-      'vapi': ['06a-voice.md'],
-      'test': ['08-testing.md'],
-      'playwright': ['08-testing.md'],
-    };
-
-    for (const keyword of allKeywords) {
-      const lowerKeyword = keyword.toLowerCase();
-      for (const [key, patternFiles] of Object.entries(patternMap)) {
-        if (lowerKeyword.includes(key) || key.includes(lowerKeyword)) {
-          patterns.push(...patternFiles);
-        }
-      }
-    }
-
-    // Always include 00-core.md
-    if (!patterns.includes('00-core.md')) {
-      patterns.unshift('00-core.md');
-    }
-
-    // Deduplicate
-    const uniquePatterns = [...new Set(patterns)];
-
-    // Step 2: Search codebase for similar implementations
-    const searchDirs = ['src/services', 'src/lib', 'src/app/api', 'src/components', 'lib', 'services'];
-    const searchExtensions = ['.ts', '.tsx'];
-
-    for (const keyword of allKeywords.slice(0, 5)) { // Limit to avoid too many searches
-      for (const dir of searchDirs) {
-        const searchDir = path.join(cwd, dir);
-        if (!fs.existsSync(searchDir)) continue;
-
-        try {
-          const files = this.findFilesRecursive(searchDir, searchExtensions);
-          for (const file of files.slice(0, 20)) { // Limit files per dir
-            try {
-              const content = fs.readFileSync(file, 'utf-8');
-              const lines = content.split('\n');
-
-              for (let i = 0; i < lines.length; i++) {
-                if (lines[i].toLowerCase().includes(keyword.toLowerCase())) {
-                  // Found a match - extract context
-                  const startLine = Math.max(0, i - 2);
-                  const endLine = Math.min(lines.length - 1, i + 5);
-                  const snippet = lines.slice(startLine, endLine + 1).join('\n');
-
-                  const relativePath = path.relative(cwd, file);
-
-                  // Avoid duplicates
-                  if (!existingCode.some(e => e.file === relativePath && Math.abs(parseInt(e.lines.split('-')[0]) - (startLine + 1)) < 5)) {
-                    existingCode.push({
-                      file: relativePath,
-                      lines: `${startLine + 1}-${endLine + 1}`,
-                      snippet: snippet.slice(0, 300),
-                    });
-                  }
-
-                  // Only get first match per file
-                  break;
-                }
-              }
-            } catch {
-              // Skip unreadable files
-            }
-          }
-        } catch {
-          // Skip inaccessible dirs
-        }
-      }
-    }
-
-    // Step 3: Extract patterns from existing code
-    if (existingCode.length > 0) {
-      // Look for common patterns in existing code
-      for (const code of existingCode) {
-        if (code.snippet.includes('.insert(')) {
-          mustFollow.push(`Use .insert() for creating new records (found in ${code.file})`);
-        }
-        if (code.snippet.includes('.upsert(')) {
-          mustFollow.push(`Use .upsert() for create-or-update operations (found in ${code.file})`);
-        }
-        if (code.snippet.includes('try {') && code.snippet.includes('catch')) {
-          mustFollow.push(`Wrap database/API operations in try/catch (found in ${code.file})`);
-        }
-        if (code.snippet.includes('NextResponse.json')) {
-          mustFollow.push(`Use NextResponse.json() for API responses (found in ${code.file})`);
-        }
-        if (code.snippet.includes('z.object')) {
-          mustFollow.push(`Use Zod for input validation (found in ${code.file})`);
-        }
-      }
-    }
-
-    // Deduplicate mustFollow
-    const uniqueMustFollow = [...new Set(mustFollow)];
-
-    // Step 4: Log discovery to .codebakers.json for compliance tracking
+    // Generate project hash for context
+    let projectHash: string | undefined;
+    let projectName: string | undefined;
     try {
-      const stateFile = path.join(cwd, '.codebakers.json');
-      let state: Record<string, unknown> = {};
-      if (fs.existsSync(stateFile)) {
-        state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+      const pkgPath = path.join(cwd, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+        projectName = pkg.name || path.basename(cwd);
+      } else {
+        projectName = path.basename(cwd);
       }
+      // Simple hash of project path
+      projectHash = Buffer.from(cwd).toString('base64').slice(0, 32);
+    } catch {
+      projectName = path.basename(cwd);
+    }
 
-      if (!state.compliance) {
-        state.compliance = { discoveries: [], violations: [] };
-      }
-
-      const compliance = state.compliance as { discoveries: unknown[]; violations: unknown[] };
-      compliance.discoveries.push({
-        task,
-        patterns: uniquePatterns,
-        existingCodeChecked: existingCode.map(e => e.file),
-        timestamp: new Date().toISOString(),
+    try {
+      // Call server API to discover patterns and create enforcement session
+      const response = await fetch(`${this.apiUrl}/api/patterns/discover`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          task,
+          files,
+          keywords,
+          projectHash,
+          projectName,
+        }),
       });
 
-      // Keep only last 50 discoveries
-      if (compliance.discoveries.length > 50) {
-        compliance.discoveries = compliance.discoveries.slice(-50);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Server returned an error');
       }
 
-      fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
-    } catch {
-      // Ignore state file errors
-    }
+      const result = await response.json();
 
-    // Generate response
-    let response = `# 🔍 Pattern Discovery: ${task}\n\n`;
-    response += `## ⛔ MANDATORY: You MUST follow these patterns before writing code\n\n`;
+      // Store session token for validate_complete
+      this.currentSessionToken = result.sessionToken;
 
-    response += `### 📦 Patterns to Load\n\n`;
-    response += `Load these from \`.claude/\` folder:\n`;
-    for (const pattern of uniquePatterns) {
-      response += `- \`${pattern}\`\n`;
-    }
-
-    if (existingCode.length > 0) {
-      response += `\n### 🔎 Existing Code to Follow\n\n`;
-      response += `Found ${existingCode.length} relevant implementation(s):\n\n`;
-      for (const code of existingCode.slice(0, 5)) { // Limit output
-        response += `**${code.file}:${code.lines}**\n`;
-        response += `\`\`\`typescript\n${code.snippet}\n\`\`\`\n\n`;
+      // Also store in local state file for persistence across restarts
+      try {
+        const stateFile = path.join(cwd, '.codebakers.json');
+        let state: Record<string, unknown> = {};
+        if (fs.existsSync(stateFile)) {
+          state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+        }
+        state.currentSessionToken = result.sessionToken;
+        state.lastDiscoveryTask = task;
+        state.lastDiscoveryAt = new Date().toISOString();
+        // Session expires in 2 hours (server default)
+        state.sessionExpiresAt = result.expiresAt || new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+        // Clear any previous validation (new session = new work)
+        delete state.lastValidation;
+        fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
+      } catch {
+        // Ignore state file errors
       }
-    }
 
-    if (uniqueMustFollow.length > 0) {
-      response += `### ✅ Patterns You MUST Follow\n\n`;
-      for (const rule of uniqueMustFollow) {
-        response += `- ${rule}\n`;
+      // Generate response with ALL instructions from server
+      let responseText = `# 🔍 Pattern Discovery: ${task}\n\n`;
+      responseText += `## ⛔ SERVER-ENFORCED SESSION ACTIVE\n\n`;
+      responseText += `**Session Token:** \`${result.sessionToken}\`\n\n`;
+      responseText += `---\n\n`;
+
+      // Section 1: Patterns from server
+      if (result.patterns && result.patterns.length > 0) {
+        responseText += `## 📦 MANDATORY PATTERNS\n\n`;
+        responseText += `You MUST follow these patterns in your code:\n\n`;
+        for (const pattern of result.patterns) {
+          responseText += `### ${pattern.name}\n\n`;
+          responseText += `**Relevance:** ${pattern.relevance}\n\n`;
+          responseText += `\`\`\`typescript\n${pattern.content || ''}\n\`\`\`\n\n`;
+        }
       }
+
+      // Section 2: Test Requirements (ALL from server, not local file)
+      responseText += `---\n\n`;
+      responseText += `## 🧪 MANDATORY: TESTS REQUIRED\n\n`;
+      responseText += `**You MUST write and run tests. Validation will FAIL without them.**\n\n`;
+      responseText += `### Test Frameworks\n\n`;
+      responseText += `| Type | Framework | Command |\n`;
+      responseText += `|------|-----------|--------|\n`;
+      responseText += `| Unit tests | Vitest | \`npm run test\` or \`npx vitest run\` |\n`;
+      responseText += `| E2E tests | Playwright | \`npx playwright test\` |\n\n`;
+      responseText += `### Test File Locations\n\n`;
+      responseText += `| Code Type | Test Location |\n`;
+      responseText += `|-----------|---------------|\n`;
+      responseText += `| API routes | \`tests/api/[route].test.ts\` |\n`;
+      responseText += `| Components | \`[component].test.tsx\` |\n`;
+      responseText += `| Services | \`tests/services/[service].test.ts\` |\n`;
+      responseText += `| E2E flows | \`e2e/[feature].spec.ts\` |\n\n`;
+      responseText += `### Minimum Test Template\n\n`;
+      responseText += `\`\`\`typescript\n`;
+      responseText += `// Vitest unit test\n`;
+      responseText += `import { describe, it, expect } from 'vitest';\n\n`;
+      responseText += `describe('FeatureName', () => {\n`;
+      responseText += `  it('should handle happy path', () => {\n`;
+      responseText += `    // Test success case\n`;
+      responseText += `  });\n\n`;
+      responseText += `  it('should handle errors', () => {\n`;
+      responseText += `    // Test error case\n`;
+      responseText += `  });\n`;
+      responseText += `});\n`;
+      responseText += `\`\`\`\n\n`;
+
+      // Section 3: Workflow
+      responseText += `---\n\n`;
+      responseText += `## 📋 REQUIRED WORKFLOW\n\n`;
+      responseText += `1. ✅ **Read patterns above** - they are MANDATORY\n`;
+      responseText += `2. ✅ **Write feature code** following the patterns\n`;
+      responseText += `3. ✅ **Write test file(s)** - include happy path + error cases\n`;
+      responseText += `4. ✅ **Run tests**: \`npm run test\`\n`;
+      responseText += `5. ✅ **Fix TypeScript errors**: \`npx tsc --noEmit\`\n`;
+      responseText += `6. ✅ **Call \`validate_complete\`** before saying "done"\n\n`;
+
+      // Section 4: Validation
+      responseText += `---\n\n`;
+      responseText += `## ✅ BEFORE SAYING "DONE"\n\n`;
+      responseText += `You MUST call the \`validate_complete\` MCP tool:\n\n`;
+      responseText += `\`\`\`\n`;
+      responseText += `Tool: validate_complete\n`;
+      responseText += `Args: { feature: "${task}", files: ["list of files you modified"] }\n`;
+      responseText += `\`\`\`\n\n`;
+      responseText += `This tool will:\n`;
+      responseText += `- Verify you called discover_patterns (server checks)\n`;
+      responseText += `- Check that test files exist\n`;
+      responseText += `- Run \`npm test\` and verify tests pass\n`;
+      responseText += `- Run TypeScript check\n`;
+      responseText += `- Report PASS or FAIL from server\n\n`;
+      responseText += `**You CANNOT mark this feature complete without calling validate_complete.**\n\n`;
+
+      // Section 5: Rules
+      responseText += `---\n\n`;
+      responseText += `## ⚠️ RULES (SERVER-ENFORCED)\n\n`;
+      responseText += `1. You CANNOT skip these patterns - server tracks compliance\n`;
+      responseText += `2. You CANNOT say "done" without validate_complete passing\n`;
+      responseText += `3. Tests are MANDATORY - validation fails without them\n`;
+      responseText += `4. TypeScript must compile - validation fails on errors\n`;
+      responseText += `5. Pre-commit hook blocks commits without passed validation\n\n`;
+      responseText += `**Server is tracking this session. Compliance is enforced.**`;
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: responseText,
+        }],
+      };
+    } catch (error) {
+      // Fallback to local-only mode if server is unreachable
+      const message = error instanceof Error ? error.message : 'Unknown error';
+
+      // Generate local patterns as fallback
+      const taskKeywords = this.extractKeywords(task);
+      const allKeywords = [...new Set([...keywords, ...taskKeywords])];
+
+      const patternMap: Record<string, string[]> = {
+        'auth': ['02-auth.md'], 'login': ['02-auth.md'], 'payment': ['05-payments.md'],
+        'stripe': ['05-payments.md'], 'database': ['01-database.md'], 'api': ['03-api.md'],
+        'form': ['04-frontend.md'], 'component': ['04-frontend.md'], 'test': ['08-testing.md'],
+      };
+
+      const patterns: string[] = ['00-core.md'];
+      for (const keyword of allKeywords) {
+        const lowerKeyword = keyword.toLowerCase();
+        for (const [key, patternFiles] of Object.entries(patternMap)) {
+          if (lowerKeyword.includes(key)) patterns.push(...patternFiles);
+        }
+      }
+      const uniquePatterns = [...new Set(patterns)];
+
+      let responseText = `# 🔍 Pattern Discovery: ${task}\n\n`;
+      responseText += `## ⚠️ OFFLINE MODE - Server Unreachable\n\n`;
+      responseText += `Error: ${message}\n\n`;
+      responseText += `**Using local pattern suggestions (not enforced):**\n\n`;
+      for (const p of uniquePatterns) {
+        responseText += `- \`${p}\`\n`;
+      }
+      responseText += `\n**Note:** Without server connection, enforcement is not active.\n`;
+      responseText += `Validation will also be limited to local checks only.`;
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: responseText,
+        }],
+      };
     }
-
-    response += `\n---\n\n`;
-    response += `## ⚠️ BEFORE WRITING CODE:\n\n`;
-    response += `1. ✅ Read the patterns listed above\n`;
-    response += `2. ✅ Check the existing code snippets\n`;
-    response += `3. ✅ Follow the same patterns in your new code\n`;
-    response += `4. ✅ When done, call \`validate_complete\` to verify\n\n`;
-    response += `**You are NOT ALLOWED to skip these steps.**`;
-
-    return {
-      content: [{
-        type: 'text' as const,
-        text: response,
-      }],
-    };
   }
 
   /**

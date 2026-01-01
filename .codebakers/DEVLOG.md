@@ -1,5 +1,55 @@
 # Development Log
 
+## 2025-12-31 - Server-Side Enforcement v6.0
+**Session:** 2025-12-31T19:30:00Z
+**Task Size:** LARGE
+**Status:** Completed
+
+### What was done:
+- Created database schema for enforcement sessions (enforcement_sessions, pattern_discoveries, pattern_validations tables)
+- Created enforcement-service.ts with server-side logic for discover_patterns and validate_complete
+- Created 3 new API endpoints: /api/patterns/discover, /api/patterns/validate, /api/patterns/get
+- Updated CLI MCP server to call server APIs instead of local pattern files
+- Added session token tracking (stored in memory and .codebakers.json)
+- Created minimal CLAUDE.md and .cursorrules templates for v6.0 (patterns come from server)
+- Added migration logic to CLI upgrade command (backs up old files, removes .claude/ folder)
+- Updated CLI version to 3.4.0
+
+### Problem solved:
+- AI could still choose to ignore local MCP tools and pattern files
+- Server-side enforcement makes compliance mandatory - server tracks sessions
+- No local pattern files to skip - patterns come from server on every request
+
+### Architecture:
+1. **START GATE**: `discover_patterns` calls server → creates session → returns patterns + session token
+2. **END GATE**: `validate_complete` runs local tests/TypeScript → calls server with results → server verifies session
+3. **Fallback**: If server unreachable, shows "OFFLINE MODE" with limited local checks only
+
+### Files changed:
+- `src/db/schema.ts` - Added enforcement tables
+- `src/services/enforcement-service.ts` - NEW: Server enforcement logic
+- `src/app/api/patterns/discover/route.ts` - NEW: START gate endpoint
+- `src/app/api/patterns/validate/route.ts` - NEW: END gate endpoint
+- `src/app/api/patterns/get/route.ts` - NEW: Get patterns with session
+- `cli/src/mcp/server.ts` - Updated handlers to call server APIs
+- `cli/src/commands/upgrade.ts` - Added v6.0 migration logic
+- `cli/package.json` - Bumped to 3.4.0
+- `newfiles/CLAUDE.md.v6` - Minimal v6 template
+- `newfiles/.cursorrules.v6` - Minimal v6 template
+- `scripts/push-v45.js` - Updated for v6.0
+
+### Migration behavior:
+- `codebakers upgrade` detects pre-6.0 → runs migration
+- Backs up CLAUDE.md, .cursorrules, .claude/ to .codebakers/backup/
+- Writes minimal CLAUDE.md and .cursorrules
+- Deletes .claude/ folder (patterns now server-side)
+- Sets `serverEnforced: true` in .codebakers.json
+
+### Key insight:
+Moving enforcement to the server makes it impossible for AI to skip - there are no local files to ignore. The server tracks every session and validates compliance before allowing completion.
+
+---
+
 ## 2025-12-31 - Two-Gate Enforcement v5.9
 **Session:** 2025-12-31T18:10:00Z
 **Task Size:** MEDIUM

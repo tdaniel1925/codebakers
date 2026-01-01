@@ -15,6 +15,10 @@ import {
   Star,
   Clock,
   Github,
+  CheckCircle,
+  XCircle,
+  Activity,
+  Lock,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +36,21 @@ interface TrialStats {
   extensionRate: number;
 }
 
+interface EnforcementStats {
+  totalSessions: number;
+  activeSessions: number;
+  completedSessions: number;
+  expiredSessions: number;
+  sessionsToday: number;
+  sessionsThisWeek: number;
+  totalDiscoveries: number;
+  totalValidations: number;
+  passedValidations: number;
+  failedValidations: number;
+  passRate: number;
+  uniqueProjects: number;
+}
+
 interface Stats {
   users: {
     totalUsers: number;
@@ -46,6 +65,7 @@ interface Stats {
     recentCount: number;
   };
   trials?: TrialStats;
+  enforcement?: EnforcementStats;
 }
 
 export default function AdminDashboardPage() {
@@ -58,20 +78,23 @@ export default function AdminDashboardPage() {
 
   const fetchStats = async () => {
     try {
-      // Fetch main stats and trial stats in parallel
-      const [statsRes, trialsRes] = await Promise.all([
+      // Fetch main stats, trial stats, and enforcement stats in parallel
+      const [statsRes, trialsRes, enforcementRes] = await Promise.all([
         fetch('/api/admin/stats'),
         fetch('/api/admin/trials/stats'),
+        fetch('/api/admin/enforcement/stats'),
       ]);
 
       if (!statsRes.ok) throw new Error('Failed to fetch stats');
 
       const statsData = await statsRes.json();
       const trialsData = trialsRes.ok ? await trialsRes.json() : null;
+      const enforcementData = enforcementRes.ok ? await enforcementRes.json() : null;
 
       setStats({
         ...statsData.data,
         trials: trialsData?.data?.stats || null,
+        enforcement: enforcementData?.data?.stats || null,
       });
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -295,6 +318,82 @@ export default function AdminDashboardPage() {
                 )}
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* v6.0 Enforcement Stats */}
+      {stats?.enforcement && (
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Lock className="h-5 w-5 text-purple-400" />
+                  v6.0 Server Enforcement
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Pattern discovery and validation sessions
+                </CardDescription>
+              </div>
+              <Link href="/admin/enforcement">
+                <Button variant="outline" size="sm" className="border-slate-700">
+                  View Sessions
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs flex items-center gap-1">
+                  <Activity className="h-3 w-3" /> Active Sessions
+                </p>
+                <p className="text-xl font-bold text-green-400 mt-1">
+                  {stats.enforcement.activeSessions}
+                </p>
+              </div>
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3" /> Completed
+                </p>
+                <p className="text-xl font-bold text-blue-400 mt-1">
+                  {stats.enforcement.completedSessions}
+                </p>
+              </div>
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs">Pass Rate</p>
+                <p className="text-xl font-bold text-purple-400 mt-1">
+                  {stats.enforcement.passRate}%
+                </p>
+                <p className="text-xs text-slate-400">
+                  {stats.enforcement.passedValidations}/{stats.enforcement.totalValidations}
+                </p>
+              </div>
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs flex items-center gap-1">
+                  <XCircle className="h-3 w-3" /> Failed
+                </p>
+                <p className="text-xl font-bold text-red-400 mt-1">
+                  {stats.enforcement.failedValidations}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-slate-700 grid grid-cols-3 gap-4 text-sm">
+              <div className="text-center">
+                <p className="text-slate-400">Today</p>
+                <p className="text-lg font-bold text-white">{stats.enforcement.sessionsToday}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-slate-400">This Week</p>
+                <p className="text-lg font-bold text-white">{stats.enforcement.sessionsThisWeek}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-slate-400">Unique Projects</p>
+                <p className="text-lg font-bold text-white">{stats.enforcement.uniqueProjects}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

@@ -7,6 +7,7 @@ import { install } from './commands/install.js';
 import { status } from './commands/status.js';
 import { uninstall } from './commands/uninstall.js';
 import { installHook, uninstallHook } from './commands/install-hook.js';
+import { installPrecommit } from './commands/install-precommit.js';
 import { doctor } from './commands/doctor.js';
 import { init } from './commands/init.js';
 import { serve } from './commands/serve.js';
@@ -470,6 +471,11 @@ program
   .command('uninstall-hook')
   .description('Remove the CodeBakers hook from Claude Code')
   .action(uninstallHook);
+
+program
+  .command('install-precommit')
+  .description('Install git pre-commit hook for session enforcement (v6.0)')
+  .action(installPrecommit);
 
 program
   .command('doctor')

@@ -1,0 +1,46 @@
+# CodeBakers v6.0 - Server-Enforced Patterns
+
+All patterns are server-side. No local pattern files needed.
+
+## Required MCP Tools
+
+Before writing ANY code, you MUST use these CodeBakers MCP tools:
+
+### 1. discover_patterns (MANDATORY - START GATE)
+Call this BEFORE writing any code:
+- Tool: discover_patterns
+- Args: { task: "what you're about to do", files: ["files to modify"], keywords: ["relevant terms"] }
+
+Returns:
+- Relevant patterns from the server
+- A session token (required for validation)
+- Code examples to follow
+
+### 2. validate_complete (MANDATORY - END GATE)
+Call this BEFORE saying "done" or "complete":
+- Tool: validate_complete
+- Args: { feature: "what you built", files: ["files modified"] }
+
+Checks:
+- You called discover_patterns first (server verifies)
+- Tests exist and pass
+- TypeScript compiles
+- Returns pass/fail from server
+
+## Rules
+
+1. You CANNOT skip discover_patterns - Server tracks compliance
+2. You CANNOT say "done" without validate_complete - Server must approve
+3. Follow patterns returned by server - They are mandatory
+4. Write tests - Validation will fail without them
+5. Fix TypeScript errors - Validation will fail with errors
+
+## If Server is Unreachable
+
+The tools will show "OFFLINE MODE" if the server can't be reached. In this case:
+- Enforcement is limited to local checks only
+- You should still follow best practices
+- Try again when connection is restored
+
+---
+CodeBakers v6.0 - Server-Enforced Patterns
