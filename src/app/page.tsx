@@ -717,17 +717,10 @@ export default function HomePage() {
             <div className="p-6 rounded-2xl bg-card border border-border">
               <h3 className="text-xl font-bold mb-2">Trial</h3>
               <div className="text-3xl font-bold mb-4">$0</div>
-              <p className="text-muted-foreground text-sm mb-4">7 days free, no signup</p>
-              <div className="space-y-2 text-left">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Mac/Linux:</span>
-                </div>
-                <code className="block text-xs bg-muted px-2 py-1.5 rounded text-red-500 overflow-x-auto whitespace-nowrap">curl -fsSL codebakers.ai/install.sh | bash</code>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-                  <span>Windows:</span>
-                </div>
-                <code className="block text-xs bg-muted px-2 py-1.5 rounded text-red-500 overflow-x-auto whitespace-nowrap">irm codebakers.ai/install.ps1 | iex</code>
-              </div>
+              <p className="text-muted-foreground text-sm mb-6">7 days free, no credit card</p>
+              <Link href="/quickstart">
+                <Button variant="outline" className="w-full">Start Free Trial</Button>
+              </Link>
             </div>
 
             {/* Pro */}
