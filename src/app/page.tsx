@@ -317,6 +317,27 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Demo Video */}
+          <div className="max-w-3xl mx-auto mb-10">
+            <div className="relative rounded-2xl overflow-hidden border-2 border-gray-700 shadow-2xl shadow-red-500/10 aspect-video bg-gray-900">
+              <iframe
+                src="https://www.youtube.com/embed/YOUR_VIDEO_ID?rel=0&modestbranding=1"
+                title="CodeBakers Demo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              />
+              {/* Fallback/placeholder until video is added */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/95 hover:bg-gray-900/90 transition-colors cursor-pointer group">
+                <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-xl shadow-red-500/30">
+                  <PlayIcon className="h-8 w-8 text-white ml-1" />
+                </div>
+                <p className="text-white font-semibold text-lg">Watch 2-min Demo</p>
+                <p className="text-gray-400 text-sm">See CodeBakers in action</p>
+              </div>
+            </div>
+          </div>
+
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row justify-center gap-3 mb-6">
             <Link href="/signup">
@@ -509,8 +530,139 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Before/After - Quick Visual */}
+      {/* Comparison Chart - With vs Without */}
       <section id="compare" className="py-20 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800">
+              Side-by-Side Comparison
+            </Badge>
+            <h2 className="text-4xl font-bold mb-4">Same tools. Different results.</h2>
+            <p className="text-xl text-muted-foreground">
+              See what happens when you add CodeBakers to your workflow.
+            </p>
+          </div>
+
+          {/* Comparison Table */}
+          <div className="rounded-2xl border-2 border-border bg-card overflow-hidden shadow-xl">
+            {/* Header Row */}
+            <div className="grid grid-cols-3 border-b border-border">
+              <div className="p-4 bg-muted/30 font-medium text-sm text-muted-foreground">
+                Feature
+              </div>
+              <div className="p-4 bg-red-50 dark:bg-red-950/30 border-l border-border text-center">
+                <div className="font-bold text-red-600 dark:text-red-400">Without CodeBakers</div>
+                <div className="text-xs text-muted-foreground">Cursor / Claude Code alone</div>
+              </div>
+              <div className="p-4 bg-green-50 dark:bg-green-950/30 border-l border-border text-center">
+                <div className="font-bold text-green-600 dark:text-green-400">With CodeBakers</div>
+                <div className="text-xs text-muted-foreground">Enhanced AI output</div>
+              </div>
+            </div>
+
+            {/* Row: First Prompt Output */}
+            <div className="grid grid-cols-3 border-b border-border">
+              <div className="p-4 font-medium text-sm">First prompt output</div>
+              <div className="p-4 border-l border-border text-center text-sm text-red-600 dark:text-red-400">
+                Tutorial-quality code
+              </div>
+              <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400 font-medium">
+                Production-ready code
+              </div>
+            </div>
+
+            {/* Row: Error Handling */}
+            <div className="grid grid-cols-3 border-b border-border">
+              <div className="p-4 font-medium text-sm">Error handling</div>
+              <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
+                Basic or missing
+              </div>
+              <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
+                <Tick02Icon className="h-4 w-4 inline mr-1" /> Comprehensive
+              </div>
+            </div>
+
+            {/* Row: Tests */}
+            <div className="grid grid-cols-3 border-b border-border">
+              <div className="p-4 font-medium text-sm">Tests included</div>
+              <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
+                Rarely / on request
+              </div>
+              <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
+                <Tick02Icon className="h-4 w-4 inline mr-1" /> Automatic (Playwright)
+              </div>
+            </div>
+
+            {/* Row: Loading States */}
+            <div className="grid grid-cols-3 border-b border-border">
+              <div className="p-4 font-medium text-sm">Loading & empty states</div>
+              <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
+                Often forgotten
+              </div>
+              <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
+                <Tick02Icon className="h-4 w-4 inline mr-1" /> Always included
+              </div>
+            </div>
+
+            {/* Row: Accessibility */}
+            <div className="grid grid-cols-3 border-b border-border">
+              <div className="p-4 font-medium text-sm">Accessibility (ARIA, keyboard)</div>
+              <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
+                Inconsistent
+              </div>
+              <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
+                <Tick02Icon className="h-4 w-4 inline mr-1" /> WCAG compliant
+              </div>
+            </div>
+
+            {/* Row: Security */}
+            <div className="grid grid-cols-3 border-b border-border">
+              <div className="p-4 font-medium text-sm">Security best practices</div>
+              <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
+                Sometimes / varies
+              </div>
+              <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
+                <Tick02Icon className="h-4 w-4 inline mr-1" /> Enforced patterns
+              </div>
+            </div>
+
+            {/* Row: Type Safety */}
+            <div className="grid grid-cols-3 border-b border-border">
+              <div className="p-4 font-medium text-sm">Type safety (Zod, TypeScript)</div>
+              <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
+                Basic types
+              </div>
+              <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
+                <Tick02Icon className="h-4 w-4 inline mr-1" /> Full validation
+              </div>
+            </div>
+
+            {/* Row: Revisions Needed */}
+            <div className="grid grid-cols-3">
+              <div className="p-4 font-medium text-sm">Avg. prompts per feature</div>
+              <div className="p-4 border-l border-border text-center">
+                <span className="text-2xl font-bold text-red-600 dark:text-red-400">5-10</span>
+              </div>
+              <div className="p-4 border-l border-border text-center">
+                <span className="text-2xl font-bold text-green-600 dark:text-green-400">1-2</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom CTA */}
+          <div className="mt-8 text-center">
+            <Link href="/signup">
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-12 px-8 font-semibold rounded-xl shadow-lg shadow-red-500/25">
+                Get Production-Ready Output
+                <ArrowRight02Icon className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Before/After - Quick Visual */}
+      <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-4xl">
           <div className="rounded-2xl border-2 border-border bg-card overflow-hidden shadow-2xl">
             {/* IDE Header */}
@@ -570,7 +722,7 @@ export default function HomePage() {
       </section>
 
       {/* The Gap - What you'd need to know */}
-      <section className="py-20 px-4 bg-muted/30">
+      <section className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">The knowledge gap is real</h2>
