@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { execSync, spawn } from 'child_process';
-import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { writeFileSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { createInterface } from 'readline';
 import {
@@ -29,12 +29,6 @@ function prompt(question: string): Promise<string> {
       resolve(answer.trim().toLowerCase());
     });
   });
-}
-
-interface ContentResponse {
-  version: string;
-  router: string;
-  modules: Record<string, string>;
 }
 
 interface GoOptions {
@@ -249,7 +243,7 @@ export async function go(options: GoOptions = {}): Promise<void> {
     spinner.succeed(`Trial started (${data.daysRemaining} days free)`);
     console.log('');
 
-    // Install patterns (CLAUDE.md and .claude/)
+    // Install v6.0 bootstrap files (CLAUDE.md and .cursorrules only)
     await installPatterns(data.trialId, options);
 
     // Configure MCP
@@ -395,149 +389,175 @@ async function showSuccessAndRestart(): Promise<void> {
   }
 }
 
+// v6.0 Bootstrap content - minimal files that point to MCP tools
+const V6_CLAUDE_MD = `# CodeBakers v6.0 - Server-Enforced Patterns
+
+**All patterns are server-side. No local pattern files needed.**
+
+## Required MCP Tools
+
+Before writing ANY code, you MUST use these CodeBakers MCP tools:
+
+### 1. discover_patterns (MANDATORY - START GATE)
+Call this BEFORE writing any code:
+\`\`\`
+Tool: discover_patterns
+Args: { task: "what you're about to do", files: ["files to modify"], keywords: ["relevant terms"] }
+\`\`\`
+This returns:
+- Relevant patterns from the server
+- A session token (required for validation)
+- Code examples to follow
+
+### 2. validate_complete (MANDATORY - END GATE)
+Call this BEFORE saying "done" or "complete":
+\`\`\`
+Tool: validate_complete
+Args: { feature: "what you built", files: ["files modified"] }
+\`\`\`
+This checks:
+- You called discover_patterns first (server verifies)
+- Tests exist and pass
+- TypeScript compiles
+- Returns pass/fail from server
+
+## Rules
+
+1. **You CANNOT skip discover_patterns** - Server tracks compliance
+2. **You CANNOT say "done" without validate_complete** - Server must approve
+3. **Follow patterns returned by server** - They are mandatory
+4. **Write tests** - Validation will fail without them
+5. **Fix TypeScript errors** - Validation will fail with errors
+
+## If Server is Unreachable
+
+The tools will show "OFFLINE MODE" if the server can't be reached. In this case:
+- Enforcement is limited to local checks only
+- You should still follow best practices
+- Try again when connection is restored
+
+## Getting Help
+
+- Run \`codebakers doctor\` to diagnose issues
+- Run \`codebakers upgrade\` to update patterns
+- Visit https://codebakers.ai/support for help
+
+---
+*CodeBakers v6.0 - Server-Enforced Patterns*
+`;
+
+const V6_CURSORRULES = `# CodeBakers v6.0 - Server-Enforced Patterns
+
+All patterns are server-side. No local pattern files needed.
+
+## Required MCP Tools
+
+Before writing ANY code, you MUST use these CodeBakers MCP tools:
+
+### 1. discover_patterns (MANDATORY - START GATE)
+Call this BEFORE writing any code:
+- Tool: discover_patterns
+- Args: { task: "what you're about to do", files: ["files to modify"], keywords: ["relevant terms"] }
+
+Returns:
+- Relevant patterns from the server
+- A session token (required for validation)
+- Code examples to follow
+
+### 2. validate_complete (MANDATORY - END GATE)
+Call this BEFORE saying "done" or "complete":
+- Tool: validate_complete
+- Args: { feature: "what you built", files: ["files modified"] }
+
+Checks:
+- You called discover_patterns first (server verifies)
+- Tests exist and pass
+- TypeScript compiles
+- Returns pass/fail from server
+
+## Rules
+
+1. You CANNOT skip discover_patterns - Server tracks compliance
+2. You CANNOT say "done" without validate_complete - Server must approve
+3. Follow patterns returned by server - They are mandatory
+4. Write tests - Validation will fail without them
+5. Fix TypeScript errors - Validation will fail with errors
+
+## If Server is Unreachable
+
+The tools will show "OFFLINE MODE" if the server can't be reached. In this case:
+- Enforcement is limited to local checks only
+- You should still follow best practices
+- Try again when connection is restored
+
+---
+CodeBakers v6.0 - Server-Enforced Patterns
+`;
+
 /**
- * Install pattern files for API key users (paid users)
+ * Install v6.0 bootstrap files for API key users (paid users)
+ * Only installs minimal CLAUDE.md and .cursorrules - no .claude/ folder
  */
 async function installPatternsWithApiKey(apiKey: string, options: GoOptions = {}): Promise<void> {
-  log('Installing patterns with API key...', options);
-  const spinner = ora('Installing CodeBakers patterns...').start();
-  const cwd = process.cwd();
-  const apiUrl = getApiUrl();
-
-  log(`Fetching from: ${apiUrl}/api/content`, options);
-
-  try {
-    const response = await fetch(`${apiUrl}/api/content`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-      },
-    });
-
-    if (!response.ok) {
-      log(`Response not OK: ${response.status} ${response.statusText}`, options);
-      spinner.warn('Could not download patterns');
-      return;
-    }
-
-    log('Response OK, parsing JSON...', options);
-    const content: ContentResponse = await response.json();
-    log(`Received version: ${content.version}, modules: ${Object.keys(content.modules || {}).length}`, options);
-    await writePatternFiles(cwd, content, spinner, options, { apiKey });
-
-  } catch (error) {
-    log(`Error: ${error instanceof Error ? error.message : String(error)}`, options);
-    spinner.warn('Could not install patterns');
-    console.log(chalk.gray('  Check your internet connection.\n'));
-  }
+  log('Installing v6.0 bootstrap files (API key user)...', options);
+  await installBootstrapFiles(options, { apiKey });
 }
 
 /**
- * Install pattern files (CLAUDE.md and .claude/) for trial users
+ * Install v6.0 bootstrap files for trial users
+ * Only installs minimal CLAUDE.md and .cursorrules - no .claude/ folder
  */
 async function installPatterns(trialId: string, options: GoOptions = {}): Promise<void> {
-  log(`Installing patterns with trial ID: ${trialId.substring(0, 8)}...`, options);
-  const spinner = ora('Installing CodeBakers patterns...').start();
+  log(`Installing v6.0 bootstrap files (trial: ${trialId.substring(0, 8)}...)`, options);
+  await installBootstrapFiles(options, { trialId });
+}
+
+/**
+ * Install v6.0 minimal bootstrap files
+ * - CLAUDE.md: Instructions for Claude Code
+ * - .cursorrules: Instructions for Cursor
+ * - NO .claude/ folder - all patterns are server-side
+ */
+async function installBootstrapFiles(options: GoOptions = {}, auth?: AuthInfo): Promise<void> {
+  const spinner = ora('Installing CodeBakers v6.0...').start();
   const cwd = process.cwd();
-  const apiUrl = getApiUrl();
 
   try {
-    // Fetch patterns using trial ID
-    log(`Fetching from: ${apiUrl}/api/content`, options);
-    const response = await fetch(`${apiUrl}/api/content`, {
-      method: 'GET',
-      headers: {
-        'X-Trial-ID': trialId,
-      },
-    });
+    const claudeMdPath = join(cwd, 'CLAUDE.md');
+    const cursorRulesPath = join(cwd, '.cursorrules');
 
-    if (!response.ok) {
-      log(`Primary endpoint failed: ${response.status}, trying trial endpoint...`, options);
-      // Try without auth - some patterns may be available for trial
-      const publicResponse = await fetch(`${apiUrl}/api/content/trial`, {
-        method: 'GET',
-        headers: {
-          'X-Trial-ID': trialId,
-        },
-      });
-
-      if (!publicResponse.ok) {
-        log(`Trial endpoint also failed: ${publicResponse.status}`, options);
-        spinner.warn('Could not download patterns (will use MCP tools)');
+    // Check if already installed with v6
+    if (existsSync(claudeMdPath)) {
+      const content = readFileSync(claudeMdPath, 'utf-8');
+      if (content.includes('v6.0') && content.includes('discover_patterns')) {
+        spinner.succeed('CodeBakers v6.0 already installed');
         return;
       }
-
-      const content: ContentResponse = await publicResponse.json();
-      log(`Received version: ${content.version}, modules: ${Object.keys(content.modules || {}).length}`, options);
-      await writePatternFiles(cwd, content, spinner, options, { trialId });
-      return;
+      // Upgrade from v5
+      log('Upgrading from v5 to v6...', options);
     }
 
-    const content: ContentResponse = await response.json();
-    log(`Received version: ${content.version}, modules: ${Object.keys(content.modules || {}).length}`, options);
-    await writePatternFiles(cwd, content, spinner, options, { trialId });
+    // Write v6.0 bootstrap files
+    writeFileSync(claudeMdPath, V6_CLAUDE_MD);
+    writeFileSync(cursorRulesPath, V6_CURSORRULES);
+
+    spinner.succeed('CodeBakers v6.0 installed');
+    console.log(chalk.gray('  Patterns are server-enforced via MCP tools\n'));
+
+    // Confirm install to server (non-blocking)
+    if (auth) {
+      const apiUrl = getApiUrl();
+      confirmDownload(apiUrl, auth, {
+        version: '6.0',
+        moduleCount: 0, // No local modules in v6
+        cliVersion: getCliVersion(),
+        command: 'go',
+      }).catch(() => {}); // Silently ignore
+    }
 
   } catch (error) {
     log(`Error: ${error instanceof Error ? error.message : String(error)}`, options);
-    spinner.warn('Could not install patterns (will use MCP tools)');
-    console.log(chalk.gray('  Patterns will be available via MCP tools.\n'));
-  }
-}
-
-async function writePatternFiles(
-  cwd: string,
-  content: ContentResponse,
-  spinner: ReturnType<typeof ora>,
-  options: GoOptions = {},
-  auth?: AuthInfo
-): Promise<void> {
-  log(`Writing pattern files to ${cwd}...`, options);
-  // Check if patterns already exist
-  const claudeMdPath = join(cwd, 'CLAUDE.md');
-  if (existsSync(claudeMdPath)) {
-    spinner.succeed('CodeBakers patterns already installed');
-    return;
-  }
-
-  // Write CLAUDE.md (router file)
-  if (content.router) {
-    writeFileSync(claudeMdPath, content.router);
-  }
-
-  // Write pattern modules to .claude/
-  const moduleCount = Object.keys(content.modules || {}).length;
-  if (content.modules && moduleCount > 0) {
-    const modulesDir = join(cwd, '.claude');
-    if (!existsSync(modulesDir)) {
-      mkdirSync(modulesDir, { recursive: true });
-    }
-
-    for (const [name, data] of Object.entries(content.modules)) {
-      writeFileSync(join(modulesDir, name), data);
-    }
-  }
-
-  // Update .gitignore to exclude encoded patterns
-  const gitignorePath = join(cwd, '.gitignore');
-  if (existsSync(gitignorePath)) {
-    const { readFileSync } = await import('fs');
-    const gitignore = readFileSync(gitignorePath, 'utf-8');
-    if (!gitignore.includes('.claude/')) {
-      writeFileSync(gitignorePath, gitignore + '\n# CodeBakers patterns\n.claude/\n');
-    }
-  }
-
-  spinner.succeed(`CodeBakers patterns installed (v${content.version})`);
-  console.log(chalk.gray(`  ${moduleCount} pattern modules ready\n`));
-
-  // Confirm download to server (non-blocking)
-  if (auth) {
-    const apiUrl = getApiUrl();
-    confirmDownload(apiUrl, auth, {
-      version: content.version,
-      moduleCount,
-      cliVersion: getCliVersion(),
-      command: 'go',
-    }).catch(() => {}); // Silently ignore
+    spinner.warn('Could not install bootstrap files');
+    console.log(chalk.gray('  MCP tools will still work without local files.\n'));
   }
 }

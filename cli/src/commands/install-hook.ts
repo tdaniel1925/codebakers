@@ -23,16 +23,16 @@ const HOOK_TEMPLATE = {
   }
 };
 
-// Instructions that get injected into the system prompt
+// Instructions that get injected into the system prompt (v6.0)
 const CODEBAKERS_INSTRUCTIONS = `
 <user-prompt-submit-hook>
-[CodeBakers] Active - Follow these steps for EVERY request:
+[CodeBakers v6.0] Active - Follow these steps for EVERY request:
 
-1. CONTEXT: Read CLAUDE.md, PROJECT-CONTEXT.md, PROJECT-STATE.md
-2. PRE-FLIGHT: Check existing code patterns before writing new code
-3. EXECUTE: Use patterns from .claude/ folder
+1. CONTEXT: Read CLAUDE.md
+2. DISCOVER: Call discover_patterns MCP tool before writing any code
+3. EXECUTE: Follow the patterns returned by the server
 4. SELF-REVIEW: Verify TypeScript compiles, imports resolve, error handling exists
-5. UPDATE: Mark tasks complete in PROJECT-STATE.md
+5. VALIDATE: Call validate_complete MCP tool when done
 
 Output format: "[CodeBakers] Building [feature] using [patterns]"
 </user-prompt-submit-hook>
@@ -102,9 +102,9 @@ export async function installHook(): Promise<void> {
 
     console.log(chalk.white('  What happens automatically:\n'));
     console.log(chalk.gray('    ✓ Loads project context before every response'));
-    console.log(chalk.gray('    ✓ Pre-flight checks before writing code'));
+    console.log(chalk.gray('    ✓ Calls discover_patterns MCP tool before coding'));
     console.log(chalk.gray('    ✓ Self-review reminders after code changes'));
-    console.log(chalk.gray('    ✓ Pattern-based development from .claude/ folder\n'));
+    console.log(chalk.gray('    ✓ Server-side patterns (always up-to-date)\n'));
 
     console.log(chalk.yellow.bold('  ⚠️  RESTART REQUIRED:\n'));
     console.log(chalk.gray('    1. Type ') + chalk.cyan('exit') + chalk.gray(' to close this terminal'));

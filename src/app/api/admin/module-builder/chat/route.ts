@@ -3,8 +3,62 @@ import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/auth';
 import { ContentManagementService } from '@/services/content-management-service';
 import { autoRateLimit } from '@/lib/api-utils';
+import { db } from '@/db';
+import { productionFeedback, patternCompliance, architectureConflicts } from '@/db/schema';
+import { desc, sql, avg } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * Get the next sequential module number based on existing modules
+ */
+function getNextModuleNumber(existingModules: string[]): number {
+  const moduleNumbers = existingModules
+    .map(name => {
+      const match = name.match(/^(\d+)-/);
+      return match ? parseInt(match[1], 10) : null;
+    })
+    .filter((n): n is number => n !== null);
+
+  if (moduleNumbers.length === 0) return 0;
+  return Math.max(...moduleNumbers) + 1;
+}
+
+/**
+ * Fetch v6.1 insights for module creation context
+ */
+async function getV61Insights() {
+  // Get recent production errors (patterns causing issues)
+  const recentErrors = await db.query.productionFeedback.findMany({
+    where: sql`${productionFeedback.isResolved} = false`,
+    orderBy: [desc(productionFeedback.occurrenceCount)],
+    limit: 10,
+  });
+
+  // Get patterns with low compliance scores
+  const lowCompliancePatterns = await db
+    .select({
+      pattern: patternCompliance.patternsChecked,
+      avgScore: avg(patternCompliance.complianceScore),
+    })
+    .from(patternCompliance)
+    .groupBy(patternCompliance.patternsChecked)
+    .orderBy(sql`avg(${patternCompliance.complianceScore}) ASC`)
+    .limit(5);
+
+  // Get common architecture conflicts
+  const commonConflicts = await db.query.architectureConflicts.findMany({
+    where: sql`${architectureConflicts.isResolved} = false`,
+    orderBy: [desc(architectureConflicts.createdAt)],
+    limit: 10,
+  });
+
+  return {
+    recentErrors,
+    lowCompliancePatterns,
+    commonConflicts,
+  };
+}
 
 const SYSTEM_PROMPT = `You are an AI assistant that helps build and update code pattern modules for the CodeBakers CLI system.
 
@@ -75,11 +129,13 @@ Only include files that need to change. Generate complete, production-ready cont
 
 When creating new modules:
 - Follow the existing naming convention (XX-name.md)
-- Use the next available number (currently 33+)
+- CRITICAL: Use the EXACT next sequential number provided in the context (nextModuleNumber)
+- Never skip numbers or reuse existing numbers
 - Include proper markdown formatting with ## headers
 - Add TypeScript code examples with proper error handling
 - Include common patterns, anti-patterns, and best practices
 - Be comprehensive but focused on the topic
+- Consider v6.1 insights (production errors, compliance issues, conflicts) when relevant
 
 When updating CLAUDE.md router:
 - Add a new section under "## STEP 2: DETECT & LOAD RELEVANT MODULES"
@@ -117,6 +173,9 @@ export async function POST(request: NextRequest) {
     // Get current active version to provide context
     const activeVersion = await ContentManagementService.getActiveVersion();
 
+    // Get v6.1 insights for better module creation
+    const v61Insights = await getV61Insights();
+
     let contextMessage = '';
     if (activeVersion) {
       contextMessage = `\n\nCurrent active content version: ${activeVersion.version}\n`;
@@ -125,8 +184,41 @@ export async function POST(request: NextRequest) {
       }
       if (activeVersion.modulesContent) {
         const moduleNames = Object.keys(activeVersion.modulesContent);
+        const nextNumber = getNextModuleNumber(moduleNames);
         contextMessage += `\nExisting modules: ${moduleNames.join(', ')}\n`;
+        contextMessage += `\n**IMPORTANT - Next module number: ${nextNumber}** (use ${nextNumber.toString().padStart(2, '0')}-modulename.md format)\n`;
       }
+    }
+
+    // Add v6.1 insights to context
+    if (v61Insights.recentErrors.length > 0) {
+      contextMessage += `\n\n## v6.1 Production Insights\n`;
+      contextMessage += `\n### Recent Production Errors (consider addressing in patterns):\n`;
+      v61Insights.recentErrors.slice(0, 5).forEach(err => {
+        contextMessage += `- ${err.errorType}: ${err.errorMessage} (${err.occurrenceCount}x) - Pattern: ${err.patternUsed || 'unknown'}\n`;
+      });
+    }
+
+    if (v61Insights.lowCompliancePatterns.length > 0) {
+      contextMessage += `\n### Low Compliance Patterns (may need clarification):\n`;
+      v61Insights.lowCompliancePatterns.forEach(p => {
+        if (p.pattern && p.avgScore) {
+          contextMessage += `- Pattern group avg score: ${Number(p.avgScore).toFixed(0)}/100\n`;
+        }
+      });
+    }
+
+    if (v61Insights.commonConflicts.length > 0) {
+      contextMessage += `\n### Common Architecture Conflicts (add warnings for these):\n`;
+      const conflictTypes = new Set(v61Insights.commonConflicts.map(c => c.conflictType));
+      conflictTypes.forEach(type => {
+        const conflicts = v61Insights.commonConflicts.filter(c => c.conflictType === type);
+        const items = conflicts.map(c => JSON.parse(c.conflictingItems || '[]')).flat();
+        const uniqueItems = [...new Set(items)];
+        if (uniqueItems.length > 0) {
+          contextMessage += `- ${type}: ${uniqueItems.join(' vs ')}\n`;
+        }
+      });
     }
 
     const { createMessage } = await import('@/lib/anthropic');

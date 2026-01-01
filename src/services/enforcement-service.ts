@@ -97,6 +97,8 @@ export interface DiscoverPatternsInput {
 
 export interface DiscoverPatternsResult {
   sessionToken: string;
+  sessionId: string; // v6.1: Include session ID for conflict tracking
+  expiresAt: Date; // v6.1: Include expiry for client display
   patterns: Array<{
     name: string;
     relevance: 'high' | 'medium' | 'low';
@@ -199,6 +201,8 @@ export class EnforcementService {
 
     return {
       sessionToken,
+      sessionId: session.id,
+      expiresAt: sessionData.expiresAt,
       patterns,
       coreRules: modules['00-core.md'] || '',
       message: `Found ${patterns.length} relevant patterns. You MUST follow these patterns when implementing "${input.task}". Your session token is ${sessionToken} - use this when calling validate_complete.`,

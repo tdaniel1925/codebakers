@@ -1158,13 +1158,13 @@ class CodeBakersServer {
         {
           name: 'update_patterns',
           description:
-            'Download and update CodeBakers pattern files from the server. Use when user says "upgrade codebakers", "update patterns", "download latest patterns", "sync codebakers", or when patterns are missing or outdated. This tool fetches the latest CLAUDE.md router and all .claude/ module files from the server and writes them to disk.',
+            'Update to CodeBakers v6.0 server-enforced patterns. Use when user says "upgrade codebakers", "update patterns", or "sync codebakers". In v6.0, patterns are server-side - this tool installs minimal bootstrap files (CLAUDE.md and .cursorrules) and removes old .claude/ folder if present.',
           inputSchema: {
             type: 'object' as const,
             properties: {
               force: {
                 type: 'boolean',
-                description: 'Force update even if already at latest version (default: false)',
+                description: 'Force reinstall even if already on v6.0 (default: false)',
               },
             },
           },
@@ -2705,41 +2705,71 @@ Or if user declines, call without fullDeploy:
       // Use default
     }
 
-    results.push(`# 🎨 Adding CodeBakers to: ${projectName}\n`);
+    results.push(`# 🎨 Adding CodeBakers v6.0 to: ${projectName}\n`);
 
-    // Check if already initialized
-    if (fs.existsSync(path.join(cwd, 'CLAUDE.md'))) {
-      results.push('⚠️ CLAUDE.md already exists. Updating patterns...\n');
+    // v6.0 bootstrap content - minimal files, patterns from server
+    const V6_CLAUDE_MD = `# CodeBakers v6.0
+
+**MANDATORY: Before writing ANY code, call the \`discover_patterns\` MCP tool.**
+
+\`\`\`
+Tool: discover_patterns
+Args: { task: "description of what you're building" }
+\`\`\`
+
+The server will return:
+- All coding patterns and rules you must follow
+- Test requirements
+- Validation instructions
+
+**You cannot write code without calling this tool first. The server tracks compliance.**
+
+---
+*CodeBakers v6.0 - Server-Enforced*
+`;
+
+    const V6_CURSORRULES = `# CodeBakers v6.0
+
+MANDATORY: Before writing ANY code, call the discover_patterns MCP tool.
+
+Tool: discover_patterns
+Args: { task: "description of what you're building" }
+
+The server returns all patterns, rules, and test requirements.
+You cannot write code without calling this tool first.
+`;
+
+    // Check if already v6
+    const claudeMdPath = path.join(cwd, 'CLAUDE.md');
+    if (fs.existsSync(claudeMdPath)) {
+      const content = fs.readFileSync(claudeMdPath, 'utf-8');
+      if (content.includes('v6.0') && content.includes('discover_patterns')) {
+        results.push('✓ CodeBakers v6.0 already installed\n');
+        results.push('Patterns are server-enforced. Just call `discover_patterns` before coding!');
+        return {
+          content: [{ type: 'text' as const, text: results.join('\n') }],
+        };
+      }
+      results.push('⚠️ Upgrading to v6.0 (server-enforced patterns)...\n');
     }
 
     try {
-      const response = await fetch(`${this.apiUrl}/api/content`, {
-        method: 'GET',
-        headers: this.getAuthHeaders(),
-      });
+      // Write v6.0 bootstrap files
+      fs.writeFileSync(claudeMdPath, V6_CLAUDE_MD);
+      results.push('✓ Created CLAUDE.md (v6.0 bootstrap)');
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch patterns from API');
-      }
+      fs.writeFileSync(path.join(cwd, '.cursorrules'), V6_CURSORRULES);
+      results.push('✓ Created .cursorrules (v6.0 bootstrap)');
 
-      const content = await response.json();
-
-      // Write CLAUDE.md
-      if (content.router) {
-        fs.writeFileSync(path.join(cwd, 'CLAUDE.md'), content.router);
-        results.push('✓ Created/Updated CLAUDE.md');
-      }
-
-      // Write pattern modules
-      if (content.modules && Object.keys(content.modules).length > 0) {
-        const modulesDir = path.join(cwd, '.claude');
-        if (!fs.existsSync(modulesDir)) {
-          fs.mkdirSync(modulesDir, { recursive: true });
+      // Remove old .claude folder if it exists (v5 → v6 migration)
+      const claudeDir = path.join(cwd, '.claude');
+      if (fs.existsSync(claudeDir)) {
+        try {
+          fs.rmSync(claudeDir, { recursive: true, force: true });
+          results.push('✓ Removed .claude/ folder (patterns now server-side)');
+        } catch {
+          results.push('⚠️ Could not remove .claude/ folder - please delete manually');
         }
-        for (const [name, data] of Object.entries(content.modules)) {
-          fs.writeFileSync(path.join(modulesDir, name), data as string);
-        }
-        results.push(`✓ Installed ${Object.keys(content.modules).length} pattern modules (v${content.version})`);
       }
 
       // Create PRD if doesn't exist
@@ -2760,41 +2790,29 @@ Or if user declines, call without fullDeploy:
         results.push('✓ Created PRD.md template');
       }
 
-      // Create PROJECT-STATE if doesn't exist
-      const statePath = path.join(cwd, 'PROJECT-STATE.md');
-      if (!fs.existsSync(statePath)) {
-        fs.writeFileSync(statePath, `# PROJECT STATE
-# Last Updated: ${date}
-
-## Project Info
-name: ${projectName}
-phase: development
-
-## In Progress
-## Completed
-## Next Up
-`);
-        results.push('✓ Created PROJECT-STATE.md');
-      }
-
-      // Update .gitignore
-      const gitignorePath = path.join(cwd, '.gitignore');
-      if (fs.existsSync(gitignorePath)) {
-        const gitignore = fs.readFileSync(gitignorePath, 'utf-8');
-        if (!gitignore.includes('.claude/')) {
-          fs.writeFileSync(gitignorePath, gitignore + '\n# CodeBakers\n.claude/\n');
-          results.push('✓ Updated .gitignore');
+      // Update .codebakers.json
+      const stateFile = path.join(cwd, '.codebakers.json');
+      let state: Record<string, unknown> = {};
+      if (fs.existsSync(stateFile)) {
+        try {
+          state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+        } catch {
+          // Ignore errors
         }
       }
+      state.version = '6.0';
+      state.serverEnforced = true;
+      state.updatedAt = new Date().toISOString();
+      fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
 
       results.push('\n---\n');
-      results.push('## ✅ CodeBakers Patterns Installed!\n');
-      results.push('The AI now has access to production patterns for:');
-      results.push('- Authentication, Database, API design');
-      results.push('- Frontend components, Forms, Validation');
-      results.push('- Payments, Email, Real-time features');
-      results.push('- And 30+ more specialized patterns\n');
-      results.push('Just describe what you want to build!');
+      results.push('## ✅ CodeBakers v6.0 Installed!\n');
+      results.push('**How it works now:**');
+      results.push('1. Call `discover_patterns` before writing code');
+      results.push('2. Server returns all patterns and rules');
+      results.push('3. Call `validate_complete` before marking done');
+      results.push('4. Server verifies compliance\n');
+      results.push('No local pattern files needed - everything is server-side!');
 
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -3835,6 +3853,16 @@ Just describe what you want to build! I'll automatically:
     let typescriptPass = false;
     const testsWritten: string[] = [];
 
+    // v6.1: Code analysis for compliance scoring
+    const codeAnalysis: {
+      hasErrorHandling?: boolean;
+      hasLoadingStates?: boolean;
+      hasTypeAnnotations?: boolean;
+      hasConsoleLog?: boolean;
+      hasAnyType?: boolean;
+      linesOfCode?: number;
+    } = {};
+
     // Step 1: Get session token (from memory or state file)
     let sessionToken = this.currentSessionToken;
     if (!sessionToken) {
@@ -3883,6 +3911,81 @@ Just describe what you want to build! I'll automatically:
       }
     } catch {
       // Ignore errors
+    }
+
+    // Step 2.5: v6.1 - Analyze code for compliance scoring
+    try {
+      let totalLines = 0;
+      let hasErrorHandling = false;
+      let hasLoadingStates = false;
+      let hasConsoleLog = false;
+      let hasAnyType = false;
+
+      // Analyze provided files
+      const filesToAnalyze = files.length > 0 ? files : [];
+
+      // Also scan for recently modified .ts/.tsx files if no files provided
+      if (filesToAnalyze.length === 0) {
+        const srcDir = path.join(cwd, 'src');
+        if (fs.existsSync(srcDir)) {
+          const recentFiles = fs.readdirSync(srcDir, { recursive: true })
+            .filter((f: string | Buffer) => {
+              const name = String(f);
+              return (name.endsWith('.ts') || name.endsWith('.tsx')) &&
+                     !name.includes('.test.') && !name.includes('.spec.');
+            })
+            .slice(0, 20) // Limit to 20 files for performance
+            .map(f => path.join('src', String(f)));
+          filesToAnalyze.push(...recentFiles);
+        }
+      }
+
+      for (const file of filesToAnalyze) {
+        try {
+          const filePath = path.isAbsolute(file) ? file : path.join(cwd, file);
+          if (!fs.existsSync(filePath)) continue;
+
+          const content = fs.readFileSync(filePath, 'utf-8');
+          const lines = content.split('\n').length;
+          totalLines += lines;
+
+          // Check for error handling patterns
+          if (content.includes('try {') || content.includes('catch (') ||
+              content.includes('.catch(') || content.includes('onError') ||
+              content.includes('error:') || content.includes('handleError')) {
+            hasErrorHandling = true;
+          }
+
+          // Check for loading states
+          if (content.includes('isLoading') || content.includes('loading:') ||
+              content.includes('isPending') || content.includes('Skeleton') ||
+              content.includes('Spinner') || content.includes('Loading')) {
+            hasLoadingStates = true;
+          }
+
+          // Check for console.log (bad in production)
+          if (content.includes('console.log') || content.includes('console.warn') ||
+              content.includes('console.error')) {
+            hasConsoleLog = true;
+          }
+
+          // Check for any type (should be avoided)
+          if (content.includes(': any') || content.includes(':any') ||
+              content.includes('as any') || content.includes('<any>')) {
+            hasAnyType = true;
+          }
+        } catch {
+          // Skip files that can't be read
+        }
+      }
+
+      codeAnalysis.linesOfCode = totalLines;
+      codeAnalysis.hasErrorHandling = hasErrorHandling;
+      codeAnalysis.hasLoadingStates = hasLoadingStates;
+      codeAnalysis.hasConsoleLog = hasConsoleLog;
+      codeAnalysis.hasAnyType = hasAnyType;
+    } catch {
+      // Ignore code analysis errors
     }
 
     // Step 3: Run tests locally
@@ -3941,6 +4044,7 @@ Just describe what you want to build! I'll automatically:
             testsRun: testsExist,
             testsPassed: testsPass,
             typescriptPassed: typescriptPass,
+            codeAnalysis, // v6.1: Send code analysis for compliance scoring
           }),
         });
 
@@ -3983,6 +4087,58 @@ Just describe what you want to build! I'll automatically:
         responseText += `## Server Validation Result\n\n`;
         responseText += `**Status:** ${result.passed ? '✅ PASSED' : '❌ FAILED'}\n\n`;
 
+        // v6.1: Show compliance score
+        if (result.compliance) {
+          const score = result.compliance.score || 0;
+          const scoreEmoji = score >= 90 ? '🏆' : score >= 70 ? '👍' : score >= 50 ? '⚠️' : '❌';
+          responseText += `## ${scoreEmoji} Compliance Score: ${score}/100\n\n`;
+
+          if (result.compliance.patternScores) {
+            responseText += `### Pattern Scores:\n`;
+            responseText += `| Pattern | Score |\n|---------|-------|\n`;
+            for (const [pattern, patternScore] of Object.entries(result.compliance.patternScores)) {
+              const emoji = (patternScore as number) >= 80 ? '✅' : (patternScore as number) >= 50 ? '⚠️' : '❌';
+              responseText += `| ${pattern} | ${emoji} ${patternScore}/100 |\n`;
+            }
+            responseText += `\n`;
+          }
+
+          if (result.compliance.deductions && result.compliance.deductions.length > 0) {
+            responseText += `### Deductions:\n`;
+            for (const deduction of result.compliance.deductions) {
+              responseText += `- ❌ **${deduction.rule}**: ${deduction.issue} (-${deduction.points} pts)\n`;
+            }
+            responseText += `\n`;
+          }
+        }
+
+        // v6.1: Show test quality metrics
+        if (result.testQuality) {
+          const tq = result.testQuality;
+          responseText += `## 🧪 Test Quality Score: ${tq.overallScore}/100\n\n`;
+          responseText += `| Metric | Status |\n|--------|--------|\n`;
+          responseText += `| Coverage | ${tq.coverage || 0}% |\n`;
+          responseText += `| Happy Path Tests | ${tq.hasHappyPath ? '✅' : '❌'} |\n`;
+          responseText += `| Error Case Tests | ${tq.hasErrorCases ? '✅' : '❌'} |\n`;
+          responseText += `| Boundary Cases | ${tq.hasBoundaryCases ? '✅' : '❌'} |\n\n`;
+
+          if (tq.missingTests && tq.missingTests.length > 0) {
+            responseText += `### Missing Tests:\n`;
+            for (const missing of tq.missingTests) {
+              responseText += `- ⚠️ ${missing}\n`;
+            }
+            responseText += `\n`;
+          }
+
+          if (tq.recommendations && tq.recommendations.length > 0) {
+            responseText += `### Recommendations:\n`;
+            for (const rec of tq.recommendations) {
+              responseText += `- 💡 ${rec}\n`;
+            }
+            responseText += `\n`;
+          }
+        }
+
         if (result.issues && result.issues.length > 0) {
           responseText += `### Issues:\n\n`;
           for (const issue of result.issues) {
@@ -3999,7 +4155,10 @@ Just describe what you want to build! I'll automatically:
 
         if (result.passed) {
           responseText += `## ✅ Feature is COMPLETE\n\n`;
-          responseText += `Server has recorded this completion. You may now mark this feature as done.\n`;
+          const completionMsg = result.compliance && result.compliance.score >= 90
+            ? 'Excellent work! High compliance score achieved.'
+            : 'Server has recorded this completion. You may now mark this feature as done.';
+          responseText += `${completionMsg}\n`;
         } else {
           responseText += `## ❌ Feature is NOT COMPLETE\n\n`;
           responseText += `**${result.nextSteps || 'Fix the issues above and try again.'}**\n`;
@@ -4070,11 +4229,68 @@ Just describe what you want to build! I'll automatically:
     // Generate project hash for context
     let projectHash: string | undefined;
     let projectName: string | undefined;
+    let detectedStack: Record<string, string | string[]> = {};
+
     try {
       const pkgPath = path.join(cwd, 'package.json');
       if (fs.existsSync(pkgPath)) {
         const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
         projectName = pkg.name || path.basename(cwd);
+
+        // v6.1: Extract detected stack from dependencies for conflict detection
+        const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+        const depNames = Object.keys(allDeps);
+
+        // Detect framework
+        if (depNames.includes('next')) detectedStack.framework = 'nextjs';
+        else if (depNames.includes('remix')) detectedStack.framework = 'remix';
+        else if (depNames.includes('gatsby')) detectedStack.framework = 'gatsby';
+        else if (depNames.includes('react')) detectedStack.framework = 'react';
+        else if (depNames.includes('vue')) detectedStack.framework = 'vue';
+
+        // Detect ORM/database
+        const orms: string[] = [];
+        if (depNames.includes('drizzle-orm')) orms.push('drizzle');
+        if (depNames.includes('prisma') || depNames.includes('@prisma/client')) orms.push('prisma');
+        if (depNames.includes('typeorm')) orms.push('typeorm');
+        if (depNames.includes('mongoose')) orms.push('mongoose');
+        if (depNames.includes('sequelize')) orms.push('sequelize');
+        if (orms.length > 0) detectedStack.orm = orms.length === 1 ? orms[0] : orms;
+
+        // Detect state management
+        const stateLibs: string[] = [];
+        if (depNames.includes('@reduxjs/toolkit') || depNames.includes('redux')) stateLibs.push('redux');
+        if (depNames.includes('zustand')) stateLibs.push('zustand');
+        if (depNames.includes('jotai')) stateLibs.push('jotai');
+        if (depNames.includes('recoil')) stateLibs.push('recoil');
+        if (depNames.includes('mobx')) stateLibs.push('mobx');
+        if (stateLibs.length > 0) detectedStack.stateManagement = stateLibs.length === 1 ? stateLibs[0] : stateLibs;
+
+        // Detect styling
+        const styleLibs: string[] = [];
+        if (depNames.includes('tailwindcss')) styleLibs.push('tailwind');
+        if (depNames.includes('@emotion/react') || depNames.includes('@emotion/styled')) styleLibs.push('emotion');
+        if (depNames.includes('styled-components')) styleLibs.push('styled-components');
+        if (depNames.includes('@mui/material')) styleLibs.push('mui');
+        if (depNames.includes('@chakra-ui/react')) styleLibs.push('chakra');
+        if (styleLibs.length > 0) detectedStack.styling = styleLibs.length === 1 ? styleLibs[0] : styleLibs;
+
+        // Detect form libraries
+        const formLibs: string[] = [];
+        if (depNames.includes('react-hook-form')) formLibs.push('react-hook-form');
+        if (depNames.includes('formik')) formLibs.push('formik');
+        if (depNames.includes('react-final-form')) formLibs.push('react-final-form');
+        if (formLibs.length > 0) detectedStack.forms = formLibs.length === 1 ? formLibs[0] : formLibs;
+
+        // Detect auth
+        if (depNames.includes('@supabase/supabase-js')) detectedStack.auth = 'supabase';
+        else if (depNames.includes('next-auth') || depNames.includes('@auth/core')) detectedStack.auth = 'next-auth';
+        else if (depNames.includes('@clerk/nextjs')) detectedStack.auth = 'clerk';
+        else if (depNames.includes('firebase')) detectedStack.auth = 'firebase';
+
+        // Detect payments
+        if (depNames.includes('stripe')) detectedStack.payments = 'stripe';
+        else if (depNames.includes('@paypal/react-paypal-js')) detectedStack.payments = 'paypal';
       } else {
         projectName = path.basename(cwd);
       }
@@ -4098,6 +4314,7 @@ Just describe what you want to build! I'll automatically:
           keywords,
           projectHash,
           projectName,
+          detectedStack, // v6.1: Send stack for conflict detection
         }),
       });
 
@@ -4134,6 +4351,67 @@ Just describe what you want to build! I'll automatically:
       let responseText = `# 🔍 Pattern Discovery: ${task}\n\n`;
       responseText += `## ⛔ SERVER-ENFORCED SESSION ACTIVE\n\n`;
       responseText += `**Session Token:** \`${result.sessionToken}\`\n\n`;
+
+      // v6.1: Show detected conflicts (high priority warning)
+      if (result.detectedConflicts && result.detectedConflicts.length > 0) {
+        responseText += `---\n\n`;
+        responseText += `## ⚠️ ARCHITECTURE CONFLICTS DETECTED\n\n`;
+        responseText += `The following conflicts were found in your project:\n\n`;
+        for (const conflict of result.detectedConflicts) {
+          responseText += `### ${conflict.type}\n`;
+          responseText += `**Conflicting:** ${conflict.items.join(' + ')}\n`;
+          responseText += `**Recommendation:** ${conflict.recommendation}\n`;
+          responseText += `**Reason:** ${conflict.reason}\n\n`;
+        }
+        responseText += `**Please resolve these conflicts before proceeding.**\n\n`;
+      }
+
+      // v6.1: Show team profile settings if configured
+      if (result.teamProfile) {
+        responseText += `---\n\n`;
+        responseText += `## 🏢 TEAM PROFILE\n\n`;
+        responseText += `| Setting | Value |\n|---------|-------|\n`;
+        responseText += `| Industry | ${result.teamProfile.industryProfile || 'general'} |\n`;
+        responseText += `| Strictness | ${result.teamProfile.strictnessLevel || 'standard'} |\n`;
+        if (result.teamProfile.requireHipaa) responseText += `| HIPAA | ✅ Required |\n`;
+        if (result.teamProfile.requirePci) responseText += `| PCI-DSS | ✅ Required |\n`;
+        if (result.teamProfile.requireSoc2) responseText += `| SOC2 | ✅ Required |\n`;
+        if (result.teamProfile.requireGdpr) responseText += `| GDPR | ✅ Required |\n`;
+        responseText += `\n`;
+      }
+
+      // v6.1: Show project memory if available
+      if (result.projectMemory) {
+        responseText += `---\n\n`;
+        responseText += `## 🧠 PROJECT MEMORY\n\n`;
+        responseText += `Server has remembered your project's architectural decisions:\n\n`;
+
+        const memory = result.projectMemory;
+        if (memory.stackDecisions) {
+          const stack = typeof memory.stackDecisions === 'string'
+            ? JSON.parse(memory.stackDecisions)
+            : memory.stackDecisions;
+          if (Object.keys(stack).length > 0) {
+            responseText += `### Stack Decisions\n`;
+            responseText += `| Category | Choice |\n|----------|--------|\n`;
+            for (const [key, value] of Object.entries(stack)) {
+              responseText += `| ${key} | ${value} |\n`;
+            }
+            responseText += `\n`;
+          }
+        }
+
+        if (memory.namingConventions) {
+          responseText += `### Naming Conventions\n\`\`\`\n${memory.namingConventions}\n\`\`\`\n\n`;
+        }
+
+        if (memory.projectRules) {
+          responseText += `### Project Rules\n${memory.projectRules}\n\n`;
+        }
+
+        responseText += `**Follow these established patterns for consistency.**\n\n`;
+      }
+
       responseText += `---\n\n`;
 
       // Section 1: Patterns from server
@@ -6242,7 +6520,7 @@ ${handlers.join('\n')}
   }
 
   /**
-   * Download and update CodeBakers patterns from server
+   * Update to CodeBakers v6.0 - server-enforced patterns
    * This is the MCP equivalent of the `codebakers upgrade` CLI command
    */
   private async handleUpdatePatterns(args: { force?: boolean }) {
@@ -6250,63 +6528,70 @@ ${handlers.join('\n')}
     const cwd = process.cwd();
     const claudeMdPath = path.join(cwd, 'CLAUDE.md');
     const claudeDir = path.join(cwd, '.claude');
-    const versionPath = path.join(claudeDir, '.version.json');
+    const codebakersJson = path.join(cwd, '.codebakers.json');
 
-    let response = `# 🔄 CodeBakers Pattern Update\n\n`;
+    let response = `# 🔄 CodeBakers v6.0 Update\n\n`;
+
+    // v6.0 bootstrap content
+    const V6_CLAUDE_MD = `# CodeBakers v6.0
+
+**MANDATORY: Before writing ANY code, call the \`discover_patterns\` MCP tool.**
+
+\`\`\`
+Tool: discover_patterns
+Args: { task: "description of what you're building" }
+\`\`\`
+
+The server will return:
+- All coding patterns and rules you must follow
+- Test requirements
+- Validation instructions
+
+**You cannot write code without calling this tool first. The server tracks compliance.**
+
+---
+*CodeBakers v6.0 - Server-Enforced*
+`;
+
+    const V6_CURSORRULES = `# CodeBakers v6.0
+
+MANDATORY: Before writing ANY code, call the discover_patterns MCP tool.
+
+Tool: discover_patterns
+Args: { task: "description of what you're building" }
+
+The server returns all patterns, rules, and test requirements.
+You cannot write code without calling this tool first.
+`;
 
     try {
       // Check current version
       let currentVersion: string | null = null;
-      let currentModuleCount = 0;
+      let isV6 = false;
 
-      if (fs.existsSync(versionPath)) {
+      if (fs.existsSync(claudeMdPath)) {
+        const content = fs.readFileSync(claudeMdPath, 'utf-8');
+        isV6 = content.includes('v6.0') && content.includes('discover_patterns');
+      }
+
+      if (fs.existsSync(codebakersJson)) {
         try {
-          const versionInfo = JSON.parse(fs.readFileSync(versionPath, 'utf-8'));
-          currentVersion = versionInfo.version;
-          currentModuleCount = versionInfo.moduleCount || 0;
+          const state = JSON.parse(fs.readFileSync(codebakersJson, 'utf-8'));
+          currentVersion = state.version || null;
         } catch {
           // Ignore parse errors
         }
       }
 
-      // Count current modules
-      if (fs.existsSync(claudeDir)) {
-        try {
-          const files = fs.readdirSync(claudeDir).filter(f => f.endsWith('.md'));
-          currentModuleCount = files.length;
-        } catch {
-          // Ignore read errors
-        }
-      }
-
       response += `## Current Status\n`;
       response += `- Version: ${currentVersion || 'Unknown'}\n`;
-      response += `- Modules: ${currentModuleCount}\n\n`;
+      response += `- v6.0 (Server-Enforced): ${isV6 ? 'Yes ✓' : 'No'}\n\n`;
 
-      // Fetch latest version info first
-      const versionResponse = await fetch(`${this.apiUrl}/api/content/version`, {
-        headers: this.getAuthHeaders(),
-      });
-
-      if (!versionResponse.ok) {
-        throw new Error('Failed to check version from server');
-      }
-
-      const latestInfo = await versionResponse.json();
-      const latestVersion = latestInfo.version;
-      const latestModuleCount = latestInfo.moduleCount || 0;
-
-      response += `## Server Status\n`;
-      response += `- Latest Version: ${latestVersion}\n`;
-      response += `- Available Modules: ${latestModuleCount}\n\n`;
-
-      // Check if update needed
-      const needsUpdate = force || !currentVersion || currentVersion !== latestVersion || currentModuleCount < latestModuleCount;
-
-      if (!needsUpdate) {
-        response += `✅ **Already up to date!**\n\n`;
-        response += `Your patterns are current (v${latestVersion} with ${latestModuleCount} modules).\n`;
-        response += `Use \`force: true\` to re-download anyway.\n`;
+      // Check if already on v6
+      if (isV6 && !force) {
+        response += `✅ **Already on v6.0!**\n\n`;
+        response += `Your patterns are server-enforced. Just use \`discover_patterns\` before coding.\n`;
+        response += `Use \`force: true\` to reinstall bootstrap files.\n`;
         response += this.getUpdateNotice();
 
         return {
@@ -6317,76 +6602,58 @@ ${handlers.join('\n')}
         };
       }
 
-      response += `## Downloading Updates...\n\n`;
+      response += `## Upgrading to v6.0...\n\n`;
 
-      // Fetch full content
-      const contentResponse = await fetch(`${this.apiUrl}/api/content`, {
-        headers: this.getAuthHeaders(),
-      });
+      // Write v6.0 bootstrap files
+      fs.writeFileSync(claudeMdPath, V6_CLAUDE_MD);
+      response += `✓ Updated CLAUDE.md (v6.0 bootstrap)\n`;
 
-      if (!contentResponse.ok) {
-        const error = await contentResponse.json().catch(() => ({}));
-        throw new Error(error.error || error.message || 'Failed to fetch patterns');
-      }
+      fs.writeFileSync(path.join(cwd, '.cursorrules'), V6_CURSORRULES);
+      response += `✓ Updated .cursorrules (v6.0 bootstrap)\n`;
 
-      const content = await contentResponse.json();
-      const moduleCount = content.modules ? Object.keys(content.modules).length : 0;
-
-      // Create .claude directory if needed
-      if (!fs.existsSync(claudeDir)) {
-        fs.mkdirSync(claudeDir, { recursive: true });
-        response += `✓ Created .claude/ directory\n`;
-      }
-
-      // Update CLAUDE.md router
-      if (content.router) {
-        fs.writeFileSync(claudeMdPath, content.router);
-        response += `✓ Updated CLAUDE.md (router)\n`;
-      }
-
-      // Update all modules
-      if (content.modules && moduleCount > 0) {
-        for (const [name, data] of Object.entries(content.modules)) {
-          fs.writeFileSync(path.join(claudeDir, name), data as string);
+      // Remove old .claude folder (v5 → v6 migration)
+      if (fs.existsSync(claudeDir)) {
+        try {
+          fs.rmSync(claudeDir, { recursive: true, force: true });
+          response += `✓ Removed .claude/ folder (patterns now server-side)\n`;
+        } catch {
+          response += `⚠️ Could not remove .claude/ folder - please delete manually\n`;
         }
-        response += `✓ Updated ${moduleCount} modules in .claude/\n`;
       }
 
-      // Save version info
-      const newVersionInfo = {
-        version: content.version || latestVersion,
-        moduleCount,
-        installedAt: currentVersion ? undefined : new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        cliVersion: getCliVersion(),
-      };
-      fs.writeFileSync(versionPath, JSON.stringify(newVersionInfo, null, 2));
-      response += `✓ Saved version info\n`;
-
-      // Confirm download to server (non-blocking analytics)
-      this.confirmDownload(content.version || latestVersion, moduleCount).catch(() => {});
-
-      response += `\n## ✅ Update Complete!\n\n`;
-      response += `- **From:** v${currentVersion || 'none'} (${currentModuleCount} modules)\n`;
-      response += `- **To:** v${content.version || latestVersion} (${moduleCount} modules)\n\n`;
-
-      if (moduleCount > currentModuleCount) {
-        response += `🆕 **${moduleCount - currentModuleCount} new modules added!**\n\n`;
+      // Update .codebakers.json
+      let state: Record<string, unknown> = {};
+      if (fs.existsSync(codebakersJson)) {
+        try {
+          state = JSON.parse(fs.readFileSync(codebakersJson, 'utf-8'));
+        } catch {
+          // Ignore errors
+        }
       }
+      state.version = '6.0';
+      state.serverEnforced = true;
+      state.updatedAt = new Date().toISOString();
+      fs.writeFileSync(codebakersJson, JSON.stringify(state, null, 2));
+      response += `✓ Updated .codebakers.json\n`;
 
-      response += `Your patterns are now up to date. The new patterns will be used in your next response.\n`;
+      // Confirm to server (non-blocking analytics)
+      this.confirmDownload('6.0', 0).catch(() => {});
+
+      response += `\n## ✅ Upgrade Complete!\n\n`;
+      response += `**What changed in v6.0:**\n`;
+      response += `- No local pattern files (.claude/ folder removed)\n`;
+      response += `- All patterns fetched from server in real-time\n`;
+      response += `- Server tracks compliance via discover_patterns/validate_complete\n\n`;
+      response += `**How to use:**\n`;
+      response += `1. Call \`discover_patterns\` before writing any code\n`;
+      response += `2. Follow the patterns returned by server\n`;
+      response += `3. Call \`validate_complete\` before marking done\n`;
 
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       response += `\n## ❌ Update Failed\n\n`;
       response += `Error: ${message}\n\n`;
-
-      if (message.includes('401') || message.includes('Invalid') || message.includes('expired')) {
-        response += `Your API key may be invalid or expired.\n`;
-        response += `Run \`codebakers setup\` in terminal to reconfigure.\n`;
-      } else {
-        response += `Please try again or run \`codebakers upgrade\` in terminal.\n`;
-      }
+      response += `Please try again or run \`codebakers upgrade\` in terminal.\n`;
     }
 
     // Add CLI update notice if available

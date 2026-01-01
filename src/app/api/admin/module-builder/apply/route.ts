@@ -6,6 +6,68 @@ import { autoRateLimit } from '@/lib/api-utils';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Validate that new modules use sequential numbering
+ */
+function validateModuleNumbering(
+  existingModules: string[],
+  newModules: Record<string, string>
+): { valid: boolean; error?: string; nextNumber: number } {
+  // Get existing module numbers
+  const existingNumbers = existingModules
+    .map(name => {
+      const match = name.match(/^(\d+)-/);
+      return match ? parseInt(match[1], 10) : null;
+    })
+    .filter((n): n is number => n !== null);
+
+  const maxExisting = existingNumbers.length > 0 ? Math.max(...existingNumbers) : -1;
+  const nextNumber = maxExisting + 1;
+
+  // Check new modules for proper numbering
+  const newModuleNames = Object.keys(newModules);
+  const newNumbers: number[] = [];
+
+  for (const name of newModuleNames) {
+    const match = name.match(/^(\d+)-/);
+    if (!match) {
+      return { valid: false, error: `Module "${name}" doesn't follow XX-name.md format`, nextNumber };
+    }
+
+    const num = parseInt(match[1], 10);
+    newNumbers.push(num);
+
+    // Check if this is an update to an existing module (allowed)
+    if (existingNumbers.includes(num)) {
+      continue; // Updating existing module is fine
+    }
+
+    // For new modules, must use sequential numbering
+    if (num < nextNumber) {
+      return {
+        valid: false,
+        error: `Module "${name}" uses number ${num}, but that's already used. Next available: ${nextNumber}`,
+        nextNumber
+      };
+    }
+  }
+
+  // Check for gaps in new modules
+  const onlyNewNumbers = newNumbers.filter(n => !existingNumbers.includes(n)).sort((a, b) => a - b);
+  for (let i = 0; i < onlyNewNumbers.length; i++) {
+    const expected = nextNumber + i;
+    if (onlyNewNumbers[i] !== expected) {
+      return {
+        valid: false,
+        error: `Module numbering gap: expected ${expected}, got ${onlyNewNumbers[i]}. Use sequential numbers.`,
+        nextNumber
+      };
+    }
+  }
+
+  return { valid: true, nextNumber };
+}
+
 export async function POST(request: NextRequest) {
   try {
     autoRateLimit(request);
@@ -42,7 +104,26 @@ export async function POST(request: NextRequest) {
     if (activeVersion?.modulesContent) {
       newModules = { ...activeVersion.modulesContent };
     }
+
+    // Validate module numbering before merging
     if (changes.modules) {
+      const existingModuleNames = Object.keys(activeVersion?.modulesContent || {});
+      const validation = validateModuleNumbering(existingModuleNames, changes.modules);
+
+      if (!validation.valid) {
+        return NextResponse.json(
+          {
+            success: false,
+            data: {
+              error: validation.error,
+              nextAvailableNumber: validation.nextNumber,
+              hint: `Use ${validation.nextNumber.toString().padStart(2, '0')}-modulename.md format`,
+            },
+          },
+          { status: 400 }
+        );
+      }
+
       newModules = { ...newModules, ...changes.modules };
     }
 

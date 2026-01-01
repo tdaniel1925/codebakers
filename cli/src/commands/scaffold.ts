@@ -69,7 +69,7 @@ Ask yourself silently:
 
 ### PHASE 3: EXECUTE
 - State: \`📋 CodeBakers | [Type] | Modules: [list]\`
-- Load required modules from .claude/
+- Call discover_patterns MCP tool first
 - Follow patterns EXACTLY
 
 ### PHASE 4: SELF-REVIEW (before saying "done")
@@ -552,23 +552,41 @@ export async function scaffold(): Promise<void> {
         });
 
         if (response.ok) {
-          const content: ContentResponse = await response.json();
+          // v6.0: Write minimal bootstrap files (patterns come from server)
+          const V6_CLAUDE_MD = `# CodeBakers v6.0
 
-          // Write CLAUDE.md (main router)
-          if (content.router) {
-            writeFileSync(join(cwd, 'CLAUDE.md'), content.router);
-          }
+**MANDATORY: Before writing ANY code, call the \`discover_patterns\` MCP tool.**
 
-          // Write pattern modules to .claude/
-          if (content.modules && Object.keys(content.modules).length > 0) {
-            const modulesDir = join(cwd, '.claude');
-            if (!existsSync(modulesDir)) {
-              mkdirSync(modulesDir, { recursive: true });
-            }
-            for (const [name, data] of Object.entries(content.modules)) {
-              writeFileSync(join(modulesDir, name), data);
-            }
-          }
+\`\`\`
+Tool: discover_patterns
+Args: { task: "description of what you're building" }
+\`\`\`
+
+The server will return:
+- All coding patterns and rules you must follow
+- Test requirements
+- Validation instructions
+
+**You cannot write code without calling this tool first. The server tracks compliance.**
+
+---
+*CodeBakers v6.0 - Server-Enforced*
+`;
+
+          const V6_CURSORRULES = `# CodeBakers v6.0
+
+MANDATORY: Before writing ANY code, call the discover_patterns MCP tool.
+
+Tool: discover_patterns
+Args: { task: "description of what you're building" }
+
+The server returns all patterns, rules, and test requirements.
+You cannot write code without calling this tool first.
+`;
+
+          // Write v6.0 bootstrap files
+          writeFileSync(join(cwd, 'CLAUDE.md'), V6_CLAUDE_MD);
+          writeFileSync(join(cwd, '.cursorrules'), V6_CURSORRULES);
 
           // Write project management files
           writeFileSync(join(cwd, 'PRD.md'), createPrdTemplate(projectName));
@@ -577,7 +595,6 @@ export async function scaffold(): Promise<void> {
           writeFileSync(join(cwd, 'DECISIONS.md'), createDecisionsLog(projectName));
 
           // Write Cursor IDE files
-          writeFileSync(join(cwd, '.cursorrules'), CURSORRULES_TEMPLATE);
           writeFileSync(join(cwd, '.cursorignore'), CURSORIGNORE_TEMPLATE);
 
           // Create .vscode settings
@@ -590,16 +607,16 @@ export async function scaffold(): Promise<void> {
             "cursor.chat.alwaysIncludeRules": true
           }, null, 2));
 
-          // Update .gitignore
+          // Update .gitignore (no .claude/ needed in v6)
           const gitignorePath = join(cwd, '.gitignore');
           if (existsSync(gitignorePath)) {
             const gitignore = readFileSync(gitignorePath, 'utf-8');
             if (!gitignore.includes('.cursorrules')) {
-              writeFileSync(gitignorePath, gitignore + '\n# CodeBakers\n.cursorrules\n.claude/\n');
+              writeFileSync(gitignorePath, gitignore + '\n# CodeBakers\n.cursorrules\n');
             }
           }
 
-          patternSpinner.succeed(`Patterns installed! (v${content.version})`);
+          patternSpinner.succeed('CodeBakers v6.0 installed!');
           patternsInstalled = true;
         } else {
           patternSpinner.warn('Could not download patterns (will need to run codebakers init later)');
@@ -773,9 +790,9 @@ export async function scaffold(): Promise<void> {
 
     if (patternsInstalled) {
       console.log('');
-      console.log(chalk.gray('    CLAUDE.md          ') + chalk.cyan('← AI instructions (reads automatically!)'));
+      console.log(chalk.gray('    CLAUDE.md          ') + chalk.cyan('← AI gateway (calls MCP for patterns)'));
+      console.log(chalk.gray('    .cursorrules       ') + chalk.cyan('← Cursor IDE gateway'));
       console.log(chalk.gray('    PRD.md             ') + chalk.cyan('← Your product requirements'));
-      console.log(chalk.gray('    .claude/           ') + chalk.cyan('← 34 production patterns'));
     }
     console.log('');
 

@@ -1054,3 +1054,284 @@ export type NewPatternDiscovery = typeof patternDiscoveries.$inferInsert;
 export type PatternValidation = typeof patternValidations.$inferSelect;
 export type NewPatternValidation = typeof patternValidations.$inferInsert;
 export type EnforcementSessionStatus = 'active' | 'completed' | 'failed' | 'expired';
+
+// ============================================
+// v6.1 ENHANCEMENTS - Quality & Consistency
+// ============================================
+
+// Industry Profile enum
+export const industryProfileEnum = pgEnum('industry_profile', [
+  'general',     // Default, no special requirements
+  'healthcare',  // HIPAA patterns
+  'finance',     // PCI, SOX patterns
+  'legal',       // Privacy, contract patterns
+  'ecommerce',   // Product, cart, order patterns
+  'education',   // LMS, COPPA patterns
+  'enterprise',  // SSO, RBAC, audit patterns
+]);
+
+// Strictness Level enum
+export const strictnessLevelEnum = pgEnum('strictness_level', [
+  'relaxed',    // Minimal validation, fast iteration
+  'standard',   // Default CodeBakers patterns
+  'strict',     // Extra validation, security checks
+  'enterprise', // Maximum validation, compliance
+]);
+
+// Team Profiles - Industry-specific and strictness settings
+export const teamProfiles = pgTable('team_profiles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull().unique(),
+
+  // Industry configuration
+  industryProfile: industryProfileEnum('industry_profile').default('general'),
+
+  // Strictness settings
+  strictnessLevel: strictnessLevelEnum('strictness_level').default('standard'),
+
+  // Required patterns (always include these)
+  requiredPatterns: text('required_patterns'), // JSON array: ["audit-logging", "error-handling"]
+
+  // Banned patterns (never allow these)
+  bannedPatterns: text('banned_patterns'), // JSON array: ["console-log", "any-type"]
+
+  // Custom rules (additional validation)
+  customRules: text('custom_rules'), // JSON: { "max-file-size": 500, "require-tests": true }
+
+  // Compliance requirements
+  requireHipaa: boolean('require_hipaa').default(false),
+  requirePci: boolean('require_pci').default(false),
+  requireSoc2: boolean('require_soc2').default(false),
+  requireGdpr: boolean('require_gdpr').default(false),
+
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Project Memory - Persistent architectural decisions per project
+export const projectMemory = pgTable('project_memory', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Project identification
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }),
+  projectHash: text('project_hash').notNull(),
+  projectName: text('project_name'),
+
+  // Unique constraint: one memory per team+project
+  // Will be enforced via unique index
+
+  // Stack decisions (locked after first detection)
+  stackDecisions: text('stack_decisions'), // JSON: { auth: "supabase", orm: "drizzle", ui: "shadcn" }
+
+  // Naming conventions
+  namingConventions: text('naming_conventions'), // JSON: { components: "PascalCase", files: "kebab-case" }
+
+  // Architectural patterns in use
+  architecturePatterns: text('architecture_patterns'), // JSON: { api: "server-actions", state: "zustand" }
+
+  // File structure decisions
+  fileStructure: text('file_structure'), // JSON: { style: "feature-based", testLocation: "colocated" }
+
+  // Custom project rules
+  projectRules: text('project_rules'), // JSON: custom rules for this project
+
+  // Dependencies locked (prevent switching)
+  lockedDependencies: text('locked_dependencies'), // JSON: ["zustand", "drizzle-orm"]
+
+  // Last detected conflicts
+  detectedConflicts: text('detected_conflicts'), // JSON array of conflicts found
+
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Pattern Compliance - Track how well AI follows patterns
+export const patternCompliance = pgTable('pattern_compliance', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').references(() => enforcementSessions.id, { onDelete: 'cascade' }).notNull(),
+
+  // Overall score (0-100)
+  complianceScore: integer('compliance_score').notNull(),
+
+  // Pattern-by-pattern breakdown
+  patternScores: text('pattern_scores'), // JSON: { "error-handling": 90, "loading-states": 60 }
+
+  // Deductions
+  deductions: text('deductions'), // JSON array: [{ rule, issue, file, line, points }]
+
+  // What was checked
+  filesAnalyzed: text('files_analyzed'), // JSON array
+  patternsChecked: text('patterns_checked'), // JSON array
+
+  // Structural matching results
+  structuralMatches: text('structural_matches'), // JSON: { pattern, matched, expected, found }
+
+  // Test quality metrics
+  testQuality: text('test_quality'), // JSON: { exists, coverage, hasHappyPath, hasErrorCases, hasBoundary }
+
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Production Feedback - Errors from production that improve patterns
+export const productionFeedback = pgTable('production_feedback', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Project identification
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }),
+  projectHash: text('project_hash'),
+  projectName: text('project_name'),
+
+  // Error details
+  errorType: text('error_type').notNull(), // e.g., "TypeError", "NetworkError"
+  errorMessage: text('error_message').notNull(),
+  errorStack: text('error_stack'),
+
+  // Where it happened
+  errorFile: text('error_file'),
+  errorLine: integer('error_line'),
+  errorFunction: text('error_function'),
+
+  // Pattern context
+  patternUsed: text('pattern_used'), // Which pattern was in use when error occurred
+  sessionId: uuid('session_id').references(() => enforcementSessions.id, { onDelete: 'set null' }),
+
+  // Frequency tracking
+  occurrenceCount: integer('occurrence_count').default(1),
+  firstSeenAt: timestamp('first_seen_at').defaultNow(),
+  lastSeenAt: timestamp('last_seen_at').defaultNow(),
+
+  // Source (how was this reported)
+  source: text('source'), // 'sentry', 'manual', 'cli', 'webhook'
+  sourceEventId: text('source_event_id'), // External ID from Sentry etc.
+
+  // Resolution
+  isResolved: boolean('is_resolved').default(false),
+  resolution: text('resolution'),
+  patternUpdated: boolean('pattern_updated').default(false),
+  resolvedAt: timestamp('resolved_at'),
+
+  // Impact assessment
+  impactLevel: text('impact_level'), // 'low', 'medium', 'high', 'critical'
+  usersAffected: integer('users_affected'),
+
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Architecture Conflicts - Detected conflicting patterns in projects
+export const architectureConflicts = pgTable('architecture_conflicts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').references(() => enforcementSessions.id, { onDelete: 'cascade' }),
+
+  // Project context
+  projectHash: text('project_hash'),
+
+  // Conflict details
+  conflictType: text('conflict_type').notNull(), // 'state-management', 'styling', 'auth', 'orm'
+  conflictingItems: text('conflicting_items').notNull(), // JSON array: ["redux", "zustand"]
+
+  // Where found
+  filesInvolved: text('files_involved'), // JSON array of file paths
+
+  // Recommendation
+  recommendedItem: text('recommended_item'), // Which one to keep
+  recommendationReason: text('recommendation_reason'),
+
+  // Resolution
+  isResolved: boolean('is_resolved').default(false),
+  resolvedWith: text('resolved_with'), // Which item was chosen
+  resolvedAt: timestamp('resolved_at'),
+
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Test Quality Metrics - Detailed test analysis
+export const testQualityMetrics = pgTable('test_quality_metrics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').references(() => enforcementSessions.id, { onDelete: 'cascade' }),
+
+  // Overall metrics
+  overallScore: integer('overall_score'), // 0-100
+
+  // Coverage
+  coveragePercent: integer('coverage_percent'),
+  linesTotal: integer('lines_total'),
+  linesCovered: integer('lines_covered'),
+
+  // Test types present
+  hasUnitTests: boolean('has_unit_tests').default(false),
+  hasIntegrationTests: boolean('has_integration_tests').default(false),
+  hasE2eTests: boolean('has_e2e_tests').default(false),
+
+  // Test cases analysis
+  hasHappyPath: boolean('has_happy_path').default(false),
+  hasErrorCases: boolean('has_error_cases').default(false),
+  hasBoundaryCases: boolean('has_boundary_cases').default(false),
+  hasEdgeCases: boolean('has_edge_cases').default(false),
+
+  // Test file analysis
+  testFiles: text('test_files'), // JSON array of test file paths
+  testCount: integer('test_count').default(0),
+
+  // Recommendations
+  missingTests: text('missing_tests'), // JSON array: ["error case for invalid input", "boundary test for max length"]
+  recommendations: text('recommendations'), // JSON array of suggestions
+
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Relations for new tables
+export const teamProfilesRelations = relations(teamProfiles, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamProfiles.teamId],
+    references: [teams.id],
+  }),
+}));
+
+export const patternComplianceRelations = relations(patternCompliance, ({ one }) => ({
+  session: one(enforcementSessions, {
+    fields: [patternCompliance.sessionId],
+    references: [enforcementSessions.id],
+  }),
+}));
+
+export const productionFeedbackRelations = relations(productionFeedback, ({ one }) => ({
+  team: one(teams, {
+    fields: [productionFeedback.teamId],
+    references: [teams.id],
+  }),
+  session: one(enforcementSessions, {
+    fields: [productionFeedback.sessionId],
+    references: [enforcementSessions.id],
+  }),
+}));
+
+export const architectureConflictsRelations = relations(architectureConflicts, ({ one }) => ({
+  session: one(enforcementSessions, {
+    fields: [architectureConflicts.sessionId],
+    references: [enforcementSessions.id],
+  }),
+}));
+
+export const testQualityMetricsRelations = relations(testQualityMetrics, ({ one }) => ({
+  session: one(enforcementSessions, {
+    fields: [testQualityMetrics.sessionId],
+    references: [enforcementSessions.id],
+  }),
+}));
+
+// Types for new tables
+export type TeamProfile = typeof teamProfiles.$inferSelect;
+export type NewTeamProfile = typeof teamProfiles.$inferInsert;
+export type ProjectMemory = typeof projectMemory.$inferSelect;
+export type NewProjectMemory = typeof projectMemory.$inferInsert;
+export type PatternCompliance = typeof patternCompliance.$inferSelect;
+export type NewPatternCompliance = typeof patternCompliance.$inferInsert;
+export type ProductionFeedback = typeof productionFeedback.$inferSelect;
+export type NewProductionFeedback = typeof productionFeedback.$inferInsert;
+export type ArchitectureConflict = typeof architectureConflicts.$inferSelect;
+export type NewArchitectureConflict = typeof architectureConflicts.$inferInsert;
+export type TestQualityMetric = typeof testQualityMetrics.$inferSelect;
+export type NewTestQualityMetric = typeof testQualityMetrics.$inferInsert;
+export type IndustryProfile = 'general' | 'healthcare' | 'finance' | 'legal' | 'ecommerce' | 'education' | 'enterprise';
+export type StrictnessLevel = 'relaxed' | 'standard' | 'strict' | 'enterprise';

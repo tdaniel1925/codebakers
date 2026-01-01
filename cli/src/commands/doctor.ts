@@ -1,11 +1,10 @@
 import chalk from 'chalk';
-import { existsSync, readdirSync, readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { isHookInstalled } from './install-hook.js';
 import { getApiKey } from '../config.js';
 import { checkApiKeyValidity, checkForUpdates, getCliVersion } from '../lib/api.js';
-import { CODEBAKERS_STATS } from '../lib/stats.js';
 
 interface CheckResult {
   ok: boolean;
@@ -17,7 +16,7 @@ interface CheckResult {
  * Run all health checks for CodeBakers setup
  */
 export async function doctor(): Promise<void> {
-  console.log(chalk.blue('\n  CodeBakers Doctor\n'));
+  console.log(chalk.blue('\n  CodeBakers Doctor (v6.0)\n'));
 
   // Show version
   const version = getCliVersion();
@@ -73,7 +72,7 @@ export async function doctor(): Promise<void> {
 
     const claudeMdCheck = projectChecks.find(c => c.message.includes('CLAUDE.md'));
     if (claudeMdCheck && !claudeMdCheck.ok) {
-      console.log(chalk.gray('    • Run: codebakers install'));
+      console.log(chalk.gray('    • Run: codebakers go'));
     }
 
     const hookCheck = systemChecks.find(c => c.message.includes('Hook'));
@@ -98,112 +97,70 @@ export async function doctor(): Promise<void> {
 }
 
 /**
- * Check project-level setup
+ * Check project-level setup (v6.0 bootstrap files)
  */
 function checkProject(): CheckResult[] {
   const results: CheckResult[] = [];
   const cwd = process.cwd();
 
-  // Check CLAUDE.md
+  // Check CLAUDE.md with v6 content
   const claudeMdPath = join(cwd, 'CLAUDE.md');
   if (existsSync(claudeMdPath)) {
     const content = readFileSync(claudeMdPath, 'utf-8');
-    if (content.includes('CODEBAKERS') || content.includes('CodeBakers') || content.includes('.claude')) {
-      results.push({ ok: true, message: 'CLAUDE.md exists (CodeBakers router)' });
+    if (content.includes('discover_patterns') || content.includes('v6.0')) {
+      results.push({ ok: true, message: 'CLAUDE.md exists (v6.0 gateway)' });
+    } else if (content.includes('CodeBakers') || content.includes('.claude')) {
+      results.push({
+        ok: false,
+        message: 'CLAUDE.md exists but is v5 format',
+        details: 'Run: codebakers go --upgrade'
+      });
     } else {
       results.push({
         ok: false,
-        message: 'CLAUDE.md exists but is not CodeBakers router',
-        details: 'Run: codebakers install --force'
+        message: 'CLAUDE.md exists but not CodeBakers',
+        details: 'Run: codebakers go'
       });
     }
   } else {
     results.push({
       ok: false,
       message: 'CLAUDE.md not found',
-      details: 'Run: codebakers install'
+      details: 'Run: codebakers go'
     });
   }
 
-  // Check .claude folder
-  const claudeDir = join(cwd, '.claude');
-  if (existsSync(claudeDir)) {
-    results.push({ ok: true, message: '.claude/ folder exists' });
-
-    // Count modules
-    try {
-      const files = readdirSync(claudeDir).filter(f => f.endsWith('.md'));
-      const moduleCount = files.length;
-
-      if (moduleCount >= 50) {
-        results.push({ ok: true, message: `${moduleCount} modules present (full set)` });
-      } else if (moduleCount >= 10) {
-        results.push({
-          ok: true,
-          message: `${moduleCount} modules present (partial set)`,
-          details: `Run: codebakers upgrade to get all ${CODEBAKERS_STATS.moduleCount} modules`
-        });
-      } else if (moduleCount > 0) {
-        results.push({
-          ok: false,
-          message: `Only ${moduleCount} modules found (expected ${CODEBAKERS_STATS.moduleCount})`,
-          details: 'Run: codebakers upgrade to get all modules'
-        });
-      } else {
-        results.push({
-          ok: false,
-          message: 'No modules found in .claude/',
-          details: 'Run: codebakers install'
-        });
-      }
-
-      // Check for 00-core.md
-      const corePath = join(claudeDir, '00-core.md');
-      if (existsSync(corePath)) {
-        results.push({ ok: true, message: '00-core.md exists (base patterns)' });
-      } else {
-        results.push({
-          ok: false,
-          message: '00-core.md not found',
-          details: 'This module is loaded on every task'
-        });
-      }
-
-      // Check for 00-system.md
-      const systemPath = join(claudeDir, '00-system.md');
-      if (existsSync(systemPath)) {
-        results.push({ ok: true, message: '00-system.md exists (workflow module)' });
-      } else {
-        results.push({
-          ok: true, // Not required, just recommended
-          message: '00-system.md not found (optional workflow module)',
-          details: 'Contains 9-step execution flow'
-        });
-      }
-    } catch {
+  // Check .cursorrules with v6 content
+  const cursorRulesPath = join(cwd, '.cursorrules');
+  if (existsSync(cursorRulesPath)) {
+    const content = readFileSync(cursorRulesPath, 'utf-8');
+    if (content.includes('discover_patterns') || content.includes('v6.0')) {
+      results.push({ ok: true, message: '.cursorrules exists (v6.0 gateway)' });
+    } else {
       results.push({
         ok: false,
-        message: 'Could not read .claude/ folder',
-        details: 'Check folder permissions'
+        message: '.cursorrules exists but is old format',
+        details: 'Run: codebakers go --upgrade'
       });
     }
   } else {
     results.push({
       ok: false,
-      message: '.claude/ folder not found',
-      details: 'Run: codebakers install'
+      message: '.cursorrules not found',
+      details: 'Run: codebakers go'
     });
   }
 
-  // Check PROJECT-STATE.md (optional)
-  const statePath = join(cwd, 'PROJECT-STATE.md');
-  if (existsSync(statePath)) {
-    results.push({ ok: true, message: 'PROJECT-STATE.md exists' });
-  } else {
+  // Check for legacy .claude folder (should be removed in v6)
+  const claudeDir = join(cwd, '.claude');
+  if (existsSync(claudeDir)) {
     results.push({
-      ok: true, // It's optional
-      message: 'PROJECT-STATE.md not found (created on first run)',
+      ok: false,
+      message: 'Legacy .claude/ folder found',
+      details: 'v6.0 uses server-side patterns. Run: codebakers go --upgrade'
     });
+  } else {
+    results.push({ ok: true, message: 'No legacy .claude/ folder (v6.0 clean)' });
   }
 
   return results;
@@ -289,15 +246,16 @@ async function checkAuth(): Promise<CheckResult[]> {
 }
 
 /**
- * Quick check - returns true if basic setup is complete
+ * Quick check - returns true if v6 setup is complete
  */
 export function isSetupComplete(): boolean {
   const cwd = process.cwd();
 
   const hasClaudeMd = existsSync(join(cwd, 'CLAUDE.md'));
-  const hasClaudeDir = existsSync(join(cwd, '.claude'));
+  const hasCursorRules = existsSync(join(cwd, '.cursorrules'));
   const hasHook = isHookInstalled();
   const hasApiKey = !!getApiKey();
 
-  return hasClaudeMd && hasClaudeDir && hasHook && hasApiKey;
+  // v6: No .claude folder required
+  return hasClaudeMd && hasCursorRules && hasHook && hasApiKey;
 }

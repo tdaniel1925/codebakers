@@ -33,9 +33,9 @@ If PROJECT-CONTEXT.md is empty or stale (>7 days), SCAN THE PROJECT FIRST:
 - Update PROJECT-CONTEXT.md
 
 ### PHASE 3: EXECUTE
-- State: \`📋 CodeBakers | [Type] | Modules: [list]\`
-- Load required modules from .claude/
-- Follow patterns EXACTLY
+- State: \`📋 CodeBakers | [Type] | v6.0 Server-Enforced\`
+- Call discover_patterns MCP tool first
+- Follow patterns from server EXACTLY
 
 ### PHASE 4: SELF-REVIEW (before saying "done")
 - [ ] TypeScript compiles? (npx tsc --noEmit)
@@ -405,9 +405,9 @@ When you make a decision that affects architecture, add an entry:
 ---
 
 ## ${date}: Project Initialized
-**Decision:** Using CodeBakers pattern system
+**Decision:** Using CodeBakers v6.0 pattern system
 **Reason:** Ensure consistent, production-quality code
-**Pattern:** See .claude/ folder for all patterns
+**Pattern:** Server-enforced via discover_patterns MCP tool
 
 ---
 
@@ -597,51 +597,64 @@ export async function init(): Promise<void> {
     }
   }
 
-  // Step 4: Install patterns from API
-  console.log(chalk.white('\n  Step 2: Installing patterns\n'));
+  // Step 4: Install v6.0 bootstrap files
+  console.log(chalk.white('\n  Step 2: Installing CodeBakers v6.0\n'));
 
-  const spinner = ora('  Downloading patterns...').start();
+  const spinner = ora('  Installing v6.0 bootstrap...').start();
+
+  // v6.0 bootstrap content - minimal files, patterns from server
+  const V6_CLAUDE_MD = `# CodeBakers v6.0
+
+**MANDATORY: Before writing ANY code, call the \`discover_patterns\` MCP tool.**
+
+\`\`\`
+Tool: discover_patterns
+Args: { task: "description of what you're building" }
+\`\`\`
+
+The server will return:
+- All coding patterns and rules you must follow
+- Test requirements
+- Validation instructions
+
+**You cannot write code without calling this tool first. The server tracks compliance.**
+
+---
+*CodeBakers v6.0 - Server-Enforced*
+`;
+
+  const V6_CURSORRULES = `# CodeBakers v6.0
+
+MANDATORY: Before writing ANY code, call the discover_patterns MCP tool.
+
+Tool: discover_patterns
+Args: { task: "description of what you're building" }
+
+The server returns all patterns, rules, and test requirements.
+You cannot write code without calling this tool first.
+`;
 
   try {
-    const apiUrl = getApiUrl();
-    const response = await fetch(`${apiUrl}/api/content`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    });
+    // Write v6.0 bootstrap files
+    writeFileSync(join(cwd, 'CLAUDE.md'), V6_CLAUDE_MD);
+    writeFileSync(join(cwd, '.cursorrules'), V6_CURSORRULES);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || 'Failed to fetch content');
-    }
-
-    const content: ContentResponse = await response.json();
-    spinner.text = '  Installing patterns...';
-
-    // Write router file (CLAUDE.md)
-    if (content.router) {
-      writeFileSync(join(cwd, 'CLAUDE.md'), content.router);
-    }
-
-    // Write modules to .claude/
-    if (content.modules && Object.keys(content.modules).length > 0) {
-      const modulesDir = join(cwd, '.claude');
-      if (!existsSync(modulesDir)) {
-        mkdirSync(modulesDir, { recursive: true });
-      }
-
-      for (const [name, data] of Object.entries(content.modules)) {
-        writeFileSync(join(modulesDir, name), data);
+    // Remove old .claude folder if it exists (v5 → v6 migration)
+    const claudeDir = join(cwd, '.claude');
+    if (existsSync(claudeDir)) {
+      const { rmSync } = await import('fs');
+      try {
+        rmSync(claudeDir, { recursive: true, force: true });
+      } catch {
+        // Ignore errors
       }
     }
 
-    spinner.succeed('Patterns installed!');
-    console.log(chalk.gray(`\n  Version: ${content.version}`));
-    console.log(chalk.gray(`  Modules: ${Object.keys(content.modules || {}).length} pattern files`));
+    spinner.succeed('CodeBakers v6.0 installed!');
+    console.log(chalk.gray('\n  Patterns are server-enforced via MCP tools'));
 
   } catch (error) {
-    spinner.fail('Pattern installation failed');
+    spinner.fail('Installation failed');
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.log(chalk.red(`\n  Error: ${message}\n`));
     process.exit(1);
@@ -758,7 +771,7 @@ export async function init(): Promise<void> {
   if (existsSync(gitignorePath)) {
     const gitignore = readFileSync(gitignorePath, 'utf-8');
     if (!gitignore.includes('.cursorrules')) {
-      const additions = '\n# CodeBakers (encoded patterns)\n.cursorrules\n.claude/\n';
+      const additions = '\n# CodeBakers\n.cursorrules\n';
       writeFileSync(gitignorePath, gitignore + additions);
     }
   }
@@ -838,16 +851,15 @@ export async function init(): Promise<void> {
   `));
 
   console.log(chalk.white('  Files created:\n'));
-  console.log(chalk.cyan('    CLAUDE.md          ') + chalk.gray('→ AI router'));
+  console.log(chalk.cyan('    CLAUDE.md          ') + chalk.gray('→ v6.0 bootstrap (patterns via MCP)'));
+  console.log(chalk.cyan('    .cursorrules       ') + chalk.gray('→ v6.0 bootstrap (patterns via MCP)'));
   if (prdCreated) {
     console.log(chalk.cyan('    PRD.md             ') + chalk.gray('→ Product requirements (AI reads this!)'));
   }
   console.log(chalk.cyan('    PROJECT-CONTEXT.md ') + chalk.gray('→ Codebase knowledge (auto-updated)'));
   console.log(chalk.cyan('    PROJECT-STATE.md   ') + chalk.gray('→ Task tracking (auto-updated)'));
   console.log(chalk.cyan('    DECISIONS.md       ') + chalk.gray('→ Architecture log (auto-updated)'));
-  console.log(chalk.cyan('    .cursorrules       ') + chalk.gray('→ Cursor AI instructions'));
-  console.log(chalk.cyan('    .cursorignore      ') + chalk.gray('→ Context optimization'));
-  console.log(chalk.cyan('    .claude/           ') + chalk.gray('→ Pattern modules\n'));
+  console.log(chalk.cyan('    .cursorignore      ') + chalk.gray('→ Context optimization\n'));
 
   console.log(chalk.white('  What happens automatically:\n'));
   console.log(chalk.gray('    ✓ AI loads context before every response'));
