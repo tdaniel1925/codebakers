@@ -9,10 +9,12 @@ import {
   setTrialState,
   getApiUrl,
   getApiKey,
+  setApiKey,
   isTrialExpired,
   getTrialDaysRemaining,
   type TrialState,
 } from '../config.js';
+import { validateApiKey } from '../lib/api.js';
 import { getDeviceFingerprint } from '../lib/fingerprint.js';
 
 function prompt(question: string): Promise<string> {
@@ -98,6 +100,7 @@ function log(message: string, options?: GoOptions): void {
 
 /**
  * Zero-friction entry point - start using CodeBakers instantly
+ * Single command for both trial and paid users
  */
 export async function go(options: GoOptions = {}): Promise<void> {
   log('Starting go command...', options);
@@ -107,21 +110,22 @@ export async function go(options: GoOptions = {}): Promise<void> {
   console.log(chalk.blue(`
   ╔═══════════════════════════════════════════════════════════╗
   ║                                                           ║
-  ║   ${chalk.bold.white('CodeBakers - Zero Setup Required')}                    ║
+  ║   ${chalk.bold.white('CodeBakers - Get Started')}                             ║
   ║                                                           ║
   ╚═══════════════════════════════════════════════════════════╝
   `));
 
   // Check if user already has an API key (paid user)
   log('Checking for existing API key...', options);
-  const apiKey = getApiKey();
-  if (apiKey) {
-    log(`Found API key: ${apiKey.substring(0, 8)}...`, options);
-    console.log(chalk.green('  ✓ You\'re already logged in with an API key!\n'));
+  const existingApiKey = getApiKey();
+  if (existingApiKey) {
+    log(`Found API key: ${existingApiKey.substring(0, 8)}...`, options);
+    console.log(chalk.green('  ✓ You\'re already logged in!\n'));
 
-    // Still install patterns if not already installed
-    await installPatternsWithApiKey(apiKey, options);
+    // Install patterns if not already installed
+    await installPatternsWithApiKey(existingApiKey, options);
     await configureMCP(options);
+    await showSuccessAndRestart();
     return;
   }
   log('No API key found, checking trial state...', options);
@@ -140,8 +144,8 @@ export async function go(options: GoOptions = {}): Promise<void> {
 
     // Install patterns if not already installed
     await installPatterns(existingTrial.trialId, options);
-
     await configureMCP(options);
+    await showSuccessAndRestart();
     return;
   }
 
@@ -149,15 +153,31 @@ export async function go(options: GoOptions = {}): Promise<void> {
   if (existingTrial && isTrialExpired()) {
     console.log(chalk.yellow('  ⚠️  Your trial has expired.\n'));
 
-    if (existingTrial.stage === 'anonymous') {
-      console.log(chalk.white('  Extend your trial for 7 more days with GitHub:\n'));
-      console.log(chalk.cyan('    codebakers extend\n'));
-      console.log(chalk.gray('  Or upgrade to Pro ($49/month):\n'));
-      console.log(chalk.cyan('    codebakers upgrade\n'));
+    // Offer to login with API key or extend
+    console.log(chalk.white('  Options:\n'));
+    console.log(chalk.cyan('  [1] Login with API key') + chalk.gray(' (I have an account)'));
+    console.log(chalk.cyan('  [2] Extend trial') + chalk.gray(' (7 more days with GitHub)\n'));
+
+    const choice = await prompt(chalk.gray('  Enter 1 or 2: '));
+
+    if (choice === '1') {
+      await handleApiKeyLogin(options);
+      return;
     } else {
-      console.log(chalk.white('  Ready to upgrade? $49/month for unlimited access:\n'));
-      console.log(chalk.cyan('    codebakers upgrade\n'));
+      console.log(chalk.cyan('\n  Run: codebakers extend\n'));
+      return;
     }
+  }
+
+  // New user - ask how they want to proceed
+  console.log(chalk.white('  How would you like to get started?\n'));
+  console.log(chalk.cyan('  [1] Start free 7-day trial') + chalk.gray(' (no signup required)'));
+  console.log(chalk.cyan('  [2] Login with API key') + chalk.gray(' (I have an account)\n'));
+
+  const choice = await prompt(chalk.gray('  Enter 1 or 2: '));
+
+  if (choice === '2') {
+    await handleApiKeyLogin(options);
     return;
   }
 
@@ -235,19 +255,8 @@ export async function go(options: GoOptions = {}): Promise<void> {
     // Configure MCP
     await configureMCP(options);
 
-    // Show success message
-    console.log(chalk.green(`
-  ╔═══════════════════════════════════════════════════════════╗
-  ║  ✅ CodeBakers is ready!                                  ║
-  ║                                                           ║
-  ║  ${chalk.white('Your 7-day free trial has started.')}                    ║
-  ║                                                           ║
-  ║  ${chalk.gray('Try: "Build me a todo app with authentication"')}        ║
-  ╚═══════════════════════════════════════════════════════════╝
-    `));
-
-    // Attempt auto-restart Claude Code
-    await attemptAutoRestart();
+    // Show success and restart
+    await showSuccessAndRestart();
 
   } catch (error) {
     spinner.fail('Failed to start trial');
@@ -289,10 +298,61 @@ async function configureMCP(options: GoOptions = {}): Promise<void> {
   }
 }
 
-async function attemptAutoRestart(): Promise<void> {
+/**
+ * Handle API key login flow (for paid users)
+ */
+async function handleApiKeyLogin(options: GoOptions = {}): Promise<void> {
+  console.log(chalk.white('\n  Enter your API key\n'));
+  console.log(chalk.gray('  Find it at: https://codebakers.ai/dashboard\n'));
+
+  const apiKey = await prompt(chalk.cyan('  API Key: '));
+
+  if (!apiKey) {
+    console.log(chalk.red('\n  API key is required.\n'));
+    return;
+  }
+
+  const spinner = ora('Validating API key...').start();
+
+  try {
+    await validateApiKey(apiKey);
+    spinner.succeed('API key validated');
+
+    // Save API key
+    setApiKey(apiKey);
+    console.log(chalk.green('  ✓ Logged in successfully!\n'));
+
+    // Install patterns
+    await installPatternsWithApiKey(apiKey, options);
+
+    // Configure MCP
+    await configureMCP(options);
+
+    // Show success
+    await showSuccessAndRestart();
+
+  } catch (error) {
+    spinner.fail('Invalid API key');
+    console.log(chalk.red('\n  Could not validate API key.'));
+    console.log(chalk.gray('  Check your key at: https://codebakers.ai/dashboard\n'));
+  }
+}
+
+/**
+ * Show success message and offer to restart
+ */
+async function showSuccessAndRestart(): Promise<void> {
   const cwd = process.cwd();
 
-  console.log(chalk.yellow('\n  ⚠️  RESTART REQUIRED\n'));
+  console.log(chalk.green(`
+  ╔═══════════════════════════════════════════════════════════╗
+  ║  ✅ CodeBakers is ready!                                  ║
+  ║                                                           ║
+  ║  ${chalk.gray('Try: "Build me a todo app with authentication"')}        ║
+  ╚═══════════════════════════════════════════════════════════╝
+  `));
+
+  console.log(chalk.yellow('  ⚠️  RESTART REQUIRED\n'));
   console.log(chalk.gray('  Claude Code needs to restart to load CodeBakers.\n'));
 
   const answer = await prompt(chalk.cyan('  Restart Claude Code now? (Y/n): '));
@@ -309,7 +369,6 @@ async function attemptAutoRestart(): Promise<void> {
     const isWindows = process.platform === 'win32';
 
     if (isWindows) {
-      // On Windows, spawn a new Claude process detached and exit
       spawn('cmd', ['/c', 'start', 'claude'], {
         cwd,
         detached: true,
@@ -317,7 +376,6 @@ async function attemptAutoRestart(): Promise<void> {
         shell: true,
       }).unref();
     } else {
-      // On Mac/Linux, spawn claude in new terminal
       spawn('claude', [], {
         cwd,
         detached: true,
@@ -329,13 +387,10 @@ async function attemptAutoRestart(): Promise<void> {
     console.log(chalk.green('  ✓ Claude Code is restarting...\n'));
     console.log(chalk.gray('  This terminal will close. Claude Code will open in a new window.\n'));
 
-    // Give the spawn a moment to start
     await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Exit this process
     process.exit(0);
 
-  } catch (error) {
+  } catch {
     console.log(chalk.yellow('  Could not auto-restart. Please restart Claude Code manually.\n'));
   }
 }
