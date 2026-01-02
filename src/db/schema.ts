@@ -378,6 +378,9 @@ export const trialFingerprints = pgTable('trial_fingerprints', {
   convertedToTeamId: uuid('converted_to_team_id').references(() => teams.id, { onDelete: 'set null' }),
   convertedAt: timestamp('converted_at'),
 
+  // Re-trial tracking (one-time only after 30+ days expired)
+  retrialUsedAt: timestamp('retrial_used_at'),
+
   // Anti-abuse flags
   flagged: boolean('flagged').default(false),
   flagReason: text('flag_reason'),

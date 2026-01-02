@@ -1,0 +1,1 @@
+ALTER TABLE "trial_fingerprints" ADD COLUMN "retrial_used_at" timestamp;

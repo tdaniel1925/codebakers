@@ -333,14 +333,22 @@ async function handleTrialStart(
   });
 
   if (existingTrial) {
-    // Check if trial is expired and eligible for re-activation (30+ days)
+    // Check if trial is expired and eligible for one-time re-activation (30+ days)
     if (existingTrial.trialStage === 'expired' && existingTrial.trialExpiresAt) {
+      // Check if they've already used their one-time re-trial
+      if (existingTrial.retrialUsedAt) {
+        return new NextResponse(
+          renderErrorPage('Your trial has ended. Please upgrade to continue using CodeBakers.'),
+          { headers: { 'Content-Type': 'text/html' } }
+        );
+      }
+
       const expiredAt = new Date(existingTrial.trialExpiresAt);
       const daysSinceExpired = (Date.now() - expiredAt.getTime()) / (1000 * 60 * 60 * 24);
 
       if (daysSinceExpired >= 30) {
-        // Allow re-trial - reset the existing record
-        logger.info('Resetting expired trial for re-activation', {
+        // Allow ONE-TIME re-trial - reset the existing record and mark retrial as used
+        logger.info('One-time re-trial activated', {
           githubId,
           daysSinceExpired: Math.floor(daysSinceExpired),
         });
@@ -355,6 +363,7 @@ async function handleTrialStart(
             trialStartedAt: new Date(),
             trialExpiresAt: expiresAt,
             trialExtendedAt: null,
+            retrialUsedAt: new Date(), // Mark that they've used their one re-trial
             updatedAt: new Date(),
           })
           .where(eq(trialFingerprints.id, existingTrial.id));
@@ -363,10 +372,9 @@ async function handleTrialStart(
           headers: { 'Content-Type': 'text/html' },
         });
       } else {
-        // Too recent to re-trial
-        const daysUntilEligible = Math.ceil(30 - daysSinceExpired);
+        // Too recent - don't reveal the 30-day rule
         return new NextResponse(
-          renderErrorPage(`Your trial expired recently. You can start a new trial in ${daysUntilEligible} days, or upgrade to a paid plan now.`),
+          renderErrorPage('Your trial has ended. Please upgrade to continue using CodeBakers.'),
           { headers: { 'Content-Type': 'text/html' } }
         );
       }
