@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Terminal, ArrowRight, Sparkles, CreditCard, Users, Plug, RefreshCw, AlertCircle, CheckCircle, XCircle, Copy, BarChart3, Clock, Github } from 'lucide-react';
+import { Terminal, ArrowRight, Sparkles, CreditCard, Users, Plug, AlertCircle, CheckCircle, Copy, BarChart3, Clock, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,16 +32,14 @@ interface DashboardContentProps {
   };
   apiKey: {
     keyPrefix: string;
+    keyPlain: string | null;
     name: string | null;
   } | null;
   trial?: TrialInfo | null;
 }
 
 export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps) {
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [newKey, setNewKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const hasActiveSubscription =
     stats.subscription?.status === 'active' || stats.subscription?.isBeta;
@@ -50,46 +48,11 @@ export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps
   const isTrialExpired = trial?.stage === 'expired' || (trial && trial.daysRemaining <= 0);
   const isTrialExpiringSoon = trial && trial.daysRemaining > 0 && trial.daysRemaining <= TRIAL.EXPIRING_SOON_THRESHOLD;
 
-  const regenerateKey = async () => {
-    setIsRegenerating(true);
-    setMessage(null);
-    setShowConfirm(false);
-    setNewKey(null);
-    try {
-      const response = await fetch('/api/keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Default' }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate key');
-      }
-
-      const result = await response.json();
-      const generatedKey = result.data.key;
-
-      // Store the key to display it
-      setNewKey(generatedKey);
-
-      // Try to copy to clipboard
-      try {
-        await navigator.clipboard.writeText(generatedKey);
-        setMessage({ type: 'success', text: 'New API key generated and copied to clipboard!' });
-      } catch {
-        setMessage({ type: 'success', text: 'New API key generated! Copy it from below.' });
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to generate new API key. Please try again.' });
-    } finally {
-      setIsRegenerating(false);
-    }
-  };
-
   const copyKey = async () => {
-    if (newKey) {
-      await navigator.clipboard.writeText(newKey);
-      setMessage({ type: 'success', text: 'Key copied to clipboard!' });
+    if (apiKey?.keyPlain) {
+      await navigator.clipboard.writeText(apiKey.keyPlain);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -265,103 +228,35 @@ export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Show the new key if just generated */}
-            {newKey ? (
-              <div className="space-y-3 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                <p className="text-sm text-green-200 font-medium">Your new API key:</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 font-mono bg-black text-green-300 px-3 py-2 rounded text-sm break-all select-all">
-                    {newKey}
-                  </code>
-                  <Button
-                    onClick={copyKey}
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 shrink-0 gap-1"
-                  >
-                    <Copy className="h-3 w-3" />
-                    Copy
-                  </Button>
-                </div>
-                <div className="pt-2 border-t border-green-500/20 space-y-2">
-                  <p className="text-sm text-green-200 font-medium">To use your new key:</p>
-                  <code className="block font-mono bg-black text-neutral-300 px-3 py-2 rounded text-sm">
-                    codebakers setup
-                  </code>
-                  <p className="text-xs text-green-300/70">
-                    Save this key now — it won't be shown again.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Show masked key */}
-                <div className="flex-1 relative">
-                  <code className="block w-full rounded-lg bg-black px-4 py-3 font-mono text-sm text-neutral-300 border border-neutral-800">
-                    {apiKey.keyPrefix}_••••••••••••••••
-                  </code>
-                </div>
-
-                {/* Lost key section - collapsed by default */}
-                {!showConfirm ? (
-                  <div className="pt-2">
-                    <button
-                      onClick={() => setShowConfirm(true)}
-                      className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
-                    >
-                      Lost your key? Generate a new one →
-                    </button>
-                  </div>
+            {/* Show the full API key with copy button */}
+            <div className="flex items-center gap-2">
+              <code className="flex-1 font-mono bg-black text-neutral-300 px-4 py-3 rounded-lg text-sm border border-neutral-800 break-all select-all">
+                {apiKey.keyPlain || `${apiKey.keyPrefix}_••••••••••••••••`}
+              </code>
+              <Button
+                onClick={copyKey}
+                size="sm"
+                className={`shrink-0 gap-1 ${copied ? 'bg-green-600 hover:bg-green-600' : 'bg-neutral-700 hover:bg-neutral-600'}`}
+              >
+                {copied ? (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    Copied!
+                  </>
                 ) : (
-                  <div className="space-y-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                      <div className="space-y-2">
-                        <p className="text-sm text-amber-200 font-medium">
-                          Generate a new API key?
-                        </p>
-                        <p className="text-sm text-amber-200/80">
-                          This will <strong>expire your current key immediately</strong>. Any tools using the old key will stop working.
-                        </p>
-                        <p className="text-sm text-amber-200/80">
-                          After generating, you'll need to run <code className="bg-black/30 px-1 rounded">codebakers setup</code> to configure the new key.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        onClick={regenerateKey}
-                        disabled={isRegenerating}
-                        className="bg-amber-600 hover:bg-amber-700 gap-2"
-                      >
-                        {isRegenerating ? (
-                          <>
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          'Yes, Generate New Key'
-                        )}
-                      </Button>
-                      <Button
-                        onClick={() => setShowConfirm(false)}
-                        variant="outline"
-                        className="border-neutral-700 hover:bg-neutral-800"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Copy
+                  </>
                 )}
-              </>
-            )}
+              </Button>
+            </div>
 
-            {/* Error message */}
-            {message?.type === 'error' && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                <XCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-red-200">{message.text}</p>
-              </div>
-            )}
+            {/* Setup command hint */}
+            <div className="flex items-center gap-2 text-sm text-neutral-400">
+              <Terminal className="w-4 h-4" />
+              <span>Run <code className="bg-black/50 px-1.5 py-0.5 rounded text-neutral-300">codebakers setup</code> to configure</span>
+            </div>
           </CardContent>
         </Card>
       )}
