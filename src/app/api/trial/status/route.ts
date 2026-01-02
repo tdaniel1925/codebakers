@@ -9,7 +9,10 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/trial/status?trialId=xxx
- * Check the current status of a trial
+ * GET /api/trial/status?deviceHash=xxx
+ * Check the current status of a trial by ID or deviceHash
+ *
+ * deviceHash lookup is used for CLI polling during OAuth flow
  */
 export async function GET(req: NextRequest) {
   try {
@@ -19,16 +22,20 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const trialId = searchParams.get('trialId');
+    const deviceHash = searchParams.get('deviceHash');
 
-    if (!trialId) {
+    if (!trialId && !deviceHash) {
       return NextResponse.json(
-        { error: 'Missing trialId parameter' },
+        { error: 'Missing trialId or deviceHash parameter' },
         { status: 400 }
       );
     }
 
+    // Look up trial by ID or deviceHash
     const trial = await db.query.trialFingerprints.findFirst({
-      where: eq(trialFingerprints.id, trialId),
+      where: trialId
+        ? eq(trialFingerprints.id, trialId)
+        : eq(trialFingerprints.deviceHash, deviceHash!),
     });
 
     if (!trial) {

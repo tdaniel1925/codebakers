@@ -265,75 +265,10 @@ export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 relative">
-                <code className="block w-full rounded-lg bg-black px-4 py-3 font-mono text-sm text-neutral-300 border border-neutral-800">
-                  {apiKey.keyPrefix}_••••••••••••••••
-                </code>
-              </div>
-              {!showConfirm ? (
-                <Button
-                  onClick={() => setShowConfirm(true)}
-                  disabled={isRegenerating}
-                  className="bg-red-600 hover:bg-red-700 gap-2"
-                >
-                  {isRegenerating ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-4 w-4" />
-                      New Key
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button
-                    onClick={regenerateKey}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    Confirm
-                  </Button>
-                  <Button
-                    onClick={() => setShowConfirm(false)}
-                    variant="outline"
-                    className="border-neutral-700 hover:bg-neutral-800"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </div>
-            {showConfirm && !message && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-amber-200">
-                  Your current key will stop working. Are you sure?
-                </p>
-              </div>
-            )}
-            {message && (
-              <div className={`flex items-start gap-2 p-3 rounded-lg ${
-                message.type === 'success'
-                  ? 'bg-green-500/10 border border-green-500/20'
-                  : 'bg-red-500/10 border border-red-500/20'
-              }`}>
-                {message.type === 'success' ? (
-                  <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                ) : (
-                  <XCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-                )}
-                <p className={`text-sm ${message.type === 'success' ? 'text-green-200' : 'text-red-200'}`}>
-                  {message.text}
-                </p>
-              </div>
-            )}
-            {newKey && (
-              <div className="space-y-2 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                <p className="text-sm text-green-200 font-medium">Your new API key (save it now!):</p>
+            {/* Show the new key if just generated */}
+            {newKey ? (
+              <div className="space-y-3 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                <p className="text-sm text-green-200 font-medium">Your new API key:</p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 font-mono bg-black text-green-300 px-3 py-2 rounded text-sm break-all select-all">
                     {newKey}
@@ -347,17 +282,84 @@ export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps
                     Copy
                   </Button>
                 </div>
-                <p className="text-xs text-green-300/70">
-                  This key will not be shown again after you leave this page.
-                </p>
+                <div className="pt-2 border-t border-green-500/20 space-y-2">
+                  <p className="text-sm text-green-200 font-medium">To use your new key:</p>
+                  <code className="block font-mono bg-black text-neutral-300 px-3 py-2 rounded text-sm">
+                    codebakers setup
+                  </code>
+                  <p className="text-xs text-green-300/70">
+                    Save this key now — it won't be shown again.
+                  </p>
+                </div>
               </div>
+            ) : (
+              <>
+                {/* Show masked key */}
+                <div className="flex-1 relative">
+                  <code className="block w-full rounded-lg bg-black px-4 py-3 font-mono text-sm text-neutral-300 border border-neutral-800">
+                    {apiKey.keyPrefix}_••••••••••••••••
+                  </code>
+                </div>
+
+                {/* Lost key section - collapsed by default */}
+                {!showConfirm ? (
+                  <div className="pt-2">
+                    <button
+                      onClick={() => setShowConfirm(true)}
+                      className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
+                    >
+                      Lost your key? Generate a new one →
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                      <div className="space-y-2">
+                        <p className="text-sm text-amber-200 font-medium">
+                          Generate a new API key?
+                        </p>
+                        <p className="text-sm text-amber-200/80">
+                          This will <strong>expire your current key immediately</strong>. Any tools using the old key will stop working.
+                        </p>
+                        <p className="text-sm text-amber-200/80">
+                          After generating, you'll need to run <code className="bg-black/30 px-1 rounded">codebakers setup</code> to configure the new key.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        onClick={regenerateKey}
+                        disabled={isRegenerating}
+                        className="bg-amber-600 hover:bg-amber-700 gap-2"
+                      >
+                        {isRegenerating ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          'Yes, Generate New Key'
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => setShowConfirm(false)}
+                        variant="outline"
+                        className="border-neutral-700 hover:bg-neutral-800"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
-            {!message && !showConfirm && !newKey && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-amber-200">
-                  Lost your key? Click "New Key" to generate a fresh one.
-                </p>
+
+            {/* Error message */}
+            {message?.type === 'error' && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                <XCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-red-200">{message.text}</p>
               </div>
             )}
           </CardContent>

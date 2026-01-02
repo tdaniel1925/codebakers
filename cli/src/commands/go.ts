@@ -165,7 +165,7 @@ export async function go(options: GoOptions = {}): Promise<void> {
 
   // New user - ask how they want to proceed
   console.log(chalk.white('  How would you like to get started?\n'));
-  console.log(chalk.cyan('  [1] Start free 7-day trial') + chalk.gray(' (no signup required)'));
+  console.log(chalk.cyan('  [1] Start free 7-day trial') + chalk.gray(' (GitHub login required)'));
   console.log(chalk.cyan('  [2] Login with API key') + chalk.gray(' (I have an account)\n'));
 
   const choice = await prompt(chalk.gray('  Enter 1 or 2: '));
@@ -175,96 +175,114 @@ export async function go(options: GoOptions = {}): Promise<void> {
     return;
   }
 
-  // Start new trial
-  const spinner = ora('Starting your free trial...').start();
+  // Start new trial via GitHub OAuth
+  await startTrialWithGitHub(options);
+}
+
+/**
+ * Open a URL in the default browser
+ */
+function openBrowser(url: string): void {
+  const platform = process.platform;
 
   try {
-    const fingerprint = getDeviceFingerprint();
-    const apiUrl = getApiUrl();
-
-    const response = await fetch(`${apiUrl}/api/trial/start`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        deviceHash: fingerprint.deviceHash,
-        machineId: fingerprint.machineId,
-        platform: fingerprint.platform,
-        hostname: fingerprint.hostname,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (data.error === 'trial_not_available') {
-      spinner.fail('Trial not available');
-      console.log(chalk.yellow(`
-  It looks like you've already used a CodeBakers trial.
-
-  Ready to upgrade? $49/month for unlimited access.
-
-  ${chalk.cyan('codebakers upgrade')} or visit ${chalk.underline('https://codebakers.ai/pricing')}
-      `));
-      return;
-    }
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to start trial');
-    }
-
-    // Check if returning existing trial
-    if (data.stage === 'expired') {
-      spinner.warn('Your previous trial has expired');
-      console.log('');
-
-      if (data.canExtend) {
-        console.log(chalk.white('  Extend your trial for 7 more days with GitHub:\n'));
-        console.log(chalk.cyan('    codebakers extend\n'));
-      } else {
-        console.log(chalk.white('  Ready to upgrade? $49/month for unlimited access:\n'));
-        console.log(chalk.cyan('    codebakers upgrade\n'));
-      }
-      return;
-    }
-
-    // Save trial state
-    const trialState: TrialState = {
-      trialId: data.trialId,
-      stage: data.stage,
-      deviceHash: fingerprint.deviceHash,
-      expiresAt: data.expiresAt,
-      startedAt: data.startedAt,
-      ...(data.githubUsername && { githubUsername: data.githubUsername }),
-      ...(data.projectId && { projectId: data.projectId }),
-      ...(data.projectName && { projectName: data.projectName }),
-    };
-
-    setTrialState(trialState);
-
-    spinner.succeed(`Trial started (${data.daysRemaining} days free)`);
-    console.log('');
-
-    // Install v6.0 bootstrap files (CLAUDE.md and .cursorrules only)
-    await installPatterns(data.trialId, options);
-
-    // Configure MCP
-    await configureMCP(options);
-
-    // Show success and restart
-    await showSuccessAndRestart();
-
-  } catch (error) {
-    spinner.fail('Failed to start trial');
-
-    if (error instanceof Error) {
-      if (error.message.includes('fetch') || error.message.includes('network')) {
-        console.log(chalk.red('\n  Could not connect to CodeBakers server.'));
-        console.log(chalk.gray('  Check your internet connection and try again.\n'));
-      } else {
-        console.log(chalk.red(`\n  ${error.message}\n`));
-      }
+    if (platform === 'win32') {
+      execSync(`start "" "${url}"`, { stdio: 'ignore', shell: 'cmd.exe' });
+    } else if (platform === 'darwin') {
+      execSync(`open "${url}"`, { stdio: 'ignore' });
     } else {
-      console.log(chalk.red('\n  An unexpected error occurred.\n'));
+      // Linux - try common browsers
+      execSync(`xdg-open "${url}" || sensible-browser "${url}" || x-www-browser "${url}"`, {
+        stdio: 'ignore',
+        shell: '/bin/sh',
+      });
     }
+  } catch {
+    console.log(chalk.yellow(`\n  Could not open browser automatically.`));
+    console.log(chalk.gray(`  Please open this URL manually:\n`));
+    console.log(chalk.cyan(`  ${url}\n`));
+  }
+}
+
+/**
+ * Sleep for a specified number of milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Start a new trial via GitHub OAuth
+ * This ensures one trial per GitHub account
+ */
+async function startTrialWithGitHub(options: GoOptions = {}): Promise<void> {
+  const fingerprint = getDeviceFingerprint();
+  const apiUrl = getApiUrl();
+  const authUrl = `${apiUrl}/api/auth/github/trial?device_hash=${fingerprint.deviceHash}`;
+
+  console.log(chalk.white('\n  Opening browser for GitHub authorization...\n'));
+  console.log(chalk.gray('  This links your trial to your GitHub account to prevent abuse.\n'));
+
+  openBrowser(authUrl);
+
+  console.log(chalk.gray('  Waiting for authorization...'));
+  console.log(chalk.gray('  (This may take a moment)\n'));
+
+  // Poll for trial creation
+  const spinner = ora('Checking authorization status...').start();
+  let trialCreated = false;
+  let pollCount = 0;
+  const maxPolls = 60; // 2 minutes max
+
+  while (pollCount < maxPolls && !trialCreated) {
+    await sleep(2000);
+    pollCount++;
+
+    try {
+      const response = await fetch(`${apiUrl}/api/trial/status?deviceHash=${fingerprint.deviceHash}`);
+      const data = await response.json();
+
+      if (response.ok && data.trialId) {
+        trialCreated = true;
+
+        // Save trial state
+        const trialState: TrialState = {
+          trialId: data.trialId,
+          stage: data.stage,
+          deviceHash: fingerprint.deviceHash,
+          expiresAt: data.expiresAt,
+          startedAt: data.startedAt,
+          ...(data.githubUsername && { githubUsername: data.githubUsername }),
+          ...(data.projectId && { projectId: data.projectId }),
+          ...(data.projectName && { projectName: data.projectName }),
+        };
+
+        setTrialState(trialState);
+
+        const username = data.githubUsername ? ` Welcome, @${data.githubUsername}!` : '';
+        spinner.succeed(`Trial started (${data.daysRemaining} days free)${username}`);
+        console.log('');
+
+        // Install v6.0 bootstrap files
+        await installPatterns(data.trialId, options);
+
+        // Configure MCP
+        await configureMCP(options);
+
+        // Show success and restart
+        await showSuccessAndRestart();
+        return;
+      }
+    } catch {
+      // Ignore polling errors - continue waiting
+      log(`Poll ${pollCount} failed, retrying...`, options);
+    }
+  }
+
+  if (!trialCreated) {
+    spinner.warn('Authorization timed out');
+    console.log(chalk.yellow('\n  Please try again or authorize manually:\n'));
+    console.log(chalk.cyan(`  ${authUrl}\n`));
   }
 }
 
