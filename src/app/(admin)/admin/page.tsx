@@ -19,6 +19,9 @@ import {
   XCircle,
   Activity,
   Lock,
+  Cpu,
+  PlayCircle,
+  PauseCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,6 +54,19 @@ interface EnforcementStats {
   uniqueProjects: number;
 }
 
+interface EngineeringStats {
+  totalSessions: number;
+  activeSessions: number;
+  completedSessions: number;
+  pausedSessions: number;
+  abandonedSessions: number;
+  sessionsToday: number;
+  sessionsThisWeek: number;
+  averageCompletionTime: number;
+  phaseDistribution: Record<string, number>;
+  agentUsage: Record<string, number>;
+}
+
 interface Stats {
   users: {
     totalUsers: number;
@@ -66,6 +82,7 @@ interface Stats {
   };
   trials?: TrialStats;
   enforcement?: EnforcementStats;
+  engineering?: EngineeringStats;
 }
 
 export default function AdminDashboardPage() {
@@ -78,11 +95,12 @@ export default function AdminDashboardPage() {
 
   const fetchStats = async () => {
     try {
-      // Fetch main stats, trial stats, and enforcement stats in parallel
-      const [statsRes, trialsRes, enforcementRes] = await Promise.all([
+      // Fetch main stats, trial stats, enforcement stats, and engineering stats in parallel
+      const [statsRes, trialsRes, enforcementRes, engineeringRes] = await Promise.all([
         fetch('/api/admin/stats'),
         fetch('/api/admin/trials/stats'),
         fetch('/api/admin/enforcement/stats'),
+        fetch('/api/admin/engineering/stats'),
       ]);
 
       if (!statsRes.ok) throw new Error('Failed to fetch stats');
@@ -90,11 +108,13 @@ export default function AdminDashboardPage() {
       const statsData = await statsRes.json();
       const trialsData = trialsRes.ok ? await trialsRes.json() : null;
       const enforcementData = enforcementRes.ok ? await enforcementRes.json() : null;
+      const engineeringData = engineeringRes.ok ? await engineeringRes.json() : null;
 
       setStats({
         ...statsData.data,
         trials: trialsData?.data?.stats || null,
         enforcement: enforcementData?.data?.stats || null,
+        engineering: engineeringData?.data?.stats || null,
       });
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -392,6 +412,81 @@ export default function AdminDashboardPage() {
               <div className="text-center">
                 <p className="text-slate-400">Unique Projects</p>
                 <p className="text-lg font-bold text-white">{stats.enforcement.uniqueProjects}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Engineering Sessions */}
+      {stats?.engineering && (
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Cpu className="h-5 w-5 text-cyan-400" />
+                  AI Engineering Sessions
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Agent-driven project development orchestration
+                </CardDescription>
+              </div>
+              <Link href="/admin/engineering">
+                <Button variant="outline" size="sm" className="border-slate-700">
+                  View Sessions
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs flex items-center gap-1">
+                  <PlayCircle className="h-3 w-3" /> Active
+                </p>
+                <p className="text-xl font-bold text-green-400 mt-1">
+                  {stats.engineering.activeSessions}
+                </p>
+              </div>
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs flex items-center gap-1">
+                  <PauseCircle className="h-3 w-3" /> Paused
+                </p>
+                <p className="text-xl font-bold text-yellow-400 mt-1">
+                  {stats.engineering.pausedSessions}
+                </p>
+              </div>
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3" /> Completed
+                </p>
+                <p className="text-xl font-bold text-blue-400 mt-1">
+                  {stats.engineering.completedSessions}
+                </p>
+              </div>
+              <div className="bg-slate-900/50 rounded p-3">
+                <p className="text-slate-400 text-xs">Avg Completion</p>
+                <p className="text-xl font-bold text-purple-400 mt-1">
+                  {stats.engineering.averageCompletionTime > 0
+                    ? `${Math.round(stats.engineering.averageCompletionTime / (1000 * 60))}m`
+                    : 'N/A'}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-slate-700 grid grid-cols-3 gap-4 text-sm">
+              <div className="text-center">
+                <p className="text-slate-400">Today</p>
+                <p className="text-lg font-bold text-white">{stats.engineering.sessionsToday}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-slate-400">This Week</p>
+                <p className="text-lg font-bold text-white">{stats.engineering.sessionsThisWeek}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-slate-400">Total</p>
+                <p className="text-lg font-bold text-white">{stats.engineering.totalSessions}</p>
               </div>
             </div>
           </CardContent>

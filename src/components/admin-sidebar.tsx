@@ -16,6 +16,7 @@ import {
   Building2,
   FileUp,
   Terminal,
+  Cpu,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/enterprise', label: 'Enterprise Leads', icon: Building2 },
+  { href: '/admin/engineering', label: 'Engineering', icon: Cpu },
   { href: '/admin/content', label: 'Content', icon: FileText },
   { href: '/admin/cli-versions', label: 'CLI Versions', icon: Terminal },
   { href: '/admin/module-builder', label: 'AI Module Builder', icon: Sparkles },

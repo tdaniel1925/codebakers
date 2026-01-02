@@ -819,6 +819,220 @@ ${context.decisions.slice(-5).map((d) => `- [${d.agent}] ${d.decision}`).join('\
       ...message,
     });
   }
+
+  // ========================================
+  // ADMIN METHODS
+  // ========================================
+
+  /**
+   * Get all sessions for admin dashboard
+   */
+  static getAllSessions(options?: {
+    status?: 'active' | 'paused' | 'completed' | 'abandoned';
+    phase?: EngineeringPhase;
+    page?: number;
+    limit?: number;
+  }): {
+    sessions: Array<{
+      id: string;
+      teamId: string;
+      projectHash: string;
+      projectName: string;
+      currentPhase: EngineeringPhase;
+      currentAgent: AgentRole;
+      status: 'active' | 'paused' | 'completed' | 'abandoned';
+      startedAt: Date;
+      lastActivityAt: Date;
+      completedAt: Date | null;
+      phaseHistory: Array<{
+        phase: EngineeringPhase;
+        startedAt: Date;
+        completedAt: Date | null;
+        agent: AgentRole;
+      }>;
+      decisionsCount: number;
+      artifactsCount: number;
+      dependencyNodesCount: number;
+    }>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  } {
+    const { status, phase, page = 1, limit = 25 } = options || {};
+
+    // Convert map to array and filter
+    let sessions = Array.from(activeSessions.entries()).map(([id, state]) => {
+      // Determine status
+      let sessionStatus: 'active' | 'paused' | 'completed' | 'abandoned' = 'active';
+      if (!state.isRunning) sessionStatus = 'paused';
+      if (state.context.currentPhase === 'launch' && state.context.gateStatus.launch?.status === 'passed') {
+        sessionStatus = 'completed';
+      }
+      // Check for abandoned (no activity for 7 days)
+      const daysSinceActivity = (Date.now() - state.context.lastActivityAt.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceActivity > 7 && sessionStatus !== 'completed') {
+        sessionStatus = 'abandoned';
+      }
+
+      // Build phase history from gate statuses
+      const phaseHistory: Array<{
+        phase: EngineeringPhase;
+        startedAt: Date;
+        completedAt: Date | null;
+        agent: AgentRole;
+      }> = [];
+
+      const phases: EngineeringPhase[] = [
+        'scoping', 'requirements', 'architecture', 'design_review', 'implementation',
+        'code_review', 'testing', 'security_review', 'documentation', 'staging', 'launch'
+      ];
+
+      for (const p of phases) {
+        const gateStatus = state.context.gateStatus[p];
+        if (gateStatus) {
+          phaseHistory.push({
+            phase: p,
+            startedAt: state.context.startedAt, // Simplified - would track per phase
+            completedAt: gateStatus.status === 'passed' ? gateStatus.passedAt || null : null,
+            agent: ENGINEERING_PHASES.find(ep => ep.phase === p)?.agent || 'orchestrator',
+          });
+        }
+      }
+
+      // Count artifacts
+      let artifactsCount = 0;
+      if (state.context.artifacts.prd) artifactsCount++;
+      if (state.context.artifacts.techSpec) artifactsCount++;
+      if (state.context.artifacts.apiDocs) artifactsCount++;
+      if (state.context.artifacts.securityAudit) artifactsCount++;
+      if (state.context.artifacts.userGuide) artifactsCount++;
+      if (state.context.artifacts.deploymentGuide) artifactsCount++;
+
+      return {
+        id,
+        teamId: state.context.teamId,
+        projectHash: state.context.projectHash,
+        projectName: state.context.scope.name,
+        currentPhase: state.context.currentPhase,
+        currentAgent: state.currentAgent,
+        status: sessionStatus,
+        startedAt: state.context.startedAt,
+        lastActivityAt: state.context.lastActivityAt,
+        completedAt: sessionStatus === 'completed' ? state.context.lastActivityAt : null,
+        phaseHistory,
+        decisionsCount: state.context.decisions.length,
+        artifactsCount,
+        dependencyNodesCount: state.context.dependencyGraph.nodes.length,
+      };
+    });
+
+    // Apply filters
+    if (status) {
+      sessions = sessions.filter(s => s.status === status);
+    }
+    if (phase) {
+      sessions = sessions.filter(s => s.currentPhase === phase);
+    }
+
+    // Sort by last activity (most recent first)
+    sessions.sort((a, b) => b.lastActivityAt.getTime() - a.lastActivityAt.getTime());
+
+    // Paginate
+    const total = sessions.length;
+    const pages = Math.ceil(total / limit);
+    const offset = (page - 1) * limit;
+    const paginatedSessions = sessions.slice(offset, offset + limit);
+
+    return {
+      sessions: paginatedSessions,
+      pagination: { page, limit, total, pages },
+    };
+  }
+
+  /**
+   * Get engineering stats for admin dashboard
+   */
+  static getStats(): {
+    totalSessions: number;
+    activeSessions: number;
+    completedSessions: number;
+    pausedSessions: number;
+    abandonedSessions: number;
+    sessionsToday: number;
+    sessionsThisWeek: number;
+    averageCompletionTime: number;
+    phaseDistribution: Record<string, number>;
+    agentUsage: Record<string, number>;
+  } {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - 7);
+
+    let activeCount = 0;
+    let completedCount = 0;
+    let pausedCount = 0;
+    let abandonedCount = 0;
+    let todayCount = 0;
+    let weekCount = 0;
+    const completionTimes: number[] = [];
+    const phaseDistribution: Record<string, number> = {};
+    const agentUsage: Record<string, number> = {};
+
+    for (const [, state] of activeSessions) {
+      // Count by status
+      if (!state.isRunning) {
+        pausedCount++;
+      } else if (state.context.currentPhase === 'launch' && state.context.gateStatus.launch?.status === 'passed') {
+        completedCount++;
+        // Calculate completion time
+        const completionTime = state.context.lastActivityAt.getTime() - state.context.startedAt.getTime();
+        completionTimes.push(completionTime / (1000 * 60)); // Convert to minutes
+      } else {
+        const daysSinceActivity = (now.getTime() - state.context.lastActivityAt.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceActivity > 7) {
+          abandonedCount++;
+        } else {
+          activeCount++;
+        }
+      }
+
+      // Count sessions by time
+      if (state.context.startedAt >= todayStart) {
+        todayCount++;
+      }
+      if (state.context.startedAt >= weekStart) {
+        weekCount++;
+      }
+
+      // Track phase distribution (only active sessions)
+      if (state.isRunning) {
+        phaseDistribution[state.context.currentPhase] = (phaseDistribution[state.context.currentPhase] || 0) + 1;
+        agentUsage[state.currentAgent] = (agentUsage[state.currentAgent] || 0) + 1;
+      }
+    }
+
+    // Calculate average completion time
+    const averageCompletionTime = completionTimes.length > 0
+      ? Math.round(completionTimes.reduce((a, b) => a + b, 0) / completionTimes.length)
+      : 0;
+
+    return {
+      totalSessions: activeSessions.size,
+      activeSessions: activeCount,
+      completedSessions: completedCount,
+      pausedSessions: pausedCount,
+      abandonedSessions: abandonedCount,
+      sessionsToday: todayCount,
+      sessionsThisWeek: weekCount,
+      averageCompletionTime,
+      phaseDistribution,
+      agentUsage,
+    };
+  }
 }
 
 // =============================================================================
