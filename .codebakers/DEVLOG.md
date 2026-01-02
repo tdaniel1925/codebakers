@@ -1,5 +1,31 @@
 # Development Log
 
+## 2026-01-02 - Engineering Admin Dashboard
+**Session:** 2026-01-02
+**Task Size:** MEDIUM
+**Status:** Completed
+
+### What was done:
+- Created `/admin/engineering` page with stats grid, filters, session table
+- Added session detail dialog showing phase history, artifacts, decisions
+- Created `/api/admin/engineering/sessions` endpoint with pagination/filtering
+- Created `/api/admin/engineering/stats` endpoint for dashboard statistics
+- Added Engineering stats card to main admin dashboard
+- Added Engineering nav item to admin sidebar with Cpu icon
+- Added `getAllSessions()` and `getStats()` methods to orchestrator service
+
+### Files created:
+- `src/app/(admin)/admin/engineering/page.tsx`
+- `src/app/api/admin/engineering/sessions/route.ts`
+- `src/app/api/admin/engineering/stats/route.ts`
+
+### Files modified:
+- `src/app/(admin)/admin/page.tsx` - Added Engineering stats card
+- `src/components/admin-sidebar.tsx` - Added Engineering nav item
+- `src/services/engineering-orchestrator-service.ts` - Added admin methods
+
+---
+
 ## 2025-12-31 - Server-Side Enforcement v6.0
 **Session:** 2025-12-31T19:30:00Z
 **Task Size:** LARGE

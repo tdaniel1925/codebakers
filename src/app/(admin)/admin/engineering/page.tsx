@@ -202,6 +202,63 @@ export default function AdminEngineeringPage() {
     }
   };
 
+  // Session action handlers
+  const handlePauseSession = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/admin/engineering/sessions/${sessionId}/pause`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.data?.error || 'Failed to pause session');
+      }
+      toast.success('Session paused');
+      await fetchSessions();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to pause session');
+    }
+  };
+
+  const handleResumeSession = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/admin/engineering/sessions/${sessionId}/resume`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.data?.error || 'Failed to resume session');
+      }
+      toast.success('Session resumed');
+      await fetchSessions();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to resume session');
+    }
+  };
+
+  const handleCancelSession = async (sessionId: string) => {
+    if (!confirm('Are you sure you want to cancel this session? This cannot be undone.')) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/admin/engineering/sessions/${sessionId}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Cancelled by admin' }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.data?.error || 'Failed to cancel session');
+      }
+      toast.success('Session cancelled');
+      await fetchSessions();
+      if (selectedSession?.id === sessionId) {
+        setDetailDialogOpen(false);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to cancel session');
+    }
+  };
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -505,17 +562,53 @@ export default function AdminEngineeringPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedSession(session);
-                        setDetailDialogOpen(true);
-                      }}
-                      className="text-slate-400 hover:text-white"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      {session.status === 'active' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePauseSession(session.id)}
+                          className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-900/20"
+                          title="Pause session"
+                        >
+                          <Pause className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {session.status === 'paused' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleResumeSession(session.id)}
+                          className="text-green-400 hover:text-green-300 hover:bg-green-900/20"
+                          title="Resume session"
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {(session.status === 'active' || session.status === 'paused') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCancelSession(session.id)}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                          title="Cancel session"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedSession(session);
+                          setDetailDialogOpen(true);
+                        }}
+                        className="text-slate-400 hover:text-white"
+                        title="View details"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -573,19 +666,57 @@ export default function AdminEngineeringPage() {
           {selectedSession && (
             <div className="space-y-6 py-4">
               {/* Status Row */}
-              <div className="flex items-center gap-4">
-                <Badge className={`${getStatusColor(selectedSession.status)} flex items-center gap-1`}>
-                  {getStatusIcon(selectedSession.status)}
-                  {selectedSession.status}
-                </Badge>
-                <span className="text-slate-400 text-sm">
-                  Started {formatDate(selectedSession.startedAt)}
-                </span>
-                {selectedSession.completedAt && (
-                  <span className="text-green-400 text-sm">
-                    Completed {formatDate(selectedSession.completedAt)}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Badge className={`${getStatusColor(selectedSession.status)} flex items-center gap-1`}>
+                    {getStatusIcon(selectedSession.status)}
+                    {selectedSession.status}
+                  </Badge>
+                  <span className="text-slate-400 text-sm">
+                    Started {formatDate(selectedSession.startedAt)}
                   </span>
-                )}
+                  {selectedSession.completedAt && (
+                    <span className="text-green-400 text-sm">
+                      Completed {formatDate(selectedSession.completedAt)}
+                    </span>
+                  )}
+                </div>
+                {/* Action buttons */}
+                <div className="flex items-center gap-2">
+                  {selectedSession.status === 'active' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePauseSession(selectedSession.id)}
+                      className="border-yellow-600 text-yellow-400 hover:bg-yellow-900/20"
+                    >
+                      <Pause className="h-4 w-4 mr-1" />
+                      Pause
+                    </Button>
+                  )}
+                  {selectedSession.status === 'paused' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleResumeSession(selectedSession.id)}
+                      className="border-green-600 text-green-400 hover:bg-green-900/20"
+                    >
+                      <Play className="h-4 w-4 mr-1" />
+                      Resume
+                    </Button>
+                  )}
+                  {(selectedSession.status === 'active' || selectedSession.status === 'paused') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCancelSession(selectedSession.id)}
+                      className="border-red-600 text-red-400 hover:bg-red-900/20"
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      Cancel
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Current State */}

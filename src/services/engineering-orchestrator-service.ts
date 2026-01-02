@@ -142,6 +142,116 @@ export class EngineeringOrchestratorService {
   }
 
   /**
+   * Pause an active session
+   * @returns success status and message
+   */
+  static pauseSession(sessionId: string): { success: boolean; message: string } {
+    const session = activeSessions.get(sessionId);
+    if (!session) {
+      return { success: false, message: 'Session not found' };
+    }
+
+    if (!session.isRunning) {
+      return { success: false, message: 'Session is not running' };
+    }
+
+    // Pause the session
+    session.isRunning = false;
+    session.messages.push({
+      id: randomUUID(),
+      fromAgent: 'orchestrator',
+      toAgent: session.currentAgent,
+      messageType: 'request',
+      content: 'Session paused by admin',
+      timestamp: new Date(),
+    });
+
+    return { success: true, message: 'Session paused successfully' };
+  }
+
+  /**
+   * Resume a paused session
+   * @returns success status and message
+   */
+  static resumeSession(sessionId: string): { success: boolean; message: string } {
+    const session = activeSessions.get(sessionId);
+    if (!session) {
+      return { success: false, message: 'Session not found' };
+    }
+
+    if (session.isRunning) {
+      return { success: false, message: 'Session is already running' };
+    }
+
+    // Resume the session
+    session.isRunning = true;
+    session.messages.push({
+      id: randomUUID(),
+      fromAgent: 'orchestrator',
+      toAgent: session.currentAgent,
+      messageType: 'request',
+      content: 'Session resumed by admin',
+      timestamp: new Date(),
+    });
+
+    return { success: true, message: 'Session resumed successfully' };
+  }
+
+  /**
+   * Cancel/abandon a session
+   * @returns success status and message
+   */
+  static cancelSession(sessionId: string, reason?: string): { success: boolean; message: string } {
+    const session = activeSessions.get(sessionId);
+    if (!session) {
+      return { success: false, message: 'Session not found' };
+    }
+
+    // Mark session as not running and add cancellation message
+    session.isRunning = false;
+    session.messages.push({
+      id: randomUUID(),
+      fromAgent: 'orchestrator',
+      toAgent: session.currentAgent,
+      messageType: 'request',
+      content: `Session cancelled by admin${reason ? `: ${reason}` : ''}`,
+      timestamp: new Date(),
+    });
+
+    // Mark current phase as failed
+    const currentPhase = session.context.currentPhase;
+    if (session.context.gateStatus[currentPhase]) {
+      session.context.gateStatus[currentPhase].status = 'failed';
+      session.context.gateStatus[currentPhase].failedReason = reason || 'Cancelled by admin';
+    }
+
+    return { success: true, message: 'Session cancelled successfully' };
+  }
+
+  /**
+   * Get session status for admin display
+   */
+  static getSessionStatus(sessionId: string): 'active' | 'paused' | 'completed' | 'abandoned' | null {
+    const session = activeSessions.get(sessionId);
+    if (!session) return null;
+
+    // Check if all phases are complete
+    const allPhasesComplete = ENGINEERING_PHASES.every(
+      (p) => session.context.gateStatus[p.phase]?.status === 'passed'
+    );
+    if (allPhasesComplete) return 'completed';
+
+    // Check if cancelled/abandoned
+    const currentGate = session.context.gateStatus[session.context.currentPhase];
+    if (currentGate?.status === 'failed' && currentGate?.failedReason?.includes('Cancelled')) {
+      return 'abandoned';
+    }
+
+    // Check if running
+    return session.isRunning ? 'active' : 'paused';
+  }
+
+  /**
    * Get current progress for display
    */
   static getProgress(sessionId: string): EngineeringProgress | null {
