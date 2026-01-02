@@ -12,6 +12,7 @@ import { getApiKey, getApiUrl, getExperienceLevel, setExperienceLevel, getServic
 import { audit as runAudit } from '../commands/audit.js';
 import { heal as runHeal } from '../commands/heal.js';
 import { getCliVersion } from '../lib/api.js';
+import { ENGINEERING_TOOLS, handleEngineeringTool } from './engineering-tools.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
@@ -1551,6 +1552,8 @@ class CodeBakersServer {
             properties: {},
           },
         },
+        // Engineering workflow tools
+        ...ENGINEERING_TOOLS,
       ],
     }));
 
@@ -1793,6 +1796,19 @@ class CodeBakersServer {
 
         case 'project_dashboard_url':
           return this.handleProjectDashboardUrl();
+
+        // Engineering workflow tools
+        case 'engineering_start':
+        case 'engineering_scope':
+        case 'engineering_status':
+        case 'engineering_advance':
+        case 'engineering_gate':
+        case 'engineering_artifact':
+        case 'engineering_decision':
+        case 'engineering_graph_add':
+        case 'engineering_impact':
+        case 'engineering_graph_view':
+          return handleEngineeringTool(name, args as Record<string, unknown>, this.apiUrl, this.getAuthHeaders());
 
         default:
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
