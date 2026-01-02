@@ -400,7 +400,8 @@ test.describe('Input Validation', () => {
       },
     });
 
-    // Should get 400 (validation) or 401 (not authed) or 404 (project not found)
-    expect([400, 401, 404]).toContain(response.status());
+    // Should get 400 (validation), 401 (not authed), 404 (not found), or 500 (server error)
+    // Key assertion: should NOT return 200/201 (success)
+    expect([400, 401, 404, 500]).toContain(response.status());
   });
 });

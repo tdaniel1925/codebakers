@@ -1,6 +1,7 @@
 import { db, teams, teamMembers, profiles, PaymentProvider } from '@/db';
 import { eq, sql } from 'drizzle-orm';
 import { ApiKeyService } from './api-key-service';
+import { TRIAL } from '@/lib/constants';
 
 function generateSlug(name: string): string {
   return name
@@ -15,6 +16,10 @@ export class TeamService {
   static async createForUser(userId: string, name: string) {
     const slug = generateSlug(name);
 
+    // Calculate trial expiration (7 days from now)
+    const trialExpiresAt = new Date();
+    trialExpiresAt.setDate(trialExpiresAt.getDate() + TRIAL.ANONYMOUS_DAYS);
+
     // Create team
     const [team] = await db
       .insert(teams)
@@ -23,6 +28,7 @@ export class TeamService {
         slug,
         ownerId: userId,
         seatLimit: 1,
+        freeTrialExpiresAt: trialExpiresAt,
       })
       .returning();
 
@@ -267,13 +273,14 @@ export class TeamService {
 
   /**
    * Check if team can access content for a given project
-   * Free trial: unlimited downloads but locked to ONE project
+   * Free trial: 7 days, locked to ONE project
    */
   static canAccessProject(
     team: {
       subscriptionStatus: string | null;
       betaGrantedAt: Date | null;
       freeTrialProjectId: string | null;
+      freeTrialExpiresAt?: Date | null; // Optional for backwards compatibility
       suspendedAt: Date | null;
       suspendedReason: string | null;
     },
@@ -284,6 +291,8 @@ export class TeamService {
     code?: string;
     isNewProject?: boolean;
     lockedProjectId?: string | null;
+    trialExpired?: boolean;
+    daysRemaining?: number;
   } {
     // Check suspension first
     if (this.isSuspended(team)) {
@@ -299,20 +308,35 @@ export class TeamService {
       return { allowed: true };
     }
 
+    // Check if free trial has expired
+    if (team.freeTrialExpiresAt && new Date() > new Date(team.freeTrialExpiresAt)) {
+      return {
+        allowed: false,
+        reason: 'Your free trial has expired. Upgrade to Pro to continue using CodeBakers.',
+        code: 'TRIAL_EXPIRED',
+        trialExpired: true,
+      };
+    }
+
+    // Calculate days remaining for trial users
+    const daysRemaining = team.freeTrialExpiresAt
+      ? Math.max(0, Math.ceil((new Date(team.freeTrialExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : undefined;
+
     // Free trial: check project lock
     // If no project ID provided, allow (for backwards compatibility)
     if (!projectId) {
-      return { allowed: true };
+      return { allowed: true, daysRemaining };
     }
 
     // First project usage - will be locked to this project
     if (!team.freeTrialProjectId) {
-      return { allowed: true, isNewProject: true };
+      return { allowed: true, isNewProject: true, daysRemaining };
     }
 
     // Check if same project
     if (team.freeTrialProjectId === projectId) {
-      return { allowed: true };
+      return { allowed: true, daysRemaining };
     }
 
     // Different project - not allowed on free trial
@@ -321,6 +345,7 @@ export class TeamService {
       reason: 'Free trial is limited to one project. Upgrade to Pro for unlimited projects.',
       code: 'TRIAL_PROJECT_LIMIT',
       lockedProjectId: team.freeTrialProjectId,
+      daysRemaining,
     };
   }
 

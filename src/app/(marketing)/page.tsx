@@ -377,7 +377,7 @@ const faqs = [
   },
   {
     question: 'Is there a free tier?',
-    answer: 'Yes! Run `npx @codebakers/cli go` to start a 7-day free trial instantly. No signup required, no credit card. Connect GitHub for 7 more days free, then upgrade to Pro ($49/mo) for unlimited access.',
+    answer: 'Yes! Run `npx @codebakers/cli go` and sign in with GitHub to start a 7-day free trial instantly. No credit card required. Your trial includes one project with full access to all modules. Upgrade to Pro ($49/mo) for unlimited projects.',
   },
 ];
 
@@ -1213,7 +1213,7 @@ export const POST = withRateLimit(async (req) => {
               Simple, transparent&nbsp;pricing
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              7-day free trial. No signup required. No credit&nbsp;card.
+              7-day free trial with GitHub login. No credit&nbsp;card&nbsp;required.
             </p>
           </motion.div>
 

@@ -97,10 +97,10 @@ export default async function PricingPage() {
         <div className="max-w-2xl mx-auto mb-12 p-4 rounded-lg bg-red-600/10 border border-red-500/30 text-center">
           <Badge className="bg-red-600 mb-2">7-Day Free Trial</Badge>
           <p className="text-white font-medium">
-            Try CodeBakers free for 7 days - no signup required
+            Try CodeBakers free for 7 days with GitHub login
           </p>
           <p className="text-neutral-400 text-sm mt-1">
-            Run <code className="bg-neutral-800 px-2 py-0.5 rounded text-red-400">npx @codebakers/cli go</code> to start instantly
+            Run <code className="bg-neutral-800 px-2 py-0.5 rounded text-red-400">npx @codebakers/cli go</code> to start · No credit card required
           </p>
         </div>
 

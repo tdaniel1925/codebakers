@@ -45,6 +45,7 @@ export const teams = pgTable('teams', {
   // Free trial - unlimited downloads but locked to one project
   freeTrialProjectId: text('free_trial_project_id'), // Hash of project path or git remote
   freeTrialProjectName: text('free_trial_project_name'), // Friendly name for display
+  freeTrialExpiresAt: timestamp('free_trial_expires_at'), // When free trial ends (7 days from signup)
 
   // Legacy download tracking (kept for backwards compatibility)
   freeDownloadsUsed: integer('free_downloads_used').default(0),

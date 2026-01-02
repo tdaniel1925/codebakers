@@ -47,9 +47,9 @@ export const PLAN_NAMES = {
 // =============================================================================
 
 export const TRIAL = {
-  ANONYMOUS_DAYS: 7,
-  EXTENDED_DAYS: 7,
-  TOTAL_DAYS: 14, // anonymous + extended
+  ANONYMOUS_DAYS: 7, // Note: "Anonymous" is legacy naming - GitHub OAuth is now required
+  EXTENDED_DAYS: 7, // Legacy - extension no longer available
+  TOTAL_DAYS: 14, // Legacy - now only 7 days with GitHub
   EXPIRING_SOON_THRESHOLD: 2, // days remaining to show warning
 } as const;
 
@@ -156,12 +156,15 @@ export const INTEGRATIONS = {
 
 export const MESSAGES = {
   TRIAL: {
+    ACTIVE: (days: number) =>
+      `${days} day${days !== 1 ? 's' : ''} remaining in your free trial`,
+    // Legacy - kept for backwards compatibility
     ANONYMOUS_ACTIVE: (days: number) =>
       `${days} day${days !== 1 ? 's' : ''} remaining in your free trial`,
     EXTENDED_ACTIVE: (days: number) =>
       `${days} day${days !== 1 ? 's' : ''} remaining`,
-    EXTEND_CTA: 'Connect GitHub to extend for 7 more days free',
-    EXPIRED_CAN_EXTEND: 'Trial expired - Connect GitHub for 7 more days free!',
+    EXTEND_CTA: 'Connect GitHub to extend for 7 more days free', // Legacy
+    EXPIRED_CAN_EXTEND: 'Trial expired - Connect GitHub for 7 more days free!', // Legacy
     EXPIRED_FINAL: 'Your trial has ended',
     UPGRADE_CTA: `Upgrade to Pro ($${PRICING.PRO.MONTHLY}/mo) for unlimited access`,
   },
@@ -184,8 +187,8 @@ export const MESSAGES = {
 
 export const FEATURES = {
   TRIAL_SYSTEM_ENABLED: true,
-  GITHUB_EXTENSION_ENABLED: true,
-  ANONYMOUS_TRIAL_ENABLED: true,
+  GITHUB_EXTENSION_ENABLED: false, // Extension no longer needed - GitHub required from start
+  ANONYMOUS_TRIAL_ENABLED: false, // GitHub OAuth now required to start trial
 } as const;
 
 // =============================================================================

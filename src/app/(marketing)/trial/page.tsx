@@ -6,7 +6,7 @@ import { PRICING, TRIAL, MODULES, PRODUCT } from '@/lib/constants';
 
 export const metadata = {
   title: 'Free Trial - CodeBakers',
-  description: `Try CodeBakers free for ${TRIAL.ANONYMOUS_DAYS} days. No signup required, no credit card. Start building production-ready apps instantly.`,
+  description: `Try CodeBakers free for ${TRIAL.ANONYMOUS_DAYS} days. One-click GitHub login, no credit card. Start building production-ready apps instantly.`,
 };
 
 export default function TrialPage() {
@@ -17,10 +17,10 @@ export default function TrialPage() {
         <div className="container mx-auto max-w-4xl text-center">
           <Badge className="bg-red-600 mb-4">Zero Friction</Badge>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Try CodeBakers Free for {TRIAL.TOTAL_DAYS} Days
+            Try CodeBakers Free for {TRIAL.ANONYMOUS_DAYS} Days
           </h1>
           <p className="text-xl text-neutral-400 mb-8 max-w-2xl mx-auto">
-            No signup. No credit card. Just run one command and start building
+            One-click GitHub login. No credit card. Start building
             production-ready apps with {MODULES.COUNT} battle-tested patterns.
           </p>
 
@@ -44,7 +44,7 @@ export default function TrialPage() {
             </span>
             <span className="flex items-center gap-1">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              No signup required
+              GitHub login only (no password)
             </span>
             <span className="flex items-center gap-1">
               <CheckCircle className="h-4 w-4 text-green-500" />
@@ -61,20 +61,20 @@ export default function TrialPage() {
             How the Trial Works
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
             {/* Step 1 */}
             <div className="relative">
-              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 h-full">
-                <div className="bg-blue-600 rounded-full w-10 h-10 flex items-center justify-center mb-4">
-                  <Terminal className="h-5 w-5 text-white" />
+              <div className="bg-neutral-900 border border-green-800/50 rounded-xl p-6 h-full ring-2 ring-green-500/20">
+                <div className="bg-green-600 rounded-full w-10 h-10 flex items-center justify-center mb-4">
+                  <Github className="h-5 w-5 text-white" />
                 </div>
-                <Badge className="bg-blue-600/20 text-blue-400 mb-3">Day 1-{TRIAL.ANONYMOUS_DAYS}</Badge>
+                <Badge className="bg-green-600/20 text-green-400 mb-3">Day 1-{TRIAL.ANONYMOUS_DAYS}</Badge>
                 <h3 className="text-xl font-bold text-white mb-2">
-                  Anonymous Trial
+                  Free Trial with GitHub
                 </h3>
                 <p className="text-neutral-400 mb-4">
-                  Run the CLI command and get instant access. No email, no signup,
-                  no friction. Just start building.
+                  Run the CLI command and sign in with GitHub. One click,
+                  no passwords, instant access to all patterns.
                 </p>
                 <ul className="space-y-2 text-sm text-neutral-400">
                   <li className="flex items-center gap-2">
@@ -87,47 +87,16 @@ export default function TrialPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    Build unlimited projects
-                  </li>
-                </ul>
-              </div>
-              {/* Arrow */}
-              <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2">
-                <ArrowRight className="h-8 w-8 text-neutral-400" />
-              </div>
-            </div>
-
-            {/* Step 2 */}
-            <div className="relative">
-              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 h-full">
-                <div className="bg-green-600 rounded-full w-10 h-10 flex items-center justify-center mb-4">
-                  <Github className="h-5 w-5 text-white" />
-                </div>
-                <Badge className="bg-green-600/20 text-green-400 mb-3">Day {TRIAL.ANONYMOUS_DAYS + 1}-{TRIAL.TOTAL_DAYS}</Badge>
-                <h3 className="text-xl font-bold text-white mb-2">
-                  Extended Trial
-                </h3>
-                <p className="text-neutral-400 mb-4">
-                  Connect your GitHub account for {TRIAL.EXTENDED_DAYS} more days free. One click,
-                  no passwords to remember.
-                </p>
-                <ul className="space-y-2 text-sm text-neutral-400">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    +{TRIAL.EXTENDED_DAYS} days additional access
+                    One project included
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    Still no credit card
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    Seamless transition, no setup
+                    No credit card required
                   </li>
                 </ul>
                 <div className="mt-4 p-3 bg-neutral-800/50 rounded-lg">
                   <code className="text-sm text-green-400 font-mono">
-                    {PRODUCT.CLI_EXTEND_COMMAND}
+                    {PRODUCT.CLI_COMMAND}
                   </code>
                 </div>
               </div>
@@ -137,13 +106,13 @@ export default function TrialPage() {
               </div>
             </div>
 
-            {/* Step 3 */}
+            {/* Step 2 */}
             <div>
               <div className="bg-neutral-900 border border-red-800/50 rounded-xl p-6 h-full ring-2 ring-red-500/20">
                 <div className="bg-red-600 rounded-full w-10 h-10 flex items-center justify-center mb-4">
                   <CreditCard className="h-5 w-5 text-white" />
                 </div>
-                <Badge className="bg-red-600 mb-3">Day {TRIAL.TOTAL_DAYS + 1}+</Badge>
+                <Badge className="bg-red-600 mb-3">Day {TRIAL.ANONYMOUS_DAYS + 1}+</Badge>
                 <h3 className="text-xl font-bold text-white mb-2">
                   Pro Subscription
                 </h3>
@@ -241,12 +210,12 @@ export default function TrialPage() {
           <div className="space-y-6">
             {[
               {
-                q: 'Do I need to create an account?',
-                a: 'No. The trial is completely anonymous. We track your device to prevent abuse, but we don\'t require any personal information.',
+                q: 'Why do I need to sign in with GitHub?',
+                a: 'GitHub OAuth verifies you\'re a real developer without requiring passwords or payment info. It\'s quick (one click), secure, and we don\'t access your repos.',
               },
               {
                 q: `What happens after ${TRIAL.ANONYMOUS_DAYS} days?`,
-                a: `You can connect your GitHub account for ${TRIAL.EXTENDED_DAYS} more days free (${TRIAL.TOTAL_DAYS} days total). After that, you can upgrade to Pro ($${PRICING.PRO.MONTHLY}/month) or your access will end.`,
+                a: `Your trial ends and you can upgrade to Pro ($${PRICING.PRO.MONTHLY}/month) for continued access with unlimited projects. No pressure - you can always come back later.`,
               },
               {
                 q: 'Can I use it for commercial projects?',
@@ -254,11 +223,11 @@ export default function TrialPage() {
               },
               {
                 q: 'Is the trial limited in any way?',
-                a: `The only limit is time - ${TRIAL.ANONYMOUS_DAYS} days anonymous, then ${TRIAL.EXTENDED_DAYS} more with GitHub. You get full access to all ${MODULES.COUNT} modules and can build unlimited projects during your trial.`,
+                a: `The trial is limited to ${TRIAL.ANONYMOUS_DAYS} days and one project. You get full access to all ${MODULES.COUNT} modules. Upgrade to Pro for unlimited projects.`,
               },
               {
-                q: 'Why do you need my GitHub account for extension?',
-                a: 'GitHub OAuth is a simple way to verify you\'re a real developer without requiring passwords or payment info. It\'s just for verification - we don\'t access your repos.',
+                q: 'What if I want to use it on multiple projects?',
+                a: 'The free trial is limited to one project to prevent abuse. Upgrade to Pro for unlimited projects - most developers find it pays for itself in the first project.',
               },
             ].map((faq, i) => (
               <div
@@ -280,7 +249,7 @@ export default function TrialPage() {
             Ready to Build 5x Faster?
           </h2>
           <p className="text-neutral-400 mb-8">
-            One command. {TRIAL.ANONYMOUS_DAYS} days free. No strings attached.
+            One command. {TRIAL.ANONYMOUS_DAYS} days free. Just sign in with GitHub.
           </p>
 
           <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 mb-8">

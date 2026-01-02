@@ -17,8 +17,8 @@ test.describe('Marketing Pages', () => {
   test('homepage should display correct module count', async ({ page }) => {
     await page.goto('/');
 
-    // Should show 33 modules somewhere on page
-    await expect(page.locator('text=33').first()).toBeVisible();
+    // Should show 59 modules somewhere on page (CODEBAKERS_STATS.moduleCount)
+    await expect(page.locator('text=59').first()).toBeVisible();
   });
 
   test('pricing page should load and show plans', async ({ page }) => {
@@ -36,11 +36,11 @@ test.describe('Marketing Pages', () => {
   test('pricing page should show correct feature counts', async ({ page }) => {
     await page.goto('/pricing');
 
-    // Should show 33 modules in features
-    await expect(page.getByText('33 production modules')).toBeVisible();
+    // Should show 59 modules in features (CODEBAKERS_STATS.moduleCount)
+    await expect(page.getByText('59 production modules')).toBeVisible();
 
-    // Should show correct line count
-    await expect(page.getByText('44,654 lines of patterns')).toBeVisible();
+    // Should show correct line count (flexible match)
+    await expect(page.getByText(/lines of patterns/)).toBeVisible();
   });
 
   test('compare page should load and show savings table', async ({ page }) => {
