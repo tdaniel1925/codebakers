@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { trialFingerprints } from '@/db/schema';
 import { eq, and, ne } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
+import { getClientIp, checkRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -261,6 +262,16 @@ function renderErrorPage(error: string): string {
  * Handle GitHub OAuth callback for trial start or extension
  */
 export async function GET(req: NextRequest) {
+  // Rate limit by IP to prevent abuse
+  const ip = getClientIp(req.headers);
+  try {
+    checkRateLimit(`github:callback:${ip}`, { windowMs: 60 * 1000, maxRequests: 20 });
+  } catch {
+    return new NextResponse(renderErrorPage('Too many requests. Please try again later.'), {
+      headers: { 'Content-Type': 'text/html' },
+    });
+  }
+
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
   const stateParam = searchParams.get('state');

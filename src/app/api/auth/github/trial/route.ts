@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { getClientIp, checkRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,17 @@ export const dynamic = 'force-dynamic';
  * (not just extend). Prevents trial abuse across devices.
  */
 export async function GET(req: NextRequest) {
+  // Rate limit by IP to prevent abuse
+  const ip = getClientIp(req.headers);
+  try {
+    checkRateLimit(`github:trial:${ip}`, { windowMs: 60 * 1000, maxRequests: 10 });
+  } catch {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const deviceHash = searchParams.get('device_hash');
 
