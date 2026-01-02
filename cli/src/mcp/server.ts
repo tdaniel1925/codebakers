@@ -1172,13 +1172,13 @@ class CodeBakersServer {
         {
           name: 'detect_intent',
           description:
-            'CALL THIS FIRST when user request is ambiguous or could match multiple MCP tools. Analyzes user input and returns which MCP tool(s) would be appropriate, with explanations. Show the result to the user and ask for confirmation before executing. This prevents accidental destructive actions.',
+            'Lists all available CodeBakers MCP tools. Only use this when user explicitly asks "what tools are available" or "help". Do NOT use for normal requests - just call the appropriate tool directly.',
           inputSchema: {
             type: 'object' as const,
             properties: {
               userMessage: {
                 type: 'string',
-                description: 'The user\'s message or request to analyze',
+                description: 'The user\'s message (for context only)',
               },
             },
             required: ['userMessage'],
@@ -6673,136 +6673,25 @@ You cannot write code without calling this tool first.
    */
   private handleDetectIntent(args: { userMessage: string }) {
     const { userMessage } = args;
-    const msg = userMessage.toLowerCase();
 
-    // Define intent patterns with their MCP tools
-    const intentPatterns = [
-      {
-        keywords: ['upgrade codebakers', 'update patterns', 'sync patterns', 'download patterns', 'get latest patterns'],
-        tool: 'update_patterns',
-        description: 'Download latest CLAUDE.md and all .claude/ modules from the CodeBakers server',
-        action: 'WRITE - Will overwrite local pattern files with server versions',
-        isDestructive: true,
-      },
-      {
-        keywords: ['upgrade', 'improve code', 'make production ready', 'code quality'],
-        tool: 'upgrade',
-        description: 'Analyze your code for quality improvements (does NOT download patterns)',
-        action: 'READ-ONLY - Analyzes code and suggests improvements',
-        isDestructive: false,
-      },
-      {
-        keywords: ['build', 'create project', 'new project', 'scaffold', 'start fresh'],
-        tool: 'scaffold_project',
-        description: 'Create a new project from scratch with CodeBakers patterns',
-        action: 'WRITE - Will create new files and folders',
-        isDestructive: true,
-      },
-      {
-        keywords: ['add feature', 'implement', 'build feature', 'create feature'],
-        tool: 'optimize_and_build',
-        description: 'Optimize your feature request with AI and fetch relevant patterns',
-        action: 'READ + ASSIST - Fetches patterns and guides implementation',
-        isDestructive: false,
-      },
-      {
-        keywords: ['audit', 'review code', 'check code', 'code review'],
-        tool: 'run_audit',
-        description: 'Run comprehensive code quality audit',
-        action: 'READ-ONLY - Analyzes code and reports issues',
-        isDestructive: false,
-      },
-      {
-        keywords: ['heal', 'fix errors', 'auto-fix', 'fix bugs'],
-        tool: 'heal',
-        description: 'AI-powered error detection and automatic fixing',
-        action: 'WRITE - May modify files to fix errors',
-        isDestructive: true,
-      },
-      {
-        keywords: ['design', 'clone design', 'copy design', 'match design'],
-        tool: 'design',
-        description: 'Clone a design from mockups, screenshots, or websites',
-        action: 'WRITE - Will generate component files',
-        isDestructive: true,
-      },
-      {
-        keywords: ['status', 'progress', "what's built", 'where am i'],
-        tool: 'project_status',
-        description: 'Show current project build progress and stats',
-        action: 'READ-ONLY - Shows project state',
-        isDestructive: false,
-      },
-      {
-        keywords: ['run tests', 'test', 'check tests'],
-        tool: 'run_tests',
-        description: 'Execute the project test suite',
-        action: 'READ-ONLY - Runs tests and reports results',
-        isDestructive: false,
-      },
-      {
-        keywords: ['list patterns', 'show patterns', 'what patterns'],
-        tool: 'list_patterns',
-        description: 'List all available CodeBakers patterns',
-        action: 'READ-ONLY - Shows available patterns',
-        isDestructive: false,
-      },
-      {
-        keywords: ['init', 'initialize', 'add patterns to existing'],
-        tool: 'init_project',
-        description: 'Add CodeBakers patterns to an existing project',
-        action: 'WRITE - Will add CLAUDE.md and .claude/ folder',
-        isDestructive: true,
-      },
-    ];
-
-    // Find matching intents
-    const matches = intentPatterns.filter(pattern =>
-      pattern.keywords.some(keyword => msg.includes(keyword))
-    );
-
-    let response = `# 🔍 Intent Detection\n\n`;
+    // Simple tool list - no keyword guessing. Let the AI figure it out from context.
+    let response = `# Available CodeBakers MCP Tools\n\n`;
     response += `**Your message:** "${userMessage}"\n\n`;
-
-    if (matches.length === 0) {
-      response += `## No specific MCP tool detected\n\n`;
-      response += `Your request doesn't clearly match any MCP tool. I'll proceed with general assistance.\n\n`;
-      response += `**Available tools you might want:**\n`;
-      response += `- \`update_patterns\` - Download latest patterns from server\n`;
-      response += `- \`optimize_and_build\` - Get AI help building a feature\n`;
-      response += `- \`run_audit\` - Review your code quality\n`;
-      response += `- \`project_status\` - Check build progress\n`;
-    } else if (matches.length === 1) {
-      const match = matches[0];
-      response += `## Detected Intent\n\n`;
-      response += `| Property | Value |\n`;
-      response += `|----------|-------|\n`;
-      response += `| **Tool** | \`${match.tool}\` |\n`;
-      response += `| **Description** | ${match.description} |\n`;
-      response += `| **Action Type** | ${match.action} |\n`;
-      response += `| **Destructive?** | ${match.isDestructive ? '⚠️ YES - modifies files' : '✅ NO - read-only'} |\n\n`;
-
-      if (match.isDestructive) {
-        response += `### ⚠️ Confirmation Required\n\n`;
-        response += `This action will modify files. Do you want to proceed?\n\n`;
-        response += `**Reply "yes" or "proceed" to execute, or describe what you actually want.**\n`;
-      } else {
-        response += `This is a read-only operation. Safe to proceed.\n\n`;
-        response += `**Reply "yes" to execute, or clarify your request.**\n`;
-      }
-    } else {
-      response += `## Multiple Possible Intents\n\n`;
-      response += `Your request could match several tools:\n\n`;
-
-      matches.forEach((match, i) => {
-        response += `### Option ${i + 1}: \`${match.tool}\`\n`;
-        response += `- **What it does:** ${match.description}\n`;
-        response += `- **Action:** ${match.action}\n`;
-        response += `- **Destructive:** ${match.isDestructive ? '⚠️ Yes' : '✅ No'}\n\n`;
-      });
-
-      response += `**Which option do you want?** Reply with the tool name or option number.\n`;
-    }
+    response += `## Tools\n\n`;
+    response += `| Tool | Description |\n`;
+    response += `|------|-------------|\n`;
+    response += `| \`update_patterns\` | Download latest CLAUDE.md from server |\n`;
+    response += `| \`discover_patterns\` | Find patterns for a feature request |\n`;
+    response += `| \`optimize_and_build\` | AI-optimize a feature request |\n`;
+    response += `| \`run_audit\` | Code quality audit |\n`;
+    response += `| \`heal\` | Auto-fix errors |\n`;
+    response += `| \`project_status\` | Show build progress |\n`;
+    response += `| \`run_tests\` | Run test suite |\n`;
+    response += `| \`scaffold_project\` | Create new project |\n`;
+    response += `| \`init_project\` | Add patterns to existing project |\n`;
+    response += `| \`list_patterns\` | List all available patterns |\n`;
+    response += `| \`billing_action\` | Manage subscription |\n\n`;
+    response += `**Pick the tool that matches what you want to do.**\n`;
 
     return {
       content: [{
