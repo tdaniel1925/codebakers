@@ -27,7 +27,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/quickstart', label: 'Quick Start', icon: Zap },
   { href: '/engineering', label: 'Engineering', icon: Hammer },
-  { href: '/docs', label: 'Documentation', icon: BookOpen },
+  { href: '/help', label: 'Help Center', icon: BookOpen },
   { href: '/account', label: 'Account', icon: UserCircle },
   { href: '/billing', label: 'Billing', icon: CreditCard },
   { href: '/team', label: 'Team', icon: Users },
