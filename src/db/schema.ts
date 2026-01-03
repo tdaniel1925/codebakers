@@ -1544,3 +1544,139 @@ export type EngineeringSessionStatus = 'active' | 'paused' | 'completed' | 'aban
 export type EngineeringPhaseType = 'scoping' | 'requirements' | 'architecture' | 'design_review' | 'implementation' | 'code_review' | 'testing' | 'security_review' | 'documentation' | 'staging' | 'launch';
 export type AgentRoleType = 'orchestrator' | 'pm' | 'architect' | 'engineer' | 'qa' | 'security' | 'documentation' | 'devops';
 export type GateStatusType = 'pending' | 'in_progress' | 'passed' | 'failed' | 'skipped';
+
+// ============================================
+// E-COMMERCE / PAYMENT TRACKING TABLES
+// ============================================
+
+// Payment Event Type enum
+export const paymentEventTypeEnum = pgEnum('payment_event_type', [
+  'subscription_created',
+  'subscription_activated',
+  'subscription_updated',
+  'subscription_cancelled',
+  'subscription_expired',
+  'subscription_suspended',
+  'payment_completed',
+  'payment_failed',
+  'payment_refunded',
+  'invoice_created',
+  'invoice_paid',
+  'trial_started',
+  'trial_converted',
+  'trial_expired',
+]);
+
+// Payment Events - Track all payment/subscription events from webhooks
+export const paymentEvents = pgTable('payment_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Event identification
+  eventType: paymentEventTypeEnum('event_type').notNull(),
+  provider: paymentProviderEnum('provider').notNull(),
+  providerEventId: text('provider_event_id'), // Stripe/PayPal/Square event ID
+
+  // Associated entities
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'set null' }),
+  profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+
+  // Financial data
+  amount: integer('amount'), // In cents
+  currency: text('currency').default('USD'),
+
+  // Plan info
+  plan: subscriptionPlanEnum('plan'),
+  previousPlan: subscriptionPlanEnum('previous_plan'),
+
+  // Provider-specific IDs
+  subscriptionId: text('subscription_id'),
+  invoiceId: text('invoice_id'),
+  customerId: text('customer_id'),
+
+  // Event metadata
+  metadata: text('metadata'), // JSON: Additional event data
+  rawEvent: text('raw_event'), // JSON: Full webhook payload for debugging
+
+  // Processing status
+  processed: boolean('processed').default(true),
+  processingError: text('processing_error'),
+
+  // Timestamps
+  eventTimestamp: timestamp('event_timestamp'), // When the event occurred (from provider)
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Admin Settings - System configuration
+export const adminSettings = pgTable('admin_settings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Setting identification
+  key: text('key').notNull().unique(),
+  value: text('value').notNull(),
+  type: text('type').default('string'), // string, number, boolean, json
+
+  // Metadata
+  description: text('description'),
+  category: text('category').default('general'), // general, email, limits, features
+
+  // Audit
+  updatedBy: uuid('updated_by').references(() => profiles.id, { onDelete: 'set null' }),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Audit Logs - Track admin actions
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Who performed the action
+  userId: uuid('user_id').references(() => profiles.id, { onDelete: 'set null' }),
+  userEmail: text('user_email'),
+
+  // What action was performed
+  action: text('action').notNull(), // e.g., 'user.update', 'team.delete', 'setting.change'
+  resource: text('resource').notNull(), // e.g., 'user', 'team', 'setting'
+  resourceId: text('resource_id'), // ID of the affected resource
+
+  // Change details
+  previousValue: text('previous_value'), // JSON: State before change
+  newValue: text('new_value'), // JSON: State after change
+
+  // Request context
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Relations for payment events
+export const paymentEventsRelations = relations(paymentEvents, ({ one }) => ({
+  team: one(teams, {
+    fields: [paymentEvents.teamId],
+    references: [teams.id],
+  }),
+  profile: one(profiles, {
+    fields: [paymentEvents.profileId],
+    references: [profiles.id],
+  }),
+}));
+
+// Relations for audit logs
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  user: one(profiles, {
+    fields: [auditLogs.userId],
+    references: [profiles.id],
+  }),
+}));
+
+// Types for e-commerce tables
+export type PaymentEvent = typeof paymentEvents.$inferSelect;
+export type NewPaymentEvent = typeof paymentEvents.$inferInsert;
+export type AdminSetting = typeof adminSettings.$inferSelect;
+export type NewAdminSetting = typeof adminSettings.$inferInsert;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;
+export type PaymentEventType = 'subscription_created' | 'subscription_activated' | 'subscription_updated' | 'subscription_cancelled' | 'subscription_expired' | 'subscription_suspended' | 'payment_completed' | 'payment_failed' | 'payment_refunded' | 'invoice_created' | 'invoice_paid' | 'trial_started' | 'trial_converted' | 'trial_expired';

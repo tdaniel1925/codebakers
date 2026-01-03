@@ -17,6 +17,11 @@ import {
   FileUp,
   Terminal,
   Cpu,
+  DollarSign,
+  CreditCard,
+  TrendingUp,
+  Receipt,
+  BookOpen,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -24,17 +29,56 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-const navItems = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/enterprise', label: 'Enterprise Leads', icon: Building2 },
-  { href: '/admin/engineering', label: 'Engineering', icon: Cpu },
-  { href: '/admin/content', label: 'Content', icon: FileText },
-  { href: '/admin/cli-versions', label: 'CLI Versions', icon: Terminal },
-  { href: '/admin/module-builder', label: 'AI Module Builder', icon: Sparkles },
-  { href: '/admin/submissions', label: 'Pattern Submissions', icon: FileUp },
-  { href: '/admin/reports', label: 'Reports', icon: FileWarning },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavSection {
+  title?: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
+  {
+    items: [
+      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: 'E-Commerce',
+    items: [
+      { href: '/admin/revenue', label: 'Revenue', icon: TrendingUp },
+      { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
+      { href: '/admin/payments', label: 'Payments', icon: Receipt },
+    ],
+  },
+  {
+    title: 'Users & Teams',
+    items: [
+      { href: '/admin/users', label: 'Users', icon: Users },
+      { href: '/admin/enterprise', label: 'Enterprise Leads', icon: Building2 },
+    ],
+  },
+  {
+    title: 'Platform',
+    items: [
+      { href: '/admin/engineering', label: 'Engineering', icon: Cpu },
+      { href: '/admin/content', label: 'Content', icon: FileText },
+      { href: '/admin/cli-versions', label: 'CLI Versions', icon: Terminal },
+      { href: '/admin/module-builder', label: 'AI Module Builder', icon: Sparkles },
+      { href: '/admin/submissions', label: 'Pattern Submissions', icon: FileUp },
+      { href: '/admin/reports', label: 'Reports', icon: FileWarning },
+    ],
+  },
+  {
+    title: 'System',
+    items: [
+      { href: '/admin/docs', label: 'Documentation', icon: BookOpen },
+      { href: '/admin/settings', label: 'Settings', icon: Settings },
+    ],
+  },
 ];
 
 export function AdminSidebar({ user }: { user: User }) {
@@ -97,27 +141,36 @@ export function AdminSidebar({ user }: { user: User }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href ||
-              (item.href !== '/admin' && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-red-900 text-white'
-                    : 'text-red-200 hover:text-white hover:bg-red-900/50'
-                )}
-              >
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        <nav className="flex-1 py-4 px-2 space-y-4 overflow-y-auto">
+          {navSections.map((section, sectionIndex) => (
+            <div key={sectionIndex} className="space-y-1">
+              {section.title && (
+                <div className="px-3 py-1.5 text-xs font-semibold text-red-400 uppercase tracking-wider">
+                  {section.title}
+                </div>
+              )}
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href ||
+                  (item.href !== '/admin' && pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-red-900 text-white'
+                        : 'text-red-200 hover:text-white hover:bg-red-900/50'
+                    )}
+                  >
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Divider */}
