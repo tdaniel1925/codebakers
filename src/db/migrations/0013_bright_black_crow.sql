@@ -1,0 +1,1 @@
+ALTER TABLE "engineering_sessions" ADD COLUMN "generated_files" text;
