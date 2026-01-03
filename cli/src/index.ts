@@ -165,180 +165,6 @@ async function autoUpdateCli(): Promise<void> {
   }
 }
 
-// ============================================
-// Automatic Pattern Updates
-// ============================================
-
-interface PatternVersionInfo {
-  version: string;
-  moduleCount: number;
-  updatedAt: string;
-  cliVersion: string;
-}
-
-interface ContentResponse {
-  version: string;
-  router: string;
-  modules: Record<string, string>;
-}
-
-function getLocalPatternVersion(): string | null {
-  const cwd = process.cwd();
-  const versionFile = join(cwd, '.claude', '.version.json');
-
-  if (!existsSync(versionFile)) return null;
-
-  try {
-    const content = readFileSync(versionFile, 'utf-8');
-    const info: PatternVersionInfo = JSON.parse(content);
-    return info.version;
-  } catch {
-    return null;
-  }
-}
-
-function isCodeBakersProject(): boolean {
-  const cwd = process.cwd();
-  return existsSync(join(cwd, 'CLAUDE.md')) || existsSync(join(cwd, '.claude'));
-}
-
-async function autoUpdatePatterns(): Promise<void> {
-  // Only auto-update if this is a CodeBakers project
-  if (!isCodeBakersProject()) return;
-
-  // Only auto-update if user has valid access
-  if (!hasValidAccess()) return;
-
-  const localVersion = getLocalPatternVersion();
-
-  // Check if we have a valid cached result first (fast path)
-  const cached = getCachedPatternInfo();
-  if (cached) {
-    // If local matches latest, nothing to do
-    if (localVersion === cached.latestVersion) return;
-    // If we know there's an update but haven't updated yet, do it now
-    if (localVersion !== cached.latestVersion) {
-      await performPatternUpdate(cached.latestVersion);
-    }
-    return;
-  }
-
-  // Fetch from server to check for updates (with timeout)
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-
-    const apiUrl = getApiUrl();
-    const apiKey = getApiKey();
-    const trial = getTrialState();
-
-    // Build authorization header
-    let authHeader = '';
-    if (apiKey) {
-      authHeader = `Bearer ${apiKey}`;
-    } else if (trial?.trialId) {
-      authHeader = `Trial ${trial.trialId}`;
-    }
-
-    if (!authHeader) return;
-
-    // First, check the version endpoint (lightweight)
-    const versionResponse = await fetch(`${apiUrl}/api/content/version`, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-      },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (versionResponse.ok) {
-      const versionData = await versionResponse.json();
-      const serverVersion = versionData.version;
-
-      // Cache the version info
-      setCachedPatternInfo(serverVersion);
-
-      // If local version is different, update
-      if (localVersion !== serverVersion) {
-        await performPatternUpdate(serverVersion);
-      }
-    }
-  } catch {
-    // Silently fail - don't block CLI for pattern check
-  }
-}
-
-async function performPatternUpdate(targetVersion: string): Promise<void> {
-  const cwd = process.cwd();
-  const claudeMdPath = join(cwd, 'CLAUDE.md');
-  const claudeDir = join(cwd, '.claude');
-
-  try {
-    const apiUrl = getApiUrl();
-    const apiKey = getApiKey();
-    const trial = getTrialState();
-
-    let authHeader = '';
-    if (apiKey) {
-      authHeader = `Bearer ${apiKey}`;
-    } else if (trial?.trialId) {
-      authHeader = `Trial ${trial.trialId}`;
-    }
-
-    if (!authHeader) return;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(`${apiUrl}/api/content`, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-      },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) return;
-
-    const content: ContentResponse = await response.json();
-
-    // Update CLAUDE.md
-    if (content.router) {
-      writeFileSync(claudeMdPath, content.router);
-    }
-
-    // Update pattern modules
-    if (content.modules && Object.keys(content.modules).length > 0) {
-      if (!existsSync(claudeDir)) {
-        mkdirSync(claudeDir, { recursive: true });
-      }
-
-      for (const [name, data] of Object.entries(content.modules)) {
-        writeFileSync(join(claudeDir, name), data);
-      }
-    }
-
-    // Write version file
-    const moduleCount = Object.keys(content.modules || {}).length;
-    const versionInfo: PatternVersionInfo = {
-      version: content.version,
-      moduleCount,
-      updatedAt: new Date().toISOString(),
-      cliVersion: getCliVersion(),
-    };
-    writeFileSync(join(claudeDir, '.version.json'), JSON.stringify(versionInfo, null, 2));
-
-    // Show subtle notification
-    console.log(chalk.green(`  ✓ Patterns auto-updated to v${content.version} (${moduleCount} modules)\n`));
-
-  } catch {
-    // Silently fail - don't block the user
-  }
-}
 
 // Show welcome message when no command is provided
 function showWelcome(): void {
@@ -356,12 +182,12 @@ function showWelcome(): void {
   console.log(chalk.cyan('    codebakers go') + chalk.gray('         Start free trial instantly (no signup!)'));
   console.log(chalk.cyan('    codebakers build') + chalk.gray('      Describe your project → Get working code'));
   console.log(chalk.cyan('    codebakers scaffold') + chalk.gray('   Create a new project from scratch'));
-  console.log(chalk.cyan('    codebakers init') + chalk.gray('       Add patterns to existing project\n'));
+  console.log(chalk.cyan('    codebakers init') + chalk.gray('       Set up CodeBakers in existing project\n'));
 
   console.log(chalk.white('  Development:\n'));
   console.log(chalk.cyan('    codebakers generate') + chalk.gray('   Generate components, APIs, services'));
-  console.log(chalk.cyan('    codebakers upgrade') + chalk.gray('    Update patterns to latest version'));
-  console.log(chalk.cyan('    codebakers status') + chalk.gray('     Check what\'s installed'));
+  console.log(chalk.cyan('    codebakers upgrade') + chalk.gray('    Check for CLI updates'));
+  console.log(chalk.cyan('    codebakers status') + chalk.gray('     Check project status'));
   console.log(chalk.cyan('    codebakers config') + chalk.gray('     View or modify configuration\n'));
 
   console.log(chalk.white('  Examples:\n'));
@@ -379,8 +205,8 @@ function showWelcome(): void {
 
   console.log(chalk.white('  All Commands:\n'));
   console.log(chalk.gray('    go, extend, billing, build, build-status, setup, scaffold, init'));
-  console.log(chalk.gray('    generate, upgrade, status, audit, heal, doctor, config'));
-  console.log(chalk.gray('    login, install, uninstall, serve, mcp-config, mcp-uninstall\n'));
+  console.log(chalk.gray('    generate, upgrade, status, audit, heal, doctor, config, login'));
+  console.log(chalk.gray('    serve, mcp-config, mcp-uninstall\n'));
 
   console.log(chalk.gray('  Run ') + chalk.cyan('codebakers <command> --help') + chalk.gray(' for more info\n'));
 }
@@ -568,14 +394,10 @@ program
 // Add update check hook (runs before every command)
 program.hook('preAction', async () => {
   // Run CLI auto-update first (if enabled and conditions met)
-  // Then run pattern auto-update in parallel with update banner check
   await autoUpdateCli();
 
-  // Run pattern auto-update and update banner check in parallel
-  await Promise.all([
-    checkForUpdatesInBackground(),
-    autoUpdatePatterns(),
-  ]);
+  // Check for CLI updates in background
+  await checkForUpdatesInBackground();
 });
 
 // Show welcome if no command provided
