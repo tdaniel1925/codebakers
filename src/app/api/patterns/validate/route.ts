@@ -65,6 +65,12 @@ export async function POST(req: NextRequest) {
       testsRun: body.testsRun,
       testsPassed: body.testsPassed,
       typescriptPassed: body.typescriptPassed,
+      // Safety system integration
+      safetySessionId: body.safetySessionId,
+      contextWasLoaded: body.contextWasLoaded,
+      intentWasClarified: body.intentWasClarified,
+      scopeWasLocked: body.scopeWasLocked,
+      approach: body.approach,
     });
 
     // Get session for additional processing
@@ -179,6 +185,15 @@ export async function POST(req: NextRequest) {
           hasBoundaryCases: testQuality.hasBoundaryCases,
           missingTests: testQuality.missingTests,
           recommendations: testQuality.recommendations,
+        },
+
+        // v6.2 safety system integration
+        safety: {
+          score: result.safetyScore,
+          gatesFollowed: result.safetyGatesFollowed,
+          gatesSkipped: result.safetyGatesSkipped,
+          attemptLogged: result.attemptLogged,
+          decisionLogged: result.decisionLogged,
         },
 
         // Provide next steps based on result

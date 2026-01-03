@@ -19,6 +19,12 @@ export interface ProjectScope {
   description: string;
   targetAudience: 'consumers' | 'businesses' | 'internal' | 'developers';
 
+  // Input method - how user wants to provide requirements
+  inputMethod: 'natural' | 'prd' | 'mockups' | 'reference';
+  prdContent?: string; // PRD content if inputMethod is 'prd'
+  mockupSource?: string; // Mockup path/URL if inputMethod is 'mockups'
+  referenceApp?: string; // Reference app name/URL if inputMethod is 'reference'
+
   // Business scope
   isFullBusiness: boolean; // Needs marketing, deployment, teams, etc.
   needsMarketing: boolean;
@@ -1596,6 +1602,59 @@ export const SCOPING_WIZARD_STEPS: ScopingStep[] = [
     description: 'What does this app do?',
     type: 'text',
     required: true,
+  },
+  {
+    id: 'inputMethod',
+    question: 'How would you like to provide the requirements?',
+    description: 'Choose how you want to describe what you\'re building',
+    type: 'single',
+    required: true,
+    options: [
+      {
+        value: 'natural',
+        label: 'Explain naturally',
+        description: 'Just tell me what you want and I\'ll ask clarifying questions',
+      },
+      {
+        value: 'prd',
+        label: 'I have a PRD/spec',
+        description: 'Paste or upload a Product Requirements Document',
+      },
+      {
+        value: 'mockups',
+        label: 'I have mockups/designs',
+        description: 'Upload screenshots, wireframes, or Figma links',
+      },
+      {
+        value: 'reference',
+        label: 'Reference an existing app',
+        description: 'Build something like Linear, Notion, Stripe, etc.',
+      },
+    ],
+  },
+  {
+    id: 'prdContent',
+    question: 'Paste your PRD or spec document',
+    description: 'I\'ll analyze it and extract the requirements',
+    type: 'text',
+    required: true,
+    dependsOn: { stepId: 'inputMethod', value: 'prd' },
+  },
+  {
+    id: 'mockupSource',
+    question: 'Where are your mockups?',
+    description: 'Provide path to files or Figma link',
+    type: 'text',
+    required: true,
+    dependsOn: { stepId: 'inputMethod', value: 'mockups' },
+  },
+  {
+    id: 'referenceApp',
+    question: 'Which app should I reference?',
+    description: 'Name the app or provide URL',
+    type: 'text',
+    required: true,
+    dependsOn: { stepId: 'inputMethod', value: 'reference' },
   },
   {
     id: 'audience',

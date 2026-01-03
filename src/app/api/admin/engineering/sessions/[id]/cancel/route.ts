@@ -28,7 +28,7 @@ export async function POST(
       // No body or invalid JSON - that's fine
     }
 
-    const result = EngineeringOrchestratorService.cancelSession(id, reason);
+    const result = await EngineeringOrchestratorService.cancelSession(id, reason);
 
     if (!result.success) {
       return successResponse({ error: result.message }, 400);

@@ -18,7 +18,7 @@ export async function POST(
     await requireAdmin();
 
     const { id } = await params;
-    const result = EngineeringOrchestratorService.pauseSession(id);
+    const result = await EngineeringOrchestratorService.pauseSession(id);
 
     if (!result.success) {
       return successResponse({ error: result.message }, 400);

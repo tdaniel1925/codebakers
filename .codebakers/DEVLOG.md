@@ -1,5 +1,62 @@
 # Development Log
 
+## 2026-01-02 - Engineering Database Persistence & User Dashboard
+**Session:** 2026-01-02
+**Task Size:** LARGE
+**Status:** Completed
+
+### What was done:
+- Added engineering database schema (4 tables: sessions, messages, decisions, gate_history)
+- Added 4 PostgreSQL enums for session status, phase, agent role, gate status
+- Generated database migration `0012_cuddly_yellow_claw.sql`
+- Migrated orchestrator service from in-memory Map to database persistence
+- All session operations now persist to PostgreSQL
+- Added user-facing engineering dashboard at `/engineering`
+- Created user API route for engineering sessions
+
+### Files created:
+- `src/app/(dashboard)/engineering/page.tsx` - User engineering page
+- `src/app/(dashboard)/engineering/engineering-content.tsx` - User dashboard UI
+- `src/app/api/engineering/sessions/route.ts` - User sessions API
+- `src/db/migrations/0012_cuddly_yellow_claw.sql` - Migration file
+
+### Files modified:
+- `src/db/schema.ts` - Added engineering tables and enums
+- `src/services/engineering-orchestrator-service.ts` - Full database integration
+- `src/app/api/admin/engineering/sessions/route.ts` - Await async methods
+- `src/app/api/admin/engineering/sessions/[id]/pause/route.ts` - Await async
+- `src/app/api/admin/engineering/sessions/[id]/resume/route.ts` - Await async
+- `src/app/api/admin/engineering/sessions/[id]/cancel/route.ts` - Await async
+- `src/app/api/admin/engineering/stats/route.ts` - Await async
+
+### Key Change:
+Engineering sessions are now persisted to PostgreSQL, surviving server restarts.
+Memory cache (`sessionCache`) is used for performance during active sessions.
+
+---
+
+## 2026-01-02 - Engineering Session Management Actions
+**Session:** 2026-01-02
+**Task Size:** MEDIUM
+**Status:** Completed
+
+### What was done:
+- Added pause/resume/cancel session methods to orchestrator service
+- Created API routes for session actions
+- Added action buttons to Engineering admin table (pause/resume/cancel)
+- Added action buttons to session detail dialog
+
+### Files created:
+- `src/app/api/admin/engineering/sessions/[id]/pause/route.ts`
+- `src/app/api/admin/engineering/sessions/[id]/resume/route.ts`
+- `src/app/api/admin/engineering/sessions/[id]/cancel/route.ts`
+
+### Files modified:
+- `src/services/engineering-orchestrator-service.ts` - Added pauseSession, resumeSession, cancelSession, getSessionStatus
+- `src/app/(admin)/admin/engineering/page.tsx` - Added action handlers and buttons
+
+---
+
 ## 2026-01-02 - Engineering Admin Dashboard
 **Session:** 2026-01-02
 **Task Size:** MEDIUM

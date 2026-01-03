@@ -14,6 +14,7 @@ import { logger, getRequestId } from './logger';
 // Re-export for convenience
 export { rateLimitConfigs, autoRateLimit } from './rate-limit';
 export { logger, getRequestId } from './logger';
+export { ValidationError, NotFoundError, AuthorizationError as ForbiddenError } from './errors';
 
 export function handleApiError(error: unknown, requestId?: string): NextResponse {
   const reqId = requestId || 'unknown';

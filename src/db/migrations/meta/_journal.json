@@ -85,6 +85,13 @@
       "when": 1767332919292,
       "tag": "0011_add-retrial-used-at",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1767373783692,
+      "tag": "0012_cuddly_yellow_claw",
+      "breakpoints": true
     }
   ]
 }

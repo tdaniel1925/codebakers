@@ -45,6 +45,10 @@ export async function POST(req: NextRequest) {
         keywords: body.keywords,
         projectHash: body.projectHash,
         projectName: body.projectName,
+        // Safety system integration
+        sessionId: body.safetySessionId,
+        contextLoaded: body.contextLoaded,
+        scopeConfirmed: body.scopeConfirmed,
       },
       {
         teamId: validation.teamId,
@@ -157,6 +161,14 @@ export async function POST(req: NextRequest) {
       projectMemory: memory,
       teamProfile,
       detectedConflicts: detectedConflicts.length > 0 ? detectedConflicts : undefined,
+
+      // v6.2 safety system integration
+      safety: {
+        warnings: result.safetyWarnings,
+        contextSummary: result.contextSummary,
+        relevantDecisions: result.relevantDecisions,
+        failedApproaches: result.failedApproaches,
+      },
 
       instruction:
         'You MUST follow these patterns when implementing this task. When done, call validate_complete with the files you modified.',

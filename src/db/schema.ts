@@ -1339,3 +1339,208 @@ export type TestQualityMetric = typeof testQualityMetrics.$inferSelect;
 export type NewTestQualityMetric = typeof testQualityMetrics.$inferInsert;
 export type IndustryProfile = 'general' | 'healthcare' | 'finance' | 'legal' | 'ecommerce' | 'education' | 'enterprise';
 export type StrictnessLevel = 'relaxed' | 'standard' | 'strict' | 'enterprise';
+
+// ============================================
+// ENGINEERING SESSIONS - Agent-Based Build System
+// ============================================
+
+// Engineering Session Status enum
+export const engineeringSessionStatusEnum = pgEnum('engineering_session_status', [
+  'active',     // Session in progress
+  'paused',     // Paused by user or admin
+  'completed',  // All phases completed successfully
+  'abandoned',  // User abandoned or session expired
+]);
+
+// Engineering Phase enum (matches EngineeringPhase type)
+export const engineeringPhaseEnum = pgEnum('engineering_phase', [
+  'scoping',
+  'requirements',
+  'architecture',
+  'design_review',
+  'implementation',
+  'code_review',
+  'testing',
+  'security_review',
+  'documentation',
+  'staging',
+  'launch',
+]);
+
+// Agent Role enum
+export const agentRoleEnum = pgEnum('agent_role', [
+  'orchestrator',
+  'pm',
+  'architect',
+  'engineer',
+  'qa',
+  'security',
+  'documentation',
+  'devops',
+]);
+
+// Gate Status enum
+export const gateStatusEnum = pgEnum('gate_status', [
+  'pending',
+  'in_progress',
+  'passed',
+  'failed',
+  'skipped',
+]);
+
+// Engineering Sessions - Main session tracking for AI builds
+export const engineeringSessions = pgTable('engineering_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+
+  // Project identification
+  projectHash: text('project_hash').notNull(),
+  projectName: text('project_name').notNull(),
+  projectDescription: text('project_description'),
+
+  // Current state
+  status: engineeringSessionStatusEnum('status').default('active'),
+  currentPhase: engineeringPhaseEnum('current_phase').default('scoping'),
+  currentAgent: agentRoleEnum('current_agent').default('orchestrator'),
+  isRunning: boolean('is_running').default(true),
+
+  // Scope from wizard (JSON)
+  scope: text('scope'), // JSON: ProjectScope
+
+  // Stack decisions (JSON)
+  stack: text('stack'), // JSON: { framework, database, orm, auth, ui, payments }
+
+  // Gate statuses (JSON) - Record<EngineeringPhase, GateStatus>
+  gateStatus: text('gate_status'), // JSON: { scoping: { status, passedAt, ... }, ... }
+
+  // Accumulated artifacts (JSON)
+  artifacts: text('artifacts'), // JSON: { prd, techSpec, apiDocs, ... }
+
+  // Generated files (JSON array) - Actual code files to be written by CLI
+  generatedFiles: text('generated_files'), // JSON: [{ id, path, content, type }]
+
+  // Dependency graph (JSON)
+  dependencyGraph: text('dependency_graph'), // JSON: { nodes, edges }
+
+  // Error tracking
+  lastError: text('last_error'),
+  errorCount: integer('error_count').default(0),
+
+  // Resource tracking
+  totalApiCalls: integer('total_api_calls').default(0),
+  totalTokensUsed: integer('total_tokens_used').default(0),
+
+  // Timestamps
+  startedAt: timestamp('started_at').defaultNow(),
+  pausedAt: timestamp('paused_at'),
+  completedAt: timestamp('completed_at'),
+  lastActivityAt: timestamp('last_activity_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Engineering Messages - Agent communication log
+export const engineeringMessages = pgTable('engineering_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').references(() => engineeringSessions.id, { onDelete: 'cascade' }).notNull(),
+
+  // Message details
+  fromAgent: text('from_agent').notNull(), // AgentRole or 'user'
+  toAgent: text('to_agent').notNull(), // AgentRole or 'user' or 'all'
+  messageType: text('message_type').notNull(), // request, response, review, approval, rejection, question, update, handoff
+
+  // Content
+  content: text('content').notNull(),
+  metadata: text('metadata'), // JSON: additional context
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Engineering Decisions - Architectural decisions made during build
+export const engineeringDecisions = pgTable('engineering_decisions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').references(() => engineeringSessions.id, { onDelete: 'cascade' }).notNull(),
+
+  // Decision context
+  agent: agentRoleEnum('agent').notNull(),
+  phase: engineeringPhaseEnum('phase').notNull(),
+
+  // Decision details
+  decision: text('decision').notNull(), // What was decided
+  reasoning: text('reasoning').notNull(), // Why this decision
+  alternatives: text('alternatives'), // JSON array: What else was considered
+  confidence: integer('confidence'), // 0-100
+  reversible: boolean('reversible').default(true),
+  impact: text('impact'), // low, medium, high, critical
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Engineering Gate History - Track gate transitions
+export const engineeringGateHistory = pgTable('engineering_gate_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').references(() => engineeringSessions.id, { onDelete: 'cascade' }).notNull(),
+
+  // Gate details
+  phase: engineeringPhaseEnum('phase').notNull(),
+  previousStatus: gateStatusEnum('previous_status'),
+  newStatus: gateStatusEnum('new_status').notNull(),
+
+  // Who/what triggered the transition
+  triggeredBy: text('triggered_by'), // 'user', 'auto', or agent role
+  reason: text('reason'),
+
+  // Artifacts produced at this gate
+  artifacts: text('artifacts'), // JSON array of artifact names
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Relations for engineering tables
+export const engineeringSessionsRelations = relations(engineeringSessions, ({ one, many }) => ({
+  team: one(teams, {
+    fields: [engineeringSessions.teamId],
+    references: [teams.id],
+  }),
+  messages: many(engineeringMessages),
+  decisions: many(engineeringDecisions),
+  gateHistory: many(engineeringGateHistory),
+}));
+
+export const engineeringMessagesRelations = relations(engineeringMessages, ({ one }) => ({
+  session: one(engineeringSessions, {
+    fields: [engineeringMessages.sessionId],
+    references: [engineeringSessions.id],
+  }),
+}));
+
+export const engineeringDecisionsRelations = relations(engineeringDecisions, ({ one }) => ({
+  session: one(engineeringSessions, {
+    fields: [engineeringDecisions.sessionId],
+    references: [engineeringSessions.id],
+  }),
+}));
+
+export const engineeringGateHistoryRelations = relations(engineeringGateHistory, ({ one }) => ({
+  session: one(engineeringSessions, {
+    fields: [engineeringGateHistory.sessionId],
+    references: [engineeringSessions.id],
+  }),
+}));
+
+// Types for engineering tables
+export type EngineeringSession = typeof engineeringSessions.$inferSelect;
+export type NewEngineeringSession = typeof engineeringSessions.$inferInsert;
+export type EngineeringMessage = typeof engineeringMessages.$inferSelect;
+export type NewEngineeringMessage = typeof engineeringMessages.$inferInsert;
+export type EngineeringDecision = typeof engineeringDecisions.$inferSelect;
+export type NewEngineeringDecision = typeof engineeringDecisions.$inferInsert;
+export type EngineeringGateHistory = typeof engineeringGateHistory.$inferSelect;
+export type NewEngineeringGateHistory = typeof engineeringGateHistory.$inferInsert;
+export type EngineeringSessionStatus = 'active' | 'paused' | 'completed' | 'abandoned';
+export type EngineeringPhaseType = 'scoping' | 'requirements' | 'architecture' | 'design_review' | 'implementation' | 'code_review' | 'testing' | 'security_review' | 'documentation' | 'staging' | 'launch';
+export type AgentRoleType = 'orchestrator' | 'pm' | 'architect' | 'engineer' | 'qa' | 'security' | 'documentation' | 'devops';
+export type GateStatusType = 'pending' | 'in_progress' | 'passed' | 'failed' | 'skipped';

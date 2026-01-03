@@ -9,6 +9,10 @@ import {
 import { eq, and, gt, desc } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { ContentService } from './content-service';
+import { ContextLoaderService } from './context-loader-service';
+import { DecisionLogService } from './decision-log-service';
+import { AttemptTrackerService } from './attempt-tracker-service';
+import { ScopeLockService } from './scope-lock-service';
 
 // Session expiry: 2 hours
 const SESSION_EXPIRY_MS = 2 * 60 * 60 * 1000;
@@ -93,6 +97,10 @@ export interface DiscoverPatternsInput {
   keywords?: string[];
   projectHash?: string;
   projectName?: string;
+  // Safety system integration
+  sessionId?: string; // For tracking safety state
+  contextLoaded?: boolean; // Whether load_context was called
+  scopeConfirmed?: boolean; // Whether user confirmed scope
 }
 
 export interface DiscoverPatternsResult {
@@ -106,6 +114,11 @@ export interface DiscoverPatternsResult {
   }>;
   coreRules: string; // Always include core rules
   message: string;
+  // Safety system additions
+  safetyWarnings?: string[];
+  contextSummary?: string;
+  relevantDecisions?: string[];
+  failedApproaches?: string[];
 }
 
 export interface ValidateCompleteInput {
@@ -117,6 +130,12 @@ export interface ValidateCompleteInput {
   testsRun?: boolean;
   testsPassed?: boolean;
   typescriptPassed?: boolean;
+  // Safety system integration
+  safetySessionId?: string; // For tracking safety state
+  contextWasLoaded?: boolean; // Whether load_context was called
+  intentWasClarified?: boolean; // Whether user confirmed understanding
+  scopeWasLocked?: boolean; // Whether scope was defined
+  approach?: string; // What approach was used (for attempt tracking)
 }
 
 export interface ValidateCompleteResult {
@@ -128,18 +147,72 @@ export interface ValidateCompleteResult {
   }>;
   sessionCompleted: boolean;
   message: string;
+  // Safety system additions
+  safetyScore?: number; // 0-100 based on gates followed
+  safetyGatesFollowed?: string[];
+  safetyGatesSkipped?: string[];
+  attemptLogged?: boolean;
+  decisionLogged?: boolean;
 }
 
 export class EnforcementService {
   /**
    * START GATE: discover_patterns
    * Creates a new enforcement session and returns relevant patterns
+   *
+   * SAFETY INTEGRATION: Now includes warnings if context wasn't loaded
+   * and includes relevant decisions/failed approaches from context.
    */
   static async discoverPatterns(
     input: DiscoverPatternsInput,
     auth: { teamId?: string; apiKeyId?: string; deviceHash?: string }
   ): Promise<DiscoverPatternsResult> {
     const startTime = Date.now();
+    const safetyWarnings: string[] = [];
+
+    // Safety check: Was context loaded?
+    if (!input.contextLoaded && input.sessionId) {
+      safetyWarnings.push(
+        '⚠️ SAFETY WARNING: load_context was not called before discover_patterns. ' +
+        'You may be missing important context about decisions and failed approaches.'
+      );
+    }
+
+    // Safety check: Was scope confirmed?
+    if (!input.scopeConfirmed) {
+      safetyWarnings.push(
+        '⚠️ SAFETY WARNING: User has not confirmed scope. ' +
+        'Consider calling clarify_intent to ensure you understand the request correctly.'
+      );
+    }
+
+    // Get cached context if available
+    let contextSummary: string | undefined;
+    let relevantDecisions: string[] = [];
+    let failedApproaches: string[] = [];
+
+    if (input.sessionId) {
+      const cachedContext = ContextLoaderService.getCachedContext(input.sessionId);
+      if (cachedContext) {
+        // Include relevant decisions
+        const decisions = DecisionLogService.getRelevantDecisions(
+          cachedContext.decisions,
+          input.task
+        );
+        relevantDecisions = decisions.map(d => `${d.decision}: ${d.reasoning}`);
+
+        // Include failed approaches for this type of task
+        const failed = cachedContext.recentAttempts.filter(a =>
+          a.result === 'failure' &&
+          a.shouldNotRetry &&
+          a.issue.toLowerCase().includes(input.task.toLowerCase().split(' ')[0])
+        );
+        failedApproaches = failed.map(a => `${a.approach}: ${a.errorMessage || 'Failed'}`);
+
+        // Generate context summary
+        contextSummary = ContextLoaderService.formatContextForPrompt(cachedContext);
+      }
+    }
 
     // Extract keywords from task if not provided
     const keywords = input.keywords || this.extractKeywords(input.task);
@@ -199,23 +272,51 @@ export class EnforcementService {
       responseTimeMs: Date.now() - startTime,
     });
 
+    // Build message with safety context
+    let message = `Found ${patterns.length} relevant patterns. You MUST follow these patterns when implementing "${input.task}". Your session token is ${sessionToken} - use this when calling validate_complete.`;
+
+    // Add safety warnings to message
+    if (safetyWarnings.length > 0) {
+      message = safetyWarnings.join('\n') + '\n\n' + message;
+    }
+
+    // Add relevant decisions to message
+    if (relevantDecisions.length > 0) {
+      message += `\n\n## ACTIVE DECISIONS (Must follow):\n${relevantDecisions.map(d => `- ${d}`).join('\n')}`;
+    }
+
+    // Add failed approaches to message
+    if (failedApproaches.length > 0) {
+      message += `\n\n## FAILED APPROACHES (Do not retry):\n${failedApproaches.map(a => `- ${a}`).join('\n')}`;
+    }
+
     return {
       sessionToken,
       sessionId: session.id,
       expiresAt: sessionData.expiresAt,
       patterns,
       coreRules: modules['00-core.md'] || '',
-      message: `Found ${patterns.length} relevant patterns. You MUST follow these patterns when implementing "${input.task}". Your session token is ${sessionToken} - use this when calling validate_complete.`,
+      message,
+      // Safety system additions
+      safetyWarnings: safetyWarnings.length > 0 ? safetyWarnings : undefined,
+      contextSummary,
+      relevantDecisions: relevantDecisions.length > 0 ? relevantDecisions : undefined,
+      failedApproaches: failedApproaches.length > 0 ? failedApproaches : undefined,
     };
   }
 
   /**
    * END GATE: validate_complete
    * Validates that the AI followed patterns and tests pass
+   *
+   * SAFETY INTEGRATION: Now tracks safety gates followed/skipped,
+   * logs attempts to the tracker, and records decisions.
    */
   static async validateComplete(input: ValidateCompleteInput): Promise<ValidateCompleteResult> {
     const startTime = Date.now();
     const issues: ValidateCompleteResult['issues'] = [];
+    const safetyGatesFollowed: string[] = [];
+    const safetyGatesSkipped: string[] = [];
 
     // Find the session
     const session = await db.query.enforcementSessions.findFirst({
@@ -235,6 +336,9 @@ export class EnforcementService {
         ],
         sessionCompleted: false,
         message: 'VALIDATION FAILED: No session found. You did not call discover_patterns first.',
+        safetyScore: 0,
+        safetyGatesFollowed: [],
+        safetyGatesSkipped: ['discover_patterns', 'load_context', 'clarify_intent', 'define_scope'],
       };
     }
 
@@ -256,6 +360,7 @@ export class EnforcementService {
         ],
         sessionCompleted: false,
         message: 'VALIDATION FAILED: Session expired. Start a new session with discover_patterns.',
+        safetyScore: 0,
       };
     }
 
@@ -266,17 +371,65 @@ export class EnforcementService {
         issues: [],
         sessionCompleted: true,
         message: 'This session was already validated successfully.',
+        safetyScore: 100,
       };
     }
 
-    // Verify START gate was passed
-    if (!session.startGatePassed) {
+    // =========================================================================
+    // SAFETY GATE CHECKS
+    // =========================================================================
+
+    // Gate 1: discover_patterns (already checked via session existence)
+    if (session.startGatePassed) {
+      safetyGatesFollowed.push('discover_patterns');
+    } else {
+      safetyGatesSkipped.push('discover_patterns');
       issues.push({
         type: 'START_GATE_NOT_PASSED',
         message: 'discover_patterns was not properly called before writing code.',
         severity: 'error',
       });
     }
+
+    // Gate 2: load_context
+    if (input.contextWasLoaded) {
+      safetyGatesFollowed.push('load_context');
+    } else {
+      safetyGatesSkipped.push('load_context');
+      issues.push({
+        type: 'CONTEXT_NOT_LOADED',
+        message: 'load_context was not called. You may have missed important decisions or failed approaches.',
+        severity: 'warning',
+      });
+    }
+
+    // Gate 3: clarify_intent
+    if (input.intentWasClarified) {
+      safetyGatesFollowed.push('clarify_intent');
+    } else {
+      safetyGatesSkipped.push('clarify_intent');
+      issues.push({
+        type: 'INTENT_NOT_CLARIFIED',
+        message: 'clarify_intent was not called. You may have misunderstood the user\'s request.',
+        severity: 'warning',
+      });
+    }
+
+    // Gate 4: define_scope
+    if (input.scopeWasLocked) {
+      safetyGatesFollowed.push('define_scope');
+    } else {
+      safetyGatesSkipped.push('define_scope');
+      issues.push({
+        type: 'SCOPE_NOT_LOCKED',
+        message: 'define_scope was not called. There was no scope lock to prevent scope creep.',
+        severity: 'warning',
+      });
+    }
+
+    // =========================================================================
+    // STANDARD VALIDATION CHECKS
+    // =========================================================================
 
     // Check if tests were run
     if (!input.testsRun) {
@@ -314,11 +467,65 @@ export class EnforcementService {
       });
     }
 
+    // =========================================================================
+    // CALCULATE RESULTS
+    // =========================================================================
+
     // Determine if validation passed (errors = fail, warnings = pass with warnings)
     const hasErrors = issues.some((i) => i.severity === 'error');
     const passed = !hasErrors;
 
-    // Update session
+    // Calculate safety score (0-100)
+    // Each gate is worth 25 points
+    const safetyScore = safetyGatesFollowed.length * 25;
+
+    // =========================================================================
+    // LOG ATTEMPT TO TRACKER (for future reference)
+    // =========================================================================
+
+    let attemptLogged = false;
+    let decisionLogged = false;
+
+    if (input.safetySessionId) {
+      // Log the attempt
+      const attempt = AttemptTrackerService.createAttempt({
+        issue: session.task || input.featureName,
+        approach: input.approach || `Implemented ${input.featureName}`,
+        codeOrCommand: input.filesModified?.join(', ') || '',
+        result: passed ? 'success' : 'failure',
+        errorMessage: passed ? undefined : issues.filter(i => i.severity === 'error').map(i => i.message).join('; '),
+        lessonsLearned: passed
+          ? `Successfully implemented using patterns: ${JSON.parse(session.patternsReturned || '[]').join(', ')}`
+          : undefined,
+      });
+
+      // Add to cache for this session
+      const { AttemptCache } = await import('./attempt-tracker-service');
+      AttemptCache.add(input.safetySessionId, attempt);
+      attemptLogged = true;
+
+      // Log the decision if successful
+      if (passed) {
+        const decision = DecisionLogService.createDecision({
+          decision: `Completed: ${input.featureName}`,
+          category: 'business-logic',
+          reasoning: `Implementation passed all validation checks. Files: ${input.filesModified?.join(', ') || 'none specified'}`,
+          alternativesConsidered: [],
+          madeBy: 'ai',
+          userApproved: false,
+          impact: 'medium',
+        });
+
+        const { DecisionCache } = await import('./decision-log-service');
+        DecisionCache.add(input.safetySessionId, decision);
+        decisionLogged = true;
+      }
+    }
+
+    // =========================================================================
+    // UPDATE SESSION
+    // =========================================================================
+
     const newStatus = passed ? 'completed' : 'failed';
     await db
       .update(enforcementSessions)
@@ -351,13 +558,35 @@ export class EnforcementService {
       responseTimeMs: Date.now() - startTime,
     });
 
+    // =========================================================================
+    // BUILD RESULT MESSAGE
+    // =========================================================================
+
+    let message = passed
+      ? `✅ VALIDATION PASSED: Feature "${input.featureName}" completed successfully.`
+      : `❌ VALIDATION FAILED: Fix the following issues:\n${issues.map((i) => `- [${i.severity.toUpperCase()}] ${i.message}`).join('\n')}`;
+
+    // Add safety score feedback
+    if (safetyScore < 100) {
+      message += `\n\n📊 Safety Score: ${safetyScore}/100`;
+      if (safetyGatesSkipped.length > 0) {
+        message += `\n⚠️ Skipped gates: ${safetyGatesSkipped.join(', ')}`;
+        message += `\nFor better reliability, use all safety gates in future tasks.`;
+      }
+    } else {
+      message += `\n\n📊 Safety Score: 100/100 - All gates followed!`;
+    }
+
     return {
       passed,
       issues,
       sessionCompleted: passed,
-      message: passed
-        ? `✅ VALIDATION PASSED: Feature "${input.featureName}" completed successfully.`
-        : `❌ VALIDATION FAILED: Fix the following issues:\n${issues.map((i) => `- [${i.severity.toUpperCase()}] ${i.message}`).join('\n')}`,
+      message,
+      safetyScore,
+      safetyGatesFollowed,
+      safetyGatesSkipped,
+      attemptLogged,
+      decisionLogged,
     };
   }
 

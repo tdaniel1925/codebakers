@@ -5,6 +5,9 @@
  * Manages phase transitions, agent handoffs, and gate enforcement.
  *
  * NO FRICTION: Everything is designed to be as easy as 1,2,3 for users.
+ *
+ * PERSISTENCE: Sessions are stored in the database for durability.
+ * Memory cache is used for active sessions during operation.
  */
 
 import { randomUUID } from 'crypto';
@@ -28,6 +31,16 @@ import {
   PhaseProgress,
 } from '@/lib/engineering-types';
 import { ProjectTrackingService } from './project-tracking-service';
+import { db } from '@/db';
+import {
+  engineeringSessions,
+  engineeringMessages,
+  engineeringDecisions,
+  engineeringGateHistory,
+  EngineeringSession,
+  NewEngineeringSession,
+} from '@/db/schema';
+import { eq, desc, and, gte, sql, count } from 'drizzle-orm';
 
 // =============================================================================
 // ORCHESTRATOR STATE
@@ -41,8 +54,91 @@ interface OrchestratorState {
   pendingApprovals: string[]; // Phase names waiting for user approval
 }
 
-// In-memory state for active sessions (would be Redis in production)
-const activeSessions = new Map<string, OrchestratorState>();
+// In-memory cache for active sessions (database is source of truth)
+const sessionCache = new Map<string, OrchestratorState>();
+
+// =============================================================================
+// DATABASE HELPERS
+// =============================================================================
+
+/**
+ * Convert database record to OrchestratorState
+ */
+function dbToState(record: EngineeringSession, messages: AgentMessage[] = []): OrchestratorState {
+  const scope: ProjectScope = record.scope
+    ? JSON.parse(record.scope)
+    : {
+        name: record.projectName,
+        description: record.projectDescription || '',
+        targetAudience: 'consumers',
+        isFullBusiness: false,
+        needsMarketing: false,
+        needsAnalytics: false,
+        needsTeamFeatures: false,
+        needsAdminDashboard: false,
+        platforms: ['web'],
+        hasRealtime: false,
+        hasPayments: false,
+        hasAuth: true,
+        hasFileUploads: false,
+        compliance: { hipaa: false, pci: false, gdpr: false, soc2: false, coppa: false },
+        expectedUsers: 'small',
+        launchTimeline: 'flexible',
+      };
+
+  const stack = record.stack
+    ? JSON.parse(record.stack)
+    : { framework: 'nextjs', database: 'supabase', orm: 'drizzle', auth: 'supabase', ui: 'shadcn' };
+
+  const gateStatus = record.gateStatus
+    ? JSON.parse(record.gateStatus)
+    : EngineeringOrchestratorService['initializeGateStatus']();
+
+  const artifacts = record.artifacts ? JSON.parse(record.artifacts) : {};
+  const dependencyGraph = record.dependencyGraph ? JSON.parse(record.dependencyGraph) : { nodes: [], edges: [] };
+
+  const context: ProjectContext = {
+    id: record.id,
+    teamId: record.teamId,
+    projectHash: record.projectHash,
+    scope,
+    stack,
+    currentPhase: record.currentPhase as EngineeringPhase,
+    currentAgent: record.currentAgent as AgentRole,
+    gateStatus,
+    artifacts,
+    dependencyGraph,
+    decisions: [], // Loaded separately if needed
+    startedAt: record.startedAt || new Date(),
+    lastActivityAt: record.lastActivityAt || new Date(),
+  };
+
+  return {
+    context,
+    messages,
+    isRunning: record.isRunning ?? true,
+    currentAgent: record.currentAgent as AgentRole,
+    pendingApprovals: [], // TODO: Could persist this
+  };
+}
+
+/**
+ * Convert OrchestratorState to database fields
+ */
+function stateToDbUpdate(state: OrchestratorState): Partial<NewEngineeringSession> {
+  return {
+    currentPhase: state.context.currentPhase,
+    currentAgent: state.context.currentAgent,
+    isRunning: state.isRunning,
+    scope: JSON.stringify(state.context.scope),
+    stack: JSON.stringify(state.context.stack),
+    gateStatus: JSON.stringify(state.context.gateStatus),
+    artifacts: JSON.stringify(state.context.artifacts),
+    dependencyGraph: JSON.stringify(state.context.dependencyGraph),
+    lastActivityAt: state.context.lastActivityAt,
+    updatedAt: new Date(),
+  };
+}
 
 // =============================================================================
 // MAIN ORCHESTRATOR SERVICE
@@ -62,47 +158,73 @@ export class EngineeringOrchestratorService {
     projectHash: string,
     projectName: string
   ): Promise<{ sessionId: string; firstStep: ScopingStep }> {
-    const sessionId = randomUUID();
+    const scope: ProjectScope = {
+      name: projectName,
+      description: '',
+      targetAudience: 'consumers',
+      inputMethod: 'natural', // Default to natural language explanation
+      isFullBusiness: false,
+      needsMarketing: false,
+      needsAnalytics: false,
+      needsTeamFeatures: false,
+      needsAdminDashboard: false,
+      platforms: ['web'],
+      hasRealtime: false,
+      hasPayments: false,
+      hasAuth: true,
+      hasFileUploads: false,
+      compliance: {
+        hipaa: false,
+        pci: false,
+        gdpr: false,
+        soc2: false,
+        coppa: false,
+      },
+      expectedUsers: 'small',
+      launchTimeline: 'flexible',
+    };
 
-    // Create initial context
+    const stack = {
+      framework: 'nextjs',
+      database: 'supabase',
+      orm: 'drizzle',
+      auth: 'supabase',
+      ui: 'shadcn',
+    };
+
+    const gateStatus = this.initializeGateStatus();
+
+    // Insert into database
+    const [dbRecord] = await db.insert(engineeringSessions).values({
+      teamId,
+      projectHash,
+      projectName,
+      projectDescription: '',
+      status: 'active',
+      currentPhase: 'scoping',
+      currentAgent: 'orchestrator',
+      isRunning: true,
+      scope: JSON.stringify(scope),
+      stack: JSON.stringify(stack),
+      gateStatus: JSON.stringify(gateStatus),
+      artifacts: JSON.stringify({}),
+      dependencyGraph: JSON.stringify({ nodes: [], edges: [] }),
+      startedAt: new Date(),
+      lastActivityAt: new Date(),
+    }).returning();
+
+    const sessionId = dbRecord.id;
+
+    // Create initial context for cache
     const context: ProjectContext = {
       id: sessionId,
       teamId,
       projectHash,
-      scope: {
-        name: projectName,
-        description: '',
-        targetAudience: 'consumers',
-        isFullBusiness: false,
-        needsMarketing: false,
-        needsAnalytics: false,
-        needsTeamFeatures: false,
-        needsAdminDashboard: false,
-        platforms: ['web'],
-        hasRealtime: false,
-        hasPayments: false,
-        hasAuth: true,
-        hasFileUploads: false,
-        compliance: {
-          hipaa: false,
-          pci: false,
-          gdpr: false,
-          soc2: false,
-          coppa: false,
-        },
-        expectedUsers: 'small',
-        launchTimeline: 'flexible',
-      },
-      stack: {
-        framework: 'nextjs',
-        database: 'supabase',
-        orm: 'drizzle',
-        auth: 'supabase',
-        ui: 'shadcn',
-      },
+      scope,
+      stack,
       currentPhase: 'scoping',
       currentAgent: 'orchestrator',
-      gateStatus: this.initializeGateStatus(),
+      gateStatus,
       artifacts: {},
       dependencyGraph: { nodes: [], edges: [] },
       decisions: [],
@@ -110,8 +232,8 @@ export class EngineeringOrchestratorService {
       lastActivityAt: new Date(),
     };
 
-    // Store session
-    activeSessions.set(sessionId, {
+    // Store in cache
+    sessionCache.set(sessionId, {
       context,
       messages: [],
       isRunning: true,
@@ -119,7 +241,7 @@ export class EngineeringOrchestratorService {
       pendingApprovals: [],
     });
 
-    // Create project in database
+    // Create project in database (existing project tracking)
     await ProjectTrackingService.getOrCreateProject(
       teamId,
       projectHash,
@@ -136,34 +258,132 @@ export class EngineeringOrchestratorService {
 
   /**
    * Resume an existing session
+   * Checks cache first, then loads from database
    */
-  static getSession(sessionId: string): OrchestratorState | null {
-    return activeSessions.get(sessionId) || null;
+  static async getSession(sessionId: string): Promise<OrchestratorState | null> {
+    // Check cache first
+    const cached = sessionCache.get(sessionId);
+    if (cached) return cached;
+
+    // Load from database
+    const [record] = await db
+      .select()
+      .from(engineeringSessions)
+      .where(eq(engineeringSessions.id, sessionId))
+      .limit(1);
+
+    if (!record) return null;
+
+    // Load messages from database
+    const dbMessages = await db
+      .select()
+      .from(engineeringMessages)
+      .where(eq(engineeringMessages.sessionId, sessionId))
+      .orderBy(engineeringMessages.createdAt);
+
+    const messages: AgentMessage[] = dbMessages.map((m) => ({
+      id: m.id,
+      timestamp: m.createdAt || new Date(),
+      fromAgent: m.fromAgent as AgentRole | 'user',
+      toAgent: m.toAgent as AgentRole | 'user' | 'all',
+      messageType: m.messageType as AgentMessage['messageType'],
+      content: m.content,
+      metadata: m.metadata ? JSON.parse(m.metadata) : undefined,
+    }));
+
+    // Convert to state and cache
+    const state = dbToState(record, messages);
+    sessionCache.set(sessionId, state);
+
+    return state;
+  }
+
+  /**
+   * Get session synchronously from cache only (for methods that don't need async)
+   */
+  static getSessionFromCache(sessionId: string): OrchestratorState | null {
+    return sessionCache.get(sessionId) || null;
   }
 
   /**
    * Pause an active session
    * @returns success status and message
    */
-  static pauseSession(sessionId: string): { success: boolean; message: string } {
-    const session = activeSessions.get(sessionId);
+  static async pauseSession(sessionId: string): Promise<{ success: boolean; message: string }> {
+    const session = sessionCache.get(sessionId);
+
+    // If not in cache, check database
     if (!session) {
-      return { success: false, message: 'Session not found' };
+      const [record] = await db
+        .select()
+        .from(engineeringSessions)
+        .where(eq(engineeringSessions.id, sessionId))
+        .limit(1);
+
+      if (!record) {
+        return { success: false, message: 'Session not found' };
+      }
+
+      if (!record.isRunning) {
+        return { success: false, message: 'Session is not running' };
+      }
+
+      // Update database directly
+      await db
+        .update(engineeringSessions)
+        .set({
+          isRunning: false,
+          status: 'paused',
+          pausedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(engineeringSessions.id, sessionId));
+
+      // Add message to database
+      await db.insert(engineeringMessages).values({
+        sessionId,
+        fromAgent: 'orchestrator',
+        toAgent: record.currentAgent || 'orchestrator',
+        messageType: 'request',
+        content: 'Session paused by admin',
+      });
+
+      return { success: true, message: 'Session paused successfully' };
     }
 
     if (!session.isRunning) {
       return { success: false, message: 'Session is not running' };
     }
 
-    // Pause the session
+    // Update cache
     session.isRunning = false;
-    session.messages.push({
+    const newMessage: AgentMessage = {
       id: randomUUID(),
       fromAgent: 'orchestrator',
       toAgent: session.currentAgent,
       messageType: 'request',
       content: 'Session paused by admin',
       timestamp: new Date(),
+    };
+    session.messages.push(newMessage);
+
+    // Persist to database
+    await db
+      .update(engineeringSessions)
+      .set({
+        isRunning: false,
+        status: 'paused',
+        pausedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(engineeringSessions.id, sessionId));
+
+    await db.insert(engineeringMessages).values({
+      sessionId,
+      fromAgent: newMessage.fromAgent,
+      toAgent: newMessage.toAgent,
+      messageType: newMessage.messageType,
+      content: newMessage.content,
     });
 
     return { success: true, message: 'Session paused successfully' };
@@ -173,25 +393,81 @@ export class EngineeringOrchestratorService {
    * Resume a paused session
    * @returns success status and message
    */
-  static resumeSession(sessionId: string): { success: boolean; message: string } {
-    const session = activeSessions.get(sessionId);
+  static async resumeSession(sessionId: string): Promise<{ success: boolean; message: string }> {
+    const session = sessionCache.get(sessionId);
+
+    // If not in cache, check database
     if (!session) {
-      return { success: false, message: 'Session not found' };
+      const [record] = await db
+        .select()
+        .from(engineeringSessions)
+        .where(eq(engineeringSessions.id, sessionId))
+        .limit(1);
+
+      if (!record) {
+        return { success: false, message: 'Session not found' };
+      }
+
+      if (record.isRunning) {
+        return { success: false, message: 'Session is already running' };
+      }
+
+      // Update database directly
+      await db
+        .update(engineeringSessions)
+        .set({
+          isRunning: true,
+          status: 'active',
+          pausedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(engineeringSessions.id, sessionId));
+
+      // Add message to database
+      await db.insert(engineeringMessages).values({
+        sessionId,
+        fromAgent: 'orchestrator',
+        toAgent: record.currentAgent || 'orchestrator',
+        messageType: 'request',
+        content: 'Session resumed by admin',
+      });
+
+      return { success: true, message: 'Session resumed successfully' };
     }
 
     if (session.isRunning) {
       return { success: false, message: 'Session is already running' };
     }
 
-    // Resume the session
+    // Update cache
     session.isRunning = true;
-    session.messages.push({
+    const newMessage: AgentMessage = {
       id: randomUUID(),
       fromAgent: 'orchestrator',
       toAgent: session.currentAgent,
       messageType: 'request',
       content: 'Session resumed by admin',
       timestamp: new Date(),
+    };
+    session.messages.push(newMessage);
+
+    // Persist to database
+    await db
+      .update(engineeringSessions)
+      .set({
+        isRunning: true,
+        status: 'active',
+        pausedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(engineeringSessions.id, sessionId));
+
+    await db.insert(engineeringMessages).values({
+      sessionId,
+      fromAgent: newMessage.fromAgent,
+      toAgent: newMessage.toAgent,
+      messageType: newMessage.messageType,
+      content: newMessage.content,
     });
 
     return { success: true, message: 'Session resumed successfully' };
@@ -201,22 +477,64 @@ export class EngineeringOrchestratorService {
    * Cancel/abandon a session
    * @returns success status and message
    */
-  static cancelSession(sessionId: string, reason?: string): { success: boolean; message: string } {
-    const session = activeSessions.get(sessionId);
+  static async cancelSession(sessionId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+    const session = sessionCache.get(sessionId);
+    const cancelMessage = `Session cancelled by admin${reason ? `: ${reason}` : ''}`;
+
+    // If not in cache, update database directly
     if (!session) {
-      return { success: false, message: 'Session not found' };
+      const [record] = await db
+        .select()
+        .from(engineeringSessions)
+        .where(eq(engineeringSessions.id, sessionId))
+        .limit(1);
+
+      if (!record) {
+        return { success: false, message: 'Session not found' };
+      }
+
+      // Update gate status
+      const gateStatus = record.gateStatus ? JSON.parse(record.gateStatus) : {};
+      if (gateStatus[record.currentPhase || 'scoping']) {
+        gateStatus[record.currentPhase || 'scoping'].status = 'failed';
+        gateStatus[record.currentPhase || 'scoping'].failedReason = reason || 'Cancelled by admin';
+      }
+
+      // Update database
+      await db
+        .update(engineeringSessions)
+        .set({
+          isRunning: false,
+          status: 'abandoned',
+          gateStatus: JSON.stringify(gateStatus),
+          lastError: reason || 'Cancelled by admin',
+          updatedAt: new Date(),
+        })
+        .where(eq(engineeringSessions.id, sessionId));
+
+      // Add message
+      await db.insert(engineeringMessages).values({
+        sessionId,
+        fromAgent: 'orchestrator',
+        toAgent: record.currentAgent || 'orchestrator',
+        messageType: 'request',
+        content: cancelMessage,
+      });
+
+      return { success: true, message: 'Session cancelled successfully' };
     }
 
-    // Mark session as not running and add cancellation message
+    // Update cache
     session.isRunning = false;
-    session.messages.push({
+    const newMessage: AgentMessage = {
       id: randomUUID(),
       fromAgent: 'orchestrator',
       toAgent: session.currentAgent,
       messageType: 'request',
-      content: `Session cancelled by admin${reason ? `: ${reason}` : ''}`,
+      content: cancelMessage,
       timestamp: new Date(),
-    });
+    };
+    session.messages.push(newMessage);
 
     // Mark current phase as failed
     const currentPhase = session.context.currentPhase;
@@ -225,6 +543,26 @@ export class EngineeringOrchestratorService {
       session.context.gateStatus[currentPhase].failedReason = reason || 'Cancelled by admin';
     }
 
+    // Persist to database
+    await db
+      .update(engineeringSessions)
+      .set({
+        isRunning: false,
+        status: 'abandoned',
+        gateStatus: JSON.stringify(session.context.gateStatus),
+        lastError: reason || 'Cancelled by admin',
+        updatedAt: new Date(),
+      })
+      .where(eq(engineeringSessions.id, sessionId));
+
+    await db.insert(engineeringMessages).values({
+      sessionId,
+      fromAgent: newMessage.fromAgent,
+      toAgent: newMessage.toAgent,
+      messageType: newMessage.messageType,
+      content: newMessage.content,
+    });
+
     return { success: true, message: 'Session cancelled successfully' };
   }
 
@@ -232,7 +570,7 @@ export class EngineeringOrchestratorService {
    * Get session status for admin display
    */
   static getSessionStatus(sessionId: string): 'active' | 'paused' | 'completed' | 'abandoned' | null {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     if (!session) return null;
 
     // Check if all phases are complete
@@ -255,7 +593,7 @@ export class EngineeringOrchestratorService {
    * Get current progress for display
    */
   static getProgress(sessionId: string): EngineeringProgress | null {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     if (!session) return null;
 
     const { context, messages, pendingApprovals } = session;
@@ -316,7 +654,8 @@ export class EngineeringOrchestratorService {
     stepId: string,
     answer: unknown
   ): Promise<{ nextStep: ScopingStep | null; scopeComplete: boolean }> {
-    const session = activeSessions.get(sessionId);
+    // Load from cache or database
+    const session = await this.getSession(sessionId);
     if (!session) throw new Error('Session not found');
 
     const { context } = session;
@@ -377,8 +716,14 @@ export class EngineeringOrchestratorService {
         impact: 'high',
       });
 
+      // Persist to database
+      await this.persistSession(sessionId);
+
       return { nextStep: null, scopeComplete: true };
     }
+
+    // Persist scope update to database
+    await this.persistSession(sessionId);
 
     return { nextStep, scopeComplete: false };
   }
@@ -386,9 +731,20 @@ export class EngineeringOrchestratorService {
   /**
    * Get completed scope
    */
-  static getScope(sessionId: string): ProjectScope | null {
-    const session = activeSessions.get(sessionId);
-    return session?.context.scope || null;
+  static async getScope(sessionId: string): Promise<ProjectScope | null> {
+    // Try cache first
+    const cached = sessionCache.get(sessionId);
+    if (cached) return cached.context.scope;
+
+    // Load from database
+    const [record] = await db
+      .select({ scope: engineeringSessions.scope })
+      .from(engineeringSessions)
+      .where(eq(engineeringSessions.id, sessionId))
+      .limit(1);
+
+    if (!record?.scope) return null;
+    return JSON.parse(record.scope);
   }
 
   // ========================================
@@ -403,7 +759,8 @@ export class EngineeringOrchestratorService {
     newPhase?: EngineeringPhase;
     reason?: string;
   }> {
-    const session = activeSessions.get(sessionId);
+    // Load from cache or database
+    const session = await this.getSession(sessionId);
     if (!session) return { success: false, reason: 'Session not found' };
 
     const { context } = session;
@@ -448,6 +805,9 @@ export class EngineeringOrchestratorService {
       content: `Starting ${nextPhaseConfig.displayName} phase. ${nextPhaseConfig.description}`,
     });
 
+    // Persist to database
+    await this.persistSession(sessionId);
+
     return { success: true, newPhase: nextPhaseConfig.phase };
   }
 
@@ -459,7 +819,8 @@ export class EngineeringOrchestratorService {
     artifacts: string[] = [],
     approvedBy: 'user' | 'auto' = 'auto'
   ): Promise<boolean> {
-    const session = activeSessions.get(sessionId);
+    // Load from cache or database
+    const session = await this.getSession(sessionId);
     if (!session) return false;
 
     const { context } = session;
@@ -489,6 +850,9 @@ export class EngineeringOrchestratorService {
       impact: 'medium',
     });
 
+    // Persist to database
+    await this.persistSession(sessionId);
+
     return true;
   }
 
@@ -496,7 +860,7 @@ export class EngineeringOrchestratorService {
    * Request user approval for current phase
    */
   static async requestApproval(sessionId: string, reason: string): Promise<void> {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     if (!session) return;
 
     session.pendingApprovals.push(session.context.currentPhase);
@@ -517,7 +881,7 @@ export class EngineeringOrchestratorService {
     approved: boolean,
     feedback?: string
   ): Promise<void> {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     if (!session) return;
 
     const { context } = session;
@@ -556,7 +920,7 @@ export class EngineeringOrchestratorService {
     sessionId: string,
     node: Omit<DependencyNode, 'id' | 'createdAt' | 'modifiedAt'>
   ): DependencyNode | null {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     if (!session) return null;
 
     const newNode: DependencyNode = {
@@ -579,7 +943,7 @@ export class EngineeringOrchestratorService {
     sessionId: string,
     edge: Omit<DependencyEdge, 'id' | 'createdAt'>
   ): DependencyEdge | null {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     if (!session) return null;
 
     const newEdge: DependencyEdge = {
@@ -596,7 +960,7 @@ export class EngineeringOrchestratorService {
    * Analyze impact of changing a node
    */
   static analyzeImpact(sessionId: string, nodeId: string): ImpactAnalysis | null {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     if (!session) return null;
 
     const { nodes, edges } = session.context.dependencyGraph;
@@ -667,7 +1031,7 @@ export class EngineeringOrchestratorService {
    * Get the full dependency graph
    */
   static getDependencyGraph(sessionId: string): DependencyGraph | null {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     return session?.context.dependencyGraph || null;
   }
 
@@ -682,7 +1046,7 @@ export class EngineeringOrchestratorService {
     sessionId: string,
     decision: Omit<AgentDecision, 'id' | 'timestamp'>
   ): void {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     if (!session) return;
 
     session.context.decisions.push({
@@ -696,7 +1060,7 @@ export class EngineeringOrchestratorService {
    * Get decisions for review
    */
   static getDecisions(sessionId: string): AgentDecision[] {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     return session?.context.decisions || [];
   }
 
@@ -704,7 +1068,7 @@ export class EngineeringOrchestratorService {
    * Get message history
    */
   static getMessages(sessionId: string): AgentMessage[] {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     return session?.messages || [];
   }
 
@@ -720,7 +1084,7 @@ export class EngineeringOrchestratorService {
     artifactType: keyof ProjectContext['artifacts'],
     content: string
   ): void {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     if (!session) return;
 
     session.context.artifacts[artifactType] = content;
@@ -734,7 +1098,7 @@ export class EngineeringOrchestratorService {
     sessionId: string,
     artifactType: keyof ProjectContext['artifacts']
   ): string | undefined {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     return session?.context.artifacts[artifactType];
   }
 
@@ -747,7 +1111,7 @@ export class EngineeringOrchestratorService {
    * This is what shapes the AI's behavior for each role
    */
   static getAgentSystemPrompt(sessionId: string): string {
-    const session = activeSessions.get(sessionId);
+    const session = sessionCache.get(sessionId);
     if (!session) return '';
 
     const { context } = session;
@@ -826,6 +1190,18 @@ ${context.decisions.slice(-5).map((d) => `- [${d.agent}] ${d.decision}`).join('\
       case 'description':
         scope.description = answer as string;
         break;
+      case 'inputMethod':
+        scope.inputMethod = answer as ProjectScope['inputMethod'];
+        break;
+      case 'prdContent':
+        scope.prdContent = answer as string;
+        break;
+      case 'mockupSource':
+        scope.mockupSource = answer as string;
+        break;
+      case 'referenceApp':
+        scope.referenceApp = answer as string;
+        break;
       case 'audience':
         scope.targetAudience = answer as ProjectScope['targetAudience'];
         break;
@@ -875,6 +1251,10 @@ ${context.decisions.slice(-5).map((d) => `- [${d.agent}] ${d.decision}`).join('\
     switch (stepId) {
       case 'name': return scope.name;
       case 'description': return scope.description;
+      case 'inputMethod': return scope.inputMethod;
+      case 'prdContent': return scope.prdContent;
+      case 'mockupSource': return scope.mockupSource;
+      case 'referenceApp': return scope.referenceApp;
       case 'audience': return scope.targetAudience;
       case 'isFullBusiness': return scope.isFullBusiness;
       case 'platforms': return scope.platforms;
@@ -936,13 +1316,14 @@ ${context.decisions.slice(-5).map((d) => `- [${d.agent}] ${d.decision}`).join('\
 
   /**
    * Get all sessions for admin dashboard
+   * Now queries from database for persistence
    */
-  static getAllSessions(options?: {
+  static async getAllSessions(options?: {
     status?: 'active' | 'paused' | 'completed' | 'abandoned';
     phase?: EngineeringPhase;
     page?: number;
     limit?: number;
-  }): {
+  }): Promise<{
     sessions: Array<{
       id: string;
       teamId: string;
@@ -970,22 +1351,40 @@ ${context.decisions.slice(-5).map((d) => `- [${d.agent}] ${d.decision}`).join('\
       total: number;
       pages: number;
     };
-  } {
+  }> {
     const { status, phase, page = 1, limit = 25 } = options || {};
 
-    // Convert map to array and filter
-    let sessions = Array.from(activeSessions.entries()).map(([id, state]) => {
-      // Determine status
-      let sessionStatus: 'active' | 'paused' | 'completed' | 'abandoned' = 'active';
-      if (!state.isRunning) sessionStatus = 'paused';
-      if (state.context.currentPhase === 'launch' && state.context.gateStatus.launch?.status === 'passed') {
-        sessionStatus = 'completed';
-      }
-      // Check for abandoned (no activity for 7 days)
-      const daysSinceActivity = (Date.now() - state.context.lastActivityAt.getTime()) / (1000 * 60 * 60 * 24);
-      if (daysSinceActivity > 7 && sessionStatus !== 'completed') {
-        sessionStatus = 'abandoned';
-      }
+    // Build query conditions
+    const conditions: ReturnType<typeof eq>[] = [];
+    if (status) {
+      conditions.push(eq(engineeringSessions.status, status));
+    }
+    if (phase) {
+      conditions.push(eq(engineeringSessions.currentPhase, phase));
+    }
+
+    // Get total count
+    const [{ value: total }] = await db
+      .select({ value: count() })
+      .from(engineeringSessions)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+    // Get paginated records
+    const offset = (page - 1) * limit;
+    const records = await db
+      .select()
+      .from(engineeringSessions)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(engineeringSessions.lastActivityAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Transform records to session format
+    const sessions = records.map((record) => {
+      const gateStatus = record.gateStatus ? JSON.parse(record.gateStatus) : {};
+      const artifacts = record.artifacts ? JSON.parse(record.artifacts) : {};
+      const dependencyGraph = record.dependencyGraph ? JSON.parse(record.dependencyGraph) : { nodes: [] };
+      const scope = record.scope ? JSON.parse(record.scope) : { name: record.projectName };
 
       // Build phase history from gate statuses
       const phaseHistory: Array<{
@@ -1001,12 +1400,12 @@ ${context.decisions.slice(-5).map((d) => `- [${d.agent}] ${d.decision}`).join('\
       ];
 
       for (const p of phases) {
-        const gateStatus = state.context.gateStatus[p];
-        if (gateStatus) {
+        const gate = gateStatus[p];
+        if (gate) {
           phaseHistory.push({
             phase: p,
-            startedAt: state.context.startedAt, // Simplified - would track per phase
-            completedAt: gateStatus.status === 'passed' ? gateStatus.passedAt || null : null,
+            startedAt: record.startedAt || new Date(),
+            completedAt: gate.status === 'passed' ? gate.passedAt ? new Date(gate.passedAt) : null : null,
             agent: ENGINEERING_PHASES.find(ep => ep.phase === p)?.agent || 'orchestrator',
           });
         }
@@ -1014,60 +1413,46 @@ ${context.decisions.slice(-5).map((d) => `- [${d.agent}] ${d.decision}`).join('\
 
       // Count artifacts
       let artifactsCount = 0;
-      if (state.context.artifacts.prd) artifactsCount++;
-      if (state.context.artifacts.techSpec) artifactsCount++;
-      if (state.context.artifacts.apiDocs) artifactsCount++;
-      if (state.context.artifacts.securityAudit) artifactsCount++;
-      if (state.context.artifacts.userGuide) artifactsCount++;
-      if (state.context.artifacts.deploymentGuide) artifactsCount++;
+      if (artifacts.prd) artifactsCount++;
+      if (artifacts.techSpec) artifactsCount++;
+      if (artifacts.apiDocs) artifactsCount++;
+      if (artifacts.securityAudit) artifactsCount++;
+      if (artifacts.userGuide) artifactsCount++;
+      if (artifacts.deploymentGuide) artifactsCount++;
 
       return {
-        id,
-        teamId: state.context.teamId,
-        projectHash: state.context.projectHash,
-        projectName: state.context.scope.name,
-        currentPhase: state.context.currentPhase,
-        currentAgent: state.currentAgent,
-        status: sessionStatus,
-        startedAt: state.context.startedAt,
-        lastActivityAt: state.context.lastActivityAt,
-        completedAt: sessionStatus === 'completed' ? state.context.lastActivityAt : null,
+        id: record.id,
+        teamId: record.teamId,
+        projectHash: record.projectHash,
+        projectName: scope.name || record.projectName,
+        currentPhase: record.currentPhase as EngineeringPhase,
+        currentAgent: record.currentAgent as AgentRole,
+        status: record.status as 'active' | 'paused' | 'completed' | 'abandoned',
+        startedAt: record.startedAt || new Date(),
+        lastActivityAt: record.lastActivityAt || new Date(),
+        completedAt: record.completedAt,
         phaseHistory,
-        decisionsCount: state.context.decisions.length,
+        decisionsCount: 0, // Would need a separate count query
         artifactsCount,
-        dependencyNodesCount: state.context.dependencyGraph.nodes.length,
+        dependencyNodesCount: dependencyGraph.nodes?.length || 0,
       };
     });
 
-    // Apply filters
-    if (status) {
-      sessions = sessions.filter(s => s.status === status);
-    }
-    if (phase) {
-      sessions = sessions.filter(s => s.currentPhase === phase);
-    }
-
-    // Sort by last activity (most recent first)
-    sessions.sort((a, b) => b.lastActivityAt.getTime() - a.lastActivityAt.getTime());
-
-    // Paginate
-    const total = sessions.length;
     const pages = Math.ceil(total / limit);
-    const offset = (page - 1) * limit;
-    const paginatedSessions = sessions.slice(offset, offset + limit);
 
     return {
-      sessions: paginatedSessions,
+      sessions,
       pagination: { page, limit, total, pages },
     };
   }
 
   /**
    * Get engineering stats for admin dashboard
+   * Now queries from database for persistence
    */
-  static getStats(): {
+  static async getStats(): Promise<{
     totalSessions: number;
-    activeSessions: number;
+    sessionCache: number;
     completedSessions: number;
     pausedSessions: number;
     abandonedSessions: number;
@@ -1076,72 +1461,90 @@ ${context.decisions.slice(-5).map((d) => `- [${d.agent}] ${d.decision}`).join('\
     averageCompletionTime: number;
     phaseDistribution: Record<string, number>;
     agentUsage: Record<string, number>;
-  } {
+  }> {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const weekStart = new Date(todayStart);
     weekStart.setDate(weekStart.getDate() - 7);
 
-    let activeCount = 0;
-    let completedCount = 0;
-    let pausedCount = 0;
-    let abandonedCount = 0;
-    let todayCount = 0;
-    let weekCount = 0;
-    const completionTimes: number[] = [];
+    // Get counts by status
+    const [totalResult] = await db.select({ value: count() }).from(engineeringSessions);
+    const [activeResult] = await db.select({ value: count() }).from(engineeringSessions).where(eq(engineeringSessions.status, 'active'));
+    const [completedResult] = await db.select({ value: count() }).from(engineeringSessions).where(eq(engineeringSessions.status, 'completed'));
+    const [pausedResult] = await db.select({ value: count() }).from(engineeringSessions).where(eq(engineeringSessions.status, 'paused'));
+    const [abandonedResult] = await db.select({ value: count() }).from(engineeringSessions).where(eq(engineeringSessions.status, 'abandoned'));
+
+    // Get time-based counts
+    const [todayResult] = await db.select({ value: count() }).from(engineeringSessions).where(gte(engineeringSessions.startedAt, todayStart));
+    const [weekResult] = await db.select({ value: count() }).from(engineeringSessions).where(gte(engineeringSessions.startedAt, weekStart));
+
+    // Get phase distribution for active sessions
+    const sessionCache = await db
+      .select({ currentPhase: engineeringSessions.currentPhase, currentAgent: engineeringSessions.currentAgent })
+      .from(engineeringSessions)
+      .where(eq(engineeringSessions.status, 'active'));
+
     const phaseDistribution: Record<string, number> = {};
     const agentUsage: Record<string, number> = {};
 
-    for (const [, state] of activeSessions) {
-      // Count by status
-      if (!state.isRunning) {
-        pausedCount++;
-      } else if (state.context.currentPhase === 'launch' && state.context.gateStatus.launch?.status === 'passed') {
-        completedCount++;
-        // Calculate completion time
-        const completionTime = state.context.lastActivityAt.getTime() - state.context.startedAt.getTime();
-        completionTimes.push(completionTime / (1000 * 60)); // Convert to minutes
-      } else {
-        const daysSinceActivity = (now.getTime() - state.context.lastActivityAt.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSinceActivity > 7) {
-          abandonedCount++;
-        } else {
-          activeCount++;
-        }
+    for (const session of sessionCache) {
+      if (session.currentPhase) {
+        phaseDistribution[session.currentPhase] = (phaseDistribution[session.currentPhase] || 0) + 1;
       }
-
-      // Count sessions by time
-      if (state.context.startedAt >= todayStart) {
-        todayCount++;
-      }
-      if (state.context.startedAt >= weekStart) {
-        weekCount++;
-      }
-
-      // Track phase distribution (only active sessions)
-      if (state.isRunning) {
-        phaseDistribution[state.context.currentPhase] = (phaseDistribution[state.context.currentPhase] || 0) + 1;
-        agentUsage[state.currentAgent] = (agentUsage[state.currentAgent] || 0) + 1;
+      if (session.currentAgent) {
+        agentUsage[session.currentAgent] = (agentUsage[session.currentAgent] || 0) + 1;
       }
     }
 
-    // Calculate average completion time
-    const averageCompletionTime = completionTimes.length > 0
-      ? Math.round(completionTimes.reduce((a, b) => a + b, 0) / completionTimes.length)
-      : 0;
+    // Calculate average completion time from completed sessions
+    const completedSessions = await db
+      .select({ startedAt: engineeringSessions.startedAt, completedAt: engineeringSessions.completedAt })
+      .from(engineeringSessions)
+      .where(eq(engineeringSessions.status, 'completed'));
+
+    let averageCompletionTime = 0;
+    if (completedSessions.length > 0) {
+      const completionTimes = completedSessions
+        .filter(s => s.startedAt && s.completedAt)
+        .map(s => (s.completedAt!.getTime() - s.startedAt!.getTime()) / (1000 * 60)); // Minutes
+      if (completionTimes.length > 0) {
+        averageCompletionTime = Math.round(completionTimes.reduce((a, b) => a + b, 0) / completionTimes.length);
+      }
+    }
 
     return {
-      totalSessions: activeSessions.size,
-      activeSessions: activeCount,
-      completedSessions: completedCount,
-      pausedSessions: pausedCount,
-      abandonedSessions: abandonedCount,
-      sessionsToday: todayCount,
-      sessionsThisWeek: weekCount,
+      totalSessions: totalResult.value,
+      sessionCache: activeResult.value,
+      completedSessions: completedResult.value,
+      pausedSessions: pausedResult.value,
+      abandonedSessions: abandonedResult.value,
+      sessionsToday: todayResult.value,
+      sessionsThisWeek: weekResult.value,
       averageCompletionTime,
       phaseDistribution,
       agentUsage,
     };
+  }
+
+  /**
+   * Persist session state to database
+   * Call this periodically or after major state changes
+   */
+  static async persistSession(sessionId: string): Promise<void> {
+    const session = sessionCache.get(sessionId);
+    if (!session) return;
+
+    await db
+      .update(engineeringSessions)
+      .set(stateToDbUpdate(session))
+      .where(eq(engineeringSessions.id, sessionId));
+  }
+
+  /**
+   * Clear session from cache (useful for memory management)
+   */
+  static clearSessionCache(sessionId: string): void {
+    sessionCache.delete(sessionId);
   }
 }
 

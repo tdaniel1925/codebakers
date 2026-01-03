@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '25', 10);
 
-    const result = EngineeringOrchestratorService.getAllSessions({
+    const result = await EngineeringOrchestratorService.getAllSessions({
       status: status || undefined,
       phase: phase || undefined,
       page,

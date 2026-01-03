@@ -14,6 +14,7 @@ import {
   Plug,
   UserCircle,
   Settings,
+  Hammer,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/quickstart', label: 'Quick Start', icon: Zap },
+  { href: '/engineering', label: 'Engineering', icon: Hammer },
   { href: '/account', label: 'Account', icon: UserCircle },
   { href: '/billing', label: 'Billing', icon: CreditCard },
   { href: '/team', label: 'Team', icon: Users },

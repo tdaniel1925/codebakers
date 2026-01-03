@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     autoRateLimit(req);
     await requireAdmin();
 
-    const stats = EngineeringOrchestratorService.getStats();
+    const stats = await EngineeringOrchestratorService.getStats();
 
     return successResponse({ stats });
   } catch (error) {

@@ -18,7 +18,7 @@ export async function POST(
     await requireAdmin();
 
     const { id } = await params;
-    const result = EngineeringOrchestratorService.resumeSession(id);
+    const result = await EngineeringOrchestratorService.resumeSession(id);
 
     if (!result.success) {
       return successResponse({ error: result.message }, 400);

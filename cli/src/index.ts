@@ -23,6 +23,7 @@ import { pushPatterns, pushPatternsInteractive } from './commands/push-patterns.
 import { go } from './commands/go.js';
 import { extend } from './commands/extend.js';
 import { billing } from './commands/billing.js';
+import { build, buildStatus } from './commands/build.js';
 import { getCachedUpdateInfo, setCachedUpdateInfo, getCliVersion, getCachedPatternInfo, setCachedPatternInfo, getApiKey, getApiUrl, getTrialState, hasValidAccess, shouldAttemptCliUpdate, setCliUpdateAttempt, isCliAutoUpdateDisabled } from './config.js';
 import { execSync } from 'child_process';
 import { checkForUpdates } from './lib/api.js';
@@ -353,6 +354,7 @@ function showWelcome(): void {
 
   console.log(chalk.white('  Getting Started:\n'));
   console.log(chalk.cyan('    codebakers go') + chalk.gray('         Start free trial instantly (no signup!)'));
+  console.log(chalk.cyan('    codebakers build') + chalk.gray('      Describe your project → Get working code'));
   console.log(chalk.cyan('    codebakers scaffold') + chalk.gray('   Create a new project from scratch'));
   console.log(chalk.cyan('    codebakers init') + chalk.gray('       Add patterns to existing project\n'));
 
@@ -363,12 +365,12 @@ function showWelcome(): void {
   console.log(chalk.cyan('    codebakers config') + chalk.gray('     View or modify configuration\n'));
 
   console.log(chalk.white('  Examples:\n'));
+  console.log(chalk.gray('    $ ') + chalk.cyan('codebakers build "SaaS for invoicing"'));
+  console.log(chalk.gray('      AI generates full project with auth, payments, dashboard\n'));
   console.log(chalk.gray('    $ ') + chalk.cyan('codebakers scaffold'));
   console.log(chalk.gray('      Create a new Next.js + Supabase + Drizzle project\n'));
   console.log(chalk.gray('    $ ') + chalk.cyan('codebakers generate component Button'));
   console.log(chalk.gray('      Generate a React component with TypeScript\n'));
-  console.log(chalk.gray('    $ ') + chalk.cyan('codebakers g api users'));
-  console.log(chalk.gray('      Generate a Next.js API route with validation\n'));
 
   console.log(chalk.white('  Quality:\n'));
   console.log(chalk.cyan('    codebakers audit') + chalk.gray('      Run automated code quality checks'));
@@ -376,9 +378,9 @@ function showWelcome(): void {
   console.log(chalk.cyan('    codebakers doctor') + chalk.gray('     Check CodeBakers setup\n'));
 
   console.log(chalk.white('  All Commands:\n'));
-  console.log(chalk.gray('    go, extend, billing, setup, scaffold, init, generate, upgrade, status'));
-  console.log(chalk.gray('    audit, heal, doctor, config, login, install, uninstall'));
-  console.log(chalk.gray('    install-hook, uninstall-hook, serve, mcp-config, mcp-uninstall\n'));
+  console.log(chalk.gray('    go, extend, billing, build, build-status, setup, scaffold, init'));
+  console.log(chalk.gray('    generate, upgrade, status, audit, heal, doctor, config'));
+  console.log(chalk.gray('    login, install, uninstall, serve, mcp-config, mcp-uninstall\n'));
 
   console.log(chalk.gray('  Run ') + chalk.cyan('codebakers <command> --help') + chalk.gray(' for more info\n'));
 }
@@ -408,6 +410,23 @@ program
   .alias('subscribe')
   .description('Manage subscription or upgrade to paid plan')
   .action(billing);
+
+// AI Build command - describe what you want, get working code
+program
+  .command('build [description]')
+  .description('Build a project from description - AI generates actual files')
+  .option('-o, --output <dir>', 'Output directory (default: current directory)')
+  .option('-v, --verbose', 'Show detailed progress')
+  .action((description, options) => build({
+    description,
+    output: options.output,
+    verbose: options.verbose,
+  }));
+
+program
+  .command('build-status')
+  .description('Check status of recent builds')
+  .action(buildStatus);
 
 // Primary command - one-time setup (for paid users)
 program
