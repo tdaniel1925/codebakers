@@ -484,15 +484,13 @@ export default function CliVersionsPage() {
                   }`}
                 >
                   <CardContent className="py-4">
-                    {/* Main Row */}
-                    <div className="flex items-center gap-4">
+                    {/* Top Row: Version + Badges + Info */}
+                    <div className="flex flex-wrap items-center gap-3">
                       {/* Version Number */}
-                      <div className="w-28 flex-shrink-0">
-                        <p className="text-white font-mono text-xl font-bold">v{version.version}</p>
-                      </div>
+                      <p className="text-white font-mono text-xl font-bold">v{version.version}</p>
 
                       {/* Badges */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex flex-wrap items-center gap-2">
                         {/* Status Badge */}
                         <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.color} border ${config.border}`}>
                           <StatusIcon className="h-3 w-3" />
@@ -532,45 +530,46 @@ export default function CliVersionsPage() {
                       </div>
 
                       {/* Info Section */}
-                      <div className="flex-1 flex items-center gap-6 text-sm">
+                      <div className="flex flex-wrap items-center gap-4 text-sm ml-auto">
                         {/* Rollout */}
                         {version.status === 'stable' && (
-                          <div className="flex items-center gap-2">
-                            <Percent className="h-4 w-4 text-slate-500" />
+                          <div className="flex items-center gap-1.5">
+                            <Percent className="h-3.5 w-3.5 text-slate-500" />
                             <span className="text-slate-300">
-                              <span className="font-medium text-white">{version.rolloutPercent}%</span> rollout
+                              <span className="font-medium text-white">{version.rolloutPercent}%</span>
                             </span>
                           </div>
                         )}
 
                         {/* Node Version */}
                         {version.minNodeVersion && (
-                          <div className="flex items-center gap-2">
-                            <Server className="h-4 w-4 text-slate-500" />
-                            <span className="text-slate-400">Node {version.minNodeVersion}+</span>
+                          <div className="flex items-center gap-1.5">
+                            <Server className="h-3.5 w-3.5 text-slate-500" />
+                            <span className="text-slate-400 text-xs">Node {version.minNodeVersion}+</span>
                           </div>
                         )}
 
                         {/* npm Tag */}
                         {version.npmTag && (
-                          <div className="flex items-center gap-2">
-                            <Package className="h-4 w-4 text-slate-500" />
+                          <div className="flex items-center gap-1.5">
+                            <Package className="h-3.5 w-3.5 text-slate-500" />
                             <span className="text-slate-400 font-mono text-xs">{version.npmTag}</span>
                           </div>
                         )}
 
                         {/* Published Date */}
-                        <div className="text-slate-500 text-xs">
+                        <span className="text-slate-500 text-xs">
                           {new Date(version.createdAt).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric',
                           })}
-                        </div>
+                        </span>
                       </div>
+                    </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Bottom Row: Actions */}
+                    <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-700/50">
                         {/* Auto-Update Toggle for Stable */}
                         {version.status === 'stable' && (
                           <Button
@@ -655,30 +654,27 @@ export default function CliVersionsPage() {
                           </Button>
                         )}
 
-                        {/* Expand Button */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleExpand(version.id)}
-                          className="text-slate-400 hover:text-white hover:bg-slate-700"
-                        >
-                          {isExpanded ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
+                      {/* Expand Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleExpand(version.id)}
+                        className="text-slate-400 hover:text-white hover:bg-slate-700 ml-auto"
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
 
                     {/* Features Preview (if available and not expanded) */}
                     {!isExpanded && version.features && (
-                      <div className="mt-3 pt-3 border-t border-slate-700/50">
-                        <p className="text-slate-400 text-sm line-clamp-1">
-                          <span className="text-slate-500 mr-2">Features:</span>
-                          {version.features.split('\n')[0].replace(/^[-•*]\s*/, '')}
-                        </p>
-                      </div>
+                      <p className="text-slate-400 text-sm line-clamp-1 mt-3">
+                        <span className="text-slate-500 mr-2">Features:</span>
+                        {version.features.split('\n')[0].replace(/^[-•*]\s*/, '')}
+                      </p>
                     )}
                   </CardContent>
 
