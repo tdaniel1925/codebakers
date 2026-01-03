@@ -33,7 +33,7 @@ If PROJECT-CONTEXT.md is empty or stale (>7 days), SCAN THE PROJECT FIRST:
 - Update PROJECT-CONTEXT.md
 
 ### PHASE 3: EXECUTE
-- State: \`📋 CodeBakers | [Type] | v6.0 Server-Enforced\`
+- State: \`📋 CodeBakers | [Type] | Server-Enforced\`
 - Call discover_patterns MCP tool first
 - Follow patterns from server EXACTLY
 
@@ -405,7 +405,7 @@ When you make a decision that affects architecture, add an entry:
 ---
 
 ## ${date}: Project Initialized
-**Decision:** Using CodeBakers v6.0 pattern system
+**Decision:** Using CodeBakers server-enforced pattern system
 **Reason:** Ensure consistent, production-quality code
 **Pattern:** Server-enforced via discover_patterns MCP tool
 
@@ -597,13 +597,13 @@ export async function init(): Promise<void> {
     }
   }
 
-  // Step 4: Install v6.0 bootstrap files
-  console.log(chalk.white('\n  Step 2: Installing CodeBakers v6.0\n'));
+  // Step 4: Install bootstrap files
+  console.log(chalk.white('\n  Step 2: Installing CodeBakers\n'));
 
-  const spinner = ora('  Installing v6.0 bootstrap...').start();
+  const spinner = ora('  Installing bootstrap files...').start();
 
-  // v6.0 bootstrap content - minimal files, patterns from server
-  const V6_CLAUDE_MD = `# CodeBakers v6.0
+  // Bootstrap content - patterns come from server via MCP
+  const CLAUDE_MD_BOOTSTRAP = `# CodeBakers
 
 **MANDATORY: Before writing ANY code, call the \`discover_patterns\` MCP tool.**
 
@@ -618,12 +618,9 @@ The server will return:
 - Validation instructions
 
 **You cannot write code without calling this tool first. The server tracks compliance.**
-
----
-*CodeBakers v6.0 - Server-Enforced*
 `;
 
-  const V6_CURSORRULES = `# CodeBakers v6.0
+  const CURSORRULES_BOOTSTRAP = `# CodeBakers
 
 MANDATORY: Before writing ANY code, call the discover_patterns MCP tool.
 
@@ -635,11 +632,11 @@ You cannot write code without calling this tool first.
 `;
 
   try {
-    // Write v6.0 bootstrap files
-    writeFileSync(join(cwd, 'CLAUDE.md'), V6_CLAUDE_MD);
-    writeFileSync(join(cwd, '.cursorrules'), V6_CURSORRULES);
+    // Write bootstrap files
+    writeFileSync(join(cwd, 'CLAUDE.md'), CLAUDE_MD_BOOTSTRAP);
+    writeFileSync(join(cwd, '.cursorrules'), CURSORRULES_BOOTSTRAP);
 
-    // Remove old .claude folder if it exists (v5 → v6 migration)
+    // Remove old .claude folder if it exists (patterns now server-side)
     const claudeDir = join(cwd, '.claude');
     if (existsSync(claudeDir)) {
       const { rmSync } = await import('fs');
@@ -650,8 +647,8 @@ You cannot write code without calling this tool first.
       }
     }
 
-    spinner.succeed('CodeBakers v6.0 installed!');
-    console.log(chalk.gray('\n  Patterns are server-enforced via MCP tools'));
+    spinner.succeed('CodeBakers installed!');
+    console.log(chalk.gray('\n  Patterns are fetched from server via MCP tools'));
 
   } catch (error) {
     spinner.fail('Installation failed');
@@ -851,8 +848,8 @@ You cannot write code without calling this tool first.
   `));
 
   console.log(chalk.white('  Files created:\n'));
-  console.log(chalk.cyan('    CLAUDE.md          ') + chalk.gray('→ v6.0 bootstrap (patterns via MCP)'));
-  console.log(chalk.cyan('    .cursorrules       ') + chalk.gray('→ v6.0 bootstrap (patterns via MCP)'));
+  console.log(chalk.cyan('    CLAUDE.md          ') + chalk.gray('→ Bootstrap (patterns via MCP)'));
+  console.log(chalk.cyan('    .cursorrules       ') + chalk.gray('→ Bootstrap (patterns via MCP)'));
   if (prdCreated) {
     console.log(chalk.cyan('    PRD.md             ') + chalk.gray('→ Product requirements (AI reads this!)'));
   }

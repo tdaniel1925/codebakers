@@ -5,8 +5,8 @@ import { join } from 'path';
 import { getApiKey } from '../config.js';
 import { checkForUpdates, getCliVersion } from '../lib/api.js';
 
-// v6.0 Bootstrap files - patterns come from server via MCP
-const V6_CLAUDE_MD = `# CodeBakers v6.0
+// Bootstrap files - patterns come from server via MCP
+const CLAUDE_MD_BOOTSTRAP = `# CodeBakers
 
 **MANDATORY: Before writing ANY code, call the \`discover_patterns\` MCP tool.**
 
@@ -21,12 +21,9 @@ The server will return:
 - Validation instructions
 
 **You cannot write code without calling this tool first. The server tracks compliance.**
-
----
-*CodeBakers v6.0 - Server-Enforced*
 `;
 
-const V6_CURSORRULES = `# CodeBakers v6.0
+const CURSORRULES_BOOTSTRAP = `# CodeBakers
 
 MANDATORY: Before writing ANY code, call the discover_patterns MCP tool.
 
@@ -38,9 +35,9 @@ You cannot write code without calling this tool first.
 `;
 
 /**
- * Check if project is using v6.0 server-enforced mode
+ * Check if project is using server-enforced mode
  */
-function isV6Project(cwd: string): boolean {
+function isServerEnforced(cwd: string): boolean {
   const stateFile = join(cwd, '.codebakers.json');
   if (existsSync(stateFile)) {
     try {
@@ -54,19 +51,19 @@ function isV6Project(cwd: string): boolean {
 }
 
 /**
- * Migrate project to v6.0 server-enforced mode
+ * Migrate project to server-enforced mode
  */
-function migrateToV6(cwd: string): void {
-  console.log(chalk.yellow('\n  📦 Upgrading to v6.0 Server-Enforced Mode...\n'));
+function migrateToServerEnforced(cwd: string): void {
+  console.log(chalk.yellow('\n  📦 Upgrading to server-enforced patterns...\n'));
 
   // Update CLAUDE.md
   const claudeMdPath = join(cwd, 'CLAUDE.md');
-  writeFileSync(claudeMdPath, V6_CLAUDE_MD);
+  writeFileSync(claudeMdPath, CLAUDE_MD_BOOTSTRAP);
   console.log(chalk.green('  ✓ Updated CLAUDE.md'));
 
   // Update .cursorrules
   const cursorrules = join(cwd, '.cursorrules');
-  writeFileSync(cursorrules, V6_CURSORRULES);
+  writeFileSync(cursorrules, CURSORRULES_BOOTSTRAP);
   console.log(chalk.green('  ✓ Updated .cursorrules'));
 
   // Remove old .claude folder if it exists (patterns now come from server)
@@ -90,12 +87,11 @@ function migrateToV6(cwd: string): void {
       // Ignore errors
     }
   }
-  state.version = '6.0';
   state.migratedAt = new Date().toISOString();
   state.serverEnforced = true;
   writeFileSync(stateFile, JSON.stringify(state, null, 2));
 
-  console.log(chalk.green('\n  ✅ Upgrade to v6.0 complete!\n'));
+  console.log(chalk.green('\n  ✅ Upgrade complete!\n'));
   console.log(chalk.cyan('  What changed:'));
   console.log(chalk.gray('  - Patterns are now fetched from server in real-time'));
   console.log(chalk.gray('  - AI calls discover_patterns before coding'));
@@ -104,7 +100,7 @@ function migrateToV6(cwd: string): void {
 }
 
 /**
- * Upgrade CodeBakers - checks for CLI updates and ensures v6.0 setup
+ * Upgrade CodeBakers - checks for CLI updates and ensures server-enforced setup
  */
 export async function upgrade(): Promise<void> {
   console.log(chalk.blue('\n  CodeBakers Upgrade\n'));
@@ -145,14 +141,14 @@ export async function upgrade(): Promise<void> {
     console.log(chalk.green('  ✓ Logged in\n'));
   }
 
-  // Check if already on v6.0
-  if (isV6Project(cwd)) {
-    console.log(chalk.green('  ✅ Already using v6.0 server-enforced patterns!\n'));
+  // Check if already using server-enforced patterns
+  if (isServerEnforced(cwd)) {
+    console.log(chalk.green('  ✅ Already using server-enforced patterns!\n'));
     console.log(chalk.gray('  Patterns are fetched from server in real-time.'));
     console.log(chalk.gray('  AI calls discover_patterns before coding - always up to date.\n'));
     return;
   }
 
-  // Migrate to v6.0
-  migrateToV6(cwd);
+  // Migrate to server-enforced mode
+  migrateToServerEnforced(cwd);
 }

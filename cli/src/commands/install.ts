@@ -5,8 +5,8 @@ import { join } from 'path';
 import { getApiKey } from '../config.js';
 import { getCliVersion } from '../lib/api.js';
 
-// v6.0 Bootstrap files - patterns come from server via MCP
-const V6_CLAUDE_MD = `# CodeBakers v6.0
+// Bootstrap files - patterns come from server via MCP
+const CLAUDE_MD_BOOTSTRAP = `# CodeBakers
 
 **MANDATORY: Before writing ANY code, call the \`discover_patterns\` MCP tool.**
 
@@ -21,7 +21,7 @@ The server will return:
 **You cannot write code without calling this tool first. The server tracks compliance.**
 `;
 
-const V6_CURSORRULES = `# CodeBakers v6.0
+const CURSORRULES_BOOTSTRAP = `# CodeBakers
 
 **MANDATORY: Before writing ANY code, call the \`discover_patterns\` MCP tool.**
 
@@ -37,7 +37,7 @@ The server will return:
 `;
 
 export async function install(): Promise<void> {
-  console.log(chalk.blue('\n  CodeBakers Install (v6.0)\n'));
+  console.log(chalk.blue('\n  CodeBakers Install\n'));
 
   const apiKey = getApiKey();
   if (!apiKey) {
@@ -45,7 +45,7 @@ export async function install(): Promise<void> {
     process.exit(1);
   }
 
-  const spinner = ora('Installing CodeBakers v6.0...').start();
+  const spinner = ora('Installing CodeBakers...').start();
 
   try {
     const cwd = process.cwd();
@@ -53,15 +53,15 @@ export async function install(): Promise<void> {
     const cursorRulesPath = join(cwd, '.cursorrules');
     const claudeDir = join(cwd, '.claude');
 
-    // Check for existing v5 installation and migrate
+    // Remove old .claude folder if it exists (patterns now server-side)
     if (existsSync(claudeDir)) {
-      spinner.text = 'Migrating from v5 to v6...';
+      spinner.text = 'Removing old pattern files...';
       rmSync(claudeDir, { recursive: true, force: true });
     }
 
-    // Write v6 bootstrap files
-    writeFileSync(claudeMdPath, V6_CLAUDE_MD);
-    writeFileSync(cursorRulesPath, V6_CURSORRULES);
+    // Write bootstrap files
+    writeFileSync(claudeMdPath, CLAUDE_MD_BOOTSTRAP);
+    writeFileSync(cursorRulesPath, CURSORRULES_BOOTSTRAP);
 
     // Add .cursorrules to .gitignore if not present
     const gitignorePath = join(cwd, '.gitignore');
@@ -73,17 +73,16 @@ export async function install(): Promise<void> {
       }
     }
 
-    spinner.succeed('CodeBakers v6.0 installed!');
+    spinner.succeed('CodeBakers installed!');
 
     console.log(chalk.gray('\n  Files created:'));
     console.log(chalk.gray('    - CLAUDE.md (Claude Code gateway)'));
     console.log(chalk.gray('    - .cursorrules (Cursor IDE gateway)'));
 
-    console.log(chalk.cyan('\n  What\'s new in v6.0:'));
-    console.log(chalk.gray('    - Patterns are now server-side'));
+    console.log(chalk.cyan('\n  How it works:'));
+    console.log(chalk.gray('    - Patterns are fetched from server in real-time'));
     console.log(chalk.gray('    - AI calls discover_patterns before coding'));
-    console.log(chalk.gray('    - Real-time pattern updates'));
-    console.log(chalk.gray('    - Usage tracking & compliance'));
+    console.log(chalk.gray('    - Always up-to-date, no manual updates needed'));
 
     console.log(chalk.gray(`\n  CLI version: ${getCliVersion()}`));
     console.log(chalk.blue('\n  Start building! AI will fetch patterns via MCP.\n'));
