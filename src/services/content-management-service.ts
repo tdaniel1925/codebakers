@@ -99,7 +99,7 @@ export class ContentManagementService {
   }
 
   /**
-   * List all versions with publisher info
+   * List all versions with publisher info and content stats
    */
   static async listVersions() {
     const versions = await db
@@ -113,12 +113,46 @@ export class ContentManagementService {
         publishedBy: contentVersions.publishedBy,
         publisherEmail: profiles.email,
         publisherName: profiles.fullName,
+        // Include content for stats calculation
+        claudeMdContent: contentVersions.claudeMdContent,
+        cursorRulesContent: contentVersions.cursorRulesContent,
+        modulesContent: contentVersions.modulesContent,
+        cursorModulesContent: contentVersions.cursorModulesContent,
       })
       .from(contentVersions)
       .leftJoin(profiles, eq(contentVersions.publishedBy, profiles.id))
       .orderBy(desc(contentVersions.createdAt));
 
-    return versions;
+    // Calculate stats for each version
+    return versions.map(v => {
+      const modules = v.modulesContent ? JSON.parse(v.modulesContent) : {};
+      const cursorModules = v.cursorModulesContent ? JSON.parse(v.cursorModulesContent) : {};
+
+      return {
+        id: v.id,
+        version: v.version,
+        changelog: v.changelog,
+        isActive: v.isActive,
+        createdAt: v.createdAt,
+        publishedAt: v.publishedAt,
+        publishedBy: v.publishedBy,
+        publisherEmail: v.publisherEmail,
+        publisherName: v.publisherName,
+        // Stats
+        hasClaudeMd: !!v.claudeMdContent,
+        hasCursorRules: !!v.cursorRulesContent,
+        claudeMdLines: v.claudeMdContent ? v.claudeMdContent.split('\n').length : 0,
+        cursorRulesLines: v.cursorRulesContent ? v.cursorRulesContent.split('\n').length : 0,
+        moduleCount: Object.keys(modules).length,
+        cursorModuleCount: Object.keys(cursorModules).length,
+        totalLines: [
+          v.claudeMdContent,
+          v.cursorRulesContent,
+          ...Object.values(modules),
+          ...Object.values(cursorModules),
+        ].filter(Boolean).reduce((acc: number, content) => acc + (content as string).split('\n').length, 0),
+      };
+    });
   }
 
   /**

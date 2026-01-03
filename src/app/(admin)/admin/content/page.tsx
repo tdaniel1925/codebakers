@@ -44,11 +44,13 @@ interface ContentVersion {
   publisherEmail: string | null;
   publisherName: string | null;
   // Stats from API
-  moduleCount?: number;
-  cursorModuleCount?: number;
-  totalLines?: number;
-  hasClaudeMd?: boolean;
-  hasCursorRules?: boolean;
+  hasClaudeMd: boolean;
+  hasCursorRules: boolean;
+  claudeMdLines: number;
+  cursorRulesLines: number;
+  moduleCount: number;
+  cursorModuleCount: number;
+  totalLines: number;
 }
 
 // Helper to count lines
@@ -165,7 +167,7 @@ export default function AdminContentPage() {
   };
 
   const handleSyncFromServer = async () => {
-    if (!confirm('This will sync all .claude/ files from the server and create a new active version. Continue?')) {
+    if (!confirm('This will read CLAUDE.md and .claude/ folder from the DEPLOYED server (Vercel) and create a new version.\n\nNote: The .claude/ folder must be committed to git and deployed for this to work.\n\nContinue?')) {
       return;
     }
 
@@ -365,13 +367,14 @@ export default function AdminContentPage() {
             disabled={isSyncing}
             variant="outline"
             className="border-green-600 text-green-400 hover:bg-green-900/20"
+            title="Sync .claude/ folder from deployed Vercel instance"
           >
             {isSyncing ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <RefreshCw className="h-4 w-4 mr-2" />
             )}
-            Sync from Server
+            Sync from Deployed
           </Button>
           <Button
             onClick={() => setShowCreateDialog(true)}
@@ -403,11 +406,50 @@ export default function AdminContentPage() {
               <Badge className="bg-green-600">Live</Badge>
             </div>
           </CardHeader>
-          {activeVersion.changelog && (
-            <CardContent>
-              <p className="text-sm text-green-200">{activeVersion.changelog}</p>
-            </CardContent>
-          )}
+          <CardContent>
+            {/* Content Stats for Active Version */}
+            <div className="flex flex-wrap gap-3 mb-3">
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs ${
+                activeVersion.hasClaudeMd ? 'bg-green-800/50 text-green-200' : 'bg-slate-800 text-slate-500'
+              }`}>
+                <FileText className="h-3 w-3" />
+                <span>CLAUDE.md</span>
+                {activeVersion.hasClaudeMd && (
+                  <span className="font-medium">{activeVersion.claudeMdLines.toLocaleString()} lines</span>
+                )}
+              </div>
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs ${
+                activeVersion.hasCursorRules ? 'bg-green-800/50 text-green-200' : 'bg-slate-800 text-slate-500'
+              }`}>
+                <FileCode className="h-3 w-3" />
+                <span>.cursorrules</span>
+                {activeVersion.hasCursorRules && (
+                  <span className="font-medium">{activeVersion.cursorRulesLines.toLocaleString()} lines</span>
+                )}
+              </div>
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs ${
+                activeVersion.moduleCount > 0 ? 'bg-green-800/50 text-green-200' : 'bg-slate-800 text-slate-500'
+              }`}>
+                <File className="h-3 w-3" />
+                <span>.claude/</span>
+                <span className="font-medium">{activeVersion.moduleCount} modules</span>
+              </div>
+              {activeVersion.cursorModuleCount > 0 && (
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-green-800/50 text-green-200">
+                  <File className="h-3 w-3" />
+                  <span>.cursorrules-modules/</span>
+                  <span className="font-medium">{activeVersion.cursorModuleCount} modules</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-green-800/50 text-green-200">
+                <span>Total:</span>
+                <span className="font-medium">{activeVersion.totalLines.toLocaleString()} lines</span>
+              </div>
+            </div>
+            {activeVersion.changelog && (
+              <p className="text-sm text-green-200/70 italic">{activeVersion.changelog}</p>
+            )}
+          </CardContent>
         </Card>
       )}
 
@@ -442,28 +484,80 @@ export default function AdminContentPage() {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-white">
-                            v{version.version}
-                          </span>
-                          {version.isActive && (
-                            <Badge className="bg-green-600">Active</Badge>
-                          )}
-                        </div>
-                        <div className="text-xs text-slate-400 mt-1">
-                          Created {new Date(version.createdAt).toLocaleDateString()}
-                          {version.publisherEmail && ` by ${version.publisherEmail}`}
-                        </div>
-                        {version.changelog && (
-                          <p className="text-sm text-slate-300 mt-2">
-                            {version.changelog}
-                          </p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-white text-lg">
+                          v{version.version}
+                        </span>
+                        {version.isActive && (
+                          <Badge className="bg-green-600">Active</Badge>
                         )}
                       </div>
+                      <div className="text-xs text-slate-400 mt-1">
+                        Created {new Date(version.createdAt).toLocaleDateString()}
+                        {version.publisherEmail && ` by ${version.publisherEmail}`}
+                      </div>
+
+                      {/* Content Stats */}
+                      <div className="flex flex-wrap gap-3 mt-3">
+                        {/* CLAUDE.md */}
+                        <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs ${
+                          version.hasClaudeMd ? 'bg-blue-900/30 text-blue-300' : 'bg-slate-800 text-slate-500'
+                        }`}>
+                          <FileText className="h-3 w-3" />
+                          <span>CLAUDE.md</span>
+                          {version.hasClaudeMd && (
+                            <span className="text-blue-400 font-medium">{version.claudeMdLines.toLocaleString()} lines</span>
+                          )}
+                        </div>
+
+                        {/* .cursorrules */}
+                        <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs ${
+                          version.hasCursorRules ? 'bg-purple-900/30 text-purple-300' : 'bg-slate-800 text-slate-500'
+                        }`}>
+                          <FileCode className="h-3 w-3" />
+                          <span>.cursorrules</span>
+                          {version.hasCursorRules && (
+                            <span className="text-purple-400 font-medium">{version.cursorRulesLines.toLocaleString()} lines</span>
+                          )}
+                        </div>
+
+                        {/* Modules */}
+                        <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs ${
+                          version.moduleCount > 0 ? 'bg-green-900/30 text-green-300' : 'bg-slate-800 text-slate-500'
+                        }`}>
+                          <File className="h-3 w-3" />
+                          <span>.claude/</span>
+                          <span className={version.moduleCount > 0 ? 'text-green-400 font-medium' : ''}>
+                            {version.moduleCount} modules
+                          </span>
+                        </div>
+
+                        {/* Cursor Modules (if any) */}
+                        {version.cursorModuleCount > 0 && (
+                          <div className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-purple-900/30 text-purple-300">
+                            <File className="h-3 w-3" />
+                            <span>.cursorrules-modules/</span>
+                            <span className="text-purple-400 font-medium">{version.cursorModuleCount} modules</span>
+                          </div>
+                        )}
+
+                        {/* Total Lines */}
+                        {version.totalLines > 0 && (
+                          <div className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-slate-800 text-slate-300">
+                            <span>Total:</span>
+                            <span className="text-white font-medium">{version.totalLines.toLocaleString()} lines</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {version.changelog && (
+                        <p className="text-sm text-slate-400 mt-2 italic">
+                          {version.changelog}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 ml-4">
                       <Button
                         size="sm"
                         variant="outline"
