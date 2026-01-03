@@ -4,6 +4,8 @@ import { createInterface } from 'readline';
 import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { join, extname } from 'path';
 import { setApiKey, getApiKey, getApiUrl } from '../config.js';
+import { audit } from './audit.js';
+import { heal } from './heal.js';
 
 // Enhanced .cursorrules with pre-flight and self-review automation
 const CURSORRULES_TEMPLATE = `# CODEBAKERS CURSOR RULES
@@ -515,6 +517,158 @@ function updateProjectContextWithScan(contextContent: string, stack: Record<stri
 }
 
 /**
+ * Detect if this is an existing project with code
+ */
+function isExistingProject(cwd: string): { exists: boolean; files: number; details: string[] } {
+  const details: string[] = [];
+  let sourceFileCount = 0;
+
+  // Check for package.json with dependencies
+  const packageJsonPath = join(cwd, 'package.json');
+  if (existsSync(packageJsonPath)) {
+    try {
+      const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+      const depCount = Object.keys(pkg.dependencies || {}).length;
+      const devDepCount = Object.keys(pkg.devDependencies || {}).length;
+      if (depCount > 0 || devDepCount > 0) {
+        details.push(`package.json with ${depCount} dependencies`);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  // Check for source directories
+  const sourceDirs = ['src', 'app', 'pages', 'components', 'lib'];
+  for (const dir of sourceDirs) {
+    const dirPath = join(cwd, dir);
+    if (existsSync(dirPath)) {
+      try {
+        const stat = statSync(dirPath);
+        if (stat.isDirectory()) {
+          const files = countSourceFiles(dirPath);
+          if (files > 0) {
+            sourceFileCount += files;
+            details.push(`${dir}/ with ${files} source files`);
+          }
+        }
+      } catch {
+        // Ignore access errors
+      }
+    }
+  }
+
+  // Check for common config files that indicate a real project
+  const configFiles = ['tsconfig.json', 'next.config.js', 'next.config.mjs', 'vite.config.ts', 'tailwind.config.js'];
+  for (const file of configFiles) {
+    if (existsSync(join(cwd, file))) {
+      details.push(file);
+    }
+  }
+
+  return {
+    exists: sourceFileCount > 5 || details.length >= 3,
+    files: sourceFileCount,
+    details
+  };
+}
+
+/**
+ * Count source files in a directory recursively
+ */
+function countSourceFiles(dir: string): number {
+  let count = 0;
+  try {
+    const items = readdirSync(dir, { withFileTypes: true });
+    for (const item of items) {
+      if (item.name.startsWith('.') || item.name === 'node_modules') continue;
+
+      const fullPath = join(dir, item.name);
+      if (item.isDirectory()) {
+        count += countSourceFiles(fullPath);
+      } else if (
+        item.name.endsWith('.ts') ||
+        item.name.endsWith('.tsx') ||
+        item.name.endsWith('.js') ||
+        item.name.endsWith('.jsx')
+      ) {
+        count++;
+      }
+    }
+  } catch {
+    // Ignore access errors
+  }
+  return count;
+}
+
+/**
+ * Offer to review and upgrade an existing project
+ */
+async function offerCodeReview(cwd: string): Promise<void> {
+  console.log(chalk.yellow('\n  📁 Existing project detected!\n'));
+
+  const { details, files } = isExistingProject(cwd);
+
+  console.log(chalk.gray('  Found:'));
+  for (const detail of details.slice(0, 5)) {
+    console.log(chalk.gray(`    • ${detail}`));
+  }
+  if (files > 0) {
+    console.log(chalk.gray(`    • ${files} source files total`));
+  }
+
+  console.log(chalk.white('\n  Want me to review your code and bring it up to CodeBakers standards?\n'));
+  console.log(chalk.gray('    1. ') + chalk.cyan('YES, REVIEW & FIX') + chalk.gray(' - Run audit, then auto-fix issues'));
+  console.log(chalk.gray('    2. ') + chalk.cyan('REVIEW ONLY') + chalk.gray('      - Just show me the issues'));
+  console.log(chalk.gray('    3. ') + chalk.cyan('SKIP') + chalk.gray('             - Just install CodeBakers files\n'));
+
+  let choice = '';
+  while (!['1', '2', '3'].includes(choice)) {
+    choice = await prompt('  Enter 1, 2, or 3: ');
+  }
+
+  if (choice === '3') {
+    console.log(chalk.gray('\n  Skipping code review. Continuing with installation...\n'));
+    return;
+  }
+
+  // Run audit
+  console.log(chalk.blue('\n  Running code audit...\n'));
+
+  const auditResult = await audit();
+
+  if (auditResult.score >= 90) {
+    console.log(chalk.green('\n  🎉 Your code is already in great shape!\n'));
+    return;
+  }
+
+  // Offer to heal if user chose option 1
+  if (choice === '1') {
+    const fixableCount = auditResult.checks.filter(c => !c.passed && c.severity !== 'info').length;
+
+    if (fixableCount > 0) {
+      console.log(chalk.blue('\n  🔧 Attempting to auto-fix issues...\n'));
+
+      const healResult = await heal({ auto: true });
+
+      if (healResult.fixed > 0) {
+        console.log(chalk.green(`\n  ✓ Fixed ${healResult.fixed} issue(s)!`));
+        if (healResult.remaining > 0) {
+          console.log(chalk.yellow(`  ⚠ ${healResult.remaining} issue(s) need manual attention.`));
+        }
+      } else if (healResult.remaining > 0) {
+        console.log(chalk.yellow(`\n  ${healResult.remaining} issue(s) need manual attention.`));
+      }
+    }
+  } else {
+    // Just show audit results (already shown above)
+    console.log(chalk.gray('\n  Run `codebakers heal --auto` later to fix issues.\n'));
+  }
+
+  console.log(chalk.gray('\n  Continuing with CodeBakers installation...\n'));
+}
+
+/**
  * Interactive init command - walks users through complete setup
  */
 export async function init(): Promise<void> {
@@ -540,6 +694,12 @@ export async function init(): Promise<void> {
       console.log(chalk.yellow('\n  Skipping. Run with a fresh project or delete CLAUDE.md first.\n'));
       return;
     }
+  }
+
+  // Check if this is an existing project - offer code review
+  const existingProjectInfo = isExistingProject(cwd);
+  if (existingProjectInfo.exists) {
+    await offerCodeReview(cwd);
   }
 
   // Step 1: Get project type
