@@ -45,5 +45,5 @@ cli/dist/
 
 .vercel
 
-# CodeBakers patterns (downloaded from server)
-.claude/
+# CodeBakers patterns - MUST be committed for admin sync to work
+# .claude/
