@@ -104,7 +104,7 @@ const docSections: DocSection[] = [
         <h4>Usage Statistics</h4>
         <p>See how you're using CodeBakers:</p>
         <ul>
-          <li><strong>Pattern Downloads</strong> - How many times patterns were fetched</li>
+          <li><strong>Pattern Requests</strong> - How many times patterns were fetched</li>
           <li><strong>MCP Calls</strong> - Tool invocations from your AI assistant</li>
           <li><strong>Projects</strong> - Number of projects using CodeBakers</li>
         </ul>
@@ -184,7 +184,7 @@ const docSections: DocSection[] = [
         <h4>Project Details</h4>
         <p>Click a project to see:</p>
         <ul>
-          <li><strong>Usage History</strong> - Pattern downloads and MCP calls</li>
+          <li><strong>Usage History</strong> - Pattern requests and MCP calls</li>
           <li><strong>Module Breakdown</strong> - Which patterns are used most</li>
           <li><strong>Session Log</strong> - Recent AI coding sessions</li>
           <li><strong>Health Check</strong> - Pattern compliance status</li>
@@ -378,7 +378,7 @@ const docSections: DocSection[] = [
         <h4>API Key (Primary)</h4>
         <p>
           Your main API key is shown on the dashboard. This key is used by the CLI
-          to authenticate pattern downloads.
+          to authenticate pattern requests.
         </p>
         <ul>
           <li>One active key per team</li>

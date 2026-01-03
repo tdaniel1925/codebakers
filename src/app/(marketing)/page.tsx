@@ -250,9 +250,9 @@ const steps = [
   },
   {
     step: 3,
-    title: 'Download Patterns',
-    description: `Get all ${CODEBAKERS_STATS.moduleCount} modules synced to your project`,
-    code: 'codebakers install',
+    title: 'Start Coding',
+    description: `Patterns are fetched automatically when your AI needs them`,
+    code: 'codebakers go',
   },
 ];
 

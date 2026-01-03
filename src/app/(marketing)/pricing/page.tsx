@@ -175,9 +175,8 @@ export default async function PricingPage() {
                 How are patterns delivered?
               </h3>
               <p className="text-neutral-400">
-                Install our CLI, login with your API key, and run `codebakers
-                install` in your project. Patterns are downloaded and configured
-                automatically.
+                Install our CLI, login with your API key, and patterns are fetched
+                in real-time when your AI assistant needs them. No manual setup required.
               </p>
             </div>
           </div>

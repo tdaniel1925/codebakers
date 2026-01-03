@@ -38,7 +38,6 @@
 
 | User Says | MCP Tool to Call | What It Does |
 |-----------|------------------|--------------|
-| "upgrade codebakers", "update patterns", "download patterns" | `update_patterns` | Downloads latest CLAUDE.md + 59 modules from server |
 | "audit my code", "review code", "check quality" | `run_audit` | Runs comprehensive code audit |
 | "fix this", "auto-fix", "heal" | `heal` | AI-powered error diagnosis and repair |
 | "create project", "new project", "scaffold" | `scaffold_project` | Creates complete project from description |
@@ -87,21 +86,12 @@ AI: [Calls ripple_check with entityName="User", changeType="added_field"]
 
 1. **ALWAYS** check if the user's request maps to an MCP tool above
 2. **ALWAYS** call the MCP tool instead of doing it manually
-3. **NEVER** offer to "create pattern files" - use `update_patterns`
-4. **NEVER** manually write audit reports - use `run_audit`
-5. **NEVER** manually write webhook handlers - use tool generators
+3. **NEVER** manually write audit reports - use `run_audit`
+4. **NEVER** manually write webhook handlers - use tool generators
 
 ### Confirmation Before Destructive Actions:
 
-Before executing tools that modify files, use `detect_intent` to confirm:
-```
-User: "upgrade everything"
-AI: [Calls detect_intent first]
-→ Shows: "I detected you want to update CodeBakers patterns. This will:
-   - Download 59 pattern files
-   - Update CLAUDE.md to v5.5
-   Proceed? [Yes] [No]"
-```
+Before executing tools that modify files, use `detect_intent` to confirm ambiguous requests.
 
 ### 🛡️ Dependency Guardian (Auto-Coherence System):
 
@@ -910,10 +900,10 @@ These are terminal commands users run directly (not slash commands for AI):
 
 | Command | Purpose |
 |---------|---------|
-| `codebakers go` | Start free trial instantly (no signup required) - downloads patterns and activates trial |
+| `codebakers go` | Start free trial instantly (no signup required) |
 | `codebakers setup` | Set up CodeBakers with existing account (prompts for API key) |
 | `codebakers doctor` | Diagnose installation issues, check MCP connection |
-| `codebakers upgrade` | Download latest patterns and update CLAUDE.md |
+| `codebakers upgrade` | Check for CLI updates and verify server connection |
 | `codebakers extend` | Request trial extension (if trial expired) |
 | `codebakers serve` | Start MCP server (used by Cursor/Claude Code) |
 
