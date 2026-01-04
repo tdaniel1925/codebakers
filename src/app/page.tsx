@@ -77,7 +77,7 @@ const painPoints = [
   },
 ];
 
-function InstallSection() {
+function GetStartedSection() {
   const [isWindows, setIsWindows] = useState(false);
 
   useEffect(() => {
@@ -89,58 +89,149 @@ function InstallSection() {
     : '/install-codebakers.command';
 
   return (
-    <section id="install" className="py-16 px-4 bg-black">
-      <div className="container mx-auto max-w-2xl text-center">
-        <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
-          <Rocket01Icon className="w-3 h-3 mr-1" />
-          One Click Install
-        </Badge>
-        <h2 className="text-3xl font-bold mb-4 text-white">
-          Install in 30 Seconds
-        </h2>
-        <p className="text-lg text-gray-400 mb-8">
-          Download, double-click, done.
-        </p>
-
-        {/* Big Download Button */}
-        <a href={downloadUrl} download>
-          <Button
-            size="lg"
-            className="text-lg px-8 py-6 h-auto bg-red-600 hover:bg-red-700 transition-all duration-300"
-          >
-            <Download className="mr-2 h-5 w-5" />
-            Download Installer
-          </Button>
-        </a>
-
-        {/* Instructions */}
-        <div className="mt-8 p-6 rounded-2xl bg-gray-900 border border-gray-800 text-left max-w-md mx-auto">
-          <h3 className="font-bold mb-3 flex items-center gap-2 text-white">
-            <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">1</span>
-            Download and double-click the installer
-          </h3>
-          <h3 className="font-bold mb-3 flex items-center gap-2 text-white">
-            <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">2</span>
-            In your project: <code className="text-sm font-mono text-red-400">codebakers go</code>
-          </h3>
-          <h3 className="font-bold flex items-center gap-2 text-white">
-            <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center">3</span>
-            Open Claude Code and start building!
-          </h3>
-          <p className="mt-4 text-sm text-gray-500 text-center">
-            No account or API key required - free trial starts automatically
+    <section id="get-started" className="py-20 px-4 bg-black">
+      <div className="container mx-auto max-w-4xl">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
+            <Rocket01Icon className="w-3 h-3 mr-1" />
+            Get Started Now
+          </Badge>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">
+            Ready in 2 Minutes
+          </h2>
+          <p className="text-xl text-gray-400">
+            No account needed. No credit card. Just download and go.
           </p>
         </div>
 
-        {/* OS toggle */}
-        <p className="mt-6 text-sm text-gray-500">
-          Downloading for {isWindows ? 'Windows' : 'Mac/Linux'}.{' '}
-          <button
-            onClick={() => setIsWindows(!isWindows)}
-            className="text-red-500 hover:text-red-400 underline"
-          >
-            Switch to {isWindows ? 'Mac/Linux' : 'Windows'}
-          </button>
+        {/* 4 Steps */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          {/* Step 1 */}
+          <div className="p-6 rounded-2xl bg-gray-900 border border-gray-800">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-red-600 text-white text-lg font-bold flex items-center justify-center flex-shrink-0">
+                1
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-lg mb-2">Download the Installer</h3>
+                <p className="text-gray-400 text-sm mb-4">
+                  Click the button below, then double-click the downloaded file.
+                </p>
+                <a href={downloadUrl} download>
+                  <Button className="bg-red-600 hover:bg-red-700 text-white">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download for {isWindows ? 'Windows' : 'Mac/Linux'}
+                  </Button>
+                </a>
+                <button
+                  onClick={() => setIsWindows(!isWindows)}
+                  className="block mt-2 text-xs text-gray-500 hover:text-gray-400 underline"
+                >
+                  Need {isWindows ? 'Mac/Linux' : 'Windows'}?
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="p-6 rounded-2xl bg-gray-900 border border-gray-800">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-red-600 text-white text-lg font-bold flex items-center justify-center flex-shrink-0">
+                2
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-lg mb-2">Open Your Project</h3>
+                <p className="text-gray-400 text-sm">
+                  Open your project folder in your favorite AI code editor:
+                </p>
+                <ul className="mt-3 space-y-1 text-sm text-gray-300">
+                  <li>• <span className="text-white font-medium">Cursor</span></li>
+                  <li>• <span className="text-white font-medium">VS Code</span> with Claude Code extension</li>
+                  <li>• <span className="text-white font-medium">Claude Code</span> CLI</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="p-6 rounded-2xl bg-gray-900 border border-gray-800">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-red-600 text-white text-lg font-bold flex items-center justify-center flex-shrink-0">
+                3
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-lg mb-2">Say the Magic Phrase</h3>
+                <p className="text-gray-400 text-sm mb-3">
+                  In your AI chat window, just type:
+                </p>
+                <code className="block px-4 py-3 rounded-lg bg-gray-950 border border-gray-700 text-green-400 font-mono text-lg text-center">
+                  codebakers go
+                </code>
+                <p className="mt-3 text-xs text-gray-500">
+                  The AI runs it for you. No terminal needed!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 4 */}
+          <div className="p-6 rounded-2xl bg-gray-900 border border-gray-800">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-red-600 text-white text-lg font-bold flex items-center justify-center flex-shrink-0">
+                4
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-lg mb-2">Start Building!</h3>
+                <p className="text-gray-400 text-sm mb-3">
+                  That's it! Ask your AI to build anything:
+                </p>
+                <div className="space-y-2 text-sm">
+                  <div className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-gray-300 italic">
+                    "Build me a todo app with authentication"
+                  </div>
+                  <div className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-gray-300 italic">
+                    "Add a payment page with Stripe"
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Magic Phrase Callout */}
+        <div className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-red-900/30 to-orange-900/30 border border-red-800/50 max-w-2xl mx-auto">
+          <div className="text-center">
+            <h3 className="text-xl font-bold text-white mb-3">
+              ✨ Remember: <span className="text-red-400">codebakers go</span> is your magic phrase
+            </h3>
+            <p className="text-gray-300 text-sm mb-4">
+              Say it anytime in your AI chat. It always knows what to do:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="p-3 rounded-lg bg-gray-900/50 text-left">
+                <span className="text-green-400 font-medium">New project?</span>
+                <span className="text-gray-400 ml-2">→ Sets everything up</span>
+              </div>
+              <div className="p-3 rounded-lg bg-gray-900/50 text-left">
+                <span className="text-green-400 font-medium">Coming back?</span>
+                <span className="text-gray-400 ml-2">→ Resumes where you left off</span>
+              </div>
+              <div className="p-3 rounded-lg bg-gray-900/50 text-left">
+                <span className="text-green-400 font-medium">Lost context?</span>
+                <span className="text-gray-400 ml-2">→ Restores everything</span>
+              </div>
+              <div className="p-3 rounded-lg bg-gray-900/50 text-left">
+                <span className="text-green-400 font-medium">Something broken?</span>
+                <span className="text-gray-400 ml-2">→ Fixes it automatically</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom note */}
+        <p className="text-center mt-8 text-gray-500 text-sm">
+          7-day free trial • No signup required • Cancel anytime
         </p>
       </div>
     </section>
@@ -205,8 +296,8 @@ export default function HomePage() {
             <Link href="#solution" className="text-gray-400 hover:text-white transition-colors text-sm">
               Solution
             </Link>
-            <Link href="#how-it-works" className="text-gray-400 hover:text-white transition-colors text-sm">
-              How It Works
+            <Link href="#get-started" className="text-gray-400 hover:text-white transition-colors text-sm">
+              Get Started
             </Link>
             <Link href="#pricing" className="text-gray-400 hover:text-white transition-colors text-sm">
               Pricing
@@ -388,8 +479,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Install Section */}
-      <InstallSection />
+      {/* Get Started Section */}
+      <GetStartedSection />
 
       {/* The Problem Section - Context Loss */}
       <section id="problem" className="py-20 px-4">
@@ -495,67 +586,6 @@ export default function HomePage() {
                 <br />
                 <span className="text-gray-500">Asking for confirmation first</span>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works - Simple 3 Steps */}
-      <section id="how-it-works" className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800">
-              How It Works
-            </Badge>
-            <h2 className="text-4xl font-bold mb-4">
-              Set up once. Context forever.
-            </h2>
-            <p className="text-xl text-muted-foreground">
-              Three steps to AI that remembers everything.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Step 1 */}
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-red-600 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-600/20">
-                1
-              </div>
-              <h3 className="text-xl font-bold mb-2">Install CLI</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                One command to set up CodeBakers in your project.
-              </p>
-              <code className="px-4 py-2.5 rounded-lg bg-gray-900 text-green-400 text-sm font-mono inline-block">
-                npx @codebakers/cli go
-              </code>
-            </div>
-
-            {/* Step 2 */}
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-red-600 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-600/20">
-                2
-              </div>
-              <h3 className="text-xl font-bold mb-2">Describe Your Project</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                Tell us about your stack. We'll lock in your decisions.
-              </p>
-              <code className="px-4 py-2.5 rounded-lg bg-gray-900 text-green-400 text-sm font-mono inline-block">
-                Next.js + Drizzle + Supabase
-              </code>
-            </div>
-
-            {/* Step 3 */}
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-red-600 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-600/20">
-                3
-              </div>
-              <h3 className="text-xl font-bold mb-2">Code Forever</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                Start any session. Context is always there.
-              </p>
-              <code className="px-4 py-2.5 rounded-lg bg-gray-900 text-green-400 text-sm font-mono inline-block">
-                "Continue where we left off"
-              </code>
             </div>
           </div>
         </div>

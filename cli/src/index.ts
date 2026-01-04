@@ -34,7 +34,7 @@ import { join } from 'path';
 // Automatic Update Notification
 // ============================================
 
-const CURRENT_VERSION = '3.9.12';
+const CURRENT_VERSION = '3.9.14';
 
 // Simple semver comparison: returns true if v1 > v2
 function isNewerVersion(v1: string, v2: string): boolean {
@@ -230,7 +230,7 @@ const program = new Command();
 program
   .name('codebakers')
   .description('CodeBakers CLI - Production patterns for AI-assisted development')
-  .version('3.9.12');
+  .version('3.9.14');
 
 // Zero-friction trial entry (no signup required)
 program
