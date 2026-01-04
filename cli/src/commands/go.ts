@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { execSync, spawn } from 'child_process';
+import { execSync } from 'child_process';
 import { writeFileSync, existsSync, readFileSync, mkdirSync, readdirSync, statSync, rmSync } from 'fs';
 import { join } from 'path';
 import { createInterface } from 'readline';
@@ -1168,12 +1168,21 @@ export async function go(options: GoOptions = {}): Promise<void> {
     const existingTrial = getTrialState();
 
     if (existingApiKey) {
-      console.log(chalk.green('  ✓ Authenticated (API key)\n'));
+      console.log(chalk.green('  ✓ Authenticated with API key\n'));
+      console.log(chalk.gray('  You\'re all set! Ask Claude to help you build something.\n'));
     } else if (existingTrial && !isTrialExpired()) {
       const daysRemaining = getTrialDaysRemaining();
-      console.log(chalk.green(`  ✓ Trial active (${daysRemaining} days remaining)\n`));
+      console.log(chalk.green(`  ✓ Trial active - ${daysRemaining} day${daysRemaining === 1 ? '' : 's'} remaining\n`));
+      console.log(chalk.gray('  You\'re all set! Ask Claude to help you build something.\n'));
     } else if (existingTrial && isTrialExpired()) {
-      console.log(chalk.yellow('  ⚠️  Trial expired. Run `codebakers extend` or login.\n'));
+      console.log(chalk.yellow('  ⚠️  Trial expired\n'));
+      console.log(chalk.white('  To continue using CodeBakers:'));
+      console.log(chalk.cyan('    codebakers extend') + chalk.gray(' - Get 7 more days (free)'));
+      console.log(chalk.cyan('    codebakers go') + chalk.gray('     - Login with API key\n'));
+    } else {
+      console.log(chalk.yellow('  ⚠️  No active session\n'));
+      console.log(chalk.white('  To activate CodeBakers:'));
+      console.log(chalk.cyan('    codebakers go\n'));
     }
 
     // Don't run setup again - just show context
@@ -1187,15 +1196,26 @@ export async function go(options: GoOptions = {}): Promise<void> {
   // Auto-detect non-interactive mode (e.g., running from Claude Code)
   const isNonInteractive = !process.stdin.isTTY;
   if (isNonInteractive) {
-    console.log(chalk.yellow('\n  ⚡ Non-interactive mode - setting up project files only\n'));
+    console.log(chalk.blue('\n  ───────────────────────────────────────────────────────'));
+    console.log(chalk.blue('  CodeBakers - Non-Interactive Setup'));
+    console.log(chalk.blue('  ───────────────────────────────────────────────────────\n'));
+
+    console.log(chalk.gray('  Running from Claude Code - installing project files...\n'));
 
     // Just set up the project files without auth
     // Auth can be done later via `codebakers go` in terminal or via MCP tools
     await setupProject(options);
 
-    console.log(chalk.green('\n  ✓ Project files installed!\n'));
-    console.log(chalk.gray('  To activate trial/login, run in terminal:'));
+    console.log(chalk.green('\n  ✅ Project files installed successfully!\n'));
+    console.log(chalk.white('  What was set up:'));
+    console.log(chalk.gray('    • CLAUDE.md - AI instructions for this project'));
+    console.log(chalk.gray('    • .codebakers.json - Project configuration'));
+    console.log(chalk.gray('    • MCP server - Registered with Claude Code\n'));
+
+    console.log(chalk.yellow('  ⚠️  To activate your trial or login:\n'));
+    console.log(chalk.white('    Open a terminal and run:'));
     console.log(chalk.cyan('    codebakers go\n'));
+    console.log(chalk.gray('  This requires an interactive terminal for authentication.\n'));
     return;
   }
 
@@ -1241,12 +1261,17 @@ export async function go(options: GoOptions = {}): Promise<void> {
 
   // Check if trial expired
   if (existingTrial && isTrialExpired()) {
-    console.log(chalk.yellow('  ⚠️  Your trial has expired.\n'));
+    console.log(chalk.yellow(`
+  ╭───────────────────────────────────────────────────────────╮
+  │  ⚠️  Your 7-day trial has expired                         │
+  ╰───────────────────────────────────────────────────────────╯
+    `));
 
-    // Offer to login with API key or extend
-    console.log(chalk.white('  Options:\n'));
-    console.log(chalk.cyan('  [1] Login with API key') + chalk.gray(' (I have an account)'));
-    console.log(chalk.cyan('  [2] Extend trial') + chalk.gray(' (7 more days with GitHub)\n'));
+    console.log(chalk.white('  You can still use CodeBakers! Choose an option:\n'));
+    console.log(chalk.cyan('  [1] Login with API key'));
+    console.log(chalk.gray('      If you purchased a subscription at codebakers.ai\n'));
+    console.log(chalk.cyan('  [2] Extend trial (+7 days)'));
+    console.log(chalk.gray('      Connect your GitHub account for more time\n'));
 
     const choice = await prompt(chalk.gray('  Enter 1 or 2: '));
 
@@ -1254,15 +1279,19 @@ export async function go(options: GoOptions = {}): Promise<void> {
       await handleApiKeyLogin(options);
       return;
     } else {
-      console.log(chalk.cyan('\n  Run: codebakers extend\n'));
+      console.log(chalk.white('\n  To extend your trial, run:\n'));
+      console.log(chalk.cyan('    codebakers extend\n'));
+      console.log(chalk.gray('  This will open GitHub for authentication.\n'));
       return;
     }
   }
 
   // New user - ask how they want to proceed
   console.log(chalk.white('  How would you like to get started?\n'));
-  console.log(chalk.cyan('  [1] Start free 7-day trial') + chalk.gray(' (GitHub login required)'));
-  console.log(chalk.cyan('  [2] Login with API key') + chalk.gray(' (I have an account)\n'));
+  console.log(chalk.cyan('  [1] Start free 7-day trial'));
+  console.log(chalk.gray('      No credit card needed - just GitHub login\n'));
+  console.log(chalk.cyan('  [2] Login with API key'));
+  console.log(chalk.gray('      I already have a CodeBakers account\n'));
 
   const choice = await prompt(chalk.gray('  Enter 1 or 2: '));
 
@@ -1413,60 +1442,33 @@ async function handleApiKeyLogin(options: GoOptions = {}): Promise<void> {
 }
 
 /**
- * Show success message and offer to restart
+ * Show success message with clear next steps
  */
 async function showSuccessAndRestart(): Promise<void> {
-  const cwd = process.cwd();
-
   console.log(chalk.green(`
   ╔═══════════════════════════════════════════════════════════╗
-  ║  ✅ CodeBakers is ready!                                  ║
   ║                                                           ║
-  ║  ${chalk.gray('Try: "Build me a todo app with authentication"')}        ║
+  ║   ✅  CodeBakers Setup Complete!                          ║
+  ║                                                           ║
   ╚═══════════════════════════════════════════════════════════╝
   `));
 
-  console.log(chalk.yellow('  ⚠️  RESTART REQUIRED\n'));
-  console.log(chalk.gray('  Claude Code needs to restart to load CodeBakers.\n'));
+  console.log(chalk.yellow('  ⚠️  ONE MORE STEP - Restart Required\n'));
 
-  const answer = await prompt(chalk.cyan('  Restart Claude Code now? (Y/n): '));
+  console.log(chalk.white('  Claude Code needs to restart to load the CodeBakers MCP server.\n'));
 
-  if (answer === 'n' || answer === 'no') {
-    console.log(chalk.gray('\n  No problem! Just restart Claude Code manually when ready.\n'));
-    return;
-  }
+  console.log(chalk.cyan('  How to restart Claude Code:\n'));
+  console.log(chalk.gray('    Option 1: ') + chalk.white('Close this window and run ') + chalk.cyan('claude') + chalk.white(' again'));
+  console.log(chalk.gray('    Option 2: ') + chalk.white('Press ') + chalk.cyan('Ctrl+C') + chalk.white(' and run ') + chalk.cyan('claude') + chalk.white(' again'));
+  console.log(chalk.gray('    Option 3: ') + chalk.white('In VS Code: ') + chalk.cyan('Cmd/Ctrl+Shift+P') + chalk.white(' → "Claude Code: Restart"\n'));
 
-  // Attempt to restart Claude Code
-  console.log(chalk.gray('\n  Restarting Claude Code...\n'));
+  console.log(chalk.green('  After restart, try saying:\n'));
+  console.log(chalk.white('    "Build me a todo app with authentication"'));
+  console.log(chalk.white('    "Add a login page to my project"'));
+  console.log(chalk.white('    "Review my code and make it production-ready"\n'));
 
-  try {
-    const isWindows = process.platform === 'win32';
-
-    if (isWindows) {
-      spawn('cmd', ['/c', 'start', 'claude'], {
-        cwd,
-        detached: true,
-        stdio: 'ignore',
-        shell: true,
-      }).unref();
-    } else {
-      spawn('claude', [], {
-        cwd,
-        detached: true,
-        stdio: 'ignore',
-        shell: true,
-      }).unref();
-    }
-
-    console.log(chalk.green('  ✓ Claude Code is restarting...\n'));
-    console.log(chalk.gray('  This terminal will close. Claude Code will open in a new window.\n'));
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    process.exit(0);
-
-  } catch {
-    console.log(chalk.yellow('  Could not auto-restart. Please restart Claude Code manually.\n'));
-  }
+  console.log(chalk.gray('  ─────────────────────────────────────────────────────────\n'));
+  console.log(chalk.gray('  Having issues? Run: ') + chalk.cyan('codebakers doctor') + chalk.gray(' to diagnose\n'));
 }
 
 // v6.12 Bootstrap content - minimal files that point to MCP tools
