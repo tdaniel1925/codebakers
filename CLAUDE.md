@@ -1,32 +1,121 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 5.5 - MCP-First Architecture + VAPI + Dependency Guardian
+# Version: 6.0 - Session Continuity + Two-Gate Enforcement
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
 ---
 
-## 🚨 STEP 0: SESSION START (DO THIS FIRST - BEFORE ANYTHING ELSE)
+## 🔄 STEP 0: SESSION RECOVERY (READ THIS FIRST!)
 
-**This is MANDATORY on EVERY new chat session. Do this BEFORE responding to the user.**
+**CRITICAL: If this conversation was just compacted/summarized, read this section IMMEDIATELY.**
 
-1. **Read `.codebakers/DEVLOG.md`** (if exists) - understand what was done recently
-2. **Read `.codebakers.json`** - check `currentWork` for active tasks and context
-3. **Run `git log --oneline -5`** - see recent commits
-4. **Check `.codebakers/BLOCKED.md`** - show any blockers to user
+### Detect Post-Compaction State:
+If you see a "conversation summary" above, or this feels like a fresh start but the project has `.codebakers.json`, you're resuming after compaction.
 
-### Show on Session Start:
+### AUTOMATIC RECOVERY STEPS:
+
+**1. Read PROJECT-STATE.md** (in project root)
 ```
-📋 Session Resume:
-- Last work: [from devlog top entry]
-- Recent commits: [from git log]
-- Active task: [from currentWork if exists]
-- Blockers: [from BLOCKED.md if exists]
+Look for:
+- ## In Progress → What task was active
+- ## Blockers → What was blocking
+- ## Next Up → What to do next
 ```
 
-**WHY THIS MATTERS:** Without this step, you will lose context and repeat mistakes. The previous AI session may have built features, made decisions, or documented important information you need to know.
+**2. Read .codebakers/DEVLOG.md** (top entry only)
+```
+Look for:
+- ### What was done → Recent completed work
+- ### Next steps → What was planned next
+```
 
-**FAILURE TO DO THIS = USER FRUSTRATION.** They will have to re-explain everything.
+**3. Check .codebakers/BLOCKED.md** (if exists)
+```
+Critical blockers that need user attention
+```
+
+**4. Run: `git log --oneline -5`**
+```
+See what was recently committed
+```
+
+### AFTER READING, SHOW:
+```
+📋 Session Resumed:
+- Project: [from .codebakers.json projectName]
+- Active Task: [from PROJECT-STATE.md In Progress]
+- Last Work: [from DEVLOG.md top entry]
+- Blockers: [if any]
+
+→ Continuing with: [suggested next action]
+```
+
+### WHY THIS MATTERS:
+After compaction, you lose conversation history. These files ARE your memory. Read them BEFORE responding to the user.
+
+---
+
+## ⛔ TWO-GATE ENFORCEMENT SYSTEM
+
+**You MUST pass through TWO gates for every feature:**
+
+### 🚪 GATE 1: BEFORE WRITING CODE → `discover_patterns`
+
+```
+discover_patterns({ task: "what you're about to do", keywords: ["relevant", "keywords"] })
+```
+
+This tool:
+- 🔍 Searches codebase for similar implementations
+- 📦 Identifies relevant `.claude/` patterns to load
+- ✅ Shows existing code patterns you MUST follow
+- 📝 Logs discovery for compliance tracking
+
+**You are NOT ALLOWED to write code without calling this first.**
+
+### 🚪 GATE 2: BEFORE SAYING "DONE" → `validate_complete`
+
+```
+validate_complete({ feature: "feature name", files: ["path/to/file.ts"] })
+```
+
+This tool checks:
+- ✅ `discover_patterns` was called (compliance tracking)
+- ✅ Test files exist for the feature
+- ✅ Tests pass (`npm test`)
+- ✅ TypeScript compiles (`tsc --noEmit`)
+
+**You are NOT ALLOWED to say "done" without calling this.**
+
+### The Complete Workflow
+
+```
+1. User asks for feature
+2. Call discover_patterns → Get patterns to follow
+3. Read the patterns from .claude/ folder
+4. Write code following the patterns
+5. Write tests
+6. Call validate_complete → Verify everything passes
+7. ONLY THEN say "done"
+```
+
+### Why Two Gates?
+
+| Problem | Gate 1 Solves | Gate 2 Solves |
+|---------|---------------|---------------|
+| AI ignores existing patterns | ✅ Forces pattern discovery | |
+| AI uses .update() when .insert() is correct | ✅ Shows existing code to follow | |
+| AI skips tests | | ✅ Blocks completion without tests |
+| AI says "done" without verification | | ✅ Requires passing validation |
+
+### HARD RULES (Enforced by MCP tools):
+
+1. **NO writing code without `discover_patterns`** - Gate 1 blocks you
+2. **NO "want me to add tests?"** - Just add them. Tests are not optional.
+3. **NO "I'll add tests later"** - Tests are part of the feature.
+4. **NO saying "done" without `validate_complete`** - Gate 2 blocks you.
+5. **NO ignoring existing code patterns** - `discover_patterns` shows them to you.
 
 ---
 
@@ -38,6 +127,9 @@
 
 | User Says | MCP Tool to Call | What It Does |
 |-----------|------------------|--------------|
+| *Before writing ANY code* | `discover_patterns` | **MANDATORY** - Finds patterns and existing code to follow |
+| *Before saying "done"* | `validate_complete` | **MANDATORY** - Validates patterns used, tests exist and pass |
+| "upgrade codebakers", "update patterns", "download patterns" | `update_patterns` | Downloads latest CLAUDE.md + 59 modules from server |
 | "audit my code", "review code", "check quality" | `run_audit` | Runs comprehensive code audit |
 | "fix this", "auto-fix", "heal" | `heal` | AI-powered error diagnosis and repair |
 | "create project", "new project", "scaffold" | `scaffold_project` | Creates complete project from description |
@@ -81,17 +173,6 @@ User: "I need to add a teamId field to the User type"
 AI: [Calls ripple_check with entityName="User", changeType="added_field"]
 → Shows all files using User type with impact levels
 ```
-
-### MCP-First Rule:
-
-1. **ALWAYS** check if the user's request maps to an MCP tool above
-2. **ALWAYS** call the MCP tool instead of doing it manually
-3. **NEVER** manually write audit reports - use `run_audit`
-4. **NEVER** manually write webhook handlers - use tool generators
-
-### Confirmation Before Destructive Actions:
-
-Before executing tools that modify files, use `detect_intent` to confirm ambiguous requests.
 
 ### 🛡️ Dependency Guardian (Auto-Coherence System):
 
@@ -149,6 +230,26 @@ User sees: Clean, working code. No errors.
 User just asks for things. Code is always coherent. No manual debugging.
 Guardian runs silently in the background ensuring everything works together.
 
+### MCP-First Rule:
+
+1. **ALWAYS** check if the user's request maps to an MCP tool above
+2. **ALWAYS** call the MCP tool instead of doing it manually
+3. **NEVER** offer to "create pattern files" - use `update_patterns`
+4. **NEVER** manually write audit reports - use `run_audit`
+5. **NEVER** manually write webhook handlers - use tool generators
+
+### Auto-Execute Tools (No Confirmation Needed):
+
+These tools should run IMMEDIATELY without asking questions:
+- `update_patterns` - Just run it when user says "upgrade codebakers"
+- `project_status` - Just show the status
+- `run_audit` - Just run the audit
+- `billing_action` - Just open billing
+
+### Confirmation Before Destructive Actions:
+
+Only use `detect_intent` for truly ambiguous requests like "upgrade everything" (could mean patterns or code quality).
+
 ---
 
 ## CRITICAL: READ THIS BEFORE EVERY RESPONSE
@@ -195,7 +296,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.5
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v5.4
 ```
 
 **On FIRST message of a new session, also show this header:**
@@ -264,21 +365,14 @@ npm run prepare
 
 ---
 
-## SESSION CONTEXT CHECK (STEP 0)
+## SESSION CONTEXT CHECK
 
-**BEFORE doing anything else, check if this is a resumed session:**
+**→ See "STEP 0: SESSION RECOVERY" at the TOP of this file for full recovery steps.**
 
-1. **Check `.codebakers.json`** for `currentWork` field
-2. **If resuming**:
-   - Show: "Resuming: [activeFeature] - [summary]"
-   - DO NOT re-ask project type questions
-   - Resume at the appropriate step (usually execution)
-   - Use TodoWrite to track remaining work
-3. **If debugging/fixing errors**:
-   - Use SMALL task process (see below)
-   - Focus: Read error → Find cause → Fix → Verify
-   - Skip expert consultation for runtime bugs
-   - DO run TypeScript check after fixes
+**Quick Tips for Debugging Sessions:**
+- Use SMALL task process (read error → find cause → fix → verify)
+- Skip expert consultation for runtime bugs
+- DO run TypeScript check after fixes (`npx tsc --noEmit`)
 
 ---
 
@@ -327,34 +421,9 @@ On session start, if `.codebakers/DEVLOG.md` exists, read the top entry to under
 
 ## SESSION START PROTOCOL
 
-**At the start of EVERY new session, perform these steps:**
+**→ See "STEP 0: SESSION RECOVERY" at the TOP of this file.**
 
-1. **Read `.codebakers/DEVLOG.md`** (top entry) - understand recent work
-2. **Run `git log --oneline -5`** - see recent commits
-3. **Check `.codebakers.json`** for `currentWork` - find active tasks
-4. **Check `.codebakers/BLOCKED.md`** - show any blockers to user
-
-### Show on Resume:
-
-```
-📋 Session Resume:
-- Last work: [from devlog top entry]
-- Recent commits: [list from git log]
-- Active task: [from currentWork if exists]
-- Blockers: [from BLOCKED.md if exists]
-```
-
-### If Blockers Exist:
-
-```
-⚠️ Blocker from last session:
-[Issue description]
-[Error/context]
-
-Last attempted: [what was tried]
-
-Should I continue trying to resolve this, or move on to something else?
-```
+After compaction, that section tells you exactly what files to read and what to show the user.
 
 ---
 
@@ -539,16 +608,11 @@ What would you like to do?
 
 ---
 
-## MODULE FORMAT (IMPORTANT)
+## MODULE FORMAT
 
-All pattern files in `.claude/` are **base64 encoded** for protection.
+All pattern files in `.claude/` are **plain text markdown** - just read them directly.
 
-When you read a file that starts with `<<CB64>>`, you must:
-1. Extract the base64 content between `<<CB64>>` and `<</CB64>>` markers
-2. Decode it from base64 to get the actual pattern content
-3. Use the decoded content for your response
-
-**Always decode before using any pattern from `.claude/` files.**
+No decoding needed. Just open the file and use the patterns.
 
 ---
 
@@ -569,20 +633,6 @@ When you read a file that starts with `<<CB64>>`, you must:
    ```
 3. **Read just that section** - Once you find line numbers, read only that part
 4. **NEVER skip** - If a pattern exists, you MUST access it somehow
-
-### Problem: Base64 Encoded Content
-
-**Symptoms:** File content starts with `<<CB64>>` or looks like random characters.
-
-**Solution:**
-1. **This is expected** - All `.claude/` files are base64 encoded
-2. **Decode it:**
-   ```python
-   import base64
-   content = base64.b64decode(encoded_content).decode('utf-8')
-   ```
-3. **Or use shell:** `base64 -d .claude/file.md`
-4. **NEVER say "it's encoded so I can't use it"** - Decode it and use it
 
 ### Problem: Search Term Not Found
 
@@ -900,10 +950,10 @@ These are terminal commands users run directly (not slash commands for AI):
 
 | Command | Purpose |
 |---------|---------|
-| `codebakers go` | Start free trial instantly (no signup required) |
+| `codebakers go` | Start free trial instantly (no signup required) - downloads patterns and activates trial |
 | `codebakers setup` | Set up CodeBakers with existing account (prompts for API key) |
 | `codebakers doctor` | Diagnose installation issues, check MCP connection |
-| `codebakers upgrade` | Check for CLI updates and verify server connection |
+| `codebakers upgrade` | Download latest patterns and update CLAUDE.md |
 | `codebakers extend` | Request trial extension (if trial expired) |
 | `codebakers serve` | Start MCP server (used by Cursor/Claude Code) |
 
