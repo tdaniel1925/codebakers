@@ -34,13 +34,27 @@ import { join } from 'path';
 // Automatic Update Notification
 // ============================================
 
-const CURRENT_VERSION = '3.9.9';
+const CURRENT_VERSION = '3.9.10';
+
+// Simple semver comparison: returns true if v1 > v2
+function isNewerVersion(v1: string, v2: string): boolean {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const p1 = parts1[i] || 0;
+    const p2 = parts2[i] || 0;
+    if (p1 > p2) return true;
+    if (p1 < p2) return false;
+  }
+  return false;
+}
 
 async function checkForUpdatesInBackground(): Promise<void> {
   // Check if we have a valid cached result first (fast path)
   const cached = getCachedUpdateInfo();
   if (cached) {
-    if (cached.latestVersion !== CURRENT_VERSION) {
+    // Only show banner if cached version is actually NEWER than current
+    if (isNewerVersion(cached.latestVersion, CURRENT_VERSION)) {
       showUpdateBanner(CURRENT_VERSION, cached.latestVersion, false);
     }
     return;
@@ -216,7 +230,7 @@ const program = new Command();
 program
   .name('codebakers')
   .description('CodeBakers CLI - Production patterns for AI-assisted development')
-  .version('3.9.9');
+  .version('3.9.10');
 
 // Zero-friction trial entry (no signup required)
 program

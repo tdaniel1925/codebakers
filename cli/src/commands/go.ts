@@ -1053,7 +1053,7 @@ function log(message: string, options?: GoOptions): void {
 }
 
 // Current CLI version - must match package.json
-const CURRENT_VERSION = '3.9.9';
+const CURRENT_VERSION = '3.9.10';
 
 /**
  * Check for updates and install them automatically
