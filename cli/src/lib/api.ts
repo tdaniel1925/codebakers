@@ -185,6 +185,12 @@ export async function checkForUpdates(): Promise<{
         const autoUpdateVersion = data.autoUpdateVersion;
         const isBlocked = data.isBlocked === true;
 
+        // Guard against undefined latestVersion
+        if (!latestVersion) {
+          // Fall through to npm fallback
+          throw new Error('No version info from API');
+        }
+
         return {
           currentVersion,
           latestVersion,

@@ -84,19 +84,53 @@ export async function POST(req: NextRequest) {
       result.cursorModules = files;
     }
 
-    // Calculate new version number
-    const [latestVersion] = await db
-      .select({ version: contentVersions.version })
+    // Extract version from CLAUDE.md content
+    // Look for pattern: # Version: X.Y or # Version: X.Y - Description
+    let newVersionNumber = '6.0'; // Default fallback
+    const versionMatch = claudeMdContent.match(/^#\s*Version:\s*([\d.]+)/m);
+    if (versionMatch) {
+      newVersionNumber = versionMatch[1];
+    }
+
+    // Check if this version already exists
+    const [existingVersion] = await db
+      .select({ id: contentVersions.id })
       .from(contentVersions)
-      .orderBy(desc(contentVersions.createdAt))
+      .where(eq(contentVersions.version, newVersionNumber))
       .limit(1);
 
-    let newVersionNumber = '16.0';
-    if (latestVersion?.version) {
-      const parts = latestVersion.version.split('.');
-      const major = parseInt(parts[0]) || 15;
-      const minor = parseInt(parts[1]) || 0;
-      newVersionNumber = `${major}.${minor + 1}`;
+    if (existingVersion) {
+      // Update existing version instead of creating new
+      await db
+        .update(contentVersions)
+        .set({
+          routerContent: claudeMdContent,
+          claudeMdContent: claudeMdContent,
+          cursorRulesContent: cursorRulesContent,
+          modulesContent: JSON.stringify(modulesContent),
+          cursorModulesContent: JSON.stringify(cursorModulesContent),
+          changelog: body.changelog || `Updated - ${Object.keys(modulesContent).length} modules`,
+        })
+        .where(eq(contentVersions.id, existingVersion.id));
+
+      // Activate if requested
+      if (activate) {
+        await db.update(contentVersions).set({ isActive: false });
+        await db
+          .update(contentVersions)
+          .set({ isActive: true, publishedAt: new Date() })
+          .where(eq(contentVersions.id, existingVersion.id));
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Updated version ${newVersionNumber} with ${Object.keys(modulesContent).length} modules`,
+        versionId: existingVersion.id,
+        version: newVersionNumber,
+        updated: true,
+        activated: activate,
+        ...result,
+      });
     }
 
     // Create new version
