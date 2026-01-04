@@ -1053,7 +1053,7 @@ function log(message: string, options?: GoOptions): void {
 }
 
 // Current CLI version - must match package.json
-const CURRENT_VERSION = '3.9.7';
+const CURRENT_VERSION = '3.9.8';
 
 /**
  * Check for updates and install them automatically
@@ -1585,6 +1585,15 @@ async function setupProject(options: GoOptions = {}, auth?: AuthInfo): Promise<v
 async function setupNewProject(cwd: string, options: GoOptions = {}, auth?: AuthInfo): Promise<void> {
   console.log(chalk.cyan('\n  ━━━ New Project Setup ━━━\n'));
 
+  // Auto-detect non-interactive mode (e.g., running from Claude Code)
+  const isNonInteractive = !process.stdin.isTTY;
+  if (isNonInteractive && !options.type) {
+    console.log(chalk.yellow('  ⚡ Non-interactive mode detected - using defaults\n'));
+    options.type = 'personal';
+    options.describe = options.describe || 'chat';
+    options.skipReview = true;
+  }
+
   let projectType: string;
   let projectName: string;
   const defaultName = cwd.split(/[\\/]/).pop() || 'my-project';
@@ -1732,6 +1741,15 @@ ${content}
 
 async function setupExistingProject(cwd: string, projectInfo: ProjectInfo, options: GoOptions = {}, auth?: AuthInfo): Promise<void> {
   console.log(chalk.cyan('\n  ━━━ Existing Project Detected ━━━\n'));
+
+  // Auto-detect non-interactive mode (e.g., running from Claude Code)
+  const isNonInteractive = !process.stdin.isTTY;
+  if (isNonInteractive && !options.name) {
+    console.log(chalk.yellow('  ⚡ Non-interactive mode detected - using defaults\n'));
+    const folderName = cwd.split(/[\\/]/).pop() || 'my-project';
+    options.name = folderName;
+    options.skipReview = true;
+  }
 
   // Show what was detected
   console.log(chalk.gray('  Found:'));
