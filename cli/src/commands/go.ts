@@ -1210,12 +1210,18 @@ export async function go(options: GoOptions = {}): Promise<void> {
     console.log(chalk.white('  What was set up:'));
     console.log(chalk.gray('    • CLAUDE.md - AI instructions for this project'));
     console.log(chalk.gray('    • .codebakers.json - Project configuration'));
-    console.log(chalk.gray('    • MCP server - Registered with Claude Code\n'));
+    console.log(chalk.gray('    • MCP server - Registered in Claude Code config\n'));
 
-    console.log(chalk.yellow('  ⚠️  To activate your trial or login:\n'));
-    console.log(chalk.white('    Open a terminal and run:'));
-    console.log(chalk.cyan('    codebakers go\n'));
-    console.log(chalk.gray('  This requires an interactive terminal for authentication.\n'));
+    console.log(chalk.yellow('  ⚠️  RESTART REQUIRED to load MCP tools\n'));
+    console.log(chalk.white('  The CodeBakers MCP server was registered, but Claude Code'));
+    console.log(chalk.white('  needs to restart to load it.\n'));
+    console.log(chalk.cyan('  To restart Claude Code:\n'));
+    console.log(chalk.gray('    Option 1: ') + chalk.white('Press ') + chalk.cyan('Ctrl+C') + chalk.white(' and run ') + chalk.cyan('claude') + chalk.white(' again'));
+    console.log(chalk.gray('    Option 2: ') + chalk.white('In VS Code: ') + chalk.cyan('Cmd/Ctrl+Shift+P') + chalk.white(' → "Reload Window"\n'));
+    console.log(chalk.white('  After restart, MCP tools (discover_patterns, validate_complete)'));
+    console.log(chalk.white('  will be available.\n'));
+    console.log(chalk.gray('  ─────────────────────────────────────────────────────────\n'));
+    console.log(chalk.gray('  Optional: To activate trial, run ') + chalk.cyan('codebakers go') + chalk.gray(' in a terminal.\n'));
     return;
   }
 
