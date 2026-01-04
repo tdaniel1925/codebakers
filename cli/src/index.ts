@@ -34,7 +34,7 @@ import { join } from 'path';
 // Automatic Update Notification
 // ============================================
 
-const CURRENT_VERSION = '3.9.4';
+const CURRENT_VERSION = '3.9.5';
 
 async function checkForUpdatesInBackground(): Promise<void> {
   // Check if we have a valid cached result first (fast path)
@@ -216,7 +216,7 @@ const program = new Command();
 program
   .name('codebakers')
   .description('CodeBakers CLI - Production patterns for AI-assisted development')
-  .version('3.9.4');
+  .version('3.9.5');
 
 // Zero-friction trial entry (no signup required)
 program

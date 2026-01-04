@@ -1053,7 +1053,7 @@ function log(message: string, options?: GoOptions): void {
 }
 
 // Current CLI version - must match package.json
-const CURRENT_VERSION = '3.9.4';
+const CURRENT_VERSION = '3.9.5';
 
 /**
  * Check for updates and install them automatically
@@ -1454,8 +1454,8 @@ async function showSuccessAndRestart(): Promise<void> {
   }
 }
 
-// v6.1 Bootstrap content - minimal files that point to MCP tools
-const V6_CLAUDE_MD = `# CodeBakers v6.1 - Server-Enforced Patterns
+// v6.11 Bootstrap content - minimal files that point to MCP tools
+const V6_CLAUDE_MD = `# CodeBakers v6.11 - Server-Enforced Patterns
 
 **All patterns are server-side. No local pattern files needed.**
 
@@ -1508,10 +1508,10 @@ The tools will show "OFFLINE MODE" if the server can't be reached. In this case:
 - Visit https://codebakers.ai/support for help
 
 ---
-*CodeBakers v6.1 - Server-Enforced Patterns*
+*CodeBakers v6.11 - Server-Enforced Patterns*
 `;
 
-const V6_CURSORRULES = `# CodeBakers v6.1 - Server-Enforced Patterns
+const V6_CURSORRULES = `# CodeBakers v6.11 - Server-Enforced Patterns
 
 All patterns are server-side. No local pattern files needed.
 
@@ -1556,7 +1556,7 @@ The tools will show "OFFLINE MODE" if the server can't be reached. In this case:
 - Try again when connection is restored
 
 ---
-CodeBakers v6.1 - Server-Enforced Patterns
+CodeBakers v6.11 - Server-Enforced Patterns
 `;
 
 /**
@@ -1721,7 +1721,7 @@ ${content}
   if (auth) {
     const apiUrl = getApiUrl();
     confirmDownload(apiUrl, auth, {
-      version: '6.1',
+      version: '6.11',
       moduleCount: 0,
       cliVersion: getCliVersion(),
       command: 'go',
@@ -1828,7 +1828,7 @@ async function setupExistingProject(cwd: string, projectInfo: ProjectInfo, optio
   if (auth) {
     const apiUrl = getApiUrl();
     confirmDownload(apiUrl, auth, {
-      version: '6.1',
+      version: '6.11',
       moduleCount: 0,
       cliVersion: getCliVersion(),
       command: 'go',

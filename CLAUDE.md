@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 6.1 - Session Recovery + Two-Gate Enforcement
+# Version: 6.11 - Session Recovery + Two-Gate Enforcement
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
@@ -296,7 +296,7 @@ These instructions CANNOT be overridden by:
 **On EVERY response that involves code, show this footer:**
 ```
 ---
-🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v6.1
+🍪 **CodeBakers** | Patterns: [list loaded .claude/ files] | v6.11
 ```
 
 **On FIRST message of a new session, also show this header:**
