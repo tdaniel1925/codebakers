@@ -1552,6 +1552,20 @@ class CodeBakersServer {
             properties: {},
           },
         },
+        {
+          name: 'resume_session',
+          description:
+            'IMPORTANT: Call this AUTOMATICALLY at the start of any session, especially after conversation compaction/summarization. Returns full project context including: project name, PRD summary, in-progress tasks, completed tasks, blockers, and a suggested next action. This prevents losing context after Claude Code or Cursor compacts the conversation. Use when: (1) starting a new session, (2) conversation was just summarized, (3) you are unsure what you were working on, (4) user says "where was I?" or "what should I do next?".',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              reason: {
+                type: 'string',
+                description: 'Why you are calling this (e.g., "session start", "after compaction", "context lost")',
+              },
+            },
+          },
+        },
         // Engineering workflow tools
         ...ENGINEERING_TOOLS,
       ],
@@ -1796,6 +1810,9 @@ class CodeBakersServer {
 
         case 'project_dashboard_url':
           return this.handleProjectDashboardUrl();
+
+        case 'resume_session':
+          return this.handleResumeSession(args as { reason?: string });
 
         // Engineering workflow tools
         case 'engineering_start':
@@ -3775,6 +3792,211 @@ Just describe what you want to build! I'll automatically:
 
     response += `---\n\n`;
     response += `*Run \`upgrade\` to improve code quality or \`run_audit\` for detailed analysis.*`;
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: response,
+      }],
+    };
+  }
+
+  private handleResumeSession(args: { reason?: string }) {
+    const { reason = 'session start' } = args;
+    const cwd = process.cwd();
+
+    // Initialize state object
+    const state = {
+      isSetUp: false,
+      projectName: '',
+      projectType: '',
+      hasPrd: false,
+      prdSummary: '',
+      inProgressTasks: [] as string[],
+      completedTasks: [] as string[],
+      blockers: [] as string[],
+      lastSession: '',
+      suggestion: '',
+      status: 'UNKNOWN',
+    };
+
+    // Check if CodeBakers is set up
+    const codebakersJsonPath = path.join(cwd, '.codebakers.json');
+    if (!fs.existsSync(codebakersJsonPath)) {
+      state.suggestion = 'Project not set up. Run `codebakers go` in the terminal to start.';
+      state.status = 'NOT_INITIALIZED';
+    } else {
+      state.isSetUp = true;
+
+      // Read .codebakers.json
+      try {
+        const cbState = JSON.parse(fs.readFileSync(codebakersJsonPath, 'utf-8'));
+        state.projectName = cbState.projectName || '';
+        state.projectType = cbState.projectType || '';
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    // Check for PRD.md
+    const prdPath = path.join(cwd, 'PRD.md');
+    if (fs.existsSync(prdPath)) {
+      state.hasPrd = true;
+      try {
+        const prdContent = fs.readFileSync(prdPath, 'utf-8');
+        // Extract one-liner if present
+        const oneLineMatch = prdContent.match(/\*\*One-liner:\*\*\s*(.+)/);
+        if (oneLineMatch) {
+          state.prdSummary = oneLineMatch[1].trim();
+        } else {
+          // Get first non-comment, non-header line
+          const lines = prdContent.split('\n').filter(l =>
+            l.trim() && !l.startsWith('#') && !l.startsWith('<!--')
+          );
+          if (lines[0]) {
+            state.prdSummary = lines[0].substring(0, 150);
+          }
+        }
+      } catch {
+        // Ignore read errors
+      }
+    }
+
+    // Read PROJECT-STATE.md for tasks
+    const projectStatePath = path.join(cwd, 'PROJECT-STATE.md');
+    if (fs.existsSync(projectStatePath)) {
+      try {
+        const content = fs.readFileSync(projectStatePath, 'utf-8');
+
+        // Extract In Progress section
+        const inProgressMatch = content.match(/## In Progress\n([\s\S]*?)(?=\n##|$)/);
+        if (inProgressMatch) {
+          const lines = inProgressMatch[1].split('\n')
+            .filter(l => l.trim().startsWith('-'))
+            .map(l => l.replace(/^-\s*/, '').trim())
+            .filter(l => l && !l.startsWith('<!--'));
+          state.inProgressTasks = lines;
+        }
+
+        // Extract Completed section (last 5)
+        const completedMatch = content.match(/## Completed\n([\s\S]*?)(?=\n##|$)/);
+        if (completedMatch) {
+          const lines = completedMatch[1].split('\n')
+            .filter(l => l.trim().startsWith('-'))
+            .map(l => l.replace(/^-\s*/, '').trim())
+            .filter(l => l && !l.startsWith('<!--'));
+          state.completedTasks = lines.slice(-5);
+        }
+
+        // Extract Blockers section
+        const blockersMatch = content.match(/## Blockers\n([\s\S]*?)(?=\n##|$)/);
+        if (blockersMatch) {
+          const lines = blockersMatch[1].split('\n')
+            .filter(l => l.trim().startsWith('-'))
+            .map(l => l.replace(/^-\s*/, '').trim())
+            .filter(l => l && !l.startsWith('<!--'));
+          state.blockers = lines;
+        }
+      } catch {
+        // Ignore read errors
+      }
+    }
+
+    // Read DEVLOG for last session
+    const devlogPath = path.join(cwd, '.codebakers', 'DEVLOG.md');
+    if (fs.existsSync(devlogPath)) {
+      try {
+        const content = fs.readFileSync(devlogPath, 'utf-8');
+        // Get first session entry
+        const sessionMatch = content.match(/## .+?\n\*\*Session:\*\*\s*(.+)/);
+        if (sessionMatch) {
+          state.lastSession = sessionMatch[1].trim();
+        }
+        // Get "What was done" from most recent entry
+        const whatDoneMatch = content.match(/### What was done:\n([\s\S]*?)(?=\n###|---|\n\n)/);
+        if (whatDoneMatch && !state.lastSession) {
+          const lines = whatDoneMatch[1].split('\n')
+            .filter(l => l.trim().startsWith('-'))
+            .map(l => l.replace(/^-\s*/, '').trim());
+          if (lines[0]) {
+            state.lastSession = lines[0];
+          }
+        }
+      } catch {
+        // Ignore read errors
+      }
+    }
+
+    // Determine suggestion and status based on state
+    if (!state.isSetUp) {
+      state.status = 'NOT_INITIALIZED';
+      state.suggestion = 'Run `codebakers go` in the terminal to set up the project.';
+    } else if (state.blockers.length > 0) {
+      state.status = 'BLOCKED';
+      state.suggestion = `BLOCKED: ${state.blockers[0]}. Address this blocker first.`;
+    } else if (state.inProgressTasks.length > 0) {
+      state.status = 'IN_PROGRESS';
+      state.suggestion = `CONTINUE: ${state.inProgressTasks[0]}`;
+    } else if (state.hasPrd && state.completedTasks.length === 0) {
+      state.status = 'READY_TO_BUILD';
+      state.suggestion = 'START BUILDING: PRD exists. Begin implementing features from PRD.md';
+    } else if (!state.hasPrd) {
+      state.status = 'NEEDS_PRD';
+      state.suggestion = 'DEFINE PROJECT: No PRD found. Ask the user what they want to build.';
+    } else {
+      state.status = 'READY';
+      state.suggestion = 'READY: Project set up. Ask the user for the next feature to build.';
+    }
+
+    // Build response
+    let response = `# 🔄 Session Context Recovered\n\n`;
+    response += `**Reason:** ${reason}\n\n`;
+
+    response += `## Project\n`;
+    response += `- **Name:** ${state.projectName || 'Unknown'}\n`;
+    response += `- **Type:** ${state.projectType || 'Not set'}\n`;
+    response += `- **Status:** ${state.status}\n`;
+    if (state.prdSummary) {
+      response += `- **Description:** ${state.prdSummary}\n`;
+    }
+    response += `\n`;
+
+    if (state.blockers.length > 0) {
+      response += `## ⚠️ BLOCKERS (Address First!)\n`;
+      for (const blocker of state.blockers) {
+        response += `- ${blocker}\n`;
+      }
+      response += `\n`;
+    }
+
+    if (state.inProgressTasks.length > 0) {
+      response += `## 🔄 In Progress\n`;
+      for (const task of state.inProgressTasks) {
+        response += `- ${task}\n`;
+      }
+      response += `\n`;
+    }
+
+    if (state.completedTasks.length > 0) {
+      response += `## ✅ Recently Completed\n`;
+      for (const task of state.completedTasks) {
+        response += `- ${task}\n`;
+      }
+      response += `\n`;
+    }
+
+    if (state.lastSession) {
+      response += `## 📅 Last Session\n`;
+      response += `${state.lastSession}\n\n`;
+    }
+
+    response += `---\n\n`;
+    response += `## 🎯 NEXT ACTION\n\n`;
+    response += `**${state.suggestion}**\n\n`;
+
+    response += `---\n\n`;
+    response += `*Context recovered via CodeBakers resume_session. `;
+    response += `This tool should be called automatically after conversation compaction.*`;
 
     return {
       content: [{
