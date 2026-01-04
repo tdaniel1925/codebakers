@@ -1053,7 +1053,7 @@ function log(message: string, options?: GoOptions): void {
 }
 
 // Current CLI version - must match package.json
-const CURRENT_VERSION = '3.9.8';
+const CURRENT_VERSION = '3.9.9';
 
 /**
  * Check for updates and install them automatically
@@ -1183,6 +1183,21 @@ export async function go(options: GoOptions = {}): Promise<void> {
   // =========================================================================
   // FIRST-TIME SETUP - Project not yet configured
   // =========================================================================
+
+  // Auto-detect non-interactive mode (e.g., running from Claude Code)
+  const isNonInteractive = !process.stdin.isTTY;
+  if (isNonInteractive) {
+    console.log(chalk.yellow('\n  ⚡ Non-interactive mode - setting up project files only\n'));
+
+    // Just set up the project files without auth
+    // Auth can be done later via `codebakers go` in terminal or via MCP tools
+    await setupProject(options);
+
+    console.log(chalk.green('\n  ✓ Project files installed!\n'));
+    console.log(chalk.gray('  To activate trial/login, run in terminal:'));
+    console.log(chalk.cyan('    codebakers go\n'));
+    return;
+  }
 
   console.log(chalk.blue(`
   ╔═══════════════════════════════════════════════════════════╗
