@@ -4652,15 +4652,25 @@ Just describe what you want to build! I'll automatically:
 
       responseText += `---\n\n`;
 
-      // Section 1: Patterns from server
+      // Section 1: Patterns from server (CONDENSED - not full content)
       if (result.patterns && result.patterns.length > 0) {
         responseText += `## 📦 MANDATORY PATTERNS\n\n`;
-        responseText += `You MUST follow these patterns in your code:\n\n`;
+        responseText += `The following patterns apply to this task. Key rules are shown below:\n\n`;
+
         for (const pattern of result.patterns) {
-          responseText += `### ${pattern.name}\n\n`;
-          responseText += `**Relevance:** ${pattern.relevance}\n\n`;
-          responseText += `\`\`\`typescript\n${pattern.content || ''}\n\`\`\`\n\n`;
+          responseText += `### ${pattern.name} (${pattern.relevance} relevance)\n\n`;
+
+          // Extract only KEY RULES (first ~100 lines or critical sections)
+          // This prevents 100K+ character responses
+          const content = pattern.content || '';
+          const condensed = this.extractKeyRules(content, pattern.name);
+
+          if (condensed) {
+            responseText += condensed + '\n\n';
+          }
         }
+
+        responseText += `> **Note:** These are condensed key rules. The full patterns are enforced server-side.\n\n`;
       }
 
       // Section 2: Test Requirements (ALL from server, not local file)
@@ -4789,6 +4799,78 @@ Just describe what you want to build! I'll automatically:
     // Filter out common words
     const stopWords = ['the', 'and', 'for', 'add', 'fix', 'create', 'make', 'build', 'implement', 'update', 'modify', 'change', 'new', 'with', 'from', 'this', 'that'];
     return words.filter(w => !stopWords.includes(w));
+  }
+
+  /**
+   * Extract key rules from pattern content (CONDENSED - max ~2000 chars per pattern)
+   * This prevents 100K+ character responses that exceed token limits
+   */
+  private extractKeyRules(content: string, patternName: string): string {
+    if (!content) return '';
+
+    const MAX_CHARS = 2000; // ~50 lines max per pattern
+    const lines = content.split('\n');
+
+    // Strategy: Extract headers, key rules, and first code example
+    const keyParts: string[] = [];
+    let inCodeBlock = false;
+    let codeBlockCount = 0;
+    let currentSize = 0;
+
+    for (const line of lines) {
+      // Track code blocks
+      if (line.trim().startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+        if (!inCodeBlock) codeBlockCount++;
+      }
+
+      // Skip if we've hit the limit
+      if (currentSize > MAX_CHARS) {
+        keyParts.push('...(truncated - server enforces full pattern)');
+        break;
+      }
+
+      // Always include headers
+      if (line.startsWith('#')) {
+        keyParts.push(line);
+        currentSize += line.length;
+        continue;
+      }
+
+      // Include lines with key indicators
+      const isKeyLine =
+        line.includes('MUST') ||
+        line.includes('NEVER') ||
+        line.includes('ALWAYS') ||
+        line.includes('REQUIRED') ||
+        line.includes('MANDATORY') ||
+        line.includes('DO NOT') ||
+        line.includes('✅') ||
+        line.includes('❌') ||
+        line.includes('⚠️') ||
+        line.startsWith('- ') ||
+        line.startsWith('* ') ||
+        line.startsWith('|'); // Tables
+
+      if (isKeyLine && !inCodeBlock) {
+        keyParts.push(line);
+        currentSize += line.length;
+        continue;
+      }
+
+      // Include first code example only
+      if (inCodeBlock && codeBlockCount === 0) {
+        keyParts.push(line);
+        currentSize += line.length;
+      }
+    }
+
+    // If we got nothing useful, return first N characters
+    if (keyParts.length < 5) {
+      return content.substring(0, MAX_CHARS) + '\n...(truncated)';
+    }
+
+    return keyParts.join('\n');
   }
 
   /**
