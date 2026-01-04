@@ -739,6 +739,60 @@ function setupCursorIDE(cwd: string): void {
   }
 }
 
+function setupClaudeCode(): void {
+  const spinner = ora('  Setting up Claude Code MCP...').start();
+
+  try {
+    const homeDir = process.env.USERPROFILE || process.env.HOME || '';
+    let configPath: string;
+    const isWindows = process.platform === 'win32';
+
+    // Determine config path based on platform
+    if (isWindows) {
+      configPath = join(homeDir, 'AppData', 'Roaming', 'Claude', 'claude_desktop_config.json');
+    } else if (process.platform === 'darwin') {
+      configPath = join(homeDir, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+    } else {
+      configPath = join(homeDir, '.config', 'claude', 'claude_desktop_config.json');
+    }
+
+    // Ensure directory exists
+    const configDir = join(configPath, '..');
+    if (!existsSync(configDir)) {
+      mkdirSync(configDir, { recursive: true });
+    }
+
+    // MCP config for Claude Code
+    const mcpConfig = {
+      mcpServers: {
+        codebakers: isWindows
+          ? { command: 'cmd', args: ['/c', 'npx', '-y', '@codebakers/cli', 'serve'] }
+          : { command: 'npx', args: ['-y', '@codebakers/cli', 'serve'] }
+      }
+    };
+
+    // Read existing or create new
+    if (existsSync(configPath)) {
+      try {
+        const existing = JSON.parse(readFileSync(configPath, 'utf-8'));
+        if (!existing.mcpServers) {
+          existing.mcpServers = {};
+        }
+        existing.mcpServers.codebakers = mcpConfig.mcpServers.codebakers;
+        writeFileSync(configPath, JSON.stringify(existing, null, 2));
+      } catch {
+        writeFileSync(configPath, JSON.stringify(mcpConfig, null, 2));
+      }
+    } else {
+      writeFileSync(configPath, JSON.stringify(mcpConfig, null, 2));
+    }
+
+    spinner.succeed('Claude Code MCP configured!');
+  } catch {
+    spinner.warn('Could not configure Claude Code MCP (continuing anyway)');
+  }
+}
+
 function updateGitignore(cwd: string): void {
   const gitignorePath = join(cwd, '.gitignore');
   if (existsSync(gitignorePath)) {
@@ -827,9 +881,10 @@ async function initNewProject(cwd: string): Promise<void> {
   const structure = buildStructureString(cwd);
   createTrackingFiles(cwd, projectName, {}, structure, false);
 
-  // Setup Cursor
+  // Setup IDEs and MCP
   console.log('');
   setupCursorIDE(cwd);
+  setupClaudeCode();
 
   // Update .gitignore
   updateGitignore(cwd);
@@ -990,9 +1045,10 @@ async function initExistingProject(cwd: string, projectInfo: ReturnType<typeof d
   const structure = buildStructureString(cwd);
   createTrackingFiles(cwd, projectName, projectInfo.stack, structure, true, auditScore);
 
-  // Setup Cursor
+  // Setup IDEs and MCP
   console.log('');
   setupCursorIDE(cwd);
+  setupClaudeCode();
 
   // Update .gitignore
   updateGitignore(cwd);
