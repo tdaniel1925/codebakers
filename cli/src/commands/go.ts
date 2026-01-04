@@ -12,9 +12,10 @@ import {
   setApiKey,
   isTrialExpired,
   getTrialDaysRemaining,
+  isCliAutoUpdateDisabled,
   type TrialState,
 } from '../config.js';
-import { validateApiKey } from '../lib/api.js';
+import { validateApiKey, checkForUpdates } from '../lib/api.js';
 import { getDeviceFingerprint } from '../lib/fingerprint.js';
 import { audit } from './audit.js';
 import { heal } from './heal.js';
@@ -1051,6 +1052,88 @@ function log(message: string, options?: GoOptions): void {
   }
 }
 
+// Current CLI version - must match package.json
+const CURRENT_VERSION = '3.9.2';
+
+/**
+ * Check for updates and install them automatically
+ * This makes "codebakers go" the magic phrase that keeps everything updated
+ */
+async function checkAndInstallUpdates(options: GoOptions = {}): Promise<void> {
+  // Skip if auto-update is disabled
+  if (isCliAutoUpdateDisabled()) {
+    log('Auto-update disabled, skipping...', options);
+    return;
+  }
+
+  try {
+    log('Checking for CLI updates...', options);
+    const updateInfo = await checkForUpdates();
+
+    if (!updateInfo || !updateInfo.updateAvailable) {
+      log('CLI is up to date', options);
+      return;
+    }
+
+    // Show blocked version warning
+    if (updateInfo.isBlocked) {
+      console.log(chalk.red(`
+  ⚠️  Your CLI version (${CURRENT_VERSION}) has critical issues.
+  Updating to ${updateInfo.latestVersion}...
+      `));
+    }
+
+    const targetVersion = updateInfo.latestVersion;
+
+    // Only auto-update if server says it's safe
+    if (!updateInfo.autoUpdateEnabled && !updateInfo.isBlocked) {
+      // Just show banner, don't auto-install
+      console.log(chalk.yellow(`
+  📦 Update available: ${CURRENT_VERSION} → ${chalk.green(targetVersion)}
+     Run: npm i -g @codebakers/cli@latest
+      `));
+      return;
+    }
+
+    // Auto-install the update
+    console.log(chalk.blue(`\n  🔄 Updating CLI: ${CURRENT_VERSION} → ${chalk.green(targetVersion)}...\n`));
+
+    try {
+      execSync('npm install -g @codebakers/cli@latest', {
+        stdio: 'inherit',
+        timeout: 60000,
+      });
+
+      console.log(chalk.green(`\n  ✓ CLI updated to v${targetVersion}!\n`));
+      console.log(chalk.gray('  Restart your terminal or run `codebakers go` again.\n'));
+
+      // Exit so user gets the new version
+      process.exit(0);
+
+    } catch (installError) {
+      const errorMessage = installError instanceof Error ? installError.message : String(installError);
+
+      if (errorMessage.includes('EACCES') || errorMessage.includes('permission')) {
+        console.log(chalk.yellow(`
+  ⚠️  Update failed (permission denied)
+
+  Run manually: ${chalk.cyan('sudo npm i -g @codebakers/cli@latest')}
+        `));
+      } else {
+        console.log(chalk.yellow(`
+  ⚠️  Update failed
+
+  Run manually: ${chalk.cyan('npm i -g @codebakers/cli@latest')}
+        `));
+      }
+      // Continue anyway - don't block the user
+    }
+  } catch (error) {
+    // Silently fail - don't block CLI for update check
+    log(`Update check failed: ${error}`, options);
+  }
+}
+
 /**
  * Zero-friction entry point - start using CodeBakers instantly
  * Single command for both trial and paid users
@@ -1063,6 +1146,11 @@ export async function go(options: GoOptions = {}): Promise<void> {
   log('Starting go command...', options);
   log(`API URL: ${getApiUrl()}`, options);
   log(`Working directory: ${process.cwd()}`, options);
+
+  // =========================================================================
+  // AUTO-UPDATE CHECK - The magic of "codebakers go"
+  // =========================================================================
+  await checkAndInstallUpdates(options);
 
   const cwd = process.cwd();
 
