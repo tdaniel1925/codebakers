@@ -499,6 +499,122 @@ ${typeSpecificSections}
 }
 
 // ============================================================================
+// GUIDED QUESTIONS
+// ============================================================================
+
+interface GuidedAnswers {
+  oneLiner: string;
+  problem: string;
+  users: string;
+  features: string[];
+  auth: boolean;
+  payments: boolean;
+  integrations: string;
+  deadline: string;
+}
+
+async function runGuidedQuestions(): Promise<GuidedAnswers> {
+  console.log(chalk.cyan('\n  ━━━ Let\'s define your project ━━━\n'));
+  console.log(chalk.gray('  Answer these questions (press Enter to skip any)\n'));
+
+  // One-liner
+  console.log(chalk.white('  1. What are you building?\n'));
+  const oneLiner = await prompt('     ') || 'A web application';
+
+  // Problem
+  console.log(chalk.white('\n  2. What problem does this solve?\n'));
+  const problem = await prompt('     ') || '';
+
+  // Users
+  console.log(chalk.white('\n  3. Who will use this?\n'));
+  console.log(chalk.gray('     (e.g., "small business owners", "freelancers", "developers")\n'));
+  const users = await prompt('     ') || 'General users';
+
+  // Features
+  console.log(chalk.white('\n  4. What are the 3 must-have features?\n'));
+  console.log(chalk.gray('     (Enter each feature, then press Enter. Type "done" when finished)\n'));
+  const features: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const feature = await prompt(`     Feature ${i + 1}: `);
+    if (!feature || feature.toLowerCase() === 'done') break;
+    features.push(feature);
+  }
+
+  // Auth
+  console.log(chalk.white('\n  5. Do users need to create accounts?\n'));
+  const authAnswer = await prompt('     (y/n): ');
+  const auth = authAnswer.toLowerCase() === 'y' || authAnswer.toLowerCase() === 'yes';
+
+  // Payments
+  console.log(chalk.white('\n  6. Will you charge money?\n'));
+  const paymentsAnswer = await prompt('     (y/n): ');
+  const payments = paymentsAnswer.toLowerCase() === 'y' || paymentsAnswer.toLowerCase() === 'yes';
+
+  // Integrations
+  console.log(chalk.white('\n  7. Any specific integrations needed?\n'));
+  console.log(chalk.gray('     (e.g., "Stripe, SendGrid, Twilio" or press Enter to skip)\n'));
+  const integrations = await prompt('     ') || '';
+
+  // Deadline
+  console.log(chalk.white('\n  8. When do you need this done?\n'));
+  console.log(chalk.gray('     (e.g., "2 weeks", "end of month", or press Enter to skip)\n'));
+  const deadline = await prompt('     ') || '';
+
+  console.log(chalk.green('\n  ✓ Got it! Creating your PRD...\n'));
+
+  return { oneLiner, problem, users, features, auth, payments, integrations, deadline };
+}
+
+function createPrdFromAnswers(
+  projectName: string,
+  projectType: string,
+  answers: GuidedAnswers
+): string {
+  const date = new Date().toISOString().split('T')[0];
+
+  const featuresSection = answers.features.length > 0
+    ? answers.features.map((f, i) => `${i + 1}. [ ] **${f}**`).join('\n')
+    : '1. [ ] **Feature 1:** [To be defined]\n2. [ ] **Feature 2:** [To be defined]';
+
+  const techRequirements: string[] = [];
+  if (answers.auth) techRequirements.push('User authentication (Supabase Auth)');
+  if (answers.payments) techRequirements.push('Payment processing (Stripe)');
+  if (answers.integrations) techRequirements.push(answers.integrations);
+
+  return `# Product Requirements Document
+# Project: ${projectName}
+# Created: ${date}
+# Type: ${projectType}
+
+## Overview
+**One-liner:** ${answers.oneLiner}
+
+**Problem:** ${answers.problem || '[To be refined]'}
+
+**Solution:** ${answers.oneLiner}
+
+## Target Users
+- **Primary:** ${answers.users}
+
+## Core Features (MVP)
+${featuresSection}
+
+## Technical Requirements
+${techRequirements.length > 0 ? techRequirements.map(t => `- ${t}`).join('\n') : '- [No specific requirements noted]'}
+
+## Timeline
+${answers.deadline ? `- **Target:** ${answers.deadline}` : '- [No deadline specified]'}
+
+## Notes
+- Authentication: ${answers.auth ? 'Yes - users need accounts' : 'No - public access'}
+- Payments: ${answers.payments ? 'Yes - will charge users' : 'No - free to use'}
+
+---
+<!-- Generated from guided questions - AI reads this to build your project -->
+`;
+}
+
+// ============================================================================
 // SHARED SETUP FUNCTIONS
 // ============================================================================
 
@@ -718,28 +834,50 @@ async function initNewProject(cwd: string): Promise<void> {
   // Update .gitignore
   updateGitignore(cwd);
 
-  // PRD Setup
-  console.log(chalk.white('\n  Product Requirements Document\n'));
-  console.log(chalk.gray('  A PRD helps the AI understand what you\'re building.\n'));
-  console.log(chalk.gray('    1. ') + chalk.cyan('CREATE TEMPLATE') + chalk.gray(' - I\'ll fill it out'));
-  console.log(chalk.gray('    2. ') + chalk.cyan('SKIP FOR NOW') + chalk.gray('    - I\'ll describe it in chat\n'));
+  // How to describe project
+  console.log(chalk.white('\n  📝 How would you like to describe your project?\n'));
+  console.log(chalk.gray('    1. ') + chalk.cyan('GUIDED QUESTIONS') + chalk.gray(' - I\'ll ask you step by step'));
+  console.log(chalk.gray('    2. ') + chalk.cyan('WRITE A PRD') + chalk.gray('      - Create a requirements doc to fill out'));
+  console.log(chalk.gray('    3. ') + chalk.cyan('DESCRIBE IN CHAT') + chalk.gray(' - Just tell the AI what you want'));
+  console.log(chalk.gray('    4. ') + chalk.cyan('I HAVE SPECS') + chalk.gray('     - I\'ll share existing docs/mockups\n'));
 
-  let prdChoice = '';
-  while (!['1', '2'].includes(prdChoice)) {
-    prdChoice = await prompt('  Enter 1 or 2: ');
+  let describeChoice = '';
+  while (!['1', '2', '3', '4'].includes(describeChoice)) {
+    describeChoice = await prompt('  Enter 1, 2, 3, or 4: ');
   }
 
-  if (prdChoice === '1') {
+  let prdCreated = false;
+
+  if (describeChoice === '1') {
+    // Guided questions
+    const answers = await runGuidedQuestions();
+    const prdSpinner = ora('  Creating PRD from your answers...').start();
+    writeFileSync(join(cwd, 'PRD.md'), createPrdFromAnswers(projectName, projectType, answers));
+    prdSpinner.succeed('PRD created from your answers!');
+    console.log(chalk.yellow('\n  → Review PRD.md, then start building with the AI\n'));
+    prdCreated = true;
+  } else if (describeChoice === '2') {
+    // Write PRD template
     const prdSpinner = ora('  Creating PRD template...').start();
     writeFileSync(join(cwd, 'PRD.md'), createPrdTemplate(projectName, projectType));
     prdSpinner.succeed('PRD template created!');
     console.log(chalk.yellow('\n  → Open PRD.md and fill in your requirements\n'));
+    prdCreated = true;
+  } else if (describeChoice === '3') {
+    // Describe in chat
+    console.log(chalk.gray('\n  Perfect! Just describe your project to the AI when you\'re ready.\n'));
+    console.log(chalk.gray('  Example: "Build me a SaaS for invoice management with Stripe payments"\n'));
   } else {
-    console.log(chalk.gray('\n  No problem! Just describe your project to the AI.\n'));
+    // I have specs
+    console.log(chalk.gray('\n  Great! When chatting with the AI:\n'));
+    console.log(chalk.gray('    • Share your docs, mockups, or screenshots'));
+    console.log(chalk.gray('    • Paste your existing requirements'));
+    console.log(chalk.gray('    • Reference URLs to designs you want to clone\n'));
+    console.log(chalk.cyan('  The AI will analyze them and start building.\n'));
   }
 
   // Success
-  showSuccessMessage(projectName, false, prdChoice === '1');
+  showSuccessMessage(projectName, false, prdCreated);
 }
 
 // ============================================================================
