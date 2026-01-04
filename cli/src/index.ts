@@ -224,7 +224,18 @@ program
   .alias('start')
   .description('Start using CodeBakers instantly (no signup required)')
   .option('-v, --verbose', 'Show detailed debug output for troubleshooting')
-  .action((options) => go({ verbose: options.verbose }));
+  // Non-interactive flags for programmatic use (e.g., by AI assistants)
+  .option('-t, --type <type>', 'Project type: personal, client, or business')
+  .option('-n, --name <name>', 'Project name')
+  .option('-d, --describe <mode>', 'Description mode: guided, template, paste, chat, or files')
+  .option('--skip-review', 'Skip the review question for existing projects')
+  .action((options) => go({
+    verbose: options.verbose,
+    type: options.type,
+    name: options.name,
+    describe: options.describe,
+    skipReview: options.skipReview,
+  }));
 
 program
   .command('extend')

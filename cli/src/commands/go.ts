@@ -771,6 +771,11 @@ function updateGitignore(cwd: string): void {
 
 interface GoOptions {
   verbose?: boolean;
+  // Non-interactive flags for programmatic use (e.g., by AI assistants)
+  type?: 'personal' | 'client' | 'business';
+  name?: string;
+  describe?: 'guided' | 'template' | 'paste' | 'chat' | 'files';
+  skipReview?: boolean;
 }
 
 interface ConfirmData {
@@ -1240,22 +1245,31 @@ async function setupProject(options: GoOptions = {}, auth?: AuthInfo): Promise<v
 async function setupNewProject(cwd: string, options: GoOptions = {}, auth?: AuthInfo): Promise<void> {
   console.log(chalk.cyan('\n  ━━━ New Project Setup ━━━\n'));
 
-  // Get project info
-  console.log(chalk.white('  What kind of project is this?\n'));
-  console.log(chalk.gray('    1. ') + chalk.cyan('PERSONAL') + chalk.gray(' - Just building for myself'));
-  console.log(chalk.gray('    2. ') + chalk.cyan('CLIENT') + chalk.gray('   - Building for someone else'));
-  console.log(chalk.gray('    3. ') + chalk.cyan('BUSINESS') + chalk.gray(' - My own product/startup\n'));
-
-  let typeChoice = '';
-  while (!['1', '2', '3'].includes(typeChoice)) {
-    typeChoice = await prompt('  Enter 1, 2, or 3: ');
-  }
-
-  const typeMap: Record<string, string> = { '1': 'personal', '2': 'client', '3': 'business' };
-  const projectType = typeMap[typeChoice];
-
+  let projectType: string;
+  let projectName: string;
   const defaultName = cwd.split(/[\\/]/).pop() || 'my-project';
-  const projectName = await prompt(`  Project name (${defaultName}): `) || defaultName;
+
+  // Use flags if provided (non-interactive mode for AI)
+  if (options.type) {
+    projectType = options.type;
+    projectName = options.name || defaultName;
+    console.log(chalk.green(`  Using: ${projectType.toUpperCase()} project named "${projectName}"\n`));
+  } else {
+    // Interactive mode - ask questions
+    console.log(chalk.white('  What kind of project is this?\n'));
+    console.log(chalk.gray('    1. ') + chalk.cyan('PERSONAL') + chalk.gray(' - Just building for myself'));
+    console.log(chalk.gray('    2. ') + chalk.cyan('CLIENT') + chalk.gray('   - Building for someone else'));
+    console.log(chalk.gray('    3. ') + chalk.cyan('BUSINESS') + chalk.gray(' - My own product/startup\n'));
+
+    let typeChoice = '';
+    while (!['1', '2', '3'].includes(typeChoice)) {
+      typeChoice = await prompt('  Enter 1, 2, or 3: ');
+    }
+
+    const typeMap: Record<string, string> = { '1': 'personal', '2': 'client', '3': 'business' };
+    projectType = typeMap[typeChoice];
+    projectName = await prompt(`  Project name (${defaultName}): `) || defaultName;
+  }
 
   console.log(chalk.green(`\n  ✓ Setting up "${projectName}" as ${projectType.toUpperCase()} project\n`));
 
@@ -1276,16 +1290,27 @@ async function setupNewProject(cwd: string, options: GoOptions = {}, auth?: Auth
   updateGitignore(cwd);
 
   // How to describe project
-  console.log(chalk.white('\n  📝 How would you like to describe your project?\n'));
-  console.log(chalk.gray('    1. ') + chalk.cyan('GUIDED QUESTIONS') + chalk.gray(' - I\'ll ask you step by step'));
-  console.log(chalk.gray('    2. ') + chalk.cyan('WRITE A PRD') + chalk.gray('      - Create a blank template to fill out'));
-  console.log(chalk.gray('    3. ') + chalk.cyan('PASTE/UPLOAD PRD') + chalk.gray(' - I already have requirements written'));
-  console.log(chalk.gray('    4. ') + chalk.cyan('DESCRIBE IN CHAT') + chalk.gray(' - Just tell the AI what you want'));
-  console.log(chalk.gray('    5. ') + chalk.cyan('SHARE FILES') + chalk.gray('      - I\'ll share docs/mockups/screenshots\n'));
-
   let describeChoice = '';
-  while (!['1', '2', '3', '4', '5'].includes(describeChoice)) {
-    describeChoice = await prompt('  Enter 1-5: ');
+
+  // Use flag if provided (non-interactive mode for AI)
+  if (options.describe) {
+    const describeMap: Record<string, string> = {
+      'guided': '1', 'template': '2', 'paste': '3', 'chat': '4', 'files': '5'
+    };
+    describeChoice = describeMap[options.describe] || '4';
+    console.log(chalk.green(`  Using: ${options.describe} mode for project description\n`));
+  } else {
+    // Interactive mode
+    console.log(chalk.white('\n  📝 How would you like to describe your project?\n'));
+    console.log(chalk.gray('    1. ') + chalk.cyan('GUIDED QUESTIONS') + chalk.gray(' - I\'ll ask you step by step'));
+    console.log(chalk.gray('    2. ') + chalk.cyan('WRITE A PRD') + chalk.gray('      - Create a blank template to fill out'));
+    console.log(chalk.gray('    3. ') + chalk.cyan('PASTE/UPLOAD PRD') + chalk.gray(' - I already have requirements written'));
+    console.log(chalk.gray('    4. ') + chalk.cyan('DESCRIBE IN CHAT') + chalk.gray(' - Just tell the AI what you want'));
+    console.log(chalk.gray('    5. ') + chalk.cyan('SHARE FILES') + chalk.gray('      - I\'ll share docs/mockups/screenshots\n'));
+
+    while (!['1', '2', '3', '4', '5'].includes(describeChoice)) {
+      describeChoice = await prompt('  Enter 1-5: ');
+    }
   }
 
   let prdCreated = false;
@@ -1384,17 +1409,36 @@ async function setupExistingProject(cwd: string, projectInfo: ProjectInfo, optio
 
   // Get project name
   const defaultName = cwd.split(/[\\/]/).pop() || 'my-project';
-  const projectName = await prompt(`\n  Project name (${defaultName}): `) || defaultName;
+  let projectName: string;
+  let reviewChoice: string;
 
-  // Code review offer
-  console.log(chalk.white('\n  Want me to review your code and bring it up to CodeBakers standards?\n'));
-  console.log(chalk.gray('    1. ') + chalk.cyan('YES, REVIEW & FIX') + chalk.gray(' - Run audit, then auto-fix issues'));
-  console.log(chalk.gray('    2. ') + chalk.cyan('REVIEW ONLY') + chalk.gray('      - Just show me the issues'));
-  console.log(chalk.gray('    3. ') + chalk.cyan('SKIP') + chalk.gray('             - Just install CodeBakers\n'));
+  // Use flags if provided (non-interactive mode for AI)
+  if (options.name) {
+    projectName = options.name;
+    console.log(chalk.green(`\n  Using project name: "${projectName}"\n`));
+  } else {
+    projectName = await prompt(`\n  Project name (${defaultName}): `) || defaultName;
+  }
 
-  let reviewChoice = '';
-  while (!['1', '2', '3'].includes(reviewChoice)) {
-    reviewChoice = await prompt('  Enter 1, 2, or 3: ');
+  // Use skipReview flag or ask
+  if (options.skipReview) {
+    reviewChoice = '3';
+    console.log(chalk.gray('  Skipping code review (--skip-review flag)\n'));
+  } else if (options.type) {
+    // If running in non-interactive mode, default to skip review
+    reviewChoice = '3';
+    console.log(chalk.gray('  Skipping code review (non-interactive mode)\n'));
+  } else {
+    // Interactive mode - ask about code review
+    console.log(chalk.white('\n  Want me to review your code and bring it up to CodeBakers standards?\n'));
+    console.log(chalk.gray('    1. ') + chalk.cyan('YES, REVIEW & FIX') + chalk.gray(' - Run audit, then auto-fix issues'));
+    console.log(chalk.gray('    2. ') + chalk.cyan('REVIEW ONLY') + chalk.gray('      - Just show me the issues'));
+    console.log(chalk.gray('    3. ') + chalk.cyan('SKIP') + chalk.gray('             - Just install CodeBakers\n'));
+
+    reviewChoice = '';
+    while (!['1', '2', '3'].includes(reviewChoice)) {
+      reviewChoice = await prompt('  Enter 1, 2, or 3: ');
+    }
   }
 
   let auditScore: number | undefined;
