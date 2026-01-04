@@ -778,6 +778,222 @@ interface GoOptions {
   skipReview?: boolean;
 }
 
+// ============================================================================
+// SMART CONTEXT DETECTION - "Where am I? What's next?"
+// ============================================================================
+
+interface ProjectState {
+  isSetUp: boolean;
+  projectName?: string;
+  projectType?: string;
+  hasPrd: boolean;
+  prdSummary?: string;
+  inProgressTasks: string[];
+  completedTasks: string[];
+  blockers: string[];
+  lastSession?: string;
+  suggestion: string;
+}
+
+function analyzeProjectState(cwd: string): ProjectState {
+  const state: ProjectState = {
+    isSetUp: false,
+    hasPrd: false,
+    inProgressTasks: [],
+    completedTasks: [],
+    blockers: [],
+    suggestion: '',
+  };
+
+  // Check if CodeBakers is set up
+  const codebakersJsonPath = join(cwd, '.codebakers.json');
+  if (!existsSync(codebakersJsonPath)) {
+    state.suggestion = 'Project not set up. Running first-time setup...';
+    return state;
+  }
+
+  state.isSetUp = true;
+
+  // Read .codebakers.json
+  try {
+    const cbState = JSON.parse(readFileSync(codebakersJsonPath, 'utf-8'));
+    state.projectName = cbState.projectName;
+    state.projectType = cbState.projectType;
+  } catch {
+    // Ignore parse errors
+  }
+
+  // Check for PRD.md
+  const prdPath = join(cwd, 'PRD.md');
+  if (existsSync(prdPath)) {
+    state.hasPrd = true;
+    try {
+      const prdContent = readFileSync(prdPath, 'utf-8');
+      // Extract one-liner if present
+      const oneLineMatch = prdContent.match(/\*\*One-liner:\*\*\s*(.+)/);
+      if (oneLineMatch) {
+        state.prdSummary = oneLineMatch[1].trim();
+      } else {
+        // Get first non-comment, non-header line
+        const lines = prdContent.split('\n').filter(l =>
+          l.trim() && !l.startsWith('#') && !l.startsWith('<!--')
+        );
+        if (lines[0]) {
+          state.prdSummary = lines[0].substring(0, 100);
+        }
+      }
+    } catch {
+      // Ignore read errors
+    }
+  }
+
+  // Read PROJECT-STATE.md for tasks
+  const projectStatePath = join(cwd, 'PROJECT-STATE.md');
+  if (existsSync(projectStatePath)) {
+    try {
+      const content = readFileSync(projectStatePath, 'utf-8');
+
+      // Extract In Progress section
+      const inProgressMatch = content.match(/## In Progress\n([\s\S]*?)(?=\n##|$)/);
+      if (inProgressMatch) {
+        const lines = inProgressMatch[1].split('\n')
+          .filter(l => l.trim().startsWith('-'))
+          .map(l => l.replace(/^-\s*/, '').trim())
+          .filter(l => l && !l.startsWith('<!--'));
+        state.inProgressTasks = lines;
+      }
+
+      // Extract Completed section (last 5)
+      const completedMatch = content.match(/## Completed\n([\s\S]*?)(?=\n##|$)/);
+      if (completedMatch) {
+        const lines = completedMatch[1].split('\n')
+          .filter(l => l.trim().startsWith('-'))
+          .map(l => l.replace(/^-\s*/, '').trim())
+          .filter(l => l && !l.startsWith('<!--'));
+        state.completedTasks = lines.slice(-5);
+      }
+
+      // Extract Blockers section
+      const blockersMatch = content.match(/## Blockers\n([\s\S]*?)(?=\n##|$)/);
+      if (blockersMatch) {
+        const lines = blockersMatch[1].split('\n')
+          .filter(l => l.trim().startsWith('-'))
+          .map(l => l.replace(/^-\s*/, '').trim())
+          .filter(l => l && !l.startsWith('<!--'));
+        state.blockers = lines;
+      }
+    } catch {
+      // Ignore read errors
+    }
+  }
+
+  // Read DEVLOG for last session
+  const devlogPath = join(cwd, '.codebakers', 'DEVLOG.md');
+  if (existsSync(devlogPath)) {
+    try {
+      const content = readFileSync(devlogPath, 'utf-8');
+      // Get first session entry
+      const sessionMatch = content.match(/## .+?\n\*\*Session:\*\*\s*(.+)/);
+      if (sessionMatch) {
+        state.lastSession = sessionMatch[1].trim();
+      }
+      // Get "What was done" from most recent entry
+      const whatDoneMatch = content.match(/### What was done:\n([\s\S]*?)(?=\n###|---|\n\n)/);
+      if (whatDoneMatch && !state.lastSession) {
+        const lines = whatDoneMatch[1].split('\n')
+          .filter(l => l.trim().startsWith('-'))
+          .map(l => l.replace(/^-\s*/, '').trim());
+        if (lines[0]) {
+          state.lastSession = lines[0];
+        }
+      }
+    } catch {
+      // Ignore read errors
+    }
+  }
+
+  // Determine suggestion based on state
+  if (state.blockers.length > 0) {
+    state.suggestion = `BLOCKED: ${state.blockers[0]}. Address this blocker first.`;
+  } else if (state.inProgressTasks.length > 0) {
+    state.suggestion = `CONTINUE: ${state.inProgressTasks[0]}`;
+  } else if (state.hasPrd && state.completedTasks.length === 0) {
+    state.suggestion = `START BUILDING: PRD exists. Begin implementing features from PRD.md`;
+  } else if (!state.hasPrd) {
+    state.suggestion = `DEFINE PROJECT: No PRD found. Describe what you want to build.`;
+  } else {
+    state.suggestion = `READY: Project set up. Ask for the next feature to build.`;
+  }
+
+  return state;
+}
+
+function showResumeContext(state: ProjectState): void {
+  console.log(chalk.blue(`
+  ╔═══════════════════════════════════════════════════════════╗
+  ║                                                           ║
+  ║   ${chalk.bold.white('CodeBakers - Resuming Session')}                          ║
+  ║                                                           ║
+  ╚═══════════════════════════════════════════════════════════╝
+  `));
+
+  console.log(chalk.white(`  📁 Project: ${chalk.cyan(state.projectName || 'Unknown')}`));
+
+  if (state.prdSummary) {
+    console.log(chalk.gray(`  📝 ${state.prdSummary}`));
+  }
+
+  console.log('');
+
+  // Show blockers first (critical)
+  if (state.blockers.length > 0) {
+    console.log(chalk.red('  ⚠️  BLOCKERS:'));
+    for (const blocker of state.blockers) {
+      console.log(chalk.red(`      • ${blocker}`));
+    }
+    console.log('');
+  }
+
+  // Show in-progress tasks
+  if (state.inProgressTasks.length > 0) {
+    console.log(chalk.yellow('  🔄 IN PROGRESS:'));
+    for (const task of state.inProgressTasks) {
+      console.log(chalk.yellow(`      • ${task}`));
+    }
+    console.log('');
+  }
+
+  // Show recent completed (context)
+  if (state.completedTasks.length > 0) {
+    console.log(chalk.green('  ✓ RECENTLY COMPLETED:'));
+    for (const task of state.completedTasks.slice(-3)) {
+      console.log(chalk.gray(`      • ${task}`));
+    }
+    console.log('');
+  }
+
+  // Show last session timestamp if available
+  if (state.lastSession) {
+    console.log(chalk.gray(`  📅 Last session: ${state.lastSession}`));
+    console.log('');
+  }
+
+  // Show the suggestion prominently
+  console.log(chalk.cyan('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+  console.log(chalk.white.bold(`\n  → ${state.suggestion}\n`));
+  console.log(chalk.cyan('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
+
+  // Output machine-readable context for AI
+  console.log(chalk.gray('  [AI Context]'));
+  console.log(chalk.gray(`  Project: ${state.projectName || 'Unknown'}`));
+  console.log(chalk.gray(`  Status: ${state.inProgressTasks.length > 0 ? 'IN_PROGRESS' : state.blockers.length > 0 ? 'BLOCKED' : 'READY'}`));
+  console.log(chalk.gray(`  Next Action: ${state.suggestion}`));
+  if (state.hasPrd) {
+    console.log(chalk.gray(`  PRD: Available at PRD.md`));
+  }
+  console.log('');
+}
+
 interface ConfirmData {
   version: string;
   moduleCount: number;
@@ -838,11 +1054,47 @@ function log(message: string, options?: GoOptions): void {
 /**
  * Zero-friction entry point - start using CodeBakers instantly
  * Single command for both trial and paid users
+ *
+ * SMART BEHAVIOR:
+ * - If CodeBakers already set up → Show context and resume from where you left off
+ * - If not set up → Run first-time setup (trial or login)
  */
 export async function go(options: GoOptions = {}): Promise<void> {
   log('Starting go command...', options);
   log(`API URL: ${getApiUrl()}`, options);
   log(`Working directory: ${process.cwd()}`, options);
+
+  const cwd = process.cwd();
+
+  // =========================================================================
+  // SMART CONTEXT CHECK - If already set up, show resume context
+  // =========================================================================
+  const projectState = analyzeProjectState(cwd);
+
+  if (projectState.isSetUp) {
+    // Project already has CodeBakers - show context and resume
+    showResumeContext(projectState);
+
+    // Verify auth is still valid
+    const existingApiKey = getApiKey();
+    const existingTrial = getTrialState();
+
+    if (existingApiKey) {
+      console.log(chalk.green('  ✓ Authenticated (API key)\n'));
+    } else if (existingTrial && !isTrialExpired()) {
+      const daysRemaining = getTrialDaysRemaining();
+      console.log(chalk.green(`  ✓ Trial active (${daysRemaining} days remaining)\n`));
+    } else if (existingTrial && isTrialExpired()) {
+      console.log(chalk.yellow('  ⚠️  Trial expired. Run `codebakers extend` or login.\n'));
+    }
+
+    // Don't run setup again - just show context
+    return;
+  }
+
+  // =========================================================================
+  // FIRST-TIME SETUP - Project not yet configured
+  // =========================================================================
 
   console.log(chalk.blue(`
   ╔═══════════════════════════════════════════════════════════╗
