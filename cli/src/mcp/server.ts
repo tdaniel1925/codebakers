@@ -4238,16 +4238,21 @@ If you want AI features and prefer Claude over GPT (or want both as fallback).`,
       } else {
         response += `## Next Steps\n\n`;
         response += `1. Decide which services you actually need for your project\n`;
-        response += `2. Create accounts and get API keys for those services\n`;
-        response += `3. Add the keys to your \`.env.local\` file:\n\n`;
-        response += `\`\`\`bash\n`;
+        response += `2. Create accounts and get API keys using the instructions above\n`;
+        response += `3. **Paste your keys here in chat** and I'll add them to your \`.env.local\` file for you!\n\n`;
+        response += `Example: Just paste something like:\n`;
+        response += `\`\`\`\n`;
+        response += `Here are my keys:\n`;
         for (const r of missing) {
-          for (const v of r.missingVars) {
-            response += `${v}=your_key_here\n`;
+          if (r.missingVars.length > 0) {
+            response += `${r.info.name}: sk-xxx... (your actual key)\n`;
           }
         }
         response += `\`\`\`\n\n`;
-        response += `4. Restart your dev server after adding keys\n\n`;
+        response += `I'll automatically:\n`;
+        response += `- Create \`.env.local\` if it doesn't exist\n`;
+        response += `- Add the correct variable names\n`;
+        response += `- Keep your existing env vars safe\n\n`;
         response += `**Don't need a service?** That's fine! Only configure what you'll actually use.\n`;
       }
     }
