@@ -22,30 +22,58 @@ import {
   MagicWand02Icon,
   PlayIcon,
   SecurityCheckIcon,
-  UserIcon,
-  Briefcase01Icon,
-  Book02Icon,
+  RefreshIcon,
+  Alert02Icon,
+  BrainIcon,
+  RepeatIcon,
+  TimeQuarterPassIcon,
+  CheckmarkSquare02Icon,
+  Cancel01Icon,
 } from 'hugeicons-react';
 
-// Testimonials representing different skill levels
+// Testimonials focused on context/continuity benefits
 const testimonials = [
   {
-    quote: "I'm learning to code and had no idea auth needed security reviews. CodeBakers caught things I didn't even know to worry about.",
-    author: "Maya Chen",
-    role: "Career Changer, 6 months coding",
+    quote: "Before CodeBakers, I'd restart Claude every few hours because it would forget our architecture decisions. Now it remembers everything.",
+    author: "Alex Rivera",
+    role: "Solo Founder, 3 AI projects",
+    avatar: "AR",
+  },
+  {
+    quote: "I used to spend 20 minutes at the start of every session re-explaining my codebase. Now I just type 'continue' and it picks up exactly where we left off.",
+    author: "Sarah Kim",
+    role: "Freelance Developer",
+    avatar: "SK",
+  },
+  {
+    quote: "The AI stopped randomly changing my auth patterns mid-project. It actually follows our established conventions now.",
+    author: "Marcus Chen",
+    role: "Tech Lead, 8 years exp",
     avatar: "MC",
   },
+];
+
+// Pain points - focused on context loss and AI inconsistency
+const painPoints = [
   {
-    quote: "I know what production code should look like—I just don't want to explain it every time. Now I don't have to.",
-    author: "David Park",
-    role: "Staff Engineer, 12 years exp",
-    avatar: "DP",
+    icon: Alert02Icon,
+    title: 'Context collapse',
+    description: 'After ~30 messages, AI forgets your decisions and starts contradicting itself.',
   },
   {
-    quote: "Shipped my SaaS in 3 weeks instead of 3 months. The AI writes code like a senior dev reviewed it.",
-    author: "Jordan Lee",
-    role: "Indie Hacker",
-    avatar: "JL",
+    icon: RepeatIcon,
+    title: 'Daily re-explanations',
+    description: '"Remember, we use Drizzle, not Prisma..." Every. Single. Session.',
+  },
+  {
+    icon: Cancel01Icon,
+    title: 'Random pattern changes',
+    description: 'AI suddenly switches your auth approach mid-feature for no reason.',
+  },
+  {
+    icon: TimeQuarterPassIcon,
+    title: 'Session restarts',
+    description: 'Context limit hit. Start over. Lose everything. Repeat.',
   },
 ];
 
@@ -171,17 +199,14 @@ export default function HomePage() {
             <span className="text-xl font-bold text-white">CodeBakers</span>
           </Link>
           <div className="hidden md:flex items-center gap-6">
-            <Link href="#smart-prompts" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Smart Prompts
+            <Link href="#problem" className="text-gray-400 hover:text-white transition-colors text-sm">
+              The Problem
             </Link>
-            <Link href="#features" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Features
+            <Link href="#solution" className="text-gray-400 hover:text-white transition-colors text-sm">
+              Solution
             </Link>
-            <Link href="#compare" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Compare
-            </Link>
-            <Link href="#modules" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Modules
+            <Link href="#how-it-works" className="text-gray-400 hover:text-white transition-colors text-sm">
+              How It Works
             </Link>
             <Link href="#pricing" className="text-gray-400 hover:text-white transition-colors text-sm">
               Pricing
@@ -211,8 +236,8 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero Section - Clear Value Prop */}
-      <section id="smart-prompts" className="pt-24 pb-12 px-4 min-h-[calc(100vh-4rem)] flex items-center relative overflow-hidden bg-gray-950">
+      {/* Hero Section - New Value Prop: AI That Doesn't Forget */}
+      <section className="pt-24 pb-12 px-4 min-h-[calc(100vh-4rem)] flex items-center relative overflow-hidden bg-gray-950">
         {/* Grid Background Pattern */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div
@@ -224,37 +249,21 @@ export default function HomePage() {
         </div>
 
         <div className="container mx-auto text-center relative z-10">
-          {/* MAIN HEADLINE - The Problem & Solution */}
+          {/* MAIN HEADLINE - Session Continuity */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-[1] tracking-tight mt-8 text-white">
-            <span className="text-gray-400">Your </span>
-            {/* Handwriting annotation floating above the space between Your and prompts */}
-            <span className="relative inline-block">
-              <span className="text-gray-400">prompts</span>
-              {/* Proofreader-style insertion: handwriting above with caret pointing UP */}
-              <span className="absolute -top-4 sm:-top-5 md:-top-6 lg:-top-8 -left-4 sm:-left-16 md:-left-24 lg:-left-28 flex flex-col items-center pointer-events-none select-none">
-                <span
-                  className="text-red-500 text-xl sm:text-2xl md:text-3xl lg:text-4xl whitespace-nowrap rotate-[-3deg]"
-                  style={{ fontFamily: "'Caveat', cursive" }}
-                >
-                  Cursor / Claude Code
-                </span>
-                {/* Caret pointing UP (^) */}
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-red-500 -mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 19V5M5 12l7-7 7 7" />
-                </svg>
-              </span>
-            </span>
-            <span className="text-red-600"> suck.</span>
+            <span className="text-gray-400">AI coding that</span>
             <br />
-            <span className="text-white">We fix&nbsp;them.</span>
+            <span className="text-red-500">doesn't forget.</span>
           </h1>
 
-          {/* Clear explanation - what we actually do */}
+          {/* Subheadline - The Problem We Solve */}
           <p className="text-lg md:text-xl lg:text-2xl text-gray-400 mb-8 max-w-3xl mx-auto font-medium">
-            <span className="text-white font-bold">Get production-ready code on the first try.</span>
+            Long conversations crash. Context gets lost. Decisions get forgotten.
+            <br />
+            <span className="text-white font-bold">CodeBakers fixes that.</span>
           </p>
 
-          {/* Visual: Before → After in IDE context */}
+          {/* Visual: Session Recovery Demo */}
           <div className="max-w-3xl mx-auto mb-8">
             <div className="rounded-2xl border-2 border-gray-700 bg-gray-900/80 backdrop-blur-sm overflow-hidden shadow-2xl">
               {/* IDE-style header */}
@@ -264,35 +273,35 @@ export default function HomePage() {
                   <div className="w-3 h-3 rounded-full bg-yellow-500" />
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                 </div>
-                <span className="text-sm text-gray-400 font-mono">cursor / claude code</span>
+                <span className="text-sm text-gray-400 font-mono">claude code / cursor</span>
               </div>
 
               <div className="p-6">
-                <div className="grid md:grid-cols-2 gap-6 items-start">
-                  {/* What you type */}
-                  <div className="text-left">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-6 h-6 rounded bg-gray-700 flex items-center justify-center">
-                        <span className="text-xs font-bold text-gray-400">1</span>
-                      </div>
-                      <span className="text-sm font-medium text-gray-400">What you type</span>
-                    </div>
-                    <div className="px-4 py-3 rounded-lg bg-gray-800 font-mono text-base text-gray-200">
-                      add login form
-                    </div>
+                {/* Before: The Problem */}
+                <div className="mb-6 p-4 rounded-xl bg-red-950/30 border border-red-800/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Alert02Icon className="w-5 h-5 text-red-400" />
+                    <span className="text-sm font-medium text-red-400">Without CodeBakers</span>
                   </div>
+                  <div className="text-left text-sm text-gray-300 space-y-2">
+                    <p><span className="text-gray-500">Message 47:</span> "Wait, are we using Prisma or Drizzle again?"</p>
+                    <p><span className="text-gray-500">Message 52:</span> "I think I've been doing auth wrong. Let me redo it..."</p>
+                    <p><span className="text-gray-500">Message 58:</span> <span className="text-red-400">[Context limit reached. Session lost.]</span></p>
+                  </div>
+                </div>
 
-                  {/* What AI receives */}
-                  <div className="text-left">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-6 h-6 rounded bg-green-500 flex items-center justify-center">
-                        <MagicWand02Icon className="h-3 w-3 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-green-400">What AI receives</span>
-                    </div>
-                    <div className="px-4 py-3 rounded-lg bg-green-950/30 border border-green-800 text-sm text-gray-200 leading-relaxed">
-                      Build login with <strong className="text-white">React Hook Form + Zod</strong>, loading states, error handling, toast notifications, <strong className="text-white">accessibility</strong>, keyboard nav, and <strong className="text-white">Playwright tests</strong>...
-                    </div>
+                {/* After: The Solution */}
+                <div className="p-4 rounded-xl bg-green-950/30 border border-green-800/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <RefreshIcon className="w-5 h-5 text-green-400" />
+                    <span className="text-sm font-medium text-green-400">With CodeBakers</span>
+                  </div>
+                  <div className="text-left text-sm text-gray-300 space-y-2">
+                    <p><span className="text-gray-500">New session:</span> "Continue working on the dashboard"</p>
+                    <p><span className="text-green-400">✓</span> Resuming: Dashboard feature (Phase 2/4)</p>
+                    <p><span className="text-green-400">✓</span> Stack: Next.js + Drizzle + Supabase Auth</p>
+                    <p><span className="text-green-400">✓</span> Last completed: User settings API</p>
+                    <p><span className="text-green-400">✓</span> Next: Team invite flow</p>
                   </div>
                 </div>
 
@@ -300,7 +309,7 @@ export default function HomePage() {
                 <div className="mt-6 pt-6 border-t border-gray-700 text-center">
                   <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-green-900/30 text-green-300 text-sm font-medium">
                     <Tick02Icon className="h-4 w-4" />
-                    Production-ready code. First prompt. No revisions.
+                    Full context restored. Every time.
                   </div>
                 </div>
               </div>
@@ -333,7 +342,7 @@ export default function HomePage() {
                   <PlayIcon className="h-8 w-8 text-white ml-1" />
                 </div>
                 <p className="text-white font-semibold text-lg">Watch 2-min Demo</p>
-                <p className="text-gray-400 text-sm">See CodeBakers in action</p>
+                <p className="text-gray-400 text-sm">See session continuity in action</p>
               </div>
             </div>
           </div>
@@ -342,7 +351,7 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row justify-center gap-3 mb-6">
             <Link href="/signup">
               <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-14 px-8 text-lg font-semibold w-full sm:w-auto shadow-xl shadow-red-500/30 transition-all hover:shadow-2xl hover:shadow-red-500/40 hover:-translate-y-1 rounded-xl">
-                Upgrade My Prompts
+                Stop Losing Context
                 <ArrowRight02Icon className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -379,167 +388,189 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Install Section - Simple one-click install */}
+      {/* Install Section */}
       <InstallSection />
 
-      {/* Who It's For - Speak to all skill levels */}
-      <section className="py-20 px-4">
+      {/* The Problem Section - Context Loss */}
+      <section id="problem" className="py-20 px-4">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800">
-              For Every Developer
+            <Badge className="mb-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800">
+              The Real Problem
             </Badge>
             <h2 className="text-4xl font-bold mb-4">
-              Your skill level doesn't matter.
-              <br />
-              <span className="text-muted-foreground">Your output does.</span>
+              AI coding assistants have amnesia.
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Whether you're writing your first app or your hundredth, CodeBakers fills the gaps you don't even know you have.
+              The longer your conversation, the more AI forgets. Context limits hit. Decisions vanish. You start over.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Beginners */}
-            <div className="p-8 rounded-2xl bg-white dark:bg-black border border-gray-200 dark:border-gray-800">
-              <div className="w-14 h-14 rounded-xl bg-red-600 flex items-center justify-center mb-6">
-                <Book02Icon className="h-7 w-7 text-white" />
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {painPoints.map((point, i) => (
+              <div key={i} className="p-6 rounded-2xl bg-card border border-border hover:border-red-500/30 transition-all">
+                <point.icon className="h-10 w-10 text-red-500 mb-4" />
+                <h3 className="text-lg font-bold mb-2">{point.title}</h3>
+                <p className="text-muted-foreground text-sm">{point.description}</p>
               </div>
-              <h3 className="text-xl font-bold mb-2">Just Starting?</h3>
-              <p className="text-sm text-red-600 dark:text-red-400 font-medium mb-4">You don't know what you don't know.</p>
-              <p className="text-muted-foreground mb-4">
-                You can build amazing things with AI—but how do you know if the code is secure? Accessible? Production-ready?
-              </p>
-              <p className="text-foreground font-medium">
-                CodeBakers knows. It automatically adds the things experienced developers would add—so you ship like a pro from day one.
-              </p>
-            </div>
-
-            {/* Mid-level / Indie */}
-            <div className="p-8 rounded-2xl bg-white dark:bg-black border border-gray-200 dark:border-gray-800">
-              <div className="w-14 h-14 rounded-xl bg-black dark:bg-white flex items-center justify-center mb-6">
-                <Rocket01Icon className="h-7 w-7 text-white dark:text-black" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Building Fast?</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-4">You're tired of the back-and-forth.</p>
-              <p className="text-muted-foreground mb-4">
-                You've shipped before. You know the drill—prompt, fix, prompt again, add error handling, fix again. It's exhausting.
-              </p>
-              <p className="text-foreground font-medium">
-                Skip the iteration loop. Your first prompt produces code that's already complete—tests, errors, loading states, all of it.
-              </p>
-            </div>
-
-            {/* Experienced */}
-            <div className="p-8 rounded-2xl bg-white dark:bg-black border border-gray-200 dark:border-gray-800">
-              <div className="w-14 h-14 rounded-xl bg-red-600 flex items-center justify-center mb-6">
-                <Briefcase01Icon className="h-7 w-7 text-white" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Senior Dev?</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-4">You know what good looks like.</p>
-              <p className="text-muted-foreground mb-4">
-                You've been writing production code for years. You know about security, testing, edge cases—you just don't want to explain it every time.
-              </p>
-              <p className="text-foreground font-medium">
-                Stop teaching AI your standards. CodeBakers already knows them. Get code written the way you'd write it—without the monologue.
-              </p>
-            </div>
+            ))}
           </div>
 
-          {/* The key insight */}
-          <div className="mt-12 p-6 rounded-2xl bg-muted/50 border border-border text-center">
+          {/* The cost */}
+          <div className="mt-12 p-6 rounded-2xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-center">
             <p className="text-lg">
-              <span className="font-bold">The difference?</span> Without CodeBakers, AI writes code like a tutorial.
-              <br />
-              <span className="text-muted-foreground">With CodeBakers, AI writes code like your best engineer on their best day.</span>
+              <span className="font-bold text-red-600 dark:text-red-400">The hidden cost:</span> You spend more time re-explaining context than actually coding.
             </p>
           </div>
         </div>
       </section>
 
-      {/* The Magic - Smart Triggers */}
-      <section id="features" className="py-20 px-4 bg-muted/30">
+      {/* Solution Section - Session Continuity */}
+      <section id="solution" className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800">
-              <AiMagicIcon className="w-3 h-3 mr-1" />
-              How It Works
+            <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
+              <RefreshIcon className="w-3 h-3 mr-1" />
+              The Solution
             </Badge>
             <h2 className="text-4xl font-bold mb-4">
-              It's not magic. It's patterns.
+              Session continuity that actually works.
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              {CODEBAKERS_STATS.moduleCount} modules of battle-tested code patterns. The AI reads them. Your code inherits them. Simple.
+              CodeBakers gives your AI persistent memory. It knows your project, your decisions, and where you left off.
             </p>
           </div>
 
-          {/* 3 Smart Features - Problem-focused */}
+          {/* 3 Core Features */}
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Smart Triggers */}
+            {/* Feature 1: Automatic Context Recovery */}
+            <div className="p-8 rounded-2xl bg-card border border-border hover:border-green-500/50 transition-all">
+              <div className="w-14 h-14 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-6">
+                <RefreshIcon className="h-7 w-7 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Automatic Recovery</h3>
+              <p className="text-muted-foreground mb-4">
+                Start a new session? CodeBakers automatically restores your full project context—stack, decisions, progress, and next steps.
+              </p>
+              <div className="p-4 rounded-xl bg-muted/50 text-sm font-mono">
+                <span className="text-gray-500">New session started...</span>
+                <br />
+                <span className="text-green-400">✓ Context restored from last session</span>
+                <br />
+                <span className="text-green-400">✓ 47 decisions remembered</span>
+              </div>
+            </div>
+
+            {/* Feature 2: Consistent Standards */}
+            <div className="p-8 rounded-2xl bg-card border border-border hover:border-amber-500/50 transition-all">
+              <div className="w-14 h-14 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-6">
+                <LockIcon className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Locked-In Standards</h3>
+              <p className="text-muted-foreground mb-4">
+                AI can't randomly switch your patterns mid-project. Your auth approach, database patterns, and code style stay consistent.
+              </p>
+              <div className="p-4 rounded-xl bg-muted/50 text-sm font-mono">
+                <span className="text-gray-500">Auth code detected...</span>
+                <br />
+                <span className="text-amber-400">Using established pattern: Supabase Auth</span>
+                <br />
+                <span className="text-gray-500">(Not switching to NextAuth)</span>
+              </div>
+            </div>
+
+            {/* Feature 3: Smart Guardrails */}
             <div className="p-8 rounded-2xl bg-card border border-border hover:border-red-500/50 transition-all">
               <div className="w-14 h-14 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-6">
                 <Target02Icon className="h-7 w-7 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Forget Something? AI Won't.</h3>
+              <h3 className="text-xl font-bold mb-3">Smart Guardrails</h3>
               <p className="text-muted-foreground mb-4">
-                Touched auth code? AI reminds you to review security. Built a form? It suggests accessibility checks. Like having a senior dev watching over your shoulder.
+                AI stays on track. It follows your established patterns, asks before making breaking changes, and doesn't go rogue.
               </p>
               <div className="p-4 rounded-xl bg-muted/50 text-sm font-mono">
-                <span className="text-muted-foreground">[AUTO-TRIGGER]</span>
+                <span className="text-gray-500">AI wants to change DB schema...</span>
                 <br />
-                <span className="text-foreground">Auth code changed.</span>
+                <span className="text-red-400">⚠️ Breaking change detected</span>
                 <br />
-                <span className="text-green-600 dark:text-green-400">Security review suggested.</span>
-              </div>
-            </div>
-
-            {/* Auto-Learning */}
-            <div className="p-8 rounded-2xl bg-card border border-border hover:border-amber-500/50 transition-all">
-              <div className="w-14 h-14 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-6">
-                <Idea01Icon className="h-7 w-7 text-amber-600 dark:text-amber-400" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">Level Up While You Build</h3>
-              <p className="text-muted-foreground mb-4">
-                When AI catches a mistake, it doesn't just fix it—it can teach you why. Every bug becomes a lesson. Every fix makes you better.
-              </p>
-              <div className="p-4 rounded-xl bg-muted/50 text-sm font-mono">
-                <span className="text-amber-600 dark:text-amber-400">Fixed: API key in client code</span>
-                <br />
-                <span className="text-foreground">Want to learn why this matters?</span>
-                <br />
-                <span className="text-muted-foreground">/learn</span>
-              </div>
-            </div>
-
-            {/* Production First */}
-            <div className="p-8 rounded-2xl bg-card border border-border hover:border-green-500/50 transition-all">
-              <div className="w-14 h-14 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-6">
-                <SecurityCheckIcon className="h-7 w-7 text-green-600 dark:text-green-400" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">Never Ship Broken Code</h3>
-              <p className="text-muted-foreground mb-4">
-                Tests, error handling, loading states, accessibility—automatically included. You don't ask for them. You don't need to know to ask. They're just there.
-              </p>
-              <div className="p-4 rounded-xl bg-muted/50 text-sm font-mono">
-                <span className="text-muted-foreground">You type:</span> add login
-                <br />
-                <span className="text-green-600 dark:text-green-400">You get:</span> login + tests + a11y + errors
+                <span className="text-gray-500">Asking for confirmation first</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Comparison Chart - With vs Without */}
-      <section id="compare" className="py-20 px-4">
+      {/* How It Works - Simple 3 Steps */}
+      <section id="how-it-works" className="py-20 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800">
+              How It Works
+            </Badge>
+            <h2 className="text-4xl font-bold mb-4">
+              Set up once. Context forever.
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              Three steps to AI that remembers everything.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Step 1 */}
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-red-600 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-600/20">
+                1
+              </div>
+              <h3 className="text-xl font-bold mb-2">Install CLI</h3>
+              <p className="text-muted-foreground text-sm mb-4">
+                One command to set up CodeBakers in your project.
+              </p>
+              <code className="px-4 py-2.5 rounded-lg bg-gray-900 text-green-400 text-sm font-mono inline-block">
+                npx @codebakers/cli go
+              </code>
+            </div>
+
+            {/* Step 2 */}
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-red-600 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-600/20">
+                2
+              </div>
+              <h3 className="text-xl font-bold mb-2">Describe Your Project</h3>
+              <p className="text-muted-foreground text-sm mb-4">
+                Tell us about your stack. We'll lock in your decisions.
+              </p>
+              <code className="px-4 py-2.5 rounded-lg bg-gray-900 text-green-400 text-sm font-mono inline-block">
+                Next.js + Drizzle + Supabase
+              </code>
+            </div>
+
+            {/* Step 3 */}
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-red-600 text-white text-2xl font-bold flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-600/20">
+                3
+              </div>
+              <h3 className="text-xl font-bold mb-2">Code Forever</h3>
+              <p className="text-muted-foreground text-sm mb-4">
+                Start any session. Context is always there.
+              </p>
+              <code className="px-4 py-2.5 rounded-lg bg-gray-900 text-green-400 text-sm font-mono inline-block">
+                "Continue where we left off"
+              </code>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison Section */}
+      <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-12">
             <Badge className="mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800">
-              Side-by-Side Comparison
+              Side-by-Side
             </Badge>
-            <h2 className="text-4xl font-bold mb-4">Same tools. Different results.</h2>
+            <h2 className="text-4xl font-bold mb-4">Same AI. Different experience.</h2>
             <p className="text-xl text-muted-foreground">
-              See what happens when you add CodeBakers to your workflow.
+              See what happens when your AI actually remembers.
             </p>
           </div>
 
@@ -548,293 +579,197 @@ export default function HomePage() {
             {/* Header Row */}
             <div className="grid grid-cols-3 border-b border-border">
               <div className="p-4 bg-muted/30 font-medium text-sm text-muted-foreground">
-                Feature
+                Scenario
               </div>
               <div className="p-4 bg-red-50 dark:bg-red-950/30 border-l border-border text-center">
                 <div className="font-bold text-red-600 dark:text-red-400">Without CodeBakers</div>
-                <div className="text-xs text-muted-foreground">Cursor / Claude Code alone</div>
               </div>
               <div className="p-4 bg-green-50 dark:bg-green-950/30 border-l border-border text-center">
                 <div className="font-bold text-green-600 dark:text-green-400">With CodeBakers</div>
-                <div className="text-xs text-muted-foreground">Enhanced AI output</div>
               </div>
             </div>
 
-            {/* Row: First Prompt Output */}
+            {/* Row: New Session */}
             <div className="grid grid-cols-3 border-b border-border">
-              <div className="p-4 font-medium text-sm">First prompt output</div>
+              <div className="p-4 font-medium text-sm">Starting a new session</div>
               <div className="p-4 border-l border-border text-center text-sm text-red-600 dark:text-red-400">
-                Tutorial-quality code
-              </div>
-              <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400 font-medium">
-                Production-ready code
-              </div>
-            </div>
-
-            {/* Row: Error Handling */}
-            <div className="grid grid-cols-3 border-b border-border">
-              <div className="p-4 font-medium text-sm">Error handling</div>
-              <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
-                Basic or missing
+                Re-explain everything
               </div>
               <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
-                <Tick02Icon className="h-4 w-4 inline mr-1" /> Comprehensive
+                <Tick02Icon className="h-4 w-4 inline mr-1" /> Context auto-restored
               </div>
             </div>
 
-            {/* Row: Tests */}
+            {/* Row: Context Limit */}
             <div className="grid grid-cols-3 border-b border-border">
-              <div className="p-4 font-medium text-sm">Tests included</div>
-              <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
-                Rarely / on request
+              <div className="p-4 font-medium text-sm">Context limit hit</div>
+              <div className="p-4 border-l border-border text-center text-sm text-red-600 dark:text-red-400">
+                Lose everything, start over
               </div>
               <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
-                <Tick02Icon className="h-4 w-4 inline mr-1" /> Automatic (Playwright)
+                <Tick02Icon className="h-4 w-4 inline mr-1" /> Seamless continuation
               </div>
             </div>
 
-            {/* Row: Loading States */}
+            {/* Row: Code Consistency */}
             <div className="grid grid-cols-3 border-b border-border">
-              <div className="p-4 font-medium text-sm">Loading & empty states</div>
+              <div className="p-4 font-medium text-sm">Code consistency</div>
               <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
-                Often forgotten
+                AI changes patterns randomly
               </div>
               <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
-                <Tick02Icon className="h-4 w-4 inline mr-1" /> Always included
+                <Tick02Icon className="h-4 w-4 inline mr-1" /> Locked to your decisions
               </div>
             </div>
 
-            {/* Row: Accessibility */}
+            {/* Row: Project State */}
             <div className="grid grid-cols-3 border-b border-border">
-              <div className="p-4 font-medium text-sm">Accessibility (ARIA, keyboard)</div>
+              <div className="p-4 font-medium text-sm">Project state tracking</div>
               <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
-                Inconsistent
+                Manual notes / memory
               </div>
               <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
-                <Tick02Icon className="h-4 w-4 inline mr-1" /> WCAG compliant
+                <Tick02Icon className="h-4 w-4 inline mr-1" /> Automatic + persistent
               </div>
             </div>
 
-            {/* Row: Security */}
-            <div className="grid grid-cols-3 border-b border-border">
-              <div className="p-4 font-medium text-sm">Security best practices</div>
-              <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
-                Sometimes / varies
-              </div>
-              <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
-                <Tick02Icon className="h-4 w-4 inline mr-1" /> Enforced patterns
-              </div>
-            </div>
-
-            {/* Row: Type Safety */}
-            <div className="grid grid-cols-3 border-b border-border">
-              <div className="p-4 font-medium text-sm">Type safety (Zod, TypeScript)</div>
-              <div className="p-4 border-l border-border text-center text-sm text-muted-foreground">
-                Basic types
-              </div>
-              <div className="p-4 border-l border-border text-center text-sm text-green-600 dark:text-green-400">
-                <Tick02Icon className="h-4 w-4 inline mr-1" /> Full validation
-              </div>
-            </div>
-
-            {/* Row: Revisions Needed */}
+            {/* Row: Time Wasted */}
             <div className="grid grid-cols-3">
-              <div className="p-4 font-medium text-sm">Avg. prompts per feature</div>
+              <div className="p-4 font-medium text-sm">Time re-explaining per session</div>
               <div className="p-4 border-l border-border text-center">
-                <span className="text-2xl font-bold text-red-600 dark:text-red-400">5-10</span>
+                <span className="text-2xl font-bold text-red-600 dark:text-red-400">15-30 min</span>
               </div>
               <div className="p-4 border-l border-border text-center">
-                <span className="text-2xl font-bold text-green-600 dark:text-green-400">1-2</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom CTA */}
-          <div className="mt-8 text-center">
-            <Link href="/signup">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-12 px-8 font-semibold rounded-xl shadow-lg shadow-red-500/25">
-                Get Production-Ready Output
-                <ArrowRight02Icon className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Before/After - Quick Visual */}
-      <section className="py-20 px-4 bg-muted/30">
-        <div className="container mx-auto max-w-4xl">
-          <div className="rounded-2xl border-2 border-border bg-card overflow-hidden shadow-2xl">
-            {/* IDE Header */}
-            <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center gap-3">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-              </div>
-              <span className="text-sm text-muted-foreground font-mono">your-project</span>
-            </div>
-
-            <div className="p-8">
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                {/* What you type */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-3">What you type:</p>
-                  <div className="p-4 rounded-xl bg-muted font-mono text-lg">
-                    add stripe checkout
-                  </div>
-                </div>
-
-                {/* What you get */}
-                <div>
-                  <p className="text-sm font-medium text-green-600 dark:text-green-400 mb-3">What you get:</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Tick02Icon className="h-4 w-4 text-green-500" />
-                      <span>Webhook handlers with signature verification</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Tick02Icon className="h-4 w-4 text-green-500" />
-                      <span>Error recovery & idempotency</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Tick02Icon className="h-4 w-4 text-green-500" />
-                      <span>Database sync & loading states</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Tick02Icon className="h-4 w-4 text-green-500" />
-                      <span>Playwright tests included</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Result badge */}
-              <div className="mt-8 pt-6 border-t border-border text-center">
-                <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800 text-sm px-4 py-2">
-                  <Tick02Icon className="h-4 w-4 mr-2" />
-                  Production-ready. First prompt. No revisions.
-                </Badge>
+                <span className="text-2xl font-bold text-green-600 dark:text-green-400">0 min</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* The Gap - What you'd need to know */}
+      {/* Bonus: Better Code Quality */}
       <section className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
+        <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">The knowledge gap is real</h2>
-            <p className="text-muted-foreground">Here's what "production-ready" actually means. CodeBakers handles all of it.</p>
+            <Badge className="mb-4 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800">
+              <SparklesIcon className="w-3 h-3 mr-1" />
+              Bonus
+            </Badge>
+            <h2 className="text-4xl font-bold mb-4">Better code too.</h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Session continuity is just the start. Your AI also writes production-ready code on the first try.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Without */}
+            {/* Before */}
             <div className="p-6 rounded-2xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">?</span>
-                </div>
-                <h3 className="font-bold text-red-700 dark:text-red-300">What you'd need to know</h3>
+                <Cancel01Icon className="w-5 h-5 text-red-500" />
+                <h3 className="font-bold text-red-700 dark:text-red-300">Raw AI Output</h3>
               </div>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5">•</span>
-                  <span>Zod validation schemas for type-safe forms</span>
+                  <span className="text-red-500 mt-0.5">✗</span>
+                  <span>Missing error handling</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5">•</span>
-                  <span>Error boundaries and loading states</span>
+                  <span className="text-red-500 mt-0.5">✗</span>
+                  <span>No loading states</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5">•</span>
-                  <span>ARIA labels, focus management, keyboard nav</span>
+                  <span className="text-red-500 mt-0.5">✗</span>
+                  <span>Basic or no tests</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5">•</span>
-                  <span>Rate limiting and security headers</span>
+                  <span className="text-red-500 mt-0.5">✗</span>
+                  <span>Inconsistent patterns</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5">•</span>
-                  <span>Webhook signature verification</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5">•</span>
-                  <span>Idempotency keys for payment retries</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5">•</span>
-                  <span>Test patterns (unit, integration, e2e)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5">•</span>
-                  <span>... and 100+ other best practices</span>
+                  <span className="text-red-500 mt-0.5">✗</span>
+                  <span>Security oversights</span>
                 </li>
               </ul>
             </div>
 
-            {/* With */}
+            {/* After */}
             <div className="p-6 rounded-2xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                  <Tick02Icon className="h-4 w-4 text-white" />
-                </div>
-                <h3 className="font-bold text-green-700 dark:text-green-300">What you actually type</h3>
+                <CheckmarkSquare02Icon className="w-5 h-5 text-green-500" />
+                <h3 className="font-bold text-green-700 dark:text-green-300">With CodeBakers</h3>
               </div>
-              <div className="p-4 rounded-xl bg-white dark:bg-neutral-900 font-mono text-lg mb-4 border border-green-300 dark:border-green-800">
-                add login form
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                CodeBakers patterns inject all that knowledge into your AI. You get production-ready code without knowing the 100+ things that make it production-ready.
-              </p>
-              <div className="flex items-center gap-2 text-green-700 dark:text-green-300 font-medium text-sm">
-                <Tick02Icon className="h-4 w-4" />
-                <span>All best practices included automatically</span>
-              </div>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span>Comprehensive error handling</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span>Loading & empty states included</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span>Playwright tests auto-generated</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span>Follows your established patterns</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span>Security best practices enforced</span>
+                </li>
+              </ul>
             </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-muted-foreground">
+              You type <code className="px-2 py-1 rounded bg-muted font-mono text-sm">add login form</code> →
+              You get production-ready code with validation, errors, tests, and accessibility.
+            </p>
           </div>
         </div>
       </section>
 
       {/* Quick Stats */}
-      <section id="modules" className="py-12 px-4 bg-foreground text-background">
+      <section className="py-12 px-4 bg-foreground text-background">
         <div className="container mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-red-400">{CODEBAKERS_STATS.moduleCount}</div>
-              <div className="text-background/70 text-sm">Pattern Modules</div>
+              <div className="text-4xl font-bold text-red-400">0</div>
+              <div className="text-background/70 text-sm">Minutes re-explaining</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-amber-400">9</div>
-              <div className="text-background/70 text-sm">Smart Triggers</div>
+              <div className="text-4xl font-bold text-amber-400">100%</div>
+              <div className="text-background/70 text-sm">Context preserved</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-green-400">90%</div>
-              <div className="text-background/70 text-sm">Less Prompting</div>
+              <div className="text-4xl font-bold text-green-400">∞</div>
+              <div className="text-background/70 text-sm">Session continuity</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-cyan-400">1st</div>
-              <div className="text-background/70 text-sm">Prompt Success</div>
+              <div className="text-background/70 text-sm">Prompt success</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Testimonials - Diverse skill levels */}
+      {/* Testimonials */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">From first-timers to veterans</h2>
-            <p className="text-muted-foreground">Every skill level, same result: production-ready code.</p>
+            <h2 className="text-3xl font-bold mb-4">Developers love it.</h2>
+            <p className="text-muted-foreground">No more context loss. No more re-explanations.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
               <div key={i} className="p-6 rounded-2xl bg-card border border-border">
                 <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <StarIcon key={i} className="h-4 w-4 text-yellow-500 fill-current" />
+                  {[...Array(5)].map((_, j) => (
+                    <StarIcon key={j} className="h-4 w-4 text-yellow-500 fill-current" />
                   ))}
                 </div>
                 <p className="text-lg mb-4 italic">&quot;{t.quote}&quot;</p>
@@ -853,7 +788,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Simple Pricing */}
+      {/* Pricing */}
       <section id="pricing" className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-4xl text-center">
           <Badge className="mb-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800">
@@ -899,22 +834,22 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Final CTA with Demo Booking */}
+      {/* Final CTA */}
       <section className="py-24 px-4">
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Ship like a senior dev.
+            Stop re-explaining.
             <br />
-            <span className="text-muted-foreground">From day one.</span>
+            <span className="text-muted-foreground">Start building.</span>
           </h2>
           <p className="text-xl text-muted-foreground mb-8">
-            Whether you're learning or leading, CodeBakers makes your AI build production-ready code.
+            AI coding that remembers your project, your decisions, and where you left off.
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             <Link href="/signup">
               <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white h-14 px-10 text-lg font-semibold w-full sm:w-auto shadow-xl shadow-red-500/25 rounded-xl">
-                Start Building Free
+                Get Started Free
                 <ArrowRight02Icon className="ml-2 h-5 w-5" />
               </Button>
             </Link>
