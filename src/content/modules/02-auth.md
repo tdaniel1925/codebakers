@@ -952,6 +952,233 @@ validateEnvVars([
 
 ---
 
+## 🔐 THIRD-PARTY CREDENTIAL ENCRYPTION
+
+When storing third-party API credentials (OAuth tokens, passwords, API keys) in your database, **NEVER store them in plain text**. Use encryption at rest.
+
+### Encryption Utility
+
+```typescript
+// lib/security/encryption.ts
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+
+const ALGORITHM = 'aes-256-gcm';
+const KEY_LENGTH = 32;
+const IV_LENGTH = 16;
+const AUTH_TAG_LENGTH = 16;
+const SALT_LENGTH = 32;
+
+// Derive key from password using scrypt
+function deriveKey(password: string, salt: Buffer): Buffer {
+  return scryptSync(password, salt, KEY_LENGTH);
+}
+
+/**
+ * Encrypt sensitive data (API keys, tokens, passwords)
+ * Returns base64 encoded string: salt:iv:authTag:encrypted
+ */
+export function encryptCredential(plaintext: string): string {
+  const encryptionKey = process.env.CREDENTIAL_ENCRYPTION_KEY;
+  if (!encryptionKey) {
+    throw new Error('CREDENTIAL_ENCRYPTION_KEY not set');
+  }
+
+  const salt = randomBytes(SALT_LENGTH);
+  const key = deriveKey(encryptionKey, salt);
+  const iv = randomBytes(IV_LENGTH);
+
+  const cipher = createCipheriv(ALGORITHM, key, iv);
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext, 'utf8'),
+    cipher.final(),
+  ]);
+  const authTag = cipher.getAuthTag();
+
+  // Combine: salt + iv + authTag + encrypted
+  const combined = Buffer.concat([salt, iv, authTag, encrypted]);
+  return combined.toString('base64');
+}
+
+/**
+ * Decrypt credential back to plaintext
+ */
+export function decryptCredential(encryptedBase64: string): string {
+  const encryptionKey = process.env.CREDENTIAL_ENCRYPTION_KEY;
+  if (!encryptionKey) {
+    throw new Error('CREDENTIAL_ENCRYPTION_KEY not set');
+  }
+
+  const combined = Buffer.from(encryptedBase64, 'base64');
+
+  // Extract components
+  const salt = combined.subarray(0, SALT_LENGTH);
+  const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+  const authTag = combined.subarray(
+    SALT_LENGTH + IV_LENGTH,
+    SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH
+  );
+  const encrypted = combined.subarray(SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH);
+
+  const key = deriveKey(encryptionKey, salt);
+  const decipher = createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(authTag);
+
+  const decrypted = Buffer.concat([
+    decipher.update(encrypted),
+    decipher.final(),
+  ]);
+
+  return decrypted.toString('utf8');
+}
+
+/**
+ * Generate a secure encryption key (run once, store in .env)
+ */
+export function generateEncryptionKey(): string {
+  return randomBytes(32).toString('base64');
+}
+```
+
+### Environment Setup
+
+```bash
+# Generate key (run once)
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+
+# Add to .env
+CREDENTIAL_ENCRYPTION_KEY=your-generated-key-here
+```
+
+### Usage: Storing Third-Party Credentials
+
+```typescript
+// services/integration-service.ts
+import { encryptCredential, decryptCredential } from '@/lib/security/encryption';
+import { db } from '@/db';
+import { integrations } from '@/db/schema';
+
+// Store integration credentials
+export async function saveIntegration(
+  userId: string,
+  provider: string,
+  credentials: {
+    accessToken?: string;
+    refreshToken?: string;
+    apiKey?: string;
+    password?: string;
+  }
+) {
+  // Encrypt all sensitive fields
+  const encryptedCredentials = {
+    accessToken: credentials.accessToken
+      ? encryptCredential(credentials.accessToken)
+      : null,
+    refreshToken: credentials.refreshToken
+      ? encryptCredential(credentials.refreshToken)
+      : null,
+    apiKey: credentials.apiKey
+      ? encryptCredential(credentials.apiKey)
+      : null,
+    password: credentials.password
+      ? encryptCredential(credentials.password)
+      : null,
+  };
+
+  await db.insert(integrations).values({
+    userId,
+    provider,
+    ...encryptedCredentials,
+  });
+}
+
+// Retrieve and decrypt credentials
+export async function getIntegrationCredentials(
+  userId: string,
+  provider: string
+) {
+  const integration = await db.query.integrations.findFirst({
+    where: and(
+      eq(integrations.userId, userId),
+      eq(integrations.provider, provider)
+    ),
+  });
+
+  if (!integration) return null;
+
+  return {
+    accessToken: integration.accessToken
+      ? decryptCredential(integration.accessToken)
+      : null,
+    refreshToken: integration.refreshToken
+      ? decryptCredential(integration.refreshToken)
+      : null,
+    apiKey: integration.apiKey
+      ? decryptCredential(integration.apiKey)
+      : null,
+    password: integration.password
+      ? decryptCredential(integration.password)
+      : null,
+  };
+}
+```
+
+### Example: WordPress Integration (Encrypted)
+
+```typescript
+// Storing WordPress credentials securely
+await saveIntegration(userId, 'wordpress', {
+  password: 'xxxx xxxx xxxx xxxx', // Application password - ENCRYPTED
+  apiKey: site.url, // Site URL (not secret, but consistent pattern)
+});
+
+// Retrieving for API calls
+const creds = await getIntegrationCredentials(userId, 'wordpress');
+const auth = Buffer.from(`${username}:${creds.password}`).toString('base64');
+
+await fetch(`${siteUrl}/wp-json/wp/v2/posts`, {
+  headers: { Authorization: `Basic ${auth}` },
+});
+```
+
+### Key Rotation
+
+```typescript
+// lib/security/key-rotation.ts
+export async function rotateCredentialKey(
+  oldKey: string,
+  newKey: string
+) {
+  // 1. Get all encrypted credentials
+  const allIntegrations = await db.query.integrations.findMany();
+
+  // 2. Decrypt with old key, re-encrypt with new key
+  for (const integration of allIntegrations) {
+    const decrypted = {
+      accessToken: integration.accessToken
+        ? decryptWithKey(integration.accessToken, oldKey)
+        : null,
+      // ... other fields
+    };
+
+    const reEncrypted = {
+      accessToken: decrypted.accessToken
+        ? encryptWithKey(decrypted.accessToken, newKey)
+        : null,
+      // ... other fields
+    };
+
+    await db.update(integrations)
+      .set(reEncrypted)
+      .where(eq(integrations.id, integration.id));
+  }
+
+  // 3. Update CREDENTIAL_ENCRYPTION_KEY in environment
+  console.log('Update CREDENTIAL_ENCRYPTION_KEY to new key');
+}
+```
+
+---
+
 
 ---
 

@@ -917,6 +917,15 @@ class CodeBakersServer {
                 items: { type: 'string' },
                 description: 'Files that were created/modified for this feature',
               },
+              envVarsAdded: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'New environment variables added during implementation (e.g., ["PAYPAL_CLIENT_ID", "PAYPAL_SECRET"])',
+              },
+              schemaModified: {
+                type: 'boolean',
+                description: 'Set to true if database schema (db/schema.ts) was modified',
+              },
             },
             required: ['feature'],
           },
@@ -1686,7 +1695,7 @@ class CodeBakersServer {
           return this.handleGenerateTests(args as { file?: string; feature?: string; testType?: 'unit' | 'integration' | 'e2e' });
 
         case 'validate_complete':
-          return this.handleValidateComplete(args as { feature: string; files?: string[] });
+          return this.handleValidateComplete(args as { feature: string; files?: string[]; envVarsAdded?: string[]; schemaModified?: boolean });
 
         case 'discover_patterns':
           return this.handleDiscoverPatterns(args as { task: string; files?: string[]; keywords?: string[] });
@@ -4384,13 +4393,25 @@ Just describe what you want to build! I'll automatically:
    * MANDATORY: Validate that a feature is complete before AI can say "done" (v6.0 Server-Side)
    * Runs local checks (tests, TypeScript), then validates with server
    */
-  private async handleValidateComplete(args: { feature: string; files?: string[] }) {
-    const { feature, files = [] } = args;
+  private async handleValidateComplete(args: { feature: string; files?: string[]; envVarsAdded?: string[]; schemaModified?: boolean }) {
+    const { feature, files = [], envVarsAdded = [], schemaModified: schemaModifiedArg } = args;
     const cwd = process.cwd();
     let testsExist = false;
     let testsPass = false;
     let typescriptPass = false;
     const testsWritten: string[] = [];
+
+    // v3.9.17: Auto-detect schema modifications if not explicitly provided
+    let schemaModified = schemaModifiedArg;
+    if (schemaModified === undefined) {
+      // Check if schema file was in the modified files list
+      schemaModified = files.some(f =>
+        f.includes('schema.ts') ||
+        f.includes('schema/') ||
+        f.includes('db/schema') ||
+        f.includes('drizzle/')
+      );
+    }
 
     // v6.1: Code analysis for compliance scoring
     const codeAnalysis: {
@@ -4584,6 +4605,9 @@ Just describe what you want to build! I'll automatically:
             testsPassed: testsPass,
             typescriptPassed: typescriptPass,
             codeAnalysis, // v6.1: Send code analysis for compliance scoring
+            // v3.9.17: Environment and schema validation
+            envVarsAdded: envVarsAdded.length > 0 ? envVarsAdded : undefined,
+            schemaModified,
           }),
         });
 

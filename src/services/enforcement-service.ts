@@ -27,6 +27,9 @@ const KEYWORD_PATTERN_MAP: Record<string, string[]> = {
   session: ['02-auth.md'],
   oauth: ['02-auth.md'],
   jwt: ['02-auth.md'],
+  encrypt: ['02-auth.md'], // Credential encryption
+  credential: ['02-auth.md'], // Third-party credentials
+  token: ['02-auth.md'], // Access tokens
 
   // Database keywords
   database: ['01-database.md'],
@@ -37,12 +40,15 @@ const KEYWORD_PATTERN_MAP: Record<string, string[]> = {
   migration: ['01-database.md'],
   query: ['01-database.md'],
 
-  // API keywords
-  api: ['03-api.md'],
-  route: ['03-api.md'],
-  endpoint: ['03-api.md'],
+  // API keywords - now includes rate limiting patterns
+  api: ['03-api.md', '03a-api-edge-cases.md'], // Auto-suggest rate limiting
+  route: ['03-api.md', '03a-api-edge-cases.md'],
+  endpoint: ['03-api.md', '03a-api-edge-cases.md'],
   rest: ['03-api.md'],
   validation: ['03-api.md'],
+  'rate-limit': ['03a-api-edge-cases.md'],
+  ratelimit: ['03a-api-edge-cases.md'],
+  throttle: ['03a-api-edge-cases.md'],
 
   // Frontend keywords
   react: ['04-frontend.md'],
@@ -52,11 +58,12 @@ const KEYWORD_PATTERN_MAP: Record<string, string[]> = {
   hook: ['04-frontend.md'],
 
   // Payment keywords
-  payment: ['05-payments.md'],
+  payment: ['05-payments.md', '05b-paypal.md'],
   stripe: ['05-payments.md'],
-  subscription: ['05-payments.md'],
+  subscription: ['05-payments.md', '05b-paypal.md'],
   billing: ['05-payments.md'],
-  checkout: ['05-payments.md'],
+  checkout: ['05-payments.md', '05b-paypal.md'],
+  paypal: ['05b-paypal.md'],
 
   // Voice/VAPI keywords
   voice: ['06a-voice.md', '25c-voice-vapi.md'],
@@ -69,6 +76,12 @@ const KEYWORD_PATTERN_MAP: Record<string, string[]> = {
   resend: ['06b-email.md'],
   nylas: ['06b-email.md'],
   smtp: ['06b-email.md'],
+
+  // Integration keywords
+  wordpress: ['06g-wordpress.md'],
+  cms: ['06g-wordpress.md'],
+  integration: ['06f-api-patterns.md'],
+  webhook: ['06f-api-patterns.md'],
 
   // Testing keywords
   test: ['08-testing.md'],
@@ -89,6 +102,12 @@ const KEYWORD_PATTERN_MAP: Record<string, string[]> = {
   anthropic: ['14-ai.md'],
   llm: ['14-ai.md'],
   embedding: ['14-ai.md'],
+
+  // Environment keywords
+  env: ['35-environment.md'],
+  environment: ['35-environment.md'],
+  secret: ['35-environment.md', '02-auth.md'],
+  config: ['35-environment.md'],
 };
 
 export interface DiscoverPatternsInput {
@@ -139,6 +158,9 @@ export interface ValidateCompleteInput {
   intentWasClarified?: boolean; // Whether user confirmed understanding
   scopeWasLocked?: boolean; // Whether scope was defined
   approach?: string; // What approach was used (for attempt tracking)
+  // Environment & schema validation (v3.9.17)
+  envVarsAdded?: string[]; // New env vars added during implementation
+  schemaModified?: boolean; // Whether database schema was modified
 }
 
 export interface ValidateCompleteResult {
@@ -490,6 +512,29 @@ export class EnforcementService {
       issues.push({
         type: 'NO_TESTS_WRITTEN',
         message: 'No test files were specified. Features should include tests.',
+        severity: 'warning',
+      });
+    }
+
+    // =========================================================================
+    // ENVIRONMENT & SCHEMA VALIDATION CHECKS (v3.9.17)
+    // =========================================================================
+
+    // Check for new env vars that might need validation
+    if (input.envVarsAdded && input.envVarsAdded.length > 0) {
+      // Warn if env vars were added but .env.example might not be updated
+      issues.push({
+        type: 'ENV_VARS_ADDED',
+        message: `New environment variables detected: ${input.envVarsAdded.join(', ')}. Ensure they are documented in .env.example and have validation in lib/env.ts`,
+        severity: 'warning',
+      });
+    }
+
+    // Check for schema changes that might need migrations
+    if (input.schemaModified) {
+      issues.push({
+        type: 'SCHEMA_MODIFIED',
+        message: 'Database schema was modified. Run `npm run db:generate` and `npm run db:migrate` to apply changes.',
         severity: 'warning',
       });
     }
