@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { execSync, spawn } from 'child_process';
-import { writeFileSync, existsSync, readFileSync } from 'fs';
+import { writeFileSync, existsSync, readFileSync, mkdirSync, readdirSync, statSync, rmSync } from 'fs';
 import { join } from 'path';
 import { createInterface } from 'readline';
 import {
@@ -16,6 +16,8 @@ import {
 } from '../config.js';
 import { validateApiKey } from '../lib/api.js';
 import { getDeviceFingerprint } from '../lib/fingerprint.js';
+import { audit } from './audit.js';
+import { heal } from './heal.js';
 
 function prompt(question: string): Promise<string> {
   const rl = createInterface({
@@ -26,9 +28,745 @@ function prompt(question: string): Promise<string> {
   return new Promise((resolve) => {
     rl.question(question, (answer) => {
       rl.close();
-      resolve(answer.trim().toLowerCase());
+      resolve(answer.trim());
     });
   });
+}
+
+async function confirm(question: string): Promise<boolean> {
+  const answer = await prompt(`${question} (Y/n): `);
+  return answer.toLowerCase() !== 'n';
+}
+
+// ============================================================================
+// PROJECT DETECTION
+// ============================================================================
+
+function countSourceFiles(dir: string): number {
+  let count = 0;
+  try {
+    const items = readdirSync(dir, { withFileTypes: true });
+    for (const item of items) {
+      if (item.name.startsWith('.') || item.name === 'node_modules') continue;
+      const fullPath = join(dir, item.name);
+      if (item.isDirectory()) {
+        count += countSourceFiles(fullPath);
+      } else if (
+        item.name.endsWith('.ts') ||
+        item.name.endsWith('.tsx') ||
+        item.name.endsWith('.js') ||
+        item.name.endsWith('.jsx')
+      ) {
+        count++;
+      }
+    }
+  } catch {
+    // Ignore access errors
+  }
+  return count;
+}
+
+interface ProjectInfo {
+  exists: boolean;
+  files: number;
+  details: string[];
+  stack: Record<string, string>;
+}
+
+function detectExistingProject(cwd: string): ProjectInfo {
+  const details: string[] = [];
+  const stack: Record<string, string> = {};
+  let sourceFileCount = 0;
+
+  const packageJsonPath = join(cwd, 'package.json');
+  if (existsSync(packageJsonPath)) {
+    try {
+      const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      const depCount = Object.keys(pkg.dependencies || {}).length;
+
+      if (depCount > 0) {
+        details.push(`package.json with ${depCount} dependencies`);
+      }
+
+      if (deps['next']) stack.framework = `Next.js ${deps['next']}`;
+      else if (deps['react']) stack.framework = `React ${deps['react']}`;
+      else if (deps['vue']) stack.framework = `Vue ${deps['vue']}`;
+      else if (deps['express']) stack.framework = `Express ${deps['express']}`;
+
+      if (deps['drizzle-orm']) stack.database = 'Drizzle ORM';
+      else if (deps['prisma']) stack.database = 'Prisma';
+      else if (deps['mongoose']) stack.database = 'MongoDB/Mongoose';
+
+      if (deps['@supabase/supabase-js']) stack.auth = 'Supabase Auth';
+      else if (deps['next-auth']) stack.auth = 'NextAuth.js';
+      else if (deps['@clerk/nextjs']) stack.auth = 'Clerk';
+
+      if (deps['tailwindcss']) stack.styling = 'Tailwind CSS';
+      if (deps['typescript'] || existsSync(join(cwd, 'tsconfig.json'))) {
+        stack.language = 'TypeScript';
+      } else {
+        stack.language = 'JavaScript';
+      }
+
+      if (deps['vitest']) stack.testing = 'Vitest';
+      else if (deps['jest']) stack.testing = 'Jest';
+      else if (deps['@playwright/test']) stack.testing = 'Playwright';
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  const sourceDirs = ['src', 'app', 'pages', 'components', 'lib'];
+  for (const dir of sourceDirs) {
+    const dirPath = join(cwd, dir);
+    if (existsSync(dirPath)) {
+      try {
+        if (statSync(dirPath).isDirectory()) {
+          const files = countSourceFiles(dirPath);
+          if (files > 0) {
+            sourceFileCount += files;
+            details.push(`${dir}/ with ${files} source files`);
+          }
+        }
+      } catch {
+        // Ignore access errors
+      }
+    }
+  }
+
+  const configFiles = ['tsconfig.json', 'next.config.js', 'next.config.mjs', 'vite.config.ts', 'tailwind.config.js'];
+  for (const file of configFiles) {
+    if (existsSync(join(cwd, file))) {
+      details.push(file);
+    }
+  }
+
+  return {
+    exists: sourceFileCount > 5 || details.length >= 3,
+    files: sourceFileCount,
+    details,
+    stack
+  };
+}
+
+function buildStructureString(cwd: string): string {
+  try {
+    const items = readdirSync(cwd);
+    const dirs: string[] = [];
+    const files: string[] = [];
+
+    for (const item of items) {
+      if (item.startsWith('.') || item === 'node_modules') continue;
+      const fullPath = join(cwd, item);
+      try {
+        if (statSync(fullPath).isDirectory()) {
+          dirs.push(item + '/');
+        } else {
+          files.push(item);
+        }
+      } catch {
+        // Skip inaccessible items
+      }
+    }
+
+    return [...dirs.sort(), ...files.sort()].join('\n');
+  } catch {
+    return '[Could not scan structure]';
+  }
+}
+
+// ============================================================================
+// GUIDED QUESTIONS FOR NEW PROJECTS
+// ============================================================================
+
+interface GuidedAnswers {
+  oneLiner: string;
+  problem: string;
+  users: string;
+  features: string[];
+  auth: boolean;
+  payments: boolean;
+  integrations: string;
+  deadline: string;
+}
+
+async function runGuidedQuestions(): Promise<GuidedAnswers> {
+  console.log(chalk.cyan('\n  ━━━ Let\'s define your project ━━━\n'));
+  console.log(chalk.gray('  Answer these questions (press Enter to skip any)\n'));
+
+  console.log(chalk.white('  1. What are you building?\n'));
+  const oneLiner = await prompt('     ') || 'A web application';
+
+  console.log(chalk.white('\n  2. What problem does this solve?\n'));
+  const problem = await prompt('     ') || '';
+
+  console.log(chalk.white('\n  3. Who will use this?\n'));
+  console.log(chalk.gray('     (e.g., "small business owners", "freelancers", "developers")\n'));
+  const users = await prompt('     ') || 'General users';
+
+  console.log(chalk.white('\n  4. What are the 3 must-have features?\n'));
+  console.log(chalk.gray('     (Enter each feature, then press Enter. Type "done" when finished)\n'));
+  const features: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const feature = await prompt(`     Feature ${i + 1}: `);
+    if (!feature || feature.toLowerCase() === 'done') break;
+    features.push(feature);
+  }
+
+  console.log(chalk.white('\n  5. Do users need to create accounts?\n'));
+  const authAnswer = await prompt('     (y/n): ');
+  const auth = authAnswer.toLowerCase() === 'y' || authAnswer.toLowerCase() === 'yes';
+
+  console.log(chalk.white('\n  6. Will you charge money?\n'));
+  const paymentsAnswer = await prompt('     (y/n): ');
+  const payments = paymentsAnswer.toLowerCase() === 'y' || paymentsAnswer.toLowerCase() === 'yes';
+
+  console.log(chalk.white('\n  7. Any specific integrations needed?\n'));
+  console.log(chalk.gray('     (e.g., "Stripe, SendGrid, Twilio" or press Enter to skip)\n'));
+  const integrations = await prompt('     ') || '';
+
+  console.log(chalk.white('\n  8. When do you need this done?\n'));
+  console.log(chalk.gray('     (e.g., "2 weeks", "end of month", or press Enter to skip)\n'));
+  const deadline = await prompt('     ') || '';
+
+  console.log(chalk.green('\n  ✓ Got it! Creating your PRD...\n'));
+
+  return { oneLiner, problem, users, features, auth, payments, integrations, deadline };
+}
+
+function createPrdFromAnswers(projectName: string, projectType: string, answers: GuidedAnswers): string {
+  const date = new Date().toISOString().split('T')[0];
+
+  const featuresSection = answers.features.length > 0
+    ? answers.features.map((f, i) => `${i + 1}. [ ] **${f}**`).join('\n')
+    : '1. [ ] **Feature 1:** [To be defined]\n2. [ ] **Feature 2:** [To be defined]';
+
+  const techRequirements: string[] = [];
+  if (answers.auth) techRequirements.push('User authentication (Supabase Auth)');
+  if (answers.payments) techRequirements.push('Payment processing (Stripe)');
+  if (answers.integrations) techRequirements.push(answers.integrations);
+
+  return `# Product Requirements Document
+# Project: ${projectName}
+# Created: ${date}
+# Type: ${projectType}
+
+## Overview
+**One-liner:** ${answers.oneLiner}
+
+**Problem:** ${answers.problem || '[To be refined]'}
+
+**Solution:** ${answers.oneLiner}
+
+## Target Users
+- **Primary:** ${answers.users}
+
+## Core Features (MVP)
+${featuresSection}
+
+## Technical Requirements
+${techRequirements.length > 0 ? techRequirements.map(t => `- ${t}`).join('\n') : '- [No specific requirements noted]'}
+
+## Timeline
+${answers.deadline ? `- **Target:** ${answers.deadline}` : '- [No deadline specified]'}
+
+## Notes
+- Authentication: ${answers.auth ? 'Yes - users need accounts' : 'No - public access'}
+- Payments: ${answers.payments ? 'Yes - will charge users' : 'No - free to use'}
+
+---
+<!-- Generated from guided questions - AI reads this to build your project -->
+`;
+}
+
+function createPrdTemplate(projectName: string, projectType: string): string {
+  const date = new Date().toISOString().split('T')[0];
+
+  const typeSpecificSections = projectType === 'client'
+    ? `
+## Client Info
+- Client Name: [Who is this for?]
+- Contact: [Primary contact]
+- Deadline: [When is this due?]
+`
+    : projectType === 'business'
+    ? `
+## Business Context
+- Target Market: [Who are you selling to?]
+- Revenue Model: [How does this make money?]
+- MVP Deadline: [When do you need to launch?]
+`
+    : `
+## Personal Goals
+- Why am I building this? [Your motivation]
+- Learning goals: [What do you want to learn?]
+`;
+
+  return `# Product Requirements Document
+# Project: ${projectName}
+# Created: ${date}
+# Type: ${projectType}
+
+## Overview
+**One-liner:** [Describe this project in one sentence]
+
+**Problem:** [What problem does this solve?]
+
+**Solution:** [How does this solve it?]
+${typeSpecificSections}
+## Target Users
+- **Primary:** [Who is the main user?]
+- **Secondary:** [Other users?]
+
+## Core Features (MVP)
+1. [ ] **Feature 1:** [Description]
+2. [ ] **Feature 2:** [Description]
+3. [ ] **Feature 3:** [Description]
+
+## Nice-to-Have Features (Post-MVP)
+1. [ ] [Feature description]
+2. [ ] [Feature description]
+
+## Technical Requirements
+- **Must use:** [Required technologies, APIs, etc.]
+- **Must avoid:** [Things you don't want]
+
+## Success Metrics
+- [ ] [How will you measure success?]
+- [ ] [What does "done" look like?]
+
+---
+<!-- AI reads this file to understand what to build -->
+`;
+}
+
+// ============================================================================
+// PROJECT FILE CREATION
+// ============================================================================
+
+function createProjectContext(projectName: string, stack: Record<string, string>, structure: string, isExisting: boolean): string {
+  const date = new Date().toISOString().split('T')[0];
+  return `# PROJECT CONTEXT
+# Last Scanned: ${date}
+# Mode: ${isExisting ? 'Existing Project' : 'New Project'}
+
+## Overview
+name: ${projectName}
+description: ${isExisting ? '[Existing project - AI will analyze on first interaction]' : '[AI will fill after first feature]'}
+
+## Tech Stack
+framework: ${stack.framework || '[Not detected]'}
+language: ${stack.language || '[Not detected]'}
+database: ${stack.database || '[Not detected]'}
+auth: ${stack.auth || '[Not detected]'}
+styling: ${stack.styling || '[Not detected]'}
+testing: ${stack.testing || '[Not detected]'}
+
+## Project Structure
+\`\`\`
+${structure || '[Empty project]'}
+\`\`\`
+
+## Key Files
+<!-- AI: List the most important files for understanding the project -->
+- Entry point: ${stack.framework?.includes('Next') ? 'src/app/page.tsx or pages/index.tsx' : '[AI will identify]'}
+- Config: ${existsSync(join(process.cwd(), 'tsconfig.json')) ? 'tsconfig.json' : '[AI will identify]'}
+- Database schema: [AI will identify]
+- API routes: ${stack.framework?.includes('Next') ? 'src/app/api/ or pages/api/' : '[AI will identify]'}
+
+## Existing Patterns
+<!-- AI: Document patterns you find so you can reuse them -->
+
+### API Route Pattern
+\`\`\`typescript
+[AI: Copy an example API route pattern from this project]
+\`\`\`
+
+### Component Pattern
+\`\`\`typescript
+[AI: Copy an example component pattern from this project]
+\`\`\`
+
+## Environment Variables
+<!-- AI: List required env vars (don't include values!) -->
+${existsSync(join(process.cwd(), '.env.example')) ? '[Check .env.example]' : '- [ ] [AI will identify required vars]'}
+
+## Notes
+<!-- AI: Any important context about this specific project -->
+`;
+}
+
+function createProjectState(projectName: string, isExisting: boolean): string {
+  const date = new Date().toISOString().split('T')[0];
+  return `# PROJECT STATE
+# Last Updated: ${date}
+# Auto-maintained by AI - update when starting/completing tasks
+
+## Project Info
+name: ${projectName}
+phase: ${isExisting ? 'active' : 'planning'}
+mode: ${isExisting ? 'existing-project' : 'new-project'}
+
+## Current Sprint
+Goal: ${isExisting ? '[AI will identify based on conversation]' : '[Define in first conversation]'}
+
+## In Progress
+<!-- AI: Add tasks here when you START working on them -->
+<!-- Format: - [task] (started: date, agent: cursor/claude) -->
+
+## Completed
+<!-- AI: Move tasks here when DONE -->
+<!-- Format: - [task] (completed: date) -->
+${isExisting ? `\n- CodeBakers integration (completed: ${date})` : ''}
+
+## Blockers
+<!-- AI: List anything blocking progress -->
+
+## Next Up
+<!-- AI: Queue of upcoming tasks -->
+`;
+}
+
+function createDecisionsLog(projectName: string): string {
+  const date = new Date().toISOString().split('T')[0];
+  return `# ARCHITECTURAL DECISIONS
+# Project: ${projectName}
+# AI: Add entries here when making significant technical choices
+
+## How to Use This File
+When you make a decision that affects architecture, add an entry:
+- Date
+- Decision
+- Reason
+- Alternatives considered
+
+---
+
+## ${date}: CodeBakers Initialized
+**Decision:** Using CodeBakers server-enforced pattern system
+**Reason:** Ensure consistent, production-quality code
+**Pattern:** Server-enforced via discover_patterns MCP tool
+
+---
+
+<!-- AI: Add new decisions above this line -->
+`;
+}
+
+function createDevlog(projectName: string, isExisting: boolean, auditScore?: number): string {
+  const date = new Date().toISOString().split('T')[0];
+  const timestamp = new Date().toISOString();
+
+  return `# Development Log
+# Project: ${projectName}
+
+## ${date} - CodeBakers Integration
+**Session:** ${timestamp}
+**Task Size:** MEDIUM
+**Status:** Completed
+
+### What was done:
+- Integrated CodeBakers into ${isExisting ? 'existing' : 'new'} project
+- Created project tracking files
+- Configured AI assistants (Cursor + Claude Code)
+${isExisting && auditScore !== undefined ? `- Ran initial code audit (Score: ${auditScore}%)` : ''}
+
+### Files created:
+- \`CLAUDE.md\` - AI bootstrap file
+- \`.cursorrules\` - Cursor IDE rules
+- \`PROJECT-CONTEXT.md\` - Project knowledge base
+- \`PROJECT-STATE.md\` - Task tracking
+- \`DECISIONS.md\` - Architecture log
+- \`.codebakers/DEVLOG.md\` - This file
+
+### Next steps:
+${isExisting ? '- Start using AI assistance with existing codebase' : '- Define project requirements in first conversation'}
+${isExisting ? '- AI will analyze existing patterns on first interaction' : '- AI will help scaffold initial features'}
+
+---
+`;
+}
+
+// ============================================================================
+// IDE AND MCP SETUP
+// ============================================================================
+
+const CURSORRULES_TEMPLATE = `# CODEBAKERS CURSOR RULES
+# Zero-friction AI assistance - everything is automatic
+
+## ON EVERY MESSAGE - AUTOMATIC WORKFLOW
+
+### PHASE 1: CONTEXT LOAD (automatic)
+1. Read CLAUDE.md → Load router
+2. Read PROJECT-CONTEXT.md → Understand codebase
+3. Read PROJECT-STATE.md → Check what's in progress
+4. Read DECISIONS.md → Know past decisions
+
+### PHASE 2: PRE-FLIGHT CHECK (before writing code)
+Ask yourself silently:
+- [ ] What existing code does this touch? (check PROJECT-CONTEXT.md)
+- [ ] Is similar code already in the codebase? (copy that pattern)
+- [ ] What's the data model involved?
+- [ ] What are the error cases?
+
+### PHASE 3: EXECUTE
+- State: \`📋 CodeBakers | [Type] | Server-Enforced\`
+- Call discover_patterns MCP tool first
+- Follow patterns from server EXACTLY
+
+### PHASE 4: SELF-REVIEW (before saying "done")
+- [ ] TypeScript compiles? (npx tsc --noEmit)
+- [ ] Imports resolve correctly?
+- [ ] Error handling exists?
+- [ ] Matches existing patterns in codebase?
+- [ ] Tests written?
+- [ ] PROJECT-STATE.md updated?
+
+If ANY check fails, fix it before responding.
+
+### PHASE 5: UPDATE STATE
+- Update PROJECT-STATE.md with completed work
+- Add to DECISIONS.md if architectural choice was made
+- Update .codebakers/DEVLOG.md with session summary
+
+## REMEMBER
+- You are a full product team, not just a code assistant
+- The modules contain production-tested patterns — USE THEM
+- When in doubt, check existing code first
+`;
+
+const CURSORIGNORE_TEMPLATE = `# CodeBakers - Files to ignore in Cursor context
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+.nuxt/
+out/
+
+# Cache
+.cache/
+.turbo/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+
+# Environment files (don't leak secrets)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Package locks
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+*.min.js
+*.min.css
+*.map
+`;
+
+const VSCODE_SETTINGS_TEMPLATE = {
+  "cursor.chat.defaultContext": [
+    "CLAUDE.md",
+    "PROJECT-CONTEXT.md",
+    "PROJECT-STATE.md",
+    "DECISIONS.md"
+  ],
+  "cursor.chat.alwaysIncludeRules": true,
+  "cursor.composer.alwaysIncludeRules": true,
+  "cursor.general.enableAutoImport": true
+};
+
+function setupCursorIDE(cwd: string): void {
+  const spinner = ora('  Setting up Cursor IDE...').start();
+
+  try {
+    // Write .cursorrules and .cursorignore
+    writeFileSync(join(cwd, '.cursorrules'), CURSORRULES_TEMPLATE);
+    writeFileSync(join(cwd, '.cursorignore'), CURSORIGNORE_TEMPLATE);
+
+    // Global MCP config for Cursor
+    const homeDir = process.env.USERPROFILE || process.env.HOME || '';
+    const globalCursorDir = join(homeDir, '.cursor');
+    if (!existsSync(globalCursorDir)) {
+      mkdirSync(globalCursorDir, { recursive: true });
+    }
+
+    const mcpConfigPath = join(globalCursorDir, 'mcp.json');
+    const isWindows = process.platform === 'win32';
+    const mcpConfig = {
+      mcpServers: {
+        codebakers: isWindows
+          ? { command: 'cmd', args: ['/c', 'npx', '-y', '@codebakers/cli', 'serve'] }
+          : { command: 'npx', args: ['-y', '@codebakers/cli', 'serve'] }
+      }
+    };
+
+    if (existsSync(mcpConfigPath)) {
+      try {
+        const existing = JSON.parse(readFileSync(mcpConfigPath, 'utf-8'));
+        existing.mcpServers = { ...existing.mcpServers, ...mcpConfig.mcpServers };
+        writeFileSync(mcpConfigPath, JSON.stringify(existing, null, 2));
+      } catch {
+        writeFileSync(mcpConfigPath, JSON.stringify(mcpConfig, null, 2));
+      }
+    } else {
+      writeFileSync(mcpConfigPath, JSON.stringify(mcpConfig, null, 2));
+    }
+
+    // VSCode settings
+    const vscodeDir = join(cwd, '.vscode');
+    if (!existsSync(vscodeDir)) {
+      mkdirSync(vscodeDir, { recursive: true });
+    }
+
+    const settingsPath = join(vscodeDir, 'settings.json');
+    if (existsSync(settingsPath)) {
+      try {
+        const existing = JSON.parse(readFileSync(settingsPath, 'utf-8'));
+        writeFileSync(settingsPath, JSON.stringify({ ...existing, ...VSCODE_SETTINGS_TEMPLATE }, null, 2));
+      } catch {
+        writeFileSync(settingsPath, JSON.stringify(VSCODE_SETTINGS_TEMPLATE, null, 2));
+      }
+    } else {
+      writeFileSync(settingsPath, JSON.stringify(VSCODE_SETTINGS_TEMPLATE, null, 2));
+    }
+
+    spinner.succeed('Cursor IDE configured!');
+  } catch {
+    spinner.warn('Could not configure Cursor IDE (continuing anyway)');
+  }
+}
+
+function setupClaudeCodeMCP(): void {
+  const spinner = ora('  Setting up Claude Code MCP...').start();
+
+  try {
+    const homeDir = process.env.USERPROFILE || process.env.HOME || '';
+    let configPath: string;
+    const isWindows = process.platform === 'win32';
+
+    if (isWindows) {
+      configPath = join(homeDir, 'AppData', 'Roaming', 'Claude', 'claude_desktop_config.json');
+    } else if (process.platform === 'darwin') {
+      configPath = join(homeDir, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+    } else {
+      configPath = join(homeDir, '.config', 'claude', 'claude_desktop_config.json');
+    }
+
+    const configDir = join(configPath, '..');
+    if (!existsSync(configDir)) {
+      mkdirSync(configDir, { recursive: true });
+    }
+
+    const mcpConfig = {
+      mcpServers: {
+        codebakers: isWindows
+          ? { command: 'cmd', args: ['/c', 'npx', '-y', '@codebakers/cli', 'serve'] }
+          : { command: 'npx', args: ['-y', '@codebakers/cli', 'serve'] }
+      }
+    };
+
+    if (existsSync(configPath)) {
+      try {
+        const existing = JSON.parse(readFileSync(configPath, 'utf-8'));
+        if (!existing.mcpServers) {
+          existing.mcpServers = {};
+        }
+        existing.mcpServers.codebakers = mcpConfig.mcpServers.codebakers;
+        writeFileSync(configPath, JSON.stringify(existing, null, 2));
+      } catch {
+        writeFileSync(configPath, JSON.stringify(mcpConfig, null, 2));
+      }
+    } else {
+      writeFileSync(configPath, JSON.stringify(mcpConfig, null, 2));
+    }
+
+    spinner.succeed('Claude Code MCP configured!');
+  } catch {
+    spinner.warn('Could not configure Claude Code MCP (continuing anyway)');
+  }
+}
+
+function createTrackingFiles(cwd: string, projectName: string, stack: Record<string, string>, structure: string, isExisting: boolean, auditScore?: number): void {
+  const spinner = ora('  Creating project tracking files...').start();
+
+  try {
+    // Create .codebakers directory
+    const codebakersDir = join(cwd, '.codebakers');
+    if (!existsSync(codebakersDir)) {
+      mkdirSync(codebakersDir, { recursive: true });
+    }
+
+    // Remove old .claude folder if it exists
+    const claudeDir = join(cwd, '.claude');
+    if (existsSync(claudeDir)) {
+      try {
+        rmSync(claudeDir, { recursive: true, force: true });
+      } catch {
+        // Ignore errors
+      }
+    }
+
+    // PROJECT-CONTEXT.md
+    writeFileSync(join(cwd, 'PROJECT-CONTEXT.md'), createProjectContext(projectName, stack, structure, isExisting));
+
+    // PROJECT-STATE.md
+    writeFileSync(join(cwd, 'PROJECT-STATE.md'), createProjectState(projectName, isExisting));
+
+    // DECISIONS.md
+    writeFileSync(join(cwd, 'DECISIONS.md'), createDecisionsLog(projectName));
+
+    // .codebakers/DEVLOG.md
+    writeFileSync(join(codebakersDir, 'DEVLOG.md'), createDevlog(projectName, isExisting, auditScore));
+
+    // .codebakers.json state file
+    const stateFile = join(cwd, '.codebakers.json');
+    const state = {
+      version: '1.0',
+      serverEnforced: true,
+      projectType: isExisting ? 'existing' : 'new',
+      projectName,
+      createdAt: new Date().toISOString(),
+      stack,
+      auditScore: auditScore
+    };
+    writeFileSync(stateFile, JSON.stringify(state, null, 2));
+
+    spinner.succeed('Project tracking files created!');
+  } catch {
+    spinner.warn('Some tracking files could not be created');
+  }
+}
+
+function updateGitignore(cwd: string): void {
+  const gitignorePath = join(cwd, '.gitignore');
+  if (existsSync(gitignorePath)) {
+    const gitignore = readFileSync(gitignorePath, 'utf-8');
+    if (!gitignore.includes('.cursorrules')) {
+      writeFileSync(gitignorePath, gitignore + '\n# CodeBakers\n.cursorrules\n');
+    }
+  }
 }
 
 interface GoOptions {
@@ -116,9 +854,8 @@ export async function go(options: GoOptions = {}): Promise<void> {
     log(`Found API key: ${existingApiKey.substring(0, 8)}...`, options);
     console.log(chalk.green('  ✓ You\'re already logged in!\n'));
 
-    // Install patterns if not already installed
-    await installPatternsWithApiKey(existingApiKey, options);
-    await configureMCP(options);
+    // Run complete project setup
+    await setupProject(options, { apiKey: existingApiKey });
     await showSuccessAndRestart();
     return;
   }
@@ -136,9 +873,8 @@ export async function go(options: GoOptions = {}): Promise<void> {
       console.log(chalk.cyan('    codebakers extend\n'));
     }
 
-    // Install patterns if not already installed
-    await installPatterns(existingTrial.trialId, options);
-    await configureMCP(options);
+    // Run complete project setup
+    await setupProject(options, { trialId: existingTrial.trialId });
     await showSuccessAndRestart();
     return;
   }
@@ -263,13 +999,8 @@ async function startTrialWithGitHub(options: GoOptions = {}): Promise<void> {
         spinner.succeed(`Trial started (${data.daysRemaining} days free)${username}`);
         console.log('');
 
-        // Install v6.0 bootstrap files
-        await installPatterns(data.trialId, options);
-
-        // Configure MCP
-        await configureMCP(options);
-
-        // Show success and restart
+        // Run complete project setup
+        await setupProject(options, { trialId: data.trialId });
         await showSuccessAndRestart();
         return;
       }
@@ -283,30 +1014,6 @@ async function startTrialWithGitHub(options: GoOptions = {}): Promise<void> {
     spinner.warn('Authorization timed out');
     console.log(chalk.yellow('\n  Please try again or authorize manually:\n'));
     console.log(chalk.cyan(`  ${authUrl}\n`));
-  }
-}
-
-async function configureMCP(options: GoOptions = {}): Promise<void> {
-  log('Configuring MCP integration...', options);
-  const spinner = ora('Configuring Claude Code integration...').start();
-  const isWindows = process.platform === 'win32';
-
-  const mcpCmd = isWindows
-    ? 'claude mcp add --transport stdio codebakers -- cmd /c npx -y @codebakers/cli serve'
-    : 'claude mcp add --transport stdio codebakers -- npx -y @codebakers/cli serve';
-
-  try {
-    execSync(mcpCmd, { stdio: 'pipe' });
-    spinner.succeed('CodeBakers connected to Claude Code');
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes('already exists') || errorMessage.includes('already registered')) {
-      spinner.succeed('CodeBakers already connected to Claude Code');
-    } else {
-      spinner.warn('Could not auto-configure Claude Code');
-      console.log(chalk.gray('\n  Run this command manually:\n'));
-      console.log(chalk.cyan(`  ${mcpCmd}\n`));
-    }
   }
 }
 
@@ -334,13 +1041,8 @@ async function handleApiKeyLogin(options: GoOptions = {}): Promise<void> {
     setApiKey(apiKey);
     console.log(chalk.green('  ✓ Logged in successfully!\n'));
 
-    // Install patterns
-    await installPatternsWithApiKey(apiKey, options);
-
-    // Configure MCP
-    await configureMCP(options);
-
-    // Show success
+    // Run complete project setup
+    await setupProject(options, { apiKey });
     await showSuccessAndRestart();
 
   } catch (error) {
@@ -513,69 +1215,264 @@ CodeBakers v6.0 - Server-Enforced Patterns
 `;
 
 /**
- * Install v6.0 bootstrap files for API key users (paid users)
- * Only installs minimal CLAUDE.md and .cursorrules - no .claude/ folder
+ * Complete project setup - handles everything:
+ * - Detect new vs existing project
+ * - Set up all tracking files
+ * - Configure Cursor and Claude Code MCP
+ * - Run guided questions for new projects
+ * - Run code review for existing projects
  */
-async function installPatternsWithApiKey(apiKey: string, options: GoOptions = {}): Promise<void> {
-  log('Installing v6.0 bootstrap files (API key user)...', options);
-  await installBootstrapFiles(options, { apiKey });
-}
-
-/**
- * Install v6.0 bootstrap files for trial users
- * Only installs minimal CLAUDE.md and .cursorrules - no .claude/ folder
- */
-async function installPatterns(trialId: string, options: GoOptions = {}): Promise<void> {
-  log(`Installing v6.0 bootstrap files (trial: ${trialId.substring(0, 8)}...)`, options);
-  await installBootstrapFiles(options, { trialId });
-}
-
-/**
- * Install v6.0 minimal bootstrap files
- * - CLAUDE.md: Instructions for Claude Code
- * - .cursorrules: Instructions for Cursor
- * - NO .claude/ folder - all patterns are server-side
- */
-async function installBootstrapFiles(options: GoOptions = {}, auth?: AuthInfo): Promise<void> {
-  const spinner = ora('Installing CodeBakers v6.0...').start();
+async function setupProject(options: GoOptions = {}, auth?: AuthInfo): Promise<void> {
   const cwd = process.cwd();
 
-  try {
-    const claudeMdPath = join(cwd, 'CLAUDE.md');
-    const cursorRulesPath = join(cwd, '.cursorrules');
+  // Detect if this is an existing project
+  const projectInfo = detectExistingProject(cwd);
 
-    // Check if already installed with v6
-    if (existsSync(claudeMdPath)) {
-      const content = readFileSync(claudeMdPath, 'utf-8');
-      if (content.includes('v6.0') && content.includes('discover_patterns')) {
-        spinner.succeed('CodeBakers v6.0 already installed');
-        return;
+  if (projectInfo.exists) {
+    // Existing project detected
+    await setupExistingProject(cwd, projectInfo, options, auth);
+  } else {
+    // New project
+    await setupNewProject(cwd, options, auth);
+  }
+}
+
+async function setupNewProject(cwd: string, options: GoOptions = {}, auth?: AuthInfo): Promise<void> {
+  console.log(chalk.cyan('\n  ━━━ New Project Setup ━━━\n'));
+
+  // Get project info
+  console.log(chalk.white('  What kind of project is this?\n'));
+  console.log(chalk.gray('    1. ') + chalk.cyan('PERSONAL') + chalk.gray(' - Just building for myself'));
+  console.log(chalk.gray('    2. ') + chalk.cyan('CLIENT') + chalk.gray('   - Building for someone else'));
+  console.log(chalk.gray('    3. ') + chalk.cyan('BUSINESS') + chalk.gray(' - My own product/startup\n'));
+
+  let typeChoice = '';
+  while (!['1', '2', '3'].includes(typeChoice)) {
+    typeChoice = await prompt('  Enter 1, 2, or 3: ');
+  }
+
+  const typeMap: Record<string, string> = { '1': 'personal', '2': 'client', '3': 'business' };
+  const projectType = typeMap[typeChoice];
+
+  const defaultName = cwd.split(/[\\/]/).pop() || 'my-project';
+  const projectName = await prompt(`  Project name (${defaultName}): `) || defaultName;
+
+  console.log(chalk.green(`\n  ✓ Setting up "${projectName}" as ${projectType.toUpperCase()} project\n`));
+
+  // Install bootstrap files
+  console.log(chalk.white('  Installing CodeBakers...\n'));
+  installBootstrapFilesSync(cwd);
+
+  // Create tracking files
+  const structure = buildStructureString(cwd);
+  createTrackingFiles(cwd, projectName, {}, structure, false);
+
+  // Setup IDEs and MCP
+  console.log('');
+  setupCursorIDE(cwd);
+  setupClaudeCodeMCP();
+
+  // Update .gitignore
+  updateGitignore(cwd);
+
+  // How to describe project
+  console.log(chalk.white('\n  📝 How would you like to describe your project?\n'));
+  console.log(chalk.gray('    1. ') + chalk.cyan('GUIDED QUESTIONS') + chalk.gray(' - I\'ll ask you step by step'));
+  console.log(chalk.gray('    2. ') + chalk.cyan('WRITE A PRD') + chalk.gray('      - Create a blank template to fill out'));
+  console.log(chalk.gray('    3. ') + chalk.cyan('PASTE/UPLOAD PRD') + chalk.gray(' - I already have requirements written'));
+  console.log(chalk.gray('    4. ') + chalk.cyan('DESCRIBE IN CHAT') + chalk.gray(' - Just tell the AI what you want'));
+  console.log(chalk.gray('    5. ') + chalk.cyan('SHARE FILES') + chalk.gray('      - I\'ll share docs/mockups/screenshots\n'));
+
+  let describeChoice = '';
+  while (!['1', '2', '3', '4', '5'].includes(describeChoice)) {
+    describeChoice = await prompt('  Enter 1-5: ');
+  }
+
+  let prdCreated = false;
+
+  if (describeChoice === '1') {
+    // Guided questions
+    const answers = await runGuidedQuestions();
+    const prdSpinner = ora('  Creating PRD from your answers...').start();
+    writeFileSync(join(cwd, 'PRD.md'), createPrdFromAnswers(projectName, projectType, answers));
+    prdSpinner.succeed('PRD created from your answers!');
+    console.log(chalk.yellow('\n  → Review PRD.md, then start building with the AI\n'));
+    prdCreated = true;
+  } else if (describeChoice === '2') {
+    // Write PRD template
+    const prdSpinner = ora('  Creating PRD template...').start();
+    writeFileSync(join(cwd, 'PRD.md'), createPrdTemplate(projectName, projectType));
+    prdSpinner.succeed('PRD template created!');
+    console.log(chalk.yellow('\n  → Open PRD.md and fill in your requirements\n'));
+    prdCreated = true;
+  } else if (describeChoice === '3') {
+    // Paste/upload existing PRD
+    console.log(chalk.cyan('\n  ━━━ Paste Your Requirements ━━━\n'));
+    console.log(chalk.gray('  Paste your PRD, requirements, or spec below.'));
+    console.log(chalk.gray('  When done, type ') + chalk.cyan('END') + chalk.gray(' on a new line and press Enter.\n'));
+
+    const lines: string[] = [];
+    let line = '';
+    while (true) {
+      line = await prompt('  ');
+      if (line.toUpperCase() === 'END') break;
+      lines.push(line);
+    }
+
+    if (lines.length > 0) {
+      const content = lines.join('\n');
+      const prdContent = `# Product Requirements Document
+# Project: ${projectName}
+# Created: ${new Date().toISOString().split('T')[0]}
+# Type: ${projectType}
+# Source: Pasted by user
+
+${content}
+
+---
+<!-- User-provided requirements - AI reads this to build your project -->
+`;
+      writeFileSync(join(cwd, 'PRD.md'), prdContent);
+      console.log(chalk.green('\n  ✓ Saved to PRD.md'));
+      console.log(chalk.yellow('  → The AI will read this when you start building\n'));
+      prdCreated = true;
+    } else {
+      console.log(chalk.gray('\n  No content pasted. You can add PRD.md manually later.\n'));
+    }
+  } else if (describeChoice === '4') {
+    // Describe in chat
+    console.log(chalk.gray('\n  Perfect! Just describe your project to the AI when you\'re ready.\n'));
+    console.log(chalk.gray('  Example: "Build me a SaaS for invoice management with Stripe payments"\n'));
+  } else {
+    // Share files (option 5)
+    console.log(chalk.gray('\n  Great! When chatting with the AI:\n'));
+    console.log(chalk.gray('    • Drag and drop your mockups or screenshots'));
+    console.log(chalk.gray('    • Share links to Figma, design files, or websites'));
+    console.log(chalk.gray('    • Reference existing apps: "Make it look like Linear"\n'));
+    console.log(chalk.cyan('  The AI will analyze them and start building.\n'));
+  }
+
+  // Confirm to server
+  if (auth) {
+    const apiUrl = getApiUrl();
+    confirmDownload(apiUrl, auth, {
+      version: '6.0',
+      moduleCount: 0,
+      cliVersion: getCliVersion(),
+      command: 'go',
+      projectName,
+    }).catch(() => {});
+  }
+}
+
+async function setupExistingProject(cwd: string, projectInfo: ProjectInfo, options: GoOptions = {}, auth?: AuthInfo): Promise<void> {
+  console.log(chalk.cyan('\n  ━━━ Existing Project Detected ━━━\n'));
+
+  // Show what was detected
+  console.log(chalk.gray('  Found:'));
+  for (const detail of projectInfo.details.slice(0, 5)) {
+    console.log(chalk.gray(`    • ${detail}`));
+  }
+
+  const stackItems = Object.entries(projectInfo.stack).filter(([_, v]) => v);
+  if (stackItems.length > 0) {
+    console.log(chalk.gray('\n  Tech Stack:'));
+    for (const [key, value] of stackItems) {
+      console.log(chalk.gray(`    • ${key}: ${value}`));
+    }
+  }
+
+  // Get project name
+  const defaultName = cwd.split(/[\\/]/).pop() || 'my-project';
+  const projectName = await prompt(`\n  Project name (${defaultName}): `) || defaultName;
+
+  // Code review offer
+  console.log(chalk.white('\n  Want me to review your code and bring it up to CodeBakers standards?\n'));
+  console.log(chalk.gray('    1. ') + chalk.cyan('YES, REVIEW & FIX') + chalk.gray(' - Run audit, then auto-fix issues'));
+  console.log(chalk.gray('    2. ') + chalk.cyan('REVIEW ONLY') + chalk.gray('      - Just show me the issues'));
+  console.log(chalk.gray('    3. ') + chalk.cyan('SKIP') + chalk.gray('             - Just install CodeBakers\n'));
+
+  let reviewChoice = '';
+  while (!['1', '2', '3'].includes(reviewChoice)) {
+    reviewChoice = await prompt('  Enter 1, 2, or 3: ');
+  }
+
+  let auditScore: number | undefined;
+
+  if (reviewChoice !== '3') {
+    console.log(chalk.blue('\n  Running code audit...\n'));
+    const auditResult = await audit();
+    auditScore = auditResult.score;
+
+    if (auditResult.score >= 90) {
+      console.log(chalk.green('\n  🎉 Your code is already in great shape!\n'));
+    } else if (reviewChoice === '1') {
+      const fixableCount = auditResult.checks.filter(c => !c.passed && c.severity !== 'info').length;
+      if (fixableCount > 0) {
+        console.log(chalk.blue('\n  🔧 Attempting to auto-fix issues...\n'));
+        const healResult = await heal({ auto: true });
+
+        if (healResult.fixed > 0) {
+          console.log(chalk.green(`\n  ✓ Fixed ${healResult.fixed} issue(s)!`));
+          if (healResult.remaining > 0) {
+            console.log(chalk.yellow(`  ⚠ ${healResult.remaining} issue(s) need manual attention.`));
+          }
+        }
       }
-      // Upgrade from v5
-      log('Upgrading from v5 to v6...', options);
+    } else {
+      console.log(chalk.gray('\n  Run `codebakers heal --auto` later to fix issues.\n'));
+    }
+  }
+
+  // Install files
+  console.log(chalk.white('\n  Installing CodeBakers...\n'));
+  installBootstrapFilesSync(cwd);
+
+  // Create tracking files with detected stack
+  const structure = buildStructureString(cwd);
+  createTrackingFiles(cwd, projectName, projectInfo.stack, structure, true, auditScore);
+
+  // Setup IDEs and MCP
+  console.log('');
+  setupCursorIDE(cwd);
+  setupClaudeCodeMCP();
+
+  // Update .gitignore
+  updateGitignore(cwd);
+
+  // Confirm to server
+  if (auth) {
+    const apiUrl = getApiUrl();
+    confirmDownload(apiUrl, auth, {
+      version: '6.0',
+      moduleCount: 0,
+      cliVersion: getCliVersion(),
+      command: 'go',
+      projectName,
+    }).catch(() => {});
+  }
+}
+
+function installBootstrapFilesSync(cwd: string): void {
+  const spinner = ora('  Installing bootstrap files...').start();
+
+  try {
+    writeFileSync(join(cwd, 'CLAUDE.md'), V6_CLAUDE_MD);
+    // .cursorrules is written by setupCursorIDE
+
+    // Remove old .claude folder if it exists
+    const claudeDir = join(cwd, '.claude');
+    if (existsSync(claudeDir)) {
+      try {
+        rmSync(claudeDir, { recursive: true, force: true });
+      } catch {
+        // Ignore errors
+      }
     }
 
-    // Write v6.0 bootstrap files
-    writeFileSync(claudeMdPath, V6_CLAUDE_MD);
-    writeFileSync(cursorRulesPath, V6_CURSORRULES);
-
-    spinner.succeed('CodeBakers v6.0 installed');
-    console.log(chalk.gray('  Patterns are server-enforced via MCP tools\n'));
-
-    // Confirm install to server (non-blocking)
-    if (auth) {
-      const apiUrl = getApiUrl();
-      confirmDownload(apiUrl, auth, {
-        version: '6.0',
-        moduleCount: 0, // No local modules in v6
-        cliVersion: getCliVersion(),
-        command: 'go',
-      }).catch(() => {}); // Silently ignore
-    }
-
+    spinner.succeed('Bootstrap files installed!');
   } catch (error) {
-    log(`Error: ${error instanceof Error ? error.message : String(error)}`, options);
-    spinner.warn('Could not install bootstrap files');
-    console.log(chalk.gray('  MCP tools will still work without local files.\n'));
+    spinner.fail('Failed to install bootstrap files');
+    throw error;
   }
 }
