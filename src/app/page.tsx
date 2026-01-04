@@ -188,7 +188,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground" suppressHydrationWarning>
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-950 border-b border-gray-800">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -874,8 +874,8 @@ export default function HomePage() {
       {/* Simple Footer */}
       <footer className="py-8 px-4 border-t border-border">
         <div className="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="text-muted-foreground text-sm">
-            &copy; {new Date().getFullYear()} CodeBakers
+          <div className="text-muted-foreground text-sm" suppressHydrationWarning>
+            &copy; 2025 CodeBakers
           </div>
           <div className="flex gap-6 text-sm">
             <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
