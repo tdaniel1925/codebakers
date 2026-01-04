@@ -837,13 +837,14 @@ async function initNewProject(cwd: string): Promise<void> {
   // How to describe project
   console.log(chalk.white('\n  📝 How would you like to describe your project?\n'));
   console.log(chalk.gray('    1. ') + chalk.cyan('GUIDED QUESTIONS') + chalk.gray(' - I\'ll ask you step by step'));
-  console.log(chalk.gray('    2. ') + chalk.cyan('WRITE A PRD') + chalk.gray('      - Create a requirements doc to fill out'));
-  console.log(chalk.gray('    3. ') + chalk.cyan('DESCRIBE IN CHAT') + chalk.gray(' - Just tell the AI what you want'));
-  console.log(chalk.gray('    4. ') + chalk.cyan('I HAVE SPECS') + chalk.gray('     - I\'ll share existing docs/mockups\n'));
+  console.log(chalk.gray('    2. ') + chalk.cyan('WRITE A PRD') + chalk.gray('      - Create a blank template to fill out'));
+  console.log(chalk.gray('    3. ') + chalk.cyan('PASTE/UPLOAD PRD') + chalk.gray(' - I already have requirements written'));
+  console.log(chalk.gray('    4. ') + chalk.cyan('DESCRIBE IN CHAT') + chalk.gray(' - Just tell the AI what you want'));
+  console.log(chalk.gray('    5. ') + chalk.cyan('SHARE FILES') + chalk.gray('      - I\'ll share docs/mockups/screenshots\n'));
 
   let describeChoice = '';
-  while (!['1', '2', '3', '4'].includes(describeChoice)) {
-    describeChoice = await prompt('  Enter 1, 2, 3, or 4: ');
+  while (!['1', '2', '3', '4', '5'].includes(describeChoice)) {
+    describeChoice = await prompt('  Enter 1-5: ');
   }
 
   let prdCreated = false;
@@ -864,15 +865,49 @@ async function initNewProject(cwd: string): Promise<void> {
     console.log(chalk.yellow('\n  → Open PRD.md and fill in your requirements\n'));
     prdCreated = true;
   } else if (describeChoice === '3') {
+    // Paste/upload existing PRD
+    console.log(chalk.cyan('\n  ━━━ Paste Your Requirements ━━━\n'));
+    console.log(chalk.gray('  Paste your PRD, requirements, or spec below.'));
+    console.log(chalk.gray('  When done, type ') + chalk.cyan('END') + chalk.gray(' on a new line and press Enter.\n'));
+
+    const lines: string[] = [];
+    let line = '';
+    while (true) {
+      line = await prompt('  ');
+      if (line.toUpperCase() === 'END') break;
+      lines.push(line);
+    }
+
+    if (lines.length > 0) {
+      const content = lines.join('\n');
+      const prdContent = `# Product Requirements Document
+# Project: ${projectName}
+# Created: ${new Date().toISOString().split('T')[0]}
+# Type: ${projectType}
+# Source: Pasted by user
+
+${content}
+
+---
+<!-- User-provided requirements - AI reads this to build your project -->
+`;
+      writeFileSync(join(cwd, 'PRD.md'), prdContent);
+      console.log(chalk.green('\n  ✓ Saved to PRD.md'));
+      console.log(chalk.yellow('  → The AI will read this when you start building\n'));
+      prdCreated = true;
+    } else {
+      console.log(chalk.gray('\n  No content pasted. You can add PRD.md manually later.\n'));
+    }
+  } else if (describeChoice === '4') {
     // Describe in chat
     console.log(chalk.gray('\n  Perfect! Just describe your project to the AI when you\'re ready.\n'));
     console.log(chalk.gray('  Example: "Build me a SaaS for invoice management with Stripe payments"\n'));
   } else {
-    // I have specs
+    // Share files (option 5)
     console.log(chalk.gray('\n  Great! When chatting with the AI:\n'));
-    console.log(chalk.gray('    • Share your docs, mockups, or screenshots'));
-    console.log(chalk.gray('    • Paste your existing requirements'));
-    console.log(chalk.gray('    • Reference URLs to designs you want to clone\n'));
+    console.log(chalk.gray('    • Drag and drop your mockups or screenshots'));
+    console.log(chalk.gray('    • Share links to Figma, design files, or websites'));
+    console.log(chalk.gray('    • Reference existing apps: "Make it look like Linear"\n'));
     console.log(chalk.cyan('  The AI will analyze them and start building.\n'));
   }
 
