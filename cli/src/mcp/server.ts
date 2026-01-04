@@ -879,6 +879,29 @@ class CodeBakersServer {
           },
         },
         {
+          name: 'generate_tests',
+          description:
+            'Generate test stubs for a file or feature. Creates a test file with happy path and error case templates based on the source code. Reduces friction for adding tests. Use when user needs help writing tests.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              file: {
+                type: 'string',
+                description: 'Source file to generate tests for (e.g., "src/components/LoginForm.tsx", "src/app/api/users/route.ts")',
+              },
+              feature: {
+                type: 'string',
+                description: 'Feature name if generating tests for a feature rather than a specific file',
+              },
+              testType: {
+                type: 'string',
+                enum: ['unit', 'integration', 'e2e'],
+                description: 'Type of test to generate (default: unit for components/functions, integration for API routes)',
+              },
+            },
+          },
+        },
+        {
           name: 'validate_complete',
           description:
             'MANDATORY: Call this BEFORE saying "done" or "complete" on any feature. Validates that tests exist, tests pass, and TypeScript compiles. Returns { valid: true } or { valid: false, missing: [...] }. You are NOT ALLOWED to complete a feature without calling this first.',
@@ -1658,6 +1681,9 @@ class CodeBakersServer {
 
         case 'run_tests':
           return this.handleRunTests(args as { filter?: string; watch?: boolean });
+
+        case 'generate_tests':
+          return this.handleGenerateTests(args as { file?: string; feature?: string; testType?: 'unit' | 'integration' | 'e2e' });
 
         case 'validate_complete':
           return this.handleValidateComplete(args as { feature: string; files?: string[] });
@@ -4070,6 +4096,281 @@ Just describe what you want to build! I'll automatically:
       response += `**Exit Code:** ${execError.status || 1}\n\n`;
       response += `---\n\n*Fix the failing tests and run again.*`;
     }
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: response,
+      }],
+    };
+  }
+
+  /**
+   * Generate test stubs for a file or feature
+   * Analyzes source code and creates appropriate test templates
+   */
+  private handleGenerateTests(args: { file?: string; feature?: string; testType?: 'unit' | 'integration' | 'e2e' }) {
+    const { file, feature, testType } = args;
+    const cwd = process.cwd();
+
+    if (!file && !feature) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: '❌ Please provide either a file path or feature name to generate tests for.',
+        }],
+        isError: true,
+      };
+    }
+
+    // Detect test framework
+    let testFramework = 'vitest';
+    try {
+      const pkgPath = path.join(cwd, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+        const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+        if (deps['jest']) testFramework = 'jest';
+        else if (deps['@playwright/test']) testFramework = 'playwright';
+        else if (deps['vitest']) testFramework = 'vitest';
+      }
+    } catch {
+      // Use default
+    }
+
+    let response = `# 🧪 Test Stub Generator\n\n`;
+
+    if (file) {
+      // Generate tests for a specific file
+      const filePath = path.isAbsolute(file) ? file : path.join(cwd, file);
+
+      if (!fs.existsSync(filePath)) {
+        return {
+          content: [{
+            type: 'text' as const,
+            text: `❌ File not found: ${file}`,
+          }],
+          isError: true,
+        };
+      }
+
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const fileName = path.basename(file);
+      const fileExt = path.extname(file);
+      const isApiRoute = file.includes('/api/') || file.includes('\\api\\');
+      const isComponent = fileExt === '.tsx' && !isApiRoute;
+      const isService = file.includes('/services/') || file.includes('\\services\\') || file.includes('/lib/') || file.includes('\\lib\\');
+
+      // Detect exported functions/components
+      const exportedItems: string[] = [];
+      const exportDefaultMatch = content.match(/export\s+default\s+(function\s+)?(\w+)/);
+      const exportMatches = content.matchAll(/export\s+(async\s+)?(function|const)\s+(\w+)/g);
+
+      if (exportDefaultMatch && exportDefaultMatch[2]) {
+        exportedItems.push(exportDefaultMatch[2]);
+      }
+      for (const match of exportMatches) {
+        if (match[3]) exportedItems.push(match[3]);
+      }
+
+      // HTTP methods for API routes
+      const httpMethods: string[] = [];
+      if (isApiRoute) {
+        if (content.includes('export async function GET') || content.includes('export function GET')) httpMethods.push('GET');
+        if (content.includes('export async function POST') || content.includes('export function POST')) httpMethods.push('POST');
+        if (content.includes('export async function PUT') || content.includes('export function PUT')) httpMethods.push('PUT');
+        if (content.includes('export async function PATCH') || content.includes('export function PATCH')) httpMethods.push('PATCH');
+        if (content.includes('export async function DELETE') || content.includes('export function DELETE')) httpMethods.push('DELETE');
+      }
+
+      response += `**Source:** \`${file}\`\n`;
+      response += `**Type:** ${isApiRoute ? 'API Route' : isComponent ? 'React Component' : isService ? 'Service/Utility' : 'Module'}\n`;
+      response += `**Test Framework:** ${testFramework}\n\n`;
+
+      // Determine test file path
+      const testFileName = fileName.replace(/\.(ts|tsx)$/, '.test$1');
+      let testFilePath: string;
+
+      if (isApiRoute) {
+        // API routes: tests/api/[route].test.ts
+        const routePath = file.replace(/.*\/api\//, '').replace(/\/route\.(ts|tsx)$/, '').replace(/\\/g, '/');
+        testFilePath = `tests/api/${routePath}.test.ts`;
+      } else if (isComponent) {
+        // Components: alongside the file
+        testFilePath = file.replace(/\.(tsx)$/, '.test.tsx');
+      } else {
+        // Services/utils: tests/services/
+        testFilePath = `tests/${fileName.replace(/\.(ts|tsx)$/, '.test.ts')}`;
+      }
+
+      response += `**Test File:** \`${testFilePath}\`\n\n`;
+      response += `---\n\n`;
+
+      // Generate test stub based on file type
+      if (isApiRoute && httpMethods.length > 0) {
+        response += `## API Route Test Stub\n\n`;
+        response += '```typescript\n';
+        response += `import { describe, it, expect, beforeEach } from '${testFramework}';\n\n`;
+        response += `describe('${file.replace(/.*\/api\//, '/api/').replace(/\/route\.(ts|tsx)$/, '')}', () => {\n`;
+
+        for (const method of httpMethods) {
+          response += `  describe('${method}', () => {\n`;
+          response += `    it('should handle successful request', async () => {\n`;
+          response += `      // Arrange: Set up test data\n`;
+          response += `      const request = new Request('http://localhost/api/...', {\n`;
+          response += `        method: '${method}',\n`;
+          if (method !== 'GET' && method !== 'DELETE') {
+            response += `        body: JSON.stringify({ /* test data */ }),\n`;
+            response += `        headers: { 'Content-Type': 'application/json' },\n`;
+          }
+          response += `      });\n\n`;
+          response += `      // Act: Call the handler\n`;
+          response += `      // const response = await ${method}(request);\n`;
+          response += `      // const data = await response.json();\n\n`;
+          response += `      // Assert: Check response\n`;
+          response += `      // expect(response.status).toBe(200);\n`;
+          response += `      // expect(data).toMatchObject({ /* expected */ });\n`;
+          response += `    });\n\n`;
+          response += `    it('should handle validation errors', async () => {\n`;
+          response += `      // Test with invalid input\n`;
+          response += `      // expect(response.status).toBe(400);\n`;
+          response += `    });\n\n`;
+          response += `    it('should handle unauthorized access', async () => {\n`;
+          response += `      // Test without auth\n`;
+          response += `      // expect(response.status).toBe(401);\n`;
+          response += `    });\n`;
+          response += `  });\n\n`;
+        }
+        response += `});\n`;
+        response += '```\n\n';
+
+      } else if (isComponent) {
+        const componentName = exportedItems[0] || fileName.replace(/\.(tsx)$/, '');
+        response += `## Component Test Stub\n\n`;
+        response += '```typescript\n';
+        response += `import { render, screen, fireEvent } from '@testing-library/react';\n`;
+        response += `import { describe, it, expect } from '${testFramework}';\n`;
+        response += `import { ${componentName} } from './${fileName.replace(/\.tsx$/, '')}';\n\n`;
+        response += `describe('${componentName}', () => {\n`;
+        response += `  it('renders correctly', () => {\n`;
+        response += `    render(<${componentName} />);\n`;
+        response += `    // expect(screen.getByRole('...')).toBeInTheDocument();\n`;
+        response += `  });\n\n`;
+        response += `  it('handles user interaction', async () => {\n`;
+        response += `    render(<${componentName} />);\n`;
+        response += `    // const button = screen.getByRole('button', { name: /.../ });\n`;
+        response += `    // await fireEvent.click(button);\n`;
+        response += `    // expect(screen.getByText('...')).toBeInTheDocument();\n`;
+        response += `  });\n\n`;
+        response += `  it('displays loading state', () => {\n`;
+        response += `    // Test loading state\n`;
+        response += `  });\n\n`;
+        response += `  it('handles errors gracefully', () => {\n`;
+        response += `    // Test error state\n`;
+        response += `  });\n`;
+        response += `});\n`;
+        response += '```\n\n';
+
+      } else {
+        // Generic function/service tests
+        response += `## Unit Test Stub\n\n`;
+        response += '```typescript\n';
+        response += `import { describe, it, expect, vi } from '${testFramework}';\n`;
+        if (exportedItems.length > 0) {
+          response += `import { ${exportedItems.join(', ')} } from '${file.replace(/\.(ts|tsx)$/, '')}';\n`;
+        }
+        response += `\n`;
+        response += `describe('${fileName.replace(/\.(ts|tsx)$/, '')}', () => {\n`;
+
+        for (const item of exportedItems.slice(0, 5)) { // Limit to first 5
+          response += `  describe('${item}', () => {\n`;
+          response += `    it('should work correctly with valid input', async () => {\n`;
+          response += `      // Arrange\n`;
+          response += `      const input = { /* test data */ };\n\n`;
+          response += `      // Act\n`;
+          response += `      // const result = await ${item}(input);\n\n`;
+          response += `      // Assert\n`;
+          response += `      // expect(result).toBe(/* expected */);\n`;
+          response += `    });\n\n`;
+          response += `    it('should handle edge cases', async () => {\n`;
+          response += `      // Test with empty/null/undefined inputs\n`;
+          response += `    });\n\n`;
+          response += `    it('should throw on invalid input', async () => {\n`;
+          response += `      // expect(() => ${item}(invalid)).toThrow();\n`;
+          response += `    });\n`;
+          response += `  });\n\n`;
+        }
+        response += `});\n`;
+        response += '```\n\n';
+      }
+
+    } else if (feature) {
+      // Generate feature-based test structure
+      response += `**Feature:** ${feature}\n`;
+      response += `**Test Framework:** ${testFramework}\n\n`;
+      response += `---\n\n`;
+
+      response += `## Feature Test Structure\n\n`;
+      response += `For feature "${feature}", create the following test files:\n\n`;
+
+      response += `### 1. Unit Tests (\`tests/unit/${feature.toLowerCase().replace(/\s+/g, '-')}.test.ts\`)\n\n`;
+      response += '```typescript\n';
+      response += `import { describe, it, expect } from '${testFramework}';\n\n`;
+      response += `describe('${feature} - Unit Tests', () => {\n`;
+      response += `  describe('Core Logic', () => {\n`;
+      response += `    it('should handle happy path', () => {\n`;
+      response += `      // Test the main success scenario\n`;
+      response += `    });\n\n`;
+      response += `    it('should validate input', () => {\n`;
+      response += `      // Test input validation\n`;
+      response += `    });\n\n`;
+      response += `    it('should handle errors', () => {\n`;
+      response += `      // Test error handling\n`;
+      response += `    });\n`;
+      response += `  });\n`;
+      response += `});\n`;
+      response += '```\n\n';
+
+      response += `### 2. Integration Tests (\`tests/integration/${feature.toLowerCase().replace(/\s+/g, '-')}.test.ts\`)\n\n`;
+      response += '```typescript\n';
+      response += `import { describe, it, expect, beforeAll, afterAll } from '${testFramework}';\n\n`;
+      response += `describe('${feature} - Integration Tests', () => {\n`;
+      response += `  beforeAll(async () => {\n`;
+      response += `    // Set up test database, mock services, etc.\n`;
+      response += `  });\n\n`;
+      response += `  afterAll(async () => {\n`;
+      response += `    // Clean up\n`;
+      response += `  });\n\n`;
+      response += `  it('should complete the full flow', async () => {\n`;
+      response += `    // Test the complete feature flow\n`;
+      response += `  });\n`;
+      response += `});\n`;
+      response += '```\n\n';
+
+      if (testType === 'e2e' || testFramework === 'playwright') {
+        response += `### 3. E2E Tests (\`e2e/${feature.toLowerCase().replace(/\s+/g, '-')}.spec.ts\`)\n\n`;
+        response += '```typescript\n';
+        response += `import { test, expect } from '@playwright/test';\n\n`;
+        response += `test.describe('${feature}', () => {\n`;
+        response += `  test('user can complete the flow', async ({ page }) => {\n`;
+        response += `    // Navigate to the feature\n`;
+        response += `    await page.goto('/...');\n\n`;
+        response += `    // Interact with the UI\n`;
+        response += `    // await page.click('button');\n`;
+        response += `    // await page.fill('input', 'value');\n\n`;
+        response += `    // Verify the result\n`;
+        response += `    // await expect(page.getByText('...')).toBeVisible();\n`;
+        response += `  });\n`;
+        response += `});\n`;
+        response += '```\n\n';
+      }
+    }
+
+    response += `---\n\n`;
+    response += `**Next Steps:**\n`;
+    response += `1. Create the test file at the suggested path\n`;
+    response += `2. Uncomment and fill in the test implementations\n`;
+    response += `3. Run tests: \`npm test\`\n`;
 
     return {
       content: [{

@@ -114,6 +114,9 @@ export interface DiscoverPatternsResult {
   }>;
   coreRules: string; // Always include core rules
   message: string;
+  // Pattern match info
+  hasExactMatch: boolean;
+  relatedSuggestions?: Array<{ pattern: string; reason: string }>;
   // Safety system additions
   safetyWarnings?: string[];
   contextSummary?: string;
@@ -218,7 +221,8 @@ export class EnforcementService {
     const keywords = input.keywords || this.extractKeywords(input.task);
 
     // Find relevant patterns based on keywords
-    const patternNames = this.findPatternsByKeywords(keywords);
+    const patternResult = this.findPatternsByKeywords(keywords);
+    const patternNames = patternResult.patterns;
 
     // Always include 00-core
     if (!patternNames.includes('00-core.md')) {
@@ -275,6 +279,15 @@ export class EnforcementService {
     // Build message with safety context
     let message = `Found ${patterns.length} relevant patterns. You MUST follow these patterns when implementing "${input.task}". Your session token is ${sessionToken} - use this when calling validate_complete.`;
 
+    // Add note about pattern match type
+    if (!patternResult.hasExactMatch && patternResult.relatedSuggestions) {
+      message += `\n\n## ⚠️ NO EXACT PATTERN MATCH\n`;
+      message += `No specific pattern exists for "${input.task}". Using general patterns, but consider these related patterns:\n`;
+      for (const suggestion of patternResult.relatedSuggestions) {
+        message += `- **${suggestion.pattern}**: ${suggestion.reason}\n`;
+      }
+    }
+
     // Add safety warnings to message
     if (safetyWarnings.length > 0) {
       message = safetyWarnings.join('\n') + '\n\n' + message;
@@ -297,6 +310,9 @@ export class EnforcementService {
       patterns,
       coreRules: modules['00-core.md'] || '',
       message,
+      // Pattern match info
+      hasExactMatch: patternResult.hasExactMatch,
+      relatedSuggestions: patternResult.relatedSuggestions,
       // Safety system additions
       safetyWarnings: safetyWarnings.length > 0 ? safetyWarnings : undefined,
       contextSummary,
@@ -380,6 +396,7 @@ export class EnforcementService {
     // =========================================================================
 
     // Gate 1: discover_patterns (already checked via session existence)
+    // This is the REQUIRED gate for the two-gate system
     if (session.startGatePassed) {
       safetyGatesFollowed.push('discover_patterns');
     } else {
@@ -391,10 +408,18 @@ export class EnforcementService {
       });
     }
 
-    // Gate 2: load_context
+    // =========================================================================
+    // OPTIONAL SAFETY GATES (only check if using enhanced safety system)
+    // These gates are part of the extended safety system, not the core two-gate system.
+    // Only add warnings if safetySessionId is provided (user is using safety tools).
+    // =========================================================================
+    const usingEnhancedSafety = !!input.safetySessionId;
+
+    // Gate 2: load_context (optional - enhanced safety only)
     if (input.contextWasLoaded) {
       safetyGatesFollowed.push('load_context');
-    } else {
+    } else if (usingEnhancedSafety) {
+      // Only warn if user is explicitly using the safety system
       safetyGatesSkipped.push('load_context');
       issues.push({
         type: 'CONTEXT_NOT_LOADED',
@@ -403,10 +428,11 @@ export class EnforcementService {
       });
     }
 
-    // Gate 3: clarify_intent
+    // Gate 3: clarify_intent (optional - enhanced safety only)
     if (input.intentWasClarified) {
       safetyGatesFollowed.push('clarify_intent');
-    } else {
+    } else if (usingEnhancedSafety) {
+      // Only warn if user is explicitly using the safety system
       safetyGatesSkipped.push('clarify_intent');
       issues.push({
         type: 'INTENT_NOT_CLARIFIED',
@@ -415,10 +441,11 @@ export class EnforcementService {
       });
     }
 
-    // Gate 4: define_scope
+    // Gate 4: define_scope (optional - enhanced safety only)
     if (input.scopeWasLocked) {
       safetyGatesFollowed.push('define_scope');
-    } else {
+    } else if (usingEnhancedSafety) {
+      // Only warn if user is explicitly using the safety system
       safetyGatesSkipped.push('define_scope');
       issues.push({
         type: 'SCOPE_NOT_LOCKED',
@@ -476,8 +503,16 @@ export class EnforcementService {
     const passed = !hasErrors;
 
     // Calculate safety score (0-100)
-    // Each gate is worth 25 points
-    const safetyScore = safetyGatesFollowed.length * 25;
+    // For basic two-gate system: discover_patterns = 100%
+    // For enhanced safety system: each gate = 25%
+    let safetyScore: number;
+    if (usingEnhancedSafety) {
+      // Enhanced safety: 4 gates, each worth 25 points
+      safetyScore = safetyGatesFollowed.length * 25;
+    } else {
+      // Basic two-gate: discover_patterns alone = 100%
+      safetyScore = session.startGatePassed ? 100 : 0;
+    }
 
     // =========================================================================
     // LOG ATTEMPT TO TRACKER (for future reference)
@@ -669,8 +704,13 @@ export class EnforcementService {
 
   /**
    * Find patterns based on keywords
+   * Returns matched patterns and related suggestions if no exact match
    */
-  private static findPatternsByKeywords(keywords: string[]): string[] {
+  private static findPatternsByKeywords(keywords: string[]): {
+    patterns: string[];
+    hasExactMatch: boolean;
+    relatedSuggestions?: Array<{ pattern: string; reason: string }>;
+  } {
     const patternSet = new Set<string>();
 
     for (const keyword of keywords) {
@@ -682,12 +722,84 @@ export class EnforcementService {
       }
     }
 
-    // If no patterns found, include some defaults
-    if (patternSet.size === 0) {
-      patternSet.add('04-frontend.md');
-      patternSet.add('03-api.md');
+    // If patterns found, return them
+    if (patternSet.size > 0) {
+      return {
+        patterns: Array.from(patternSet),
+        hasExactMatch: true,
+      };
     }
 
-    return Array.from(patternSet);
+    // No exact match - provide related suggestions based on task category
+    const relatedSuggestions: Array<{ pattern: string; reason: string }> = [];
+    const taskLower = keywords.join(' ').toLowerCase();
+
+    // Third-party API integrations
+    if (taskLower.includes('api') || taskLower.includes('integrate') ||
+        taskLower.includes('connect') || taskLower.includes('third') ||
+        taskLower.includes('external') || taskLower.includes('webhook')) {
+      relatedSuggestions.push({
+        pattern: '06f-api-patterns.md',
+        reason: 'General patterns for third-party API integrations',
+      });
+    }
+
+    // Background/async work
+    if (taskLower.includes('background') || taskLower.includes('job') ||
+        taskLower.includes('queue') || taskLower.includes('cron') ||
+        taskLower.includes('scheduled') || taskLower.includes('async')) {
+      relatedSuggestions.push({
+        pattern: '06d-background-jobs.md',
+        reason: 'Patterns for background jobs and scheduled tasks',
+      });
+    }
+
+    // Document generation
+    if (taskLower.includes('pdf') || taskLower.includes('document') ||
+        taskLower.includes('excel') || taskLower.includes('word') ||
+        taskLower.includes('export') || taskLower.includes('report')) {
+      relatedSuggestions.push({
+        pattern: '06e-documents.md',
+        reason: 'Patterns for generating PDFs, Excel, and Word documents',
+      });
+    }
+
+    // Real-time features
+    if (taskLower.includes('realtime') || taskLower.includes('real-time') ||
+        taskLower.includes('live') || taskLower.includes('socket') ||
+        taskLower.includes('notification') || taskLower.includes('push')) {
+      relatedSuggestions.push({
+        pattern: '11-realtime.md',
+        reason: 'Patterns for WebSockets and real-time updates',
+      });
+    }
+
+    // AI/LLM features
+    if (taskLower.includes('ai') || taskLower.includes('gpt') ||
+        taskLower.includes('llm') || taskLower.includes('chat') ||
+        taskLower.includes('generate') || taskLower.includes('prompt')) {
+      relatedSuggestions.push({
+        pattern: '14-ai.md',
+        reason: 'Patterns for AI/LLM integrations',
+      });
+    }
+
+    // If still no suggestions, fall back to core patterns
+    if (relatedSuggestions.length === 0) {
+      relatedSuggestions.push({
+        pattern: '04-frontend.md',
+        reason: 'General frontend component patterns',
+      });
+      relatedSuggestions.push({
+        pattern: '03-api.md',
+        reason: 'General API route patterns',
+      });
+    }
+
+    return {
+      patterns: ['04-frontend.md', '03-api.md'], // Default patterns
+      hasExactMatch: false,
+      relatedSuggestions,
+    };
   }
 }
