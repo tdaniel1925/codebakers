@@ -1598,6 +1598,28 @@ class CodeBakersServer {
             },
           },
         },
+        {
+          name: 'setup_services',
+          description:
+            'Help users configure external services (Supabase, OpenAI, Anthropic). Use at project start or when env vars are missing. Explains WHY each service is needed, guides users to get their own API keys, and validates the keys work. Does NOT assume users need all services - asks one at a time based on what they want to build.',
+          inputSchema: {
+            type: 'object' as const,
+            properties: {
+              services: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  enum: ['supabase', 'openai', 'anthropic', 'all'],
+                },
+                description: 'Which services to help configure. Use "all" to check all services, or specify individual ones.',
+              },
+              checkOnly: {
+                type: 'boolean',
+                description: 'If true, only checks which services are missing without prompting for setup. Useful for initial detection.',
+              },
+            },
+          },
+        },
         // Engineering workflow tools
         ...ENGINEERING_TOOLS,
       ],
@@ -1848,6 +1870,9 @@ class CodeBakersServer {
 
         case 'resume_session':
           return this.handleResumeSession(args as { reason?: string });
+
+        case 'setup_services':
+          return this.handleSetupServices(args as { services?: string[]; checkOnly?: boolean });
 
         // Engineering workflow tools
         case 'engineering_start':
@@ -4032,6 +4057,200 @@ Just describe what you want to build! I'll automatically:
     response += `---\n\n`;
     response += `*Context recovered via CodeBakers resume_session. `;
     response += `This tool should be called automatically after conversation compaction.*`;
+
+    return {
+      content: [{
+        type: 'text' as const,
+        text: response,
+      }],
+    };
+  }
+
+  private handleSetupServices(args: { services?: string[]; checkOnly?: boolean }) {
+    const { services = ['all'], checkOnly = false } = args;
+    const cwd = process.cwd();
+
+    // Define service explanations - WHY users need each service
+    const SERVICE_INFO: Record<string, {
+      name: string;
+      why: string;
+      envVars: string[];
+      howToGet: string;
+      validateUrl?: string;
+    }> = {
+      supabase: {
+        name: 'Supabase',
+        why: `**Why you might need Supabase:**
+- 📦 **Database** - Store your users, products, orders, etc.
+- 🔐 **Authentication** - Login, signup, OAuth (Google, GitHub, etc.)
+- ⚡ **Real-time** - Live updates without refreshing the page
+- 📁 **Storage** - File uploads (images, documents)
+
+If your app needs to save ANY data or have user accounts, you need this.`,
+        envVars: ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'],
+        howToGet: `**How to get your Supabase keys:**
+
+1. Go to https://supabase.com and create a free account (or sign in)
+2. Click "New project" and create a project
+3. Wait ~2 minutes for the project to initialize
+4. Go to **Project Settings** → **API** (in the left sidebar)
+5. Copy these values:
+
+   - **Project URL** → use for \`NEXT_PUBLIC_SUPABASE_URL\`
+   - **anon/public key** → use for \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`
+   - **service_role key** → use for \`SUPABASE_SERVICE_ROLE_KEY\` (keep this SECRET!)
+
+⚠️ The service_role key has FULL access - never expose it in client code.`,
+      },
+      openai: {
+        name: 'OpenAI',
+        why: `**Why you might need OpenAI:**
+- 🤖 **GPT Models** - Generate text, answer questions, chat
+- 🔍 **Embeddings** - Semantic search, finding similar content
+- 🎨 **DALL-E** - Generate images from text
+
+If you want AI features like chatbots, content generation, or smart search, you need this.`,
+        envVars: ['OPENAI_API_KEY'],
+        howToGet: `**How to get your OpenAI API key:**
+
+1. Go to https://platform.openai.com and sign up (or sign in)
+2. Click your profile icon → "View API keys"
+3. Click "Create new secret key"
+4. Give it a name (e.g., "My App")
+5. Copy the key immediately (you won't see it again!)
+
+   - Use this for \`OPENAI_API_KEY\`
+
+💰 **Pricing Note:** OpenAI charges per token (roughly per word).
+   - GPT-4: ~$0.03/1K input, ~$0.06/1K output
+   - GPT-3.5: ~$0.0005/1K input, ~$0.0015/1K output
+
+Start with GPT-3.5-turbo for development to save costs.`,
+      },
+      anthropic: {
+        name: 'Anthropic (Claude)',
+        why: `**Why you might need Anthropic:**
+- 🧠 **Claude Models** - Often better at following complex instructions
+- 💻 **Coding Tasks** - Claude excels at code generation and review
+- 📝 **Long Documents** - Handles very long context windows
+
+If you want AI features and prefer Claude over GPT (or want both as fallback).`,
+        envVars: ['ANTHROPIC_API_KEY'],
+        howToGet: `**How to get your Anthropic API key:**
+
+1. Go to https://console.anthropic.com and sign up (or sign in)
+2. Go to "API Keys" in the left sidebar
+3. Click "Create Key"
+4. Give it a name and copy the key
+
+   - Use this for \`ANTHROPIC_API_KEY\`
+
+💰 **Pricing Note:** Anthropic charges per token.
+   - Claude 3 Opus: ~$15/M input, ~$75/M output (most capable)
+   - Claude 3 Sonnet: ~$3/M input, ~$15/M output (balanced)
+   - Claude 3 Haiku: ~$0.25/M input, ~$1.25/M output (fastest/cheapest)`,
+      },
+    };
+
+    // Check which services to process
+    const servicesToCheck = services.includes('all')
+      ? ['supabase', 'openai', 'anthropic']
+      : services.filter(s => s !== 'all');
+
+    // Check .env file for existing vars
+    const envPath = path.join(cwd, '.env');
+    const envLocalPath = path.join(cwd, '.env.local');
+    let envContent = '';
+
+    if (fs.existsSync(envLocalPath)) {
+      envContent = fs.readFileSync(envLocalPath, 'utf-8');
+    } else if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf-8');
+    }
+
+    // Parse existing env vars
+    const existingVars = new Set<string>();
+    for (const line of envContent.split('\n')) {
+      const match = line.match(/^([A-Z_][A-Z0-9_]*)=/);
+      if (match) {
+        existingVars.add(match[1]);
+      }
+    }
+
+    // Check each service
+    const results: Array<{
+      service: string;
+      configured: boolean;
+      missingVars: string[];
+      info: typeof SERVICE_INFO[string];
+    }> = [];
+
+    for (const serviceKey of servicesToCheck) {
+      const info = SERVICE_INFO[serviceKey];
+      if (!info) continue;
+
+      const missingVars = info.envVars.filter(v => !existingVars.has(v));
+      results.push({
+        service: serviceKey,
+        configured: missingVars.length === 0,
+        missingVars,
+        info,
+      });
+    }
+
+    // Build response
+    let response = `# 🔧 Service Configuration Check\n\n`;
+
+    const configured = results.filter(r => r.configured);
+    const missing = results.filter(r => !r.configured);
+
+    if (configured.length > 0) {
+      response += `## ✅ Already Configured\n`;
+      for (const r of configured) {
+        response += `- **${r.info.name}** - All env vars present\n`;
+      }
+      response += `\n`;
+    }
+
+    if (missing.length === 0) {
+      response += `All requested services are configured! 🎉\n\n`;
+      response += `If you need to reconfigure any service, add the specific service name (e.g., \`setup_services({ services: ['supabase'] })\`).\n`;
+    } else {
+      response += `## ⚠️ Missing Configuration\n\n`;
+
+      for (const r of missing) {
+        response += `### ${r.info.name}\n\n`;
+        response += `**Missing:** \`${r.missingVars.join('`, `')}\`\n\n`;
+
+        if (checkOnly) {
+          // Just show what's missing
+          response += `---\n\n`;
+        } else {
+          // Show full explanation
+          response += `${r.info.why}\n\n`;
+          response += `${r.info.howToGet}\n\n`;
+          response += `---\n\n`;
+        }
+      }
+
+      if (checkOnly) {
+        response += `\nRun \`setup_services({ checkOnly: false })\` to get setup instructions for each service.\n`;
+      } else {
+        response += `## Next Steps\n\n`;
+        response += `1. Decide which services you actually need for your project\n`;
+        response += `2. Create accounts and get API keys for those services\n`;
+        response += `3. Add the keys to your \`.env.local\` file:\n\n`;
+        response += `\`\`\`bash\n`;
+        for (const r of missing) {
+          for (const v of r.missingVars) {
+            response += `${v}=your_key_here\n`;
+          }
+        }
+        response += `\`\`\`\n\n`;
+        response += `4. Restart your dev server after adding keys\n\n`;
+        response += `**Don't need a service?** That's fine! Only configure what you'll actually use.\n`;
+      }
+    }
 
     return {
       content: [{
