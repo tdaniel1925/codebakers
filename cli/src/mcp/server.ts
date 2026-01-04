@@ -2480,9 +2480,19 @@ phase: setup
         const deployResults = await this.executeFullDeploy(projectName, cwd, description);
         results.push(...deployResults);
       } else {
+        // Check for missing services and offer setup help
+        const serviceCheck = this.checkMissingServices(cwd);
+
+        results.push('### 🔧 Service Configuration\n');
+        if (serviceCheck.missing.length > 0) {
+          results.push(`Missing configuration for: **${serviceCheck.missing.join(', ')}**\n`);
+          results.push('Run `setup_services` for step-by-step instructions to get your API keys.');
+          results.push('You can paste your keys in chat and I\'ll add them to `.env.local` for you!\n');
+        }
+
         results.push('### Next Steps:\n');
-        results.push('1. **Set up Supabase:** Go to https://supabase.com and create a free project');
-        results.push('2. **Add credentials:** Copy your Supabase URL and anon key to `.env.local`');
+        results.push('1. **Configure services:** Run `setup_services` to set up Supabase, OpenAI, etc.');
+        results.push('2. **Paste your keys:** Get your API keys and paste them in chat');
         results.push('3. **Start building:** Just tell me what features you want!\n');
         results.push('### Example:\n');
         results.push('> "Add user authentication with email/password"');
@@ -2907,6 +2917,16 @@ You cannot write code without calling this tool first.
       results.push('4. Server verifies compliance\n');
       results.push('No local pattern files needed - everything is server-side!');
 
+      // Check for missing services and offer setup help
+      const serviceCheck = this.checkMissingServices(cwd);
+      if (serviceCheck.missing.length > 0) {
+        results.push('\n---\n');
+        results.push('## 🔧 Service Configuration\n');
+        results.push(`Missing configuration for: **${serviceCheck.missing.join(', ')}**\n`);
+        results.push('Run `setup_services` to get step-by-step instructions for getting your API keys.');
+        results.push('You can paste your keys in chat and I\'ll add them to `.env.local` for you!');
+      }
+
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       results.push(`\n❌ Error: ${message}`);
@@ -2918,6 +2938,51 @@ You cannot write code without calling this tool first.
         text: results.join('\n'),
       }],
     };
+  }
+
+  /**
+   * Check which services are missing from .env
+   */
+  private checkMissingServices(cwd: string): { missing: string[]; configured: string[] } {
+    const SERVICE_ENV_VARS: Record<string, string[]> = {
+      'Supabase': ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY'],
+      'OpenAI': ['OPENAI_API_KEY'],
+      'Anthropic': ['ANTHROPIC_API_KEY'],
+    };
+
+    // Read .env file
+    const envPath = path.join(cwd, '.env');
+    const envLocalPath = path.join(cwd, '.env.local');
+    let envContent = '';
+
+    if (fs.existsSync(envLocalPath)) {
+      envContent = fs.readFileSync(envLocalPath, 'utf-8');
+    } else if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf-8');
+    }
+
+    // Parse existing env vars
+    const existingVars = new Set<string>();
+    for (const line of envContent.split('\n')) {
+      const match = line.match(/^([A-Z_][A-Z0-9_]*)=/);
+      if (match) {
+        existingVars.add(match[1]);
+      }
+    }
+
+    const missing: string[] = [];
+    const configured: string[] = [];
+
+    for (const [service, vars] of Object.entries(SERVICE_ENV_VARS)) {
+      const hasMissing = vars.some(v => !existingVars.has(v));
+      if (hasMissing) {
+        missing.push(service);
+      } else {
+        configured.push(service);
+      }
+    }
+
+    return { missing, configured };
   }
 
   private handleSetExperienceLevel(args: { level: ExperienceLevel }) {
