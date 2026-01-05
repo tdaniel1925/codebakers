@@ -178,6 +178,21 @@ class CodeBakersClient {
     async _initializeAnthropic() {
         // Get API key from our server (user's CodeBakers subscription includes Claude access)
         try {
+            console.log('_initializeAnthropic: sessionToken exists:', !!this.sessionToken);
+            console.log('_initializeAnthropic: sessionToken length:', this.sessionToken?.length);
+            console.log('_initializeAnthropic: sessionToken preview:', this.sessionToken?.substring(0, 50));
+            console.log('_initializeAnthropic: contains %:', this.sessionToken?.includes('%'));
+            // Verify token can be decoded
+            if (this.sessionToken) {
+                try {
+                    const decoded = Buffer.from(this.sessionToken, 'base64url').toString('utf-8');
+                    const parsed = JSON.parse(decoded);
+                    console.log('_initializeAnthropic: token decoded successfully, teamId:', parsed.teamId);
+                }
+                catch (e) {
+                    console.error('_initializeAnthropic: FAILED to decode token locally:', e);
+                }
+            }
             const response = await this._fetchWithTimeout(`${this._getApiEndpoint()}/api/claude/key`, {
                 headers: {
                     'Authorization': `Bearer ${this.sessionToken}`
@@ -197,6 +212,7 @@ class CodeBakersClient {
                 throw new Error('SUBSCRIPTION_REQUIRED');
             }
             if (!response.ok) {
+                console.error('API error response:', JSON.stringify(data));
                 throw new Error(`API error ${response.status}: ${data.error || data.message || 'Unknown error'}`);
             }
             if (!data.apiKey) {
