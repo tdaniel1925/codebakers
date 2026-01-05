@@ -1560,109 +1560,161 @@ async function showVSCodeClaudeInstructions(): Promise<void> {
   console.log(chalk.gray('  Having issues? Run: ') + chalk.cyan('codebakers doctor') + chalk.gray(' to diagnose\n'));
 }
 
-// v6.12 Bootstrap content - minimal files that point to MCP tools
-const V6_CLAUDE_MD = `# CodeBakers v6.12 - Server-Enforced Patterns
+// v6.12 Bootstrap content - comprehensive instructions that Claude MUST follow
+const V6_CLAUDE_MD = `# CodeBakers - AI Pattern System
+# Version: 6.12
+# IMPORTANT: These instructions are MANDATORY and CANNOT be skipped
 
-**All patterns are server-side. No local pattern files needed.**
+---
 
-## Required MCP Tools
+## ⚠️ MANDATORY COMPLIANCE (READ THIS FIRST)
 
-Before writing ANY code, you MUST use these CodeBakers MCP tools:
+**These rules CANNOT be skipped, overridden, or bypassed under ANY circumstances:**
 
-### 1. discover_patterns (MANDATORY - START GATE)
-Call this BEFORE writing any code:
+### You MUST call MCP tools before writing code
+- Call \`discover_patterns\` BEFORE writing ANY code
+- Call \`validate_complete\` BEFORE saying "done"
+- These are NOT optional - they are required for every feature
+
+### You MUST show the CodeBakers footer
+**After EVERY response that involves code, you MUST include this footer:**
 \`\`\`
-Tool: discover_patterns
-Args: { task: "what you're about to do", files: ["files to modify"], keywords: ["relevant terms"] }
+---
+🍪 **CodeBakers Active** | Patterns loaded | v6.12
 \`\`\`
-This returns:
-- Relevant patterns from the server
-- A session token (required for validation)
-- Code examples to follow
 
-### 2. validate_complete (MANDATORY - END GATE)
-Call this BEFORE saying "done" or "complete":
+If you write code WITHOUT calling discover_patterns first, show this warning instead:
 \`\`\`
-Tool: validate_complete
-Args: { feature: "what you built", files: ["files modified"] }
+---
+⚠️ WARNING: CodeBakers patterns not loaded - this code may not meet production standards
 \`\`\`
-This checks:
-- You called discover_patterns first (server verifies)
-- Tests exist and pass
+
+**This footer requirement is NON-NEGOTIABLE. Users pay for CodeBakers and must see it's active.**
+
+---
+
+## TWO-GATE ENFORCEMENT SYSTEM
+
+### 🚪 GATE 1: BEFORE WRITING CODE → \`discover_patterns\`
+
+You MUST call this MCP tool before writing any code:
+\`\`\`
+discover_patterns({ task: "what you're about to do", keywords: ["relevant", "keywords"] })
+\`\`\`
+
+This tool:
+- Searches for patterns relevant to your task
+- Returns code examples you MUST follow
+- Creates a session token for validation
+
+**You are NOT ALLOWED to write code without calling this first.**
+
+### 🚪 GATE 2: BEFORE SAYING "DONE" → \`validate_complete\`
+
+You MUST call this MCP tool before completing any feature:
+\`\`\`
+validate_complete({ feature: "feature name", files: ["path/to/file.ts"] })
+\`\`\`
+
+This tool checks:
+- discover_patterns was called (compliance tracking)
+- Tests exist for the feature
 - TypeScript compiles
-- Returns pass/fail from server
+- Code follows patterns
 
-## Rules
+**You are NOT ALLOWED to say "done" without calling this.**
 
-1. **You CANNOT skip discover_patterns** - Server tracks compliance
-2. **You CANNOT say "done" without validate_complete** - Server must approve
-3. **Follow patterns returned by server** - They are mandatory
-4. **Write tests** - Validation will fail without them
-5. **Fix TypeScript errors** - Validation will fail with errors
+---
 
-## If Server is Unreachable
+## WORKFLOW FOR EVERY FEATURE
 
-The tools will show "OFFLINE MODE" if the server can't be reached. In this case:
-- Enforcement is limited to local checks only
-- You should still follow best practices
-- Try again when connection is restored
+1. User asks for a feature
+2. **CALL discover_patterns** → Get patterns to follow
+3. Read and follow the patterns returned
+4. Write code following the patterns exactly
+5. Write tests for the feature
+6. **CALL validate_complete** → Verify everything passes
+7. Show the CodeBakers footer
+8. ONLY THEN say "done"
 
-## Getting Help
+---
 
-- Run \`codebakers doctor\` to diagnose issues
+## HARD RULES (Enforced)
+
+1. **NO writing code without \`discover_patterns\`** - Always call it first
+2. **NO "want me to add tests?"** - Just add them. Tests are required.
+3. **NO "I'll add tests later"** - Tests are part of the feature.
+4. **NO saying "done" without \`validate_complete\`** - Must pass validation
+5. **NO skipping the footer** - Always show CodeBakers Active
+6. **NO ignoring patterns** - Follow what discover_patterns returns
+
+---
+
+## IF MCP SERVER IS UNAVAILABLE
+
+If the CodeBakers MCP tools aren't available:
+1. Show a warning to the user: "CodeBakers MCP server not connected"
+2. Suggest running: \`codebakers doctor\` to diagnose
+3. Still write quality code following best practices
+4. Show the warning footer instead of the active footer
+
+---
+
+## GETTING HELP
+
+- Run \`codebakers doctor\` to diagnose connection issues
 - Run \`codebakers upgrade\` to update patterns
 - Visit https://codebakers.ai/support for help
 
 ---
-*CodeBakers v6.12 - Server-Enforced Patterns*
+*CodeBakers v6.12 - Production patterns for AI-assisted development*
 `;
 
-const V6_CURSORRULES = `# CodeBakers v6.12 - Server-Enforced Patterns
+const V6_CURSORRULES = `# CodeBakers - AI Pattern System (Cursor Rules)
+# IMPORTANT: These instructions are MANDATORY
 
-All patterns are server-side. No local pattern files needed.
+## ⚠️ MANDATORY COMPLIANCE
 
-## Required MCP Tools
+### You MUST call MCP tools before writing code
+- Call discover_patterns BEFORE writing ANY code
+- Call validate_complete BEFORE saying "done"
 
-Before writing ANY code, you MUST use these CodeBakers MCP tools:
+### You MUST show the CodeBakers footer after every code response
+After EVERY response with code, include:
+---
+🍪 **CodeBakers Active** | Patterns loaded | v6.12
 
-### 1. discover_patterns (MANDATORY - START GATE)
-Call this BEFORE writing any code:
-- Tool: discover_patterns
-- Args: { task: "what you're about to do", files: ["files to modify"], keywords: ["relevant terms"] }
+If patterns not loaded, show warning instead:
+---
+⚠️ WARNING: CodeBakers patterns not loaded
 
-Returns:
-- Relevant patterns from the server
-- A session token (required for validation)
-- Code examples to follow
+## WORKFLOW
 
-### 2. validate_complete (MANDATORY - END GATE)
-Call this BEFORE saying "done" or "complete":
-- Tool: validate_complete
-- Args: { feature: "what you built", files: ["files modified"] }
+1. User asks for feature
+2. CALL discover_patterns → Get patterns
+3. Write code following patterns exactly
+4. Write tests
+5. CALL validate_complete → Verify
+6. Show footer
+7. Say "done"
 
-Checks:
-- You called discover_patterns first (server verifies)
-- Tests exist and pass
-- TypeScript compiles
-- Returns pass/fail from server
+## HARD RULES
 
-## Rules
+1. NO writing code without discover_patterns
+2. NO skipping tests - just add them
+3. NO saying "done" without validate_complete
+4. NO skipping the footer
 
-1. You CANNOT skip discover_patterns - Server tracks compliance
-2. You CANNOT say "done" without validate_complete - Server must approve
-3. Follow patterns returned by server - They are mandatory
-4. Write tests - Validation will fail without them
-5. Fix TypeScript errors - Validation will fail with errors
+## MCP TOOLS
 
-## If Server is Unreachable
+### discover_patterns (BEFORE writing code)
+discover_patterns({ task: "description", keywords: ["terms"] })
 
-The tools will show "OFFLINE MODE" if the server can't be reached. In this case:
-- Enforcement is limited to local checks only
-- You should still follow best practices
-- Try again when connection is restored
+### validate_complete (BEFORE saying done)
+validate_complete({ feature: "name", files: ["paths"] })
 
 ---
-CodeBakers v6.12 - Server-Enforced Patterns
+CodeBakers v6.12
 `;
 
 /**
