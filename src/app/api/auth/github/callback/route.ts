@@ -683,26 +683,28 @@ async function handleVSCodeLogin(
     const encodedToken = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
 
     // 5. Build redirect URL back to VS Code
-    const callbackUrl = new URL(state.callback);
-    callbackUrl.searchParams.set('token', encodedToken);
+    // Manually construct URL to avoid issues with vscode:// protocol in URL constructor
+    const separator = state.callback.includes('?') ? '&' : '?';
+    const redirectUrl = `${state.callback}${separator}token=${encodedToken}`;
 
     logger.info('VS Code login successful', {
       profileId: profile.id,
       teamId: team.id,
       githubUsername: githubUser.login,
+      redirectUrl: redirectUrl.substring(0, 100),
     });
 
     // Redirect to VS Code with token
-    return NextResponse.redirect(callbackUrl.toString());
+    return NextResponse.redirect(redirectUrl);
 
   } catch (error) {
     logger.error('VS Code login error', {}, error instanceof Error ? error : undefined);
 
     // Redirect to VS Code with error
-    const callbackUrl = new URL(state.callback);
-    callbackUrl.searchParams.set('error', 'login_failed');
-    callbackUrl.searchParams.set('message', error instanceof Error ? error.message : 'Unknown error');
+    const separator = state.callback.includes('?') ? '&' : '?';
+    const errorMessage = encodeURIComponent(error instanceof Error ? error.message : 'Unknown error');
+    const errorUrl = `${state.callback}${separator}error=login_failed&message=${errorMessage}`;
 
-    return NextResponse.redirect(callbackUrl.toString());
+    return NextResponse.redirect(errorUrl);
   }
 }

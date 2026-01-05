@@ -58,8 +58,35 @@ export class CodeBakersClient {
    */
   async handleOAuthCallback(encodedToken: string): Promise<boolean> {
     try {
-      // Decode the base64url token payload
-      const tokenPayload = JSON.parse(Buffer.from(encodedToken, 'base64url').toString('utf-8')) as {
+      console.log('handleOAuthCallback: token length:', encodedToken?.length);
+      console.log('handleOAuthCallback: token preview:', encodedToken?.substring(0, 50));
+
+      if (!encodedToken) {
+        vscode.window.showErrorMessage('Login failed: No token received');
+        return false;
+      }
+
+      // Try to decode the base64url token payload
+      // The token might be URL-encoded, so try decoding that first
+      let tokenToDecode = encodedToken;
+      if (encodedToken.includes('%')) {
+        tokenToDecode = decodeURIComponent(encodedToken);
+        console.log('handleOAuthCallback: URL-decoded token');
+      }
+
+      // Decode base64url (supports both with and without padding)
+      let decoded: string;
+      try {
+        decoded = Buffer.from(tokenToDecode, 'base64url').toString('utf-8');
+      } catch {
+        // Try standard base64 as fallback
+        const base64 = tokenToDecode.replace(/-/g, '+').replace(/_/g, '/');
+        decoded = Buffer.from(base64, 'base64').toString('utf-8');
+      }
+
+      console.log('handleOAuthCallback: decoded preview:', decoded?.substring(0, 100));
+
+      const tokenPayload = JSON.parse(decoded) as {
         token: string;
         teamId: string;
         profileId: string;
@@ -98,7 +125,8 @@ export class CodeBakersClient {
       return true;
     } catch (e) {
       console.error('Failed to handle OAuth callback:', e);
-      vscode.window.showErrorMessage('Login failed: Invalid token');
+      console.error('Token was:', encodedToken?.substring(0, 100));
+      vscode.window.showErrorMessage(`Login failed: ${e instanceof Error ? e.message : 'Invalid token'}`);
       return false;
     }
   }
