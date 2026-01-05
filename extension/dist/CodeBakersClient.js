@@ -211,26 +211,28 @@ class CodeBakersClient {
             const url = `${this._getApiEndpoint()}/api/claude/key?token=${encodeURIComponent(this.sessionToken || '')}`;
             console.log('_initializeAnthropic: fetching:', url.substring(0, 80) + '...');
             const response = await this._fetchWithTimeout(url, fetchOptions);
-            const data = await response.json();
+            const rawResponse = await response.json();
+            // Server wraps successful responses in {data: ...}
+            const data = rawResponse.data || rawResponse;
             console.log('Claude key response:', response.status, JSON.stringify(data));
             // Handle subscription required error
             if (response.status === 402) {
-                const selection = await vscode.window.showWarningMessage(data.message || 'Subscribe to CodeBakers Pro ($99/month) for unlimited access', 'Subscribe Now', 'Start Free Trial');
+                const selection = await vscode.window.showWarningMessage(rawResponse.message || 'Subscribe to CodeBakers Pro ($99/month) for unlimited access', 'Subscribe Now', 'Start Free Trial');
                 if (selection === 'Subscribe Now') {
-                    vscode.env.openExternal(vscode.Uri.parse(data.upgradeUrl || 'https://www.codebakers.ai/dashboard/billing'));
+                    vscode.env.openExternal(vscode.Uri.parse(rawResponse.upgradeUrl || 'https://www.codebakers.ai/dashboard/billing'));
                 }
                 else if (selection === 'Start Free Trial') {
-                    vscode.env.openExternal(vscode.Uri.parse(data.trialUrl || 'https://www.codebakers.ai/dashboard/billing'));
+                    vscode.env.openExternal(vscode.Uri.parse(rawResponse.trialUrl || 'https://www.codebakers.ai/dashboard/billing'));
                 }
                 throw new Error('SUBSCRIPTION_REQUIRED');
             }
             if (!response.ok) {
-                console.error('API error response:', JSON.stringify(data));
+                console.error('API error response:', JSON.stringify(rawResponse));
                 // Include token info in error for debugging
                 const tokenInfo = this.sessionToken
                     ? `token len=${this.sessionToken.length}, starts=${this.sessionToken.substring(0, 10)}`
                     : 'NO TOKEN';
-                throw new Error(`API ${response.status}: ${data.error || data.message || 'Unknown'} [${tokenInfo}]`);
+                throw new Error(`API ${response.status}: ${rawResponse.error || rawResponse.message || 'Unknown'} [${tokenInfo}]`);
             }
             if (!data.apiKey) {
                 throw new Error(`No API key in response: ${JSON.stringify(data)}`);
