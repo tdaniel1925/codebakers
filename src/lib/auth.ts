@@ -92,12 +92,25 @@ export async function requireAuthOrApiKey(req: NextRequest): Promise<{
   authMethod: 'api_key' | 'session' | 'vscode_token';
   vsCodePayload?: VSCodeTokenPayload;
 }> {
-  // Check for Bearer token
+  // Check for Bearer token in header
   const authHeader = req.headers.get('authorization');
   console.log('[Auth] Auth header present:', !!authHeader, 'starts with Bearer:', authHeader?.startsWith('Bearer '));
 
+  // Also check for token in query param (fallback for VS Code extension header issues)
+  const queryToken = req.nextUrl.searchParams.get('token');
+  console.log('[Auth] Query token present:', !!queryToken, 'length:', queryToken?.length);
+
+  // Get token from header or query param
+  let token: string | null = null;
   if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.slice(7);
+    token = authHeader.slice(7);
+    console.log('[Auth] Using token from Authorization header');
+  } else if (queryToken) {
+    token = queryToken;
+    console.log('[Auth] Using token from query parameter (fallback)');
+  }
+
+  if (token) {
     console.log('[Auth] Token extracted, length:', token?.length, 'preview:', token?.substring(0, 30));
 
     // Check if it's a VS Code extension token (base64url-encoded JSON)
@@ -132,9 +145,12 @@ export async function requireAuthOrApiKey(req: NextRequest): Promise<{
   const session = await getServerSession();
   if (!session) {
     // Include debug info in error message
-    const debugInfo = authHeader
-      ? `header present but invalid (len=${authHeader.length}, starts=${authHeader.substring(0, 20)})`
-      : 'no auth header';
+    let debugInfo = 'no auth';
+    if (authHeader) {
+      debugInfo = `header invalid (len=${authHeader.length})`;
+    } else if (queryToken) {
+      debugInfo = `query token invalid (len=${queryToken.length})`;
+    }
     throw new AuthenticationError(`Authentication required [${debugInfo}]`);
   }
 

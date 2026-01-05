@@ -154,7 +154,9 @@ class CodeBakersClient {
         if (!this.sessionToken)
             return false;
         try {
-            const response = await this._fetchWithTimeout(`${this._getApiEndpoint()}/api/auth/check`, {
+            // Include token in query param as fallback (VS Code may strip headers)
+            const url = `${this._getApiEndpoint()}/api/auth/check?token=${encodeURIComponent(this.sessionToken)}`;
+            const response = await this._fetchWithTimeout(url, {
                 headers: {
                     'Authorization': `Bearer ${this.sessionToken}`
                 }
@@ -205,8 +207,9 @@ class CodeBakersClient {
                 },
             };
             console.log('_initializeAnthropic: fetchOptions.headers:', JSON.stringify(fetchOptions.headers));
-            const url = `${this._getApiEndpoint()}/api/claude/key`;
-            console.log('_initializeAnthropic: fetching:', url);
+            // Include token in query param as fallback (VS Code may strip headers)
+            const url = `${this._getApiEndpoint()}/api/claude/key?token=${encodeURIComponent(this.sessionToken || '')}`;
+            console.log('_initializeAnthropic: fetching:', url.substring(0, 80) + '...');
             const response = await this._fetchWithTimeout(url, fetchOptions);
             const data = await response.json();
             console.log('Claude key response:', response.status, JSON.stringify(data));
@@ -266,7 +269,9 @@ class CodeBakersClient {
     }
     async _loadPatterns() {
         try {
-            const response = await this._fetchWithTimeout(`${this._getApiEndpoint()}/api/patterns/list`, {
+            // Include token in query param as fallback (VS Code may strip headers)
+            const url = `${this._getApiEndpoint()}/api/patterns/list?token=${encodeURIComponent(this.sessionToken || '')}`;
+            const response = await this._fetchWithTimeout(url, {
                 headers: {
                     'Authorization': `Bearer ${this.sessionToken}`
                 }
@@ -355,7 +360,9 @@ class CodeBakersClient {
             throw new Error('Not authenticated. Please login first.');
         }
         const projectPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        const response = await this._fetchWithTimeout(`${this._getApiEndpoint()}/api/tools`, {
+        // Include token in query param as fallback (VS Code may strip headers)
+        const url = `${this._getApiEndpoint()}/api/tools?token=${encodeURIComponent(this.sessionToken)}`;
+        const response = await this._fetchWithTimeout(url, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${this.sessionToken}`,
@@ -380,7 +387,9 @@ class CodeBakersClient {
         if (!this.sessionToken) {
             return [];
         }
-        const response = await this._fetchWithTimeout(`${this._getApiEndpoint()}/api/tools`, {
+        // Include token in query param as fallback (VS Code may strip headers)
+        const url = `${this._getApiEndpoint()}/api/tools?token=${encodeURIComponent(this.sessionToken)}`;
+        const response = await this._fetchWithTimeout(url, {
             headers: {
                 'Authorization': `Bearer ${this.sessionToken}`,
             },

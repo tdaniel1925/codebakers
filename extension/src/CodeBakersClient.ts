@@ -155,7 +155,9 @@ export class CodeBakersClient {
     if (!this.sessionToken) return false;
 
     try {
-      const response = await this._fetchWithTimeout(`${this._getApiEndpoint()}/api/auth/check`, {
+      // Include token in query param as fallback (VS Code may strip headers)
+      const url = `${this._getApiEndpoint()}/api/auth/check?token=${encodeURIComponent(this.sessionToken)}`;
+      const response = await this._fetchWithTimeout(url, {
         headers: {
           'Authorization': `Bearer ${this.sessionToken}`
         }
@@ -220,8 +222,9 @@ export class CodeBakersClient {
 
       console.log('_initializeAnthropic: fetchOptions.headers:', JSON.stringify(fetchOptions.headers));
 
-      const url = `${this._getApiEndpoint()}/api/claude/key`;
-      console.log('_initializeAnthropic: fetching:', url);
+      // Include token in query param as fallback (VS Code may strip headers)
+      const url = `${this._getApiEndpoint()}/api/claude/key?token=${encodeURIComponent(this.sessionToken || '')}`;
+      console.log('_initializeAnthropic: fetching:', url.substring(0, 80) + '...');
 
       const response = await this._fetchWithTimeout(url, fetchOptions);
 
@@ -312,7 +315,9 @@ export class CodeBakersClient {
 
   private async _loadPatterns(): Promise<void> {
     try {
-      const response = await this._fetchWithTimeout(`${this._getApiEndpoint()}/api/patterns/list`, {
+      // Include token in query param as fallback (VS Code may strip headers)
+      const url = `${this._getApiEndpoint()}/api/patterns/list?token=${encodeURIComponent(this.sessionToken || '')}`;
+      const response = await this._fetchWithTimeout(url, {
         headers: {
           'Authorization': `Bearer ${this.sessionToken}`
         }
@@ -419,7 +424,9 @@ export class CodeBakersClient {
 
     const projectPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-    const response = await this._fetchWithTimeout(`${this._getApiEndpoint()}/api/tools`, {
+    // Include token in query param as fallback (VS Code may strip headers)
+    const url = `${this._getApiEndpoint()}/api/tools?token=${encodeURIComponent(this.sessionToken)}`;
+    const response = await this._fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.sessionToken}`,
@@ -448,7 +455,9 @@ export class CodeBakersClient {
       return [];
     }
 
-    const response = await this._fetchWithTimeout(`${this._getApiEndpoint()}/api/tools`, {
+    // Include token in query param as fallback (VS Code may strip headers)
+    const url = `${this._getApiEndpoint()}/api/tools?token=${encodeURIComponent(this.sessionToken)}`;
+    const response = await this._fetchWithTimeout(url, {
       headers: {
         'Authorization': `Bearer ${this.sessionToken}`,
       },
