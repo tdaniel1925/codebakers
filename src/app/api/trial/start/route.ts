@@ -17,7 +17,7 @@ const startTrialSchema = z.object({
 
 /**
  * POST /api/trial/start
- * Start an anonymous 7-day trial based on device fingerprint
+ * Start a 14-day free trial based on device fingerprint
  */
 export async function POST(req: NextRequest) {
   try {
@@ -77,9 +77,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Create new trial (7 days)
+    // Create new trial (14 days)
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + 14);
 
     const [trial] = await db.insert(trialFingerprints).values({
       deviceHash,
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       trialId: trial.id,
       stage: 'anonymous',
       expiresAt: trial.trialExpiresAt?.toISOString(),
-      daysRemaining: 7,
+      daysRemaining: 14,
       startedAt: trial.trialStartedAt?.toISOString(),
     });
 

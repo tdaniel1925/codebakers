@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
@@ -39,15 +39,10 @@ function GitHubIcon({ className }: { className?: string }) {
 function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGitHubLoading, setIsGitHubLoading] = useState(false);
-  const [isWindows, setIsWindows] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/dashboard';
   const error = searchParams.get('error');
-
-  useEffect(() => {
-    setIsWindows(navigator.platform.toLowerCase().includes('win'));
-  }, []);
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -209,21 +204,22 @@ function LoginForm() {
           </Link>
         </div>
 
-        {/* CLI Trial Option */}
+        {/* VS Code Extension Option */}
         <div className="mt-6 pt-6 border-t border-neutral-800">
           <p className="text-center text-xs text-neutral-400 mb-3">
-            Want to try first? No signup needed:
+            Prefer to code directly? Try our VS Code extension:
           </p>
           <a
-            href={isWindows ? '/install-codebakers.bat' : '/install-codebakers.command'}
-            download
+            href="https://marketplace.visualstudio.com/items?itemName=codebakers.codebakers"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full text-sm bg-neutral-800/50 border border-neutral-700 rounded-lg px-4 py-2.5 text-red-400 hover:bg-neutral-700 hover:text-red-300 transition-colors"
           >
             <Download className="h-4 w-4" />
-            Download Installer
+            Install VS Code Extension
           </a>
           <p className="text-center text-xs text-neutral-400 mt-2">
-            7-day free trial, instant access
+            14-day free trial, instant access
           </p>
         </div>
       </CardContent>

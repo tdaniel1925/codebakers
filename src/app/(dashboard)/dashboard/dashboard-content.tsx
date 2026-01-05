@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { Terminal, ArrowRight, Sparkles, CreditCard, Users, Plug, AlertCircle, CheckCircle, Copy, BarChart3, Clock, Github } from 'lucide-react';
+import { ArrowRight, Sparkles, CreditCard, Users, Plug, AlertCircle, BarChart3, Clock, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,35 +25,18 @@ interface DashboardContentProps {
       status: string | null;
       isBeta: boolean;
     } | null;
-    apiKeyCount: number;
-    lastApiCall: Date | null;
     seatLimit?: number | null;
   };
-  apiKey: {
-    keyPrefix: string;
-    keyPlain: string | null;
-    name: string | null;
-  } | null;
   trial?: TrialInfo | null;
 }
 
-export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps) {
-  const [copied, setCopied] = useState(false);
-
+export function DashboardContent({ stats, trial }: DashboardContentProps) {
   const hasActiveSubscription =
     stats.subscription?.status === 'active' || stats.subscription?.isBeta;
 
   const isTrialUser = !hasActiveSubscription && trial && trial.stage !== 'converted';
   const isTrialExpired = trial?.stage === 'expired' || (trial && trial.daysRemaining <= 0);
   const isTrialExpiringSoon = trial && trial.daysRemaining > 0 && trial.daysRemaining <= TRIAL.EXPIRING_SOON_THRESHOLD;
-
-  const copyKey = async () => {
-    if (apiKey?.keyPlain) {
-      await navigator.clipboard.writeText(apiKey.keyPlain);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -215,51 +197,30 @@ export function DashboardContent({ stats, apiKey, trial }: DashboardContentProps
         </CardContent>
       </Card>
 
-      {/* API Key Card */}
-      {apiKey && (
-        <Card className="bg-neutral-900/80 border-neutral-800">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-white flex items-center gap-2">
-              <Terminal className="w-5 h-5 text-red-400" />
-              Your API Key
-            </CardTitle>
-            <CardDescription className="text-neutral-400">
-              Use this key to authenticate with the CLI
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Show the full API key with copy button */}
-            <div className="flex items-center gap-2">
-              <code className="flex-1 font-mono bg-black text-neutral-300 px-4 py-3 rounded-lg text-sm border border-neutral-800 break-all select-all">
-                {apiKey.keyPlain || `${apiKey.keyPrefix}_••••••••••••••••`}
-              </code>
-              <Button
-                onClick={copyKey}
-                size="sm"
-                className={`shrink-0 gap-1 ${copied ? 'bg-green-600 hover:bg-green-600' : 'bg-neutral-700 hover:bg-neutral-600'}`}
-              >
-                {copied ? (
-                  <>
-                    <CheckCircle className="h-4 w-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4" />
-                    Copy
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Setup command hint */}
-            <div className="flex items-center gap-2 text-sm text-neutral-400">
-              <Terminal className="w-4 h-4" />
-              <span>Run <code className="bg-black/50 px-1.5 py-0.5 rounded text-neutral-300">codebakers setup</code> to configure</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* VS Code Extension Card */}
+      <Card className="bg-neutral-900/80 border-neutral-800">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-white flex items-center gap-2">
+            <Plug className="w-5 h-5 text-red-400" />
+            VS Code Extension
+          </CardTitle>
+          <CardDescription className="text-neutral-400">
+            Use CodeBakers directly in VS Code
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-neutral-300 text-sm">
+            Install the CodeBakers extension from the VS Code Marketplace to get production-ready code with enforced patterns.
+          </p>
+          <Button
+            onClick={() => window.open('https://marketplace.visualstudio.com/items?itemName=codebakers.codebakers', '_blank')}
+            className="gap-2 bg-red-600 hover:bg-red-700"
+          >
+            <Plug className="w-4 h-4" />
+            Install Extension
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

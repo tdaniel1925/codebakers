@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { trialFingerprints } from '@/db/schema';
+import { trialFingerprints, profiles, teams, teamMembers } from '@/db/schema';
 import { eq, and, ne } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 import { getClientIp, checkRateLimit } from '@/lib/rate-limit';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,12 @@ interface TrialExtendState {
   trialId: string;
 }
 
-type OAuthState = TrialStartState | TrialExtendState | string; // string = legacy trialId
+interface VSCodeLoginState {
+  type: 'vscode_login';
+  callback: string;
+}
+
+type OAuthState = TrialStartState | TrialExtendState | VSCodeLoginState | string; // string = legacy trialId
 
 function parseState(state: string): OAuthState {
   // Try to decode as base64url JSON (new format)
@@ -30,6 +36,9 @@ function parseState(state: string): OAuthState {
     }
     if (parsed.type === 'trial_extend' && parsed.trialId) {
       return parsed as TrialExtendState;
+    }
+    if (parsed.type === 'vscode_login' && parsed.callback) {
+      return parsed as VSCodeLoginState;
     }
   } catch {
     // Not JSON, treat as legacy trialId
@@ -301,6 +310,8 @@ export async function GET(req: NextRequest) {
     // Route based on state type
     if (typeof state === 'object' && state.type === 'trial_start') {
       return handleTrialStart(state, githubUser);
+    } else if (typeof state === 'object' && state.type === 'vscode_login') {
+      return handleVSCodeLogin(state, githubUser);
     } else {
       // Legacy flow or trial_extend - treat state as trialId
       const trialId = typeof state === 'object' && state.type === 'trial_extend'
@@ -354,7 +365,7 @@ async function handleTrialStart(
         });
 
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
+        expiresAt.setDate(expiresAt.getDate() + 14);
 
         await db.update(trialFingerprints)
           .set({
@@ -407,9 +418,9 @@ async function handleTrialStart(
     );
   }
 
-  // No existing trial - create new one
+  // No existing trial - create new one (14-day trial)
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
+  expiresAt.setDate(expiresAt.getDate() + 14);
 
   const [newTrial] = await db.insert(trialFingerprints)
     .values({
@@ -474,9 +485,9 @@ async function handleTrialExtend(
     );
   }
 
-  // Extend trial by 7 days
+  // Extend trial by 14 days
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
+  expiresAt.setDate(expiresAt.getDate() + 14);
 
   await db.update(trialFingerprints)
     .set({
@@ -498,4 +509,200 @@ async function handleTrialExtend(
   return new NextResponse(renderSuccessPage(githubUser.login), {
     headers: { 'Content-Type': 'text/html' },
   });
+}
+
+/**
+ * Handle VS Code extension login via GitHub OAuth
+ * Creates user/team if needed, generates session token, redirects to VS Code
+ */
+async function handleVSCodeLogin(
+  state: VSCodeLoginState,
+  githubUser: GitHubUser
+): Promise<NextResponse> {
+  const githubId = githubUser.id.toString();
+
+  try {
+    // 1. Find or create profile
+    let profile = await db.query.profiles.findFirst({
+      where: eq(profiles.email, githubUser.email || `${githubUser.login}@github.local`),
+    });
+
+    if (!profile) {
+      // Create new profile
+      const [newProfile] = await db.insert(profiles)
+        .values({
+          id: crypto.randomUUID(),
+          email: githubUser.email || `${githubUser.login}@github.local`,
+          fullName: githubUser.login,
+        })
+        .returning();
+      profile = newProfile;
+
+      logger.info('Created new profile for VS Code login', {
+        profileId: profile.id,
+        githubUsername: githubUser.login,
+      });
+    }
+
+    // 2. Find or create team
+    let team = await db.query.teams.findFirst({
+      where: eq(teams.ownerId, profile.id),
+    });
+
+    if (!team) {
+      // Create personal team
+      const slug = `${githubUser.login}-personal`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      const [newTeam] = await db.insert(teams)
+        .values({
+          name: `${githubUser.login}'s Team`,
+          slug,
+          ownerId: profile.id,
+        })
+        .returning();
+      team = newTeam;
+
+      // Add owner as team member
+      await db.insert(teamMembers)
+        .values({
+          teamId: team.id,
+          userId: profile.id,
+          role: 'owner',
+          joinedAt: new Date(),
+        });
+
+      logger.info('Created new team for VS Code login', {
+        teamId: team.id,
+        profileId: profile.id,
+      });
+    }
+
+    // 3. Check/create trial for the team
+    let trialInfo: { endsAt: string; daysRemaining: number } | null = null;
+
+    // Check existing trial by GitHub ID
+    const existingTrial = await db.query.trialFingerprints.findFirst({
+      where: eq(trialFingerprints.githubId, githubId),
+    });
+
+    if (existingTrial) {
+      // Update with team reference if not already linked
+      if (!existingTrial.convertedToTeamId) {
+        await db.update(trialFingerprints)
+          .set({
+            convertedToTeamId: team.id,
+            updatedAt: new Date(),
+          })
+          .where(eq(trialFingerprints.id, existingTrial.id));
+      }
+
+      // Calculate trial info
+      if (existingTrial.trialExpiresAt) {
+        const expiresAt = new Date(existingTrial.trialExpiresAt);
+        const now = new Date();
+        const daysRemaining = Math.max(0, Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+        if (daysRemaining > 0) {
+          trialInfo = {
+            endsAt: expiresAt.toISOString(),
+            daysRemaining,
+          };
+        }
+      }
+    } else if (!team.subscriptionStatus || team.subscriptionStatus === 'inactive') {
+      // Create a new trial
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 14);
+
+      const deviceHash = crypto.createHash('sha256')
+        .update(`vscode-${githubId}-${Date.now()}`)
+        .digest('hex');
+
+      await db.insert(trialFingerprints)
+        .values({
+          deviceHash,
+          githubId,
+          githubUsername: githubUser.login,
+          email: githubUser.email,
+          trialStage: 'anonymous',
+          trialStartedAt: new Date(),
+          trialExpiresAt: expiresAt,
+          convertedToTeamId: team.id,
+        });
+
+      trialInfo = {
+        endsAt: expiresAt.toISOString(),
+        daysRemaining: 14,
+      };
+
+      // Also set trial on team
+      await db.update(teams)
+        .set({
+          freeTrialExpiresAt: expiresAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(teams.id, team.id));
+
+      logger.info('Created new trial for VS Code user', {
+        teamId: team.id,
+        githubId,
+      });
+    }
+
+    // 4. Determine user's plan (check beta, subscription, trial)
+    const hasBeta = !!team.betaGrantedAt;
+    const hasSubscription = team.subscriptionStatus === 'active';
+
+    let plan: string;
+    if (hasBeta) {
+      plan = 'beta';
+      trialInfo = null; // Beta users don't need trial info
+    } else if (hasSubscription) {
+      plan = 'pro';
+      trialInfo = null; // Paid users don't need trial info
+    } else {
+      plan = 'trial';
+    }
+
+    // 5. Generate session token
+    const sessionToken = `cb_vscode_${crypto.randomBytes(32).toString('hex')}`;
+
+    // Store token in a cookie-like fashion by encoding it
+    // The extension will use this token for API calls
+    const tokenPayload = {
+      token: sessionToken,
+      teamId: team.id,
+      profileId: profile.id,
+      githubId,
+      githubUsername: githubUser.login,
+      email: profile.email,
+      plan,
+      trial: trialInfo,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Encode the full payload as base64url for the extension
+    const encodedToken = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
+
+    // 5. Build redirect URL back to VS Code
+    const callbackUrl = new URL(state.callback);
+    callbackUrl.searchParams.set('token', encodedToken);
+
+    logger.info('VS Code login successful', {
+      profileId: profile.id,
+      teamId: team.id,
+      githubUsername: githubUser.login,
+    });
+
+    // Redirect to VS Code with token
+    return NextResponse.redirect(callbackUrl.toString());
+
+  } catch (error) {
+    logger.error('VS Code login error', {}, error instanceof Error ? error : undefined);
+
+    // Redirect to VS Code with error
+    const callbackUrl = new URL(state.callback);
+    callbackUrl.searchParams.set('error', 'login_failed');
+    callbackUrl.searchParams.set('message', error instanceof Error ? error.message : 'Unknown error');
+
+    return NextResponse.redirect(callbackUrl.toString());
+  }
 }

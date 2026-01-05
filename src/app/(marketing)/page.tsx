@@ -238,21 +238,21 @@ const moduleCategories = [
 const steps = [
   {
     step: 1,
-    title: 'Install CLI',
-    description: 'One command to set up CodeBakers in your project',
-    code: 'npm install -g @codebakers/cli',
+    title: 'Install Extension',
+    description: 'Get CodeBakers from the VS Code Marketplace',
+    code: 'Search "CodeBakers" in Extensions',
   },
   {
     step: 2,
-    title: 'Authenticate',
-    description: 'Login with your API key from the dashboard',
-    code: 'codebakers login',
+    title: 'Sign In with GitHub',
+    description: 'One-click authentication, no passwords needed',
+    code: 'Click "Sign In" → Authorize',
   },
   {
     step: 3,
     title: 'Start Coding',
-    description: `Patterns are fetched automatically when your AI needs them`,
-    code: 'codebakers go',
+    description: `Patterns are loaded automatically when you chat`,
+    code: '"Build me a todo app"',
   },
 ];
 
@@ -377,7 +377,7 @@ const faqs = [
   },
   {
     question: 'Is there a free tier?',
-    answer: 'Yes! Run `npx @codebakers/cli go` and sign in with GitHub to start a 7-day free trial instantly. No credit card required. Your trial includes one project with full access to all modules. Upgrade to Pro ($49/mo) for unlimited projects.',
+    answer: 'Yes! Install the VS Code extension and sign in with GitHub to start a 14-day free trial instantly. No credit card required. You get full access to all modules. Upgrade to Pro ($49/mo) for unlimited continued access.',
   },
 ];
 
@@ -1345,7 +1345,7 @@ export const POST = withRateLimit(async (req) => {
               </Link>
             </div>
             <p className="text-sm text-gray-500 mt-6">
-              No credit card required. Run <code className="bg-gray-800 px-2 py-0.5 rounded text-red-400">npx @codebakers/cli go</code> to start.
+              No credit card required. Install the VS Code extension to start.
             </p>
           </motion.div>
         </div>

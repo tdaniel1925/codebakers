@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Github, CreditCard, ArrowRight, Terminal, Clock, Zap } from 'lucide-react';
+import { CheckCircle, Github, CreditCard, ArrowRight, Clock, Zap, Plug } from 'lucide-react';
 import { PRICING, TRIAL, MODULES, PRODUCT } from '@/lib/constants';
 
 export const metadata = {
@@ -24,17 +24,14 @@ export default function TrialPage() {
             production-ready apps with {MODULES.COUNT} battle-tested patterns.
           </p>
 
-          {/* CLI Command */}
+          {/* Install Extension CTA */}
           <div className="max-w-md mx-auto mb-8">
-            <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4">
-              <p className="text-neutral-400 text-sm mb-2 flex items-center gap-2">
-                <Terminal className="h-4 w-4" />
-                Run this command:
-              </p>
-              <code className="block text-lg text-red-400 font-mono">
-                {PRODUCT.CLI_COMMAND}
-              </code>
-            </div>
+            <Link href={PRODUCT.EXTENSION_URL} target="_blank">
+              <Button className="w-full bg-red-600 hover:bg-red-700 text-lg py-6 gap-2">
+                <Plug className="h-5 w-5" />
+                Install VS Code Extension
+              </Button>
+            </Link>
           </div>
 
           <div className="flex flex-wrap justify-center gap-3 text-sm text-neutral-400">
@@ -73,7 +70,7 @@ export default function TrialPage() {
                   Free Trial with GitHub
                 </h3>
                 <p className="text-neutral-400 mb-4">
-                  Run the CLI command and sign in with GitHub. One click,
+                  Install the VS Code extension and sign in with GitHub. One click,
                   no passwords, instant access to all patterns.
                 </p>
                 <ul className="space-y-2 text-sm text-neutral-400">
@@ -83,22 +80,17 @@ export default function TrialPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    Works with Cursor & Claude Code
+                    AI-powered code generation
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    One project included
+                    Pattern enforcement built-in
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     No credit card required
                   </li>
                 </ul>
-                <div className="mt-4 p-3 bg-neutral-800/50 rounded-lg">
-                  <code className="text-sm text-green-400 font-mono">
-                    {PRODUCT.CLI_COMMAND}
-                  </code>
-                </div>
               </div>
               {/* Arrow */}
               <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2">
@@ -138,7 +130,7 @@ export default function TrialPage() {
                     Pattern updates included
                   </li>
                 </ul>
-                <Link href="/pricing" className="block mt-4">
+                <Link href="/dashboard/billing" className="block mt-4">
                   <Button className="w-full bg-red-600 hover:bg-red-700">
                     View Pricing
                   </Button>
@@ -173,9 +165,9 @@ export default function TrialPage() {
                 description: 'No waiting for approval or verification',
               },
               {
-                icon: <Terminal className="h-6 w-6" />,
-                title: 'CLI + MCP',
-                description: 'Works with Cursor and Claude Code',
+                icon: <Plug className="h-6 w-6" />,
+                title: 'VS Code Extension',
+                description: 'Integrated directly in your editor',
               },
               {
                 icon: <CheckCircle className="h-6 w-6" />,
@@ -223,11 +215,11 @@ export default function TrialPage() {
               },
               {
                 q: 'Is the trial limited in any way?',
-                a: `The trial is limited to ${TRIAL.ANONYMOUS_DAYS} days and one project. You get full access to all ${MODULES.COUNT} modules. Upgrade to Pro for unlimited projects.`,
+                a: `The trial is limited to ${TRIAL.ANONYMOUS_DAYS} days. You get full access to all ${MODULES.COUNT} modules. Upgrade to Pro for unlimited continued access.`,
               },
               {
-                q: 'What if I want to use it on multiple projects?',
-                a: 'The free trial is limited to one project to prevent abuse. Upgrade to Pro for unlimited projects - most developers find it pays for itself in the first project.',
+                q: 'How do I install the extension?',
+                a: 'Search for "CodeBakers" in the VS Code Extensions marketplace, or click the install button above. Login with GitHub and you\'re ready to go.',
               },
             ].map((faq, i) => (
               <div
@@ -249,24 +241,19 @@ export default function TrialPage() {
             Ready to Build 5x Faster?
           </h2>
           <p className="text-neutral-400 mb-8">
-            One command. {TRIAL.ANONYMOUS_DAYS} days free. Just sign in with GitHub.
+            Install the extension. {TRIAL.ANONYMOUS_DAYS} days free. Just sign in with GitHub.
           </p>
 
-          <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 mb-8">
-            <code className="text-xl text-red-400 font-mono">
-              {PRODUCT.CLI_COMMAND}
-            </code>
-          </div>
-
-          <div className="flex justify-center gap-4">
-            <Link href="/pricing">
-              <Button variant="outline" className="border-neutral-700">
-                View Pricing
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link href={PRODUCT.EXTENSION_URL} target="_blank">
+              <Button className="bg-red-600 hover:bg-red-700 gap-2">
+                <Plug className="h-4 w-4" />
+                Install Extension
               </Button>
             </Link>
-            <Link href="/">
-              <Button className="bg-red-600 hover:bg-red-700">
-                Learn More
+            <Link href="/dashboard/billing">
+              <Button variant="outline" className="border-neutral-700">
+                View Pricing
               </Button>
             </Link>
           </div>

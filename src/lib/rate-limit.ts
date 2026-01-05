@@ -36,6 +36,7 @@ export const rateLimitConfigs = {
 
   // API endpoints - moderate limits
   api: { windowMs: 60 * 1000, maxRequests: 60 }, // 60 per minute
+  apiRead: { windowMs: 60 * 1000, maxRequests: 120 }, // 120 reads per minute
   apiWrite: { windowMs: 60 * 1000, maxRequests: 20 }, // 20 writes per minute
 
   // Admin endpoints

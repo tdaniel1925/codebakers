@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         error: 'Authentication required',
-        message: 'Run `codebakers go` to start a free trial, or `codebakers setup` if you have an account.',
+        message: 'Install the VS Code extension and sign in with GitHub to access CodeBakers.',
       },
       { status: 401 }
     );
@@ -67,9 +67,9 @@ async function handleApiKeyRequest(req: NextRequest, apiKey: string) {
       {
         error: accessCheck.reason,
         code: accessCheck.code,
-        ...(isSuspended && { supportUrl: 'https://codebakers.dev/support' }),
+        ...(isSuspended && { supportUrl: 'https://www.codebakers.ai/support' }),
         ...(isProjectLimit && {
-          upgradeUrl: 'https://codebakers.dev/billing',
+          upgradeUrl: 'https://www.codebakers.ai/dashboard/billing',
           lockedProject: accessCheck.lockedProjectId,
         }),
       },
@@ -126,7 +126,7 @@ async function handleTrialRequest(req: NextRequest, trialId: string) {
     return NextResponse.json(
       {
         error: 'Invalid trial',
-        message: 'Run `codebakers go` to start a new trial.',
+        message: 'Install the VS Code extension and sign in with GitHub to start a new trial.',
       },
       { status: 401 }
     );
@@ -153,8 +153,9 @@ async function handleTrialRequest(req: NextRequest, trialId: string) {
         code: 'TRIAL_EXPIRED',
         canExtend,
         message: canExtend
-          ? 'Run `codebakers extend` to add 7 more days with GitHub.'
-          : 'Run `codebakers billing` to upgrade to a paid plan.',
+          ? 'Connect your GitHub account in the extension to extend your trial.'
+          : 'Upgrade to Pro at https://www.codebakers.ai/dashboard/billing',
+        upgradeUrl: 'https://www.codebakers.ai/dashboard/billing',
       },
       { status: 402 }
     );
@@ -172,7 +173,7 @@ async function handleTrialRequest(req: NextRequest, trialId: string) {
         code: 'TRIAL_PROJECT_LIMIT',
         lockedProject: trial.projectName || trial.projectId,
         message: `Your free trial is locked to "${trial.projectName || trial.projectId}". Free trials are limited to one project - upgrade to Pro to use CodeBakers in multiple projects.`,
-        upgradeUrl: 'https://codebakers.ai/billing',
+        upgradeUrl: 'https://www.codebakers.ai/dashboard/billing',
       },
       { status: 402 }
     );

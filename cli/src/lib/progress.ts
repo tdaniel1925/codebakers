@@ -183,10 +183,10 @@ export function getSubscriptionError(): FriendlyError {
     title: 'Subscription Required',
     message: 'This feature requires an active subscription.',
     recovery: [
-      'Visit codebakers.ai/pricing to see plans',
+      'Visit codebakers.ai/dashboard/billing to subscribe',
       'Start a free trial with: codebakers setup',
       'Contact support if you believe this is an error',
     ],
-    helpUrl: 'https://codebakers.ai/pricing',
+    helpUrl: 'https://www.codebakers.ai/dashboard/billing',
   };
 }

@@ -3,47 +3,36 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Copy,
   Check,
   ArrowRight,
-  RefreshCw,
   ExternalLink,
   Sparkles,
   ChevronDown,
-  Terminal,
   Rocket,
   Shield,
-  Apple,
-  Monitor,
+  Github,
+  Plug,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PRODUCT } from '@/lib/constants';
 
 interface QuickStartData {
-  apiKey: string | null;
   teamName: string;
   hasActiveSubscription: boolean;
   isBeta: boolean;
   trial?: {
-    available: boolean;
-    daysAvailable: number;
-    extendedDays: number;
+    daysRemaining: number;
+    endsAt: string;
   } | null;
 }
-
-type IDE = 'claude-code' | 'cursor';
 
 export default function QuickStartPage() {
   const router = useRouter();
   const [data, setData] = useState<QuickStartData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [copied, setCopied] = useState<string | null>(null);
-  const [selectedIDE, setSelectedIDE] = useState<IDE>('claude-code');
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [newKey, setNewKey] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
@@ -63,44 +52,7 @@ export default function QuickStartPage() {
     }
   };
 
-  const copyToClipboard = async (text: string, id: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(id);
-    toast.success('Copied to clipboard!');
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const regenerateKey = async () => {
-    setIsRegenerating(true);
-    try {
-      const response = await fetch('/api/keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Default' }),
-      });
-
-      if (!response.ok) throw new Error('Failed to generate key');
-
-      const result = await response.json();
-      const generatedKey = result.data.key;
-      setNewKey(generatedKey);
-
-      try {
-        await navigator.clipboard.writeText(generatedKey);
-        toast.success('New API key generated and copied!');
-      } catch {
-        toast.success('New API key generated!');
-      }
-    } catch (error) {
-      toast.error('Failed to generate new API key');
-    } finally {
-      setIsRegenerating(false);
-    }
-  };
-
-  const displayKey = newKey || data?.apiKey;
   const isPaidUser = data?.hasActiveSubscription || data?.isBeta;
-  const isTrialUser = !isPaidUser;
 
   if (isLoading) {
     return (
@@ -119,348 +71,119 @@ export default function QuickStartPage() {
           Get Started
         </h1>
         <p className="text-neutral-400 text-lg">
-          {isPaidUser ? 'Connect CodeBakers to your AI coding tools' : 'Start your free trial in one command'}
+          Install the VS Code extension and start building production-ready apps
         </p>
       </div>
 
-      {/* TRIAL USER FLOW */}
-      {isTrialUser && (
-        <>
-          {/* The Simple Flow for Trial Users */}
-          <Card className="bg-neutral-900/80 border-red-600/30">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Sparkles className="w-6 h-6 text-red-400" />
-                <span className="text-xl font-semibold text-white">How It Works</span>
-                <Badge className="bg-emerald-600">No API Key Needed</Badge>
-              </div>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold mx-auto">1</div>
-                  <p className="text-white font-medium">Run One Command</p>
-                  <p className="text-neutral-400 text-sm">In your project folder</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold mx-auto">2</div>
-                  <p className="text-white font-medium">Patterns Install</p>
-                  <p className="text-neutral-400 text-sm">Automatically configured</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold mx-auto">✓</div>
-                  <p className="text-white font-medium">Start Building</p>
-                  <p className="text-neutral-400 text-sm">Just talk to your AI</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* How It Works */}
+      <Card className="bg-neutral-900/80 border-red-600/30">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            {isPaidUser ? (
+              <Shield className="w-6 h-6 text-red-400" />
+            ) : (
+              <Sparkles className="w-6 h-6 text-red-400" />
+            )}
+            <span className="text-xl font-semibold text-white">How It Works</span>
+            {isPaidUser ? (
+              <Badge className="bg-red-600">{data?.isBeta ? 'Beta' : 'Pro'}</Badge>
+            ) : (
+              <Badge className="bg-emerald-600">Free Trial</Badge>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="space-y-2">
+              <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold mx-auto">1</div>
+              <p className="text-white font-medium">Install Extension</p>
+              <p className="text-neutral-400 text-sm">From VS Code Marketplace</p>
+            </div>
+            <div className="space-y-2">
+              <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold mx-auto">2</div>
+              <p className="text-white font-medium">Sign In with GitHub</p>
+              <p className="text-neutral-400 text-sm">One-click authentication</p>
+            </div>
+            <div className="space-y-2">
+              <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold mx-auto">✓</div>
+              <p className="text-white font-medium">Start Building</p>
+              <p className="text-neutral-400 text-sm">Just talk to CodeBakers</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* One-Liner Install for Trial Users */}
-          <Card className="bg-neutral-900/80 border-neutral-800">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">1</div>
-                <div>
-                  <CardTitle className="text-white">One-Line Install</CardTitle>
-                  <CardDescription className="text-neutral-400">Copy and paste into your terminal:</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Mac/Linux */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Apple className="h-4 w-4 text-neutral-400" />
-                  <span className="text-sm text-neutral-400 font-medium">Mac / Linux</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-green-400 border border-neutral-800 overflow-x-auto">
-                    curl -fsSL codebakers.ai/install.sh | bash
-                  </code>
-                  <Button
-                    onClick={() => copyToClipboard('curl -fsSL codebakers.ai/install.sh | bash', 'install-mac')}
-                    className="bg-red-600 hover:bg-red-700 shrink-0"
-                  >
-                    {copied === 'install-mac' ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
+      {/* Step 1: Install Extension */}
+      <Card className="bg-neutral-900/80 border-neutral-800">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">1</div>
+            <div>
+              <CardTitle className="text-white">Install VS Code Extension</CardTitle>
+              <CardDescription className="text-neutral-400">
+                Get CodeBakers from the Visual Studio Marketplace
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            onClick={() => window.open(PRODUCT.EXTENSION_URL, '_blank')}
+            className="w-full bg-red-600 hover:bg-red-700 gap-2 h-12"
+          >
+            <Plug className="h-5 w-5" />
+            Install CodeBakers Extension
+            <ExternalLink className="h-4 w-4" />
+          </Button>
 
-              {/* Windows */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Monitor className="h-4 w-4 text-neutral-400" />
-                  <span className="text-sm text-neutral-400 font-medium">Windows (PowerShell)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-blue-400 border border-neutral-800 overflow-x-auto">
-                    irm codebakers.ai/install.ps1 | iex
-                  </code>
-                  <Button
-                    onClick={() => copyToClipboard('irm codebakers.ai/install.ps1 | iex', 'install-win')}
-                    className="bg-red-600 hover:bg-red-700 shrink-0"
-                  >
-                    {copied === 'install-win' ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
+          <div className="bg-neutral-800/50 rounded-lg p-4">
+            <p className="text-neutral-300 text-sm">
+              Or search for <code className="bg-neutral-700 px-2 py-0.5 rounded text-red-400">CodeBakers</code> in the VS Code Extensions panel (<code className="bg-neutral-700 px-2 py-0.5 rounded text-neutral-300">Cmd/Ctrl + Shift + X</code>)
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
-              <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-4">
-                <p className="text-green-300 text-sm">
-                  <strong>That's it!</strong> The installer automatically:
-                </p>
-                <ul className="mt-2 text-green-200/80 text-sm space-y-1 list-disc list-inside">
-                  <li>Installs the CodeBakers CLI globally</li>
-                  <li>Connects to Claude Code</li>
-                  <li>Creates your free 7-day trial</li>
-                  <li>Installs 40+ production patterns</li>
-                </ul>
-              </div>
+      {/* Step 2: Sign In */}
+      <Card className="bg-neutral-900/80 border-neutral-800">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">2</div>
+            <div>
+              <CardTitle className="text-white">Sign In with GitHub</CardTitle>
+              <CardDescription className="text-neutral-400">
+                One-click authentication - no passwords needed
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center flex-shrink-0">
+              <Github className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <p className="text-white font-medium mb-1">Click "Sign In" in the Extension</p>
+              <p className="text-neutral-400 text-sm">
+                After installing, click the CodeBakers icon in the sidebar and press "Sign In with GitHub".
+                Your browser will open to authorize the connection.
+              </p>
+            </div>
+          </div>
 
-              {/* Alternative npx command */}
-              <div className="pt-4 border-t border-neutral-800">
-                <p className="text-xs text-neutral-400 mb-2">Alternative (if you prefer npx):</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded-lg bg-black px-3 py-2 font-mono text-xs text-neutral-400 border border-neutral-800">
-                    npx @codebakers/cli go
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard('npx @codebakers/cli go', 'go')}
-                    className="border-neutral-700 shrink-0"
-                  >
-                    {copied === 'go' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
+          <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-4">
+            <p className="text-green-300 text-sm">
+              <strong>That's it!</strong> Once signed in:
+            </p>
+            <ul className="mt-2 text-green-200/80 text-sm space-y-1 list-disc list-inside">
+              <li>Your GitHub account is connected</li>
+              <li>All 40+ production patterns are available</li>
+              <li>AI-powered code generation is ready</li>
+              {!isPaidUser && <li>14-day free trial starts automatically</li>}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* PAID USER FLOW */}
-      {isPaidUser && (
-        <>
-          {/* The Flow for Paid Users */}
-          <Card className="bg-neutral-900/80 border-red-600/30">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Shield className="w-6 h-6 text-red-400" />
-                <span className="text-xl font-semibold text-white">How It Works</span>
-                <Badge className="bg-red-600">Pro</Badge>
-              </div>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold mx-auto">1</div>
-                  <p className="text-white font-medium">Copy API Key</p>
-                  <p className="text-neutral-400 text-sm">Below on this page</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold mx-auto">2</div>
-                  <p className="text-white font-medium">Run Setup <span className="text-neutral-400 font-normal">(once)</span></p>
-                  <p className="text-neutral-400 text-sm">One terminal command</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold mx-auto">✓</div>
-                  <p className="text-white font-medium">Just Talk to AI</p>
-                  <p className="text-neutral-400 text-sm">"Build me a todo app"</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Step 1: API Key (Paid Users Only) */}
-          <Card className="bg-neutral-900/80 border-neutral-800">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">1</div>
-                <div>
-                  <CardTitle className="text-white">Your API Key</CardTitle>
-                  <CardDescription className="text-neutral-400">
-                    Copy this - you'll paste it in the next step
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-green-400 border border-neutral-800 overflow-x-auto select-all">
-                  {displayKey || 'Loading...'}
-                </code>
-                <Button
-                  onClick={() => displayKey && copyToClipboard(displayKey, 'apiKey')}
-                  className="bg-red-600 hover:bg-red-700 shrink-0"
-                >
-                  {copied === 'apiKey' ? (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy Key
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={regenerateKey}
-                  disabled={isRegenerating}
-                  className="border-neutral-700 text-neutral-400 hover:text-white"
-                >
-                  {isRegenerating ? (
-                    <>
-                      <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-3 w-3 mr-2" />
-                      Generate New Key
-                    </>
-                  )}
-                </Button>
-                <span className="text-xs text-neutral-400">(Old key stops working)</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Step 2: Run Setup (Paid Users) */}
-          <Card className="bg-neutral-900/80 border-neutral-800">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">2</div>
-                <div>
-                  <CardTitle className="text-white">Run Setup</CardTitle>
-                  <CardDescription className="text-neutral-400">One command in your terminal - paste your API key when prompted</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* IDE Selection */}
-              <Tabs value={selectedIDE} onValueChange={(v) => setSelectedIDE(v as IDE)}>
-                <TabsList className="bg-neutral-800 border border-neutral-700">
-                  <TabsTrigger value="claude-code" className="data-[state=active]:bg-red-600">
-                    Claude Code
-                  </TabsTrigger>
-                  <TabsTrigger value="cursor" className="data-[state=active]:bg-red-600">
-                    Cursor
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* Claude Code Instructions */}
-                <TabsContent value="claude-code" className="space-y-4 mt-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-blue-600">TERMINAL</Badge>
-                      <span className="text-sm text-neutral-400">Open any terminal and run:</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800">
-                        npx @codebakers/cli setup
-                      </code>
-                      <Button
-                        variant="outline"
-                        onClick={() => copyToClipboard('npx @codebakers/cli setup', 'setup')}
-                        className="border-neutral-700 shrink-0"
-                      >
-                        {copied === 'setup' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                    <p className="text-sm text-neutral-400">
-                      Paste your API key when prompted. Setup handles everything else.
-                    </p>
-                  </div>
-
-                  <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-4">
-                    <p className="text-green-300 text-sm">
-                      <strong>Done!</strong> Restart Claude Code, then just describe what you want to build.
-                    </p>
-                  </div>
-                </TabsContent>
-
-                {/* Cursor Instructions */}
-                <TabsContent value="cursor" className="space-y-4 mt-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-blue-600">TERMINAL</Badge>
-                      <span className="text-sm text-neutral-400">Open any terminal and run:</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 rounded-lg bg-black px-4 py-3 font-mono text-sm text-red-400 border border-neutral-800">
-                        npx @codebakers/cli setup
-                      </code>
-                      <Button
-                        variant="outline"
-                        onClick={() => copyToClipboard('npx @codebakers/cli setup', 'setup-cursor')}
-                        className="border-neutral-700 shrink-0"
-                      >
-                        {copied === 'setup-cursor' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className="text-sm text-neutral-400">Then add MCP server to Cursor:</p>
-                    <p className="text-neutral-300 text-sm">
-                      Press <code className="bg-neutral-800 px-2 py-0.5 rounded text-xs">Cmd/Ctrl + Shift + J</code> → <strong>MCP</strong> tab → Add:
-                    </p>
-                    <div className="rounded-lg bg-black border border-neutral-800 p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs text-neutral-400">mcp.json</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(`{
-  "mcpServers": {
-    "codebakers": {
-      "command": "npx",
-      "args": ["-y", "@codebakers/cli", "serve"]
-    }
-  }
-}`, 'mcp-config')}
-                          className="h-6 px-2 text-neutral-500 hover:text-white"
-                        >
-                          {copied === 'mcp-config' ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                        </Button>
-                      </div>
-                      <pre className="font-mono text-sm text-red-400 whitespace-pre overflow-x-auto">{`{
-  "mcpServers": {
-    "codebakers": {
-      "command": "npx",
-      "args": ["-y", "@codebakers/cli", "serve"]
-    }
-  }
-}`}</pre>
-                    </div>
-                  </div>
-
-                  <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-4">
-                    <p className="text-green-300 text-sm">
-                      <strong>Done!</strong> Restart Cursor, then just describe what you want to build.
-                    </p>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* What You Can Do (shown for all users) */}
+      {/* What You Can Do */}
       {data && (
         <Card className="bg-neutral-900/80 border-green-600/30">
           <CardHeader>
@@ -474,8 +197,8 @@ export default function QuickStartPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
-              <Badge className="bg-purple-600">AI CHAT</Badge>
-              <span className="text-neutral-300">Open your AI and say things like:</span>
+              <Badge className="bg-purple-600">CodeBakers Chat</Badge>
+              <span className="text-neutral-300">Open the chat panel and say things like:</span>
             </div>
 
             <div className="grid gap-3">
@@ -508,7 +231,7 @@ export default function QuickStartPage() {
         </Card>
       )}
 
-      {/* Advanced: CLI Commands (Collapsed by default) */}
+      {/* Features List */}
       <Card className="bg-neutral-900/80 border-neutral-800">
         <CardHeader
           className="cursor-pointer hover:bg-neutral-800/50 transition-colors rounded-t-lg"
@@ -516,45 +239,41 @@ export default function QuickStartPage() {
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Terminal className="w-5 h-5 text-neutral-400" />
-              <CardTitle className="text-neutral-400 text-base">Optional: CLI Commands</CardTitle>
+              <Sparkles className="w-5 h-5 text-neutral-400" />
+              <CardTitle className="text-neutral-400 text-base">What's Included</CardTitle>
             </div>
             <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
           </div>
           <CardDescription className="text-neutral-400">
-            For power users who prefer terminal commands
+            Everything you get with CodeBakers
           </CardDescription>
         </CardHeader>
         {showAdvanced && (
           <CardContent className="pt-0">
             <div className="grid gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <code className="text-red-400 font-mono w-48">codebakers go</code>
-                <span className="text-neutral-400">Start trial & install patterns (no API key)</span>
+              <div className="flex items-center gap-3">
+                <Check className="h-4 w-4 text-green-500" />
+                <span className="text-neutral-300">40+ production-ready modules</span>
               </div>
-              <div className="flex items-center gap-2">
-                <code className="text-red-400 font-mono w-48">codebakers setup</code>
-                <span className="text-neutral-400">Configure with API key (paid users)</span>
+              <div className="flex items-center gap-3">
+                <Check className="h-4 w-4 text-green-500" />
+                <span className="text-neutral-300">AI-powered code generation</span>
               </div>
-              <div className="flex items-center gap-2">
-                <code className="text-red-400 font-mono w-48">codebakers scaffold</code>
-                <span className="text-neutral-400">Create new project with full stack</span>
+              <div className="flex items-center gap-3">
+                <Check className="h-4 w-4 text-green-500" />
+                <span className="text-neutral-300">Pattern enforcement built-in</span>
               </div>
-              <div className="flex items-center gap-2">
-                <code className="text-red-400 font-mono w-48">codebakers init</code>
-                <span className="text-neutral-400">Add patterns to existing project</span>
+              <div className="flex items-center gap-3">
+                <Check className="h-4 w-4 text-green-500" />
+                <span className="text-neutral-300">Authentication, payments, APIs</span>
               </div>
-              <div className="flex items-center gap-2">
-                <code className="text-red-400 font-mono w-48">codebakers generate</code>
-                <span className="text-neutral-400">Generate components, APIs, services</span>
+              <div className="flex items-center gap-3">
+                <Check className="h-4 w-4 text-green-500" />
+                <span className="text-neutral-300">Testing patterns included</span>
               </div>
-              <div className="flex items-center gap-2">
-                <code className="text-red-400 font-mono w-48">codebakers doctor</code>
-                <span className="text-neutral-400">Diagnose setup issues</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <code className="text-red-400 font-mono w-48">codebakers upgrade</code>
-                <span className="text-neutral-400">Update to latest patterns</span>
+              <div className="flex items-center gap-3">
+                <Check className="h-4 w-4 text-green-500" />
+                <span className="text-neutral-300">HIPAA, PCI compliance modules</span>
               </div>
             </div>
           </CardContent>

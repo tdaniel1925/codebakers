@@ -13,46 +13,33 @@ const plans: Array<{
 }> = [
   {
     name: 'Pro',
-    price: 49,
+    price: 99,
     plan: 'pro',
-    description: 'Perfect for solo developers',
+    description: 'Save 20+ hours per project',
     features: [
+      'Unlimited Claude API — no token limits',
+      'Guaranteed pattern enforcement',
       `${CODEBAKERS_STATS.moduleCount} production modules`,
-      `${CODEBAKERS_STATS.totalLinesDisplay} lines of patterns`,
-      'Auto-testing included',
-      'Full stack coverage',
-      '1 seat',
+      'Perfect context recall',
+      'Auto-testing & Guardian',
+      'VS Code + Cursor + Claude Code',
+      '95%+ pattern compliance',
       'Email support',
     ],
     popular: true,
   },
   {
     name: 'Team',
-    price: 149,
+    price: 249,
     plan: 'team',
     description: 'For growing teams',
     features: [
       'Everything in Pro',
       '5 team seats',
       'Team management dashboard',
-      'Shared API keys',
+      'Shared patterns & context',
       'Priority support',
       'Slack community',
-    ],
-    popular: false,
-  },
-  {
-    name: 'Agency',
-    price: 349,
-    plan: 'agency',
-    description: 'For agencies & consultancies',
-    features: [
-      'Everything in Team',
-      'Unlimited seats',
-      'White-label support',
-      'Custom patterns on request',
-      'Dedicated support',
-      'Training sessions',
     ],
     popular: false,
   },
@@ -62,8 +49,8 @@ const plans: Array<{
     plan: 'enterprise',
     description: 'Unlimited teams & custom SLA',
     features: [
-      'Everything in Agency',
-      'Unlimited teams',
+      'Everything in Team',
+      'Unlimited seats',
       'Custom SLA (99.9% uptime)',
       'Dedicated account manager',
       'Custom pattern development',
@@ -85,27 +72,29 @@ export default async function PricingPage() {
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Pays for itself in one project
+            Stop Fixing AI Mistakes
           </h1>
-          <p className="text-xl text-neutral-400 max-w-2xl mx-auto">
-            Save 20+ hours per project. 10x ROI on your first build.
-            One subscription, {CODEBAKERS_STATS.moduleCount} modules.
+          <p className="text-xl text-neutral-400 max-w-2xl mx-auto mb-4">
+            Cursor and Claude Code ignore your standards. CodeBakers enforces them.
+          </p>
+          <p className="text-lg text-neutral-500 max-w-xl mx-auto">
+            Save 20+ hours per project. Get production-ready code the first time.
           </p>
         </div>
 
         {/* Free Trial Banner */}
         <div className="max-w-2xl mx-auto mb-12 p-4 rounded-lg bg-red-600/10 border border-red-500/30 text-center">
-          <Badge className="bg-red-600 mb-2">7-Day Free Trial</Badge>
+          <Badge className="bg-red-600 mb-2">14-Day Free Trial</Badge>
           <p className="text-white font-medium">
-            Try CodeBakers free for 7 days with GitHub login
+            Try CodeBakers free for 14 days — unlimited access
           </p>
           <p className="text-neutral-400 text-sm mt-1">
-            Run <code className="bg-neutral-800 px-2 py-0.5 rounded text-red-400">npx @codebakers/cli go</code> to start · No credit card required
+            No credit card required · Cancel anytime
           </p>
         </div>
 
         {/* Plans */}
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
+        <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-3 max-w-5xl mx-auto">
           {plans.map((plan) => (
             <PricingCard
               key={plan.name}
@@ -138,8 +127,9 @@ export default async function PricingPage() {
                 Which AI tools does this work with?
               </h3>
               <p className="text-neutral-400">
-                CodeBakers works with Cursor IDE and Claude Code CLI via MCP
-                (Model Context Protocol) for secure, on-demand pattern access.
+                CodeBakers includes a VS Code extension with built-in Claude AI,
+                plus CLI integration for Cursor IDE and Claude Code via MCP.
+                Your subscription covers all platforms.
               </p>
             </div>
             <div className="p-6 rounded-lg bg-neutral-900/80 border border-neutral-800">
@@ -172,11 +162,22 @@ export default async function PricingPage() {
             </div>
             <div className="p-6 rounded-lg bg-neutral-900/80 border border-neutral-800">
               <h3 className="font-semibold text-white mb-2">
-                How are patterns delivered?
+                How do I get started?
               </h3>
               <p className="text-neutral-400">
-                Install our CLI, login with your API key, and patterns are fetched
-                in real-time when your AI assistant needs them. No manual setup required.
+                Install the CodeBakers extension from the VS Code marketplace,
+                login with GitHub, and start coding. Patterns are loaded automatically
+                when you chat with the AI. No manual setup required.
+              </p>
+            </div>
+            <div className="p-6 rounded-lg bg-neutral-900/80 border border-neutral-800">
+              <h3 className="font-semibold text-white mb-2">
+                What does &quot;unlimited&quot; include?
+              </h3>
+              <p className="text-neutral-400">
+                Unlimited Claude API calls through our VS Code extension,
+                unlimited pattern access, and unlimited projects.
+                No token limits, no rate limits, no surprises.
               </p>
             </div>
           </div>

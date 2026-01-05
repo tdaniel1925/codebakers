@@ -165,9 +165,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Extend trial by 7 days from now
+    // Extend trial by 14 days from now
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + 14);
 
     const [updated] = await db.update(trialFingerprints)
       .set({
@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
       trialId: updated.id,
       stage: 'extended',
       expiresAt: updated.trialExpiresAt?.toISOString(),
-      daysRemaining: 7,
+      daysRemaining: 14,
       githubUsername: updated.githubUsername,
     });
 

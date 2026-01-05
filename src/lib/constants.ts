@@ -14,31 +14,25 @@
 
 export const PRICING = {
   PRO: {
-    MONTHLY: 49,
-    YEARLY: 490, // ~2 months free
+    MONTHLY: 99,
+    YEARLY: 990, // ~2 months free
     SEATS: 1,
   },
   TEAM: {
-    MONTHLY: 149,
-    YEARLY: 1490,
+    MONTHLY: 249,
+    YEARLY: 2490,
     SEATS: 5,
-  },
-  AGENCY: {
-    MONTHLY: 349,
-    YEARLY: 3490,
-    SEATS: -1, // -1 = unlimited
   },
   ENTERPRISE: {
     MONTHLY: null, // Custom pricing
     YEARLY: null,
-    SEATS: -1,
+    SEATS: -1, // -1 = unlimited
   },
 } as const;
 
 export const PLAN_NAMES = {
   PRO: 'pro',
   TEAM: 'team',
-  AGENCY: 'agency',
   ENTERPRISE: 'enterprise',
 } as const;
 
@@ -47,10 +41,10 @@ export const PLAN_NAMES = {
 // =============================================================================
 
 export const TRIAL = {
-  ANONYMOUS_DAYS: 7, // Note: "Anonymous" is legacy naming - GitHub OAuth is now required
-  EXTENDED_DAYS: 7, // Legacy - extension no longer available
-  TOTAL_DAYS: 14, // Legacy - now only 7 days with GitHub
-  EXPIRING_SOON_THRESHOLD: 2, // days remaining to show warning
+  DAYS: 14, // 14-day free trial
+  ANONYMOUS_DAYS: 14, // Anonymous trial length
+  EXTENDED_DAYS: 14, // Extended trial length (after GitHub connect)
+  EXPIRING_SOON_THRESHOLD: 3, // days remaining to show warning
 } as const;
 
 export const TRIAL_STAGES = {
@@ -135,9 +129,8 @@ export const PRODUCT = {
   TAGLINE: 'AI writes correct code',
   SUPPORT_EMAIL: 'support@codebakers.ai',
   WEBSITE: 'https://codebakers.ai',
-  CLI_COMMAND: 'npx @codebakers/cli go',
-  CLI_EXTEND_COMMAND: 'codebakers extend',
-  CLI_BILLING_COMMAND: 'codebakers billing',
+  EXTENSION_ID: 'codebakers.codebakers',
+  EXTENSION_URL: 'https://marketplace.visualstudio.com/items?itemName=codebakers.codebakers',
 } as const;
 
 // =============================================================================
@@ -158,15 +151,8 @@ export const MESSAGES = {
   TRIAL: {
     ACTIVE: (days: number) =>
       `${days} day${days !== 1 ? 's' : ''} remaining in your free trial`,
-    // Legacy - kept for backwards compatibility
-    ANONYMOUS_ACTIVE: (days: number) =>
-      `${days} day${days !== 1 ? 's' : ''} remaining in your free trial`,
-    EXTENDED_ACTIVE: (days: number) =>
-      `${days} day${days !== 1 ? 's' : ''} remaining`,
-    EXTEND_CTA: 'Connect GitHub to extend for 7 more days free', // Legacy
-    EXPIRED_CAN_EXTEND: 'Trial expired - Connect GitHub for 7 more days free!', // Legacy
-    EXPIRED_FINAL: 'Your trial has ended',
-    UPGRADE_CTA: `Upgrade to Pro ($${PRICING.PRO.MONTHLY}/mo) for unlimited access`,
+    EXPIRED_FINAL: 'Your 14-day trial has ended',
+    UPGRADE_CTA: `Subscribe to Pro ($${PRICING.PRO.MONTHLY}/mo) for unlimited access`,
   },
   SUBSCRIPTION: {
     ACTIVE: 'Unlimited projects & all 40 modules',

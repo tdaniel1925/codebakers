@@ -278,8 +278,8 @@ async function validateRequest(req: NextRequest) {
             error: accessCheck.reason,
             code: accessCheck.code,
             ...(isSuspended
-              ? { supportUrl: 'https://codebakers.ai/support' }
-              : { upgradeUrl: 'https://codebakers.ai/billing' }),
+              ? { supportUrl: 'https://www.codebakers.ai/support' }
+              : { upgradeUrl: 'https://www.codebakers.ai/dashboard/billing' }),
           },
           { status: isSuspended ? 403 : 402 }
         ),
@@ -298,7 +298,7 @@ async function validateRequest(req: NextRequest) {
       return {
         error: NextResponse.json(
           {
-            error: 'No trial found for this device. Run "codebakers go" to start a trial.',
+            error: 'No trial found for this device. Sign in with GitHub in the VS Code extension to start a trial.',
             code: 'NO_TRIAL',
           },
           { status: 401 }
@@ -313,7 +313,7 @@ async function validateRequest(req: NextRequest) {
           {
             error: 'Trial has expired. Upgrade to continue using CodeBakers.',
             code: 'TRIAL_EXPIRED',
-            upgradeUrl: 'https://codebakers.ai/billing',
+            upgradeUrl: 'https://www.codebakers.ai/dashboard/billing',
           },
           { status: 402 }
         ),

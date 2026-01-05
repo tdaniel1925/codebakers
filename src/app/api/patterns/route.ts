@@ -147,8 +147,8 @@ async function validateRequest(req: NextRequest) {
           error: accessCheck.reason,
           code: accessCheck.code,
           ...(isSuspended
-            ? { supportUrl: 'https://codebakers.dev/support' }
-            : { upgradeUrl: 'https://codebakers.dev/billing' }),
+            ? { supportUrl: 'https://www.codebakers.ai/support' }
+            : { upgradeUrl: 'https://www.codebakers.ai/dashboard/billing' }),
         },
         { status: isSuspended ? 403 : 402 }
       ),
