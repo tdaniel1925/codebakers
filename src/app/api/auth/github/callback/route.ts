@@ -595,7 +595,7 @@ async function handleVSCodeLogin(
           .where(eq(trialFingerprints.id, existingTrial.id));
       }
 
-      // Calculate trial info
+      // Calculate trial info and sync to team
       if (existingTrial.trialExpiresAt) {
         const expiresAt = new Date(existingTrial.trialExpiresAt);
         const now = new Date();
@@ -605,6 +605,16 @@ async function handleVSCodeLogin(
             endsAt: expiresAt.toISOString(),
             daysRemaining,
           };
+
+          // IMPORTANT: Sync trial expiry to team so /api/claude/key can check it
+          if (!team.freeTrialExpiresAt || team.freeTrialExpiresAt < expiresAt) {
+            await db.update(teams)
+              .set({
+                freeTrialExpiresAt: expiresAt,
+                updatedAt: new Date(),
+              })
+              .where(eq(teams.id, team.id));
+          }
         }
       }
     } else if (!team.subscriptionStatus || team.subscriptionStatus === 'inactive') {
