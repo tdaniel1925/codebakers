@@ -27,6 +27,11 @@ export declare class CodeBakersClient {
      * Check if user has a valid session token (doesn't validate with server)
      */
     hasSessionToken(): boolean;
+    /**
+     * Handle OAuth callback from VS Code URI handler
+     * Called when vscode://codebakers.codebakers/callback?token=xxx is received
+     */
+    handleOAuthCallback(encodedToken: string): Promise<boolean>;
     checkAuth(): Promise<boolean>;
     login(): Promise<boolean>;
     private currentPlan;

@@ -13,6 +13,43 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize the CodeBakers API client
   client = new CodeBakersClient(context);
 
+  // Register global URI handler for OAuth callbacks
+  // This must be registered at activation time, not just during login()
+  context.subscriptions.push(
+    vscode.window.registerUriHandler({
+      handleUri: async (uri) => {
+        console.log('CodeBakers: Received URI callback:', uri.toString());
+
+        // Only handle our callback path
+        if (!uri.path.includes('callback')) {
+          return;
+        }
+
+        const params = new URLSearchParams(uri.query);
+        const encodedToken = params.get('token');
+        const error = params.get('error');
+
+        if (error) {
+          const message = params.get('message') || 'Login failed';
+          vscode.window.showErrorMessage(`CodeBakers login failed: ${message}`);
+          return;
+        }
+
+        if (encodedToken) {
+          const success = await client.handleOAuthCallback(encodedToken);
+          if (success) {
+            // Refresh the chat view if it exists
+            if (chatProvider) {
+              chatProvider.refresh();
+            }
+          }
+        } else {
+          vscode.window.showErrorMessage('CodeBakers login failed: No token received');
+        }
+      }
+    })
+  );
+
   // Initialize project context manager (for perfect recall)
   projectContext = new ProjectContext();
 

@@ -9,6 +9,10 @@ export declare class ChatViewProvider implements vscode.WebviewViewProvider {
     private _messages;
     private _conversationSummary;
     constructor(context: vscode.ExtensionContext, client: CodeBakersClient, projectContext: ProjectContext);
+    /**
+     * Refresh the webview after login/logout
+     */
+    refresh(): void;
     resolveWebviewView(webviewView: vscode.WebviewView, _context: vscode.WebviewViewResolveContext, _token: vscode.CancellationToken): void;
     private _initializeStatus;
     private _executeTool;

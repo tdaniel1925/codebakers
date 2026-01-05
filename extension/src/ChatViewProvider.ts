@@ -19,6 +19,16 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     private readonly projectContext: ProjectContext
   ) {}
 
+  /**
+   * Refresh the webview after login/logout
+   */
+  refresh() {
+    if (this._view) {
+      this._initializeStatus();
+      this._updateWebview();
+    }
+  }
+
   resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,

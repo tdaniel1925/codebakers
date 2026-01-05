@@ -75,6 +75,39 @@ class CodeBakersClient {
     hasSessionToken() {
         return !!this.sessionToken;
     }
+    /**
+     * Handle OAuth callback from VS Code URI handler
+     * Called when vscode://codebakers.codebakers/callback?token=xxx is received
+     */
+    async handleOAuthCallback(encodedToken) {
+        try {
+            // Decode the base64url token payload
+            const tokenPayload = JSON.parse(Buffer.from(encodedToken, 'base64url').toString('utf-8'));
+            // Store session token (the full encoded payload, as the API expects it)
+            this.sessionToken = encodedToken;
+            await this.context.globalState.update('codebakers.sessionToken', encodedToken);
+            // Store auth info for display
+            this.currentPlan = tokenPayload.plan;
+            this.trialInfo = tokenPayload.trial;
+            this.isUnlimited = tokenPayload.plan === 'pro';
+            // Store additional user info
+            await this.context.globalState.update('codebakers.user', {
+                teamId: tokenPayload.teamId,
+                profileId: tokenPayload.profileId,
+                githubUsername: tokenPayload.githubUsername,
+                email: tokenPayload.email,
+            });
+            // Initialize Anthropic client with our API key
+            await this._initializeAnthropic();
+            vscode.window.showInformationMessage(`Welcome to CodeBakers, @${tokenPayload.githubUsername}! ${tokenPayload.trial ? `Trial: ${tokenPayload.trial.daysRemaining} days remaining` : ''}`);
+            return true;
+        }
+        catch (e) {
+            console.error('Failed to handle OAuth callback:', e);
+            vscode.window.showErrorMessage('Login failed: Invalid token');
+            return false;
+        }
+    }
     async checkAuth() {
         if (!this.sessionToken)
             return false;
@@ -92,65 +125,13 @@ class CodeBakersClient {
     }
     async login() {
         // Open browser to CodeBakers login
+        // The callback will be handled by the global URI handler in extension.ts
         const callbackUri = await vscode.env.asExternalUri(vscode.Uri.parse(`${vscode.env.uriScheme}://codebakers.codebakers/callback`));
         const loginUrl = `${this._getApiEndpoint()}/vscode-login?callback=${encodeURIComponent(callbackUri.toString())}`;
         vscode.env.openExternal(vscode.Uri.parse(loginUrl));
-        // Wait for callback with token
-        return new Promise((resolve) => {
-            const handler = vscode.window.registerUriHandler({
-                handleUri: async (uri) => {
-                    const params = new URLSearchParams(uri.query);
-                    const encodedToken = params.get('token');
-                    const error = params.get('error');
-                    if (error) {
-                        const message = params.get('message') || 'Login failed';
-                        vscode.window.showErrorMessage(`Login failed: ${message}`);
-                        handler.dispose();
-                        resolve(false);
-                        return;
-                    }
-                    if (encodedToken) {
-                        try {
-                            // Decode the base64url token payload
-                            const tokenPayload = JSON.parse(Buffer.from(encodedToken, 'base64url').toString('utf-8'));
-                            // Store session token
-                            this.sessionToken = encodedToken;
-                            await this.context.globalState.update('codebakers.sessionToken', encodedToken);
-                            // Store auth info for display
-                            this.currentPlan = tokenPayload.plan;
-                            this.trialInfo = tokenPayload.trial;
-                            this.isUnlimited = tokenPayload.plan === 'pro';
-                            // Store additional user info
-                            await this.context.globalState.update('codebakers.user', {
-                                teamId: tokenPayload.teamId,
-                                profileId: tokenPayload.profileId,
-                                githubUsername: tokenPayload.githubUsername,
-                                email: tokenPayload.email,
-                            });
-                            // Initialize Anthropic client with our API key
-                            await this._initializeAnthropic();
-                            vscode.window.showInformationMessage(`Welcome to CodeBakers, @${tokenPayload.githubUsername}! ${tokenPayload.trial ? `Trial: ${tokenPayload.trial.daysRemaining} days remaining` : ''}`);
-                            resolve(true);
-                        }
-                        catch (e) {
-                            console.error('Failed to parse token:', e);
-                            vscode.window.showErrorMessage('Login failed: Invalid token');
-                            resolve(false);
-                        }
-                    }
-                    else {
-                        vscode.window.showErrorMessage('Login failed. Please try again.');
-                        resolve(false);
-                    }
-                    handler.dispose();
-                }
-            });
-            // Timeout after 5 minutes
-            setTimeout(() => {
-                handler.dispose();
-                resolve(false);
-            }, 5 * 60 * 1000);
-        });
+        // Return true to indicate login was initiated
+        // The actual login completion is handled by handleOAuthCallback
+        return true;
     }
     async _initializeAnthropic() {
         // Get API key from our server (user's CodeBakers subscription includes Claude access)

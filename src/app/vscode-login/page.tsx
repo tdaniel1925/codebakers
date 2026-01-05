@@ -32,8 +32,9 @@ function LoginContent() {
             type: 'vscode_login',
             callback
           });
-          // Use encodeURIComponent + btoa for Unicode safety
-          state = btoa(encodeURIComponent(stateObj))
+          // btoa() only works with ASCII, so we first encode to UTF-8 via encodeURIComponent
+          // Then convert to base64url format (replace + with -, / with _, strip =)
+          state = btoa(unescape(encodeURIComponent(stateObj)))
             .replace(/\+/g, '-')
             .replace(/\//g, '_')
             .replace(/=+$/, '');

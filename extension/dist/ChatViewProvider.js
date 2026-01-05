@@ -9,6 +9,15 @@ class ChatViewProvider {
         this._messages = [];
         this._conversationSummary = '';
     }
+    /**
+     * Refresh the webview after login/logout
+     */
+    refresh() {
+        if (this._view) {
+            this._initializeStatus();
+            this._updateWebview();
+        }
+    }
     resolveWebviewView(webviewView, _context, _token) {
         this._view = webviewView;
         webviewView.webview.options = {
