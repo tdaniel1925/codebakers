@@ -17,54 +17,114 @@ import { ScopeLockService } from './scope-lock-service';
 // Session expiry: 2 hours
 const SESSION_EXPIRY_MS = 2 * 60 * 60 * 1000;
 
-// Keyword to pattern mapping
+// Keyword to pattern mapping - routes to focused snippets
 const KEYWORD_PATTERN_MAP: Record<string, string[]> = {
-  // Auth keywords
-  auth: ['02-auth.md'],
-  login: ['02-auth.md'],
-  signup: ['02-auth.md'],
-  password: ['02-auth.md'],
-  session: ['02-auth.md'],
-  oauth: ['02-auth.md'],
-  jwt: ['02-auth.md'],
-  encrypt: ['02-auth.md'], // Credential encryption
-  credential: ['02-auth.md'], // Third-party credentials
-  token: ['02-auth.md'], // Access tokens
+  // =========================================================================
+  // AUTH SNIPPETS
+  // =========================================================================
+  auth: ['auth/email-password.md', 'auth/session.md', 'auth/protected-route.md'],
+  login: ['auth/email-password.md', 'auth/session.md'],
+  signup: ['auth/email-password.md'],
+  'sign-up': ['auth/email-password.md'],
+  register: ['auth/email-password.md'],
+  password: ['auth/email-password.md', 'auth/password-reset.md'],
+  'forgot-password': ['auth/password-reset.md'],
+  'reset-password': ['auth/password-reset.md'],
+  session: ['auth/session.md'],
+  oauth: ['auth/oauth-google.md'],
+  google: ['auth/oauth-google.md'],
+  'magic-link': ['auth/magic-link.md'],
+  passwordless: ['auth/magic-link.md'],
+  '2fa': ['auth/two-factor.md'],
+  'two-factor': ['auth/two-factor.md'],
+  mfa: ['auth/two-factor.md'],
+  totp: ['auth/two-factor.md'],
+  protected: ['auth/protected-route.md'],
+  authorize: ['auth/protected-route.md'],
 
-  // Database keywords
-  database: ['01-database.md'],
-  drizzle: ['01-database.md'],
-  postgres: ['01-database.md'],
-  sql: ['01-database.md'],
-  schema: ['01-database.md'],
-  migration: ['01-database.md'],
-  query: ['01-database.md'],
+  // =========================================================================
+  // DATABASE SNIPPETS
+  // =========================================================================
+  database: ['database/schema.md', 'database/crud.md'],
+  drizzle: ['database/schema.md', 'database/crud.md'],
+  postgres: ['database/schema.md'],
+  sql: ['database/crud.md'],
+  schema: ['database/schema.md', 'database/relations.md'],
+  migration: ['database/migrations.md'],
+  migrate: ['database/migrations.md'],
+  query: ['database/crud.md', 'database/relations.md'],
+  crud: ['database/crud.md'],
+  insert: ['database/crud.md'],
+  update: ['database/crud.md'],
+  delete: ['database/crud.md', 'database/soft-delete.md'],
+  'soft-delete': ['database/soft-delete.md'],
+  restore: ['database/soft-delete.md'],
+  relations: ['database/relations.md'],
+  join: ['database/relations.md'],
+  transaction: ['database/transactions.md'],
+  atomic: ['database/transactions.md'],
 
-  // API keywords - now includes rate limiting patterns
-  api: ['03-api.md', '03a-api-edge-cases.md'], // Auto-suggest rate limiting
-  route: ['03-api.md', '03a-api-edge-cases.md'],
-  endpoint: ['03-api.md', '03a-api-edge-cases.md'],
-  rest: ['03-api.md'],
-  validation: ['03-api.md'],
-  'rate-limit': ['03a-api-edge-cases.md'],
-  ratelimit: ['03a-api-edge-cases.md'],
-  throttle: ['03a-api-edge-cases.md'],
+  // =========================================================================
+  // API SNIPPETS
+  // =========================================================================
+  api: ['api/error-handling.md', 'api/input-validation.md'],
+  route: ['api/error-handling.md', 'api/middleware.md'],
+  endpoint: ['api/error-handling.md', 'api/input-validation.md'],
+  rest: ['api/error-handling.md'],
+  validation: ['api/input-validation.md'],
+  zod: ['api/input-validation.md'],
+  'rate-limit': ['api/rate-limiting.md'],
+  ratelimit: ['api/rate-limiting.md'],
+  throttle: ['api/rate-limiting.md'],
+  upload: ['api/file-upload.md'],
+  file: ['api/file-upload.md'],
+  pagination: ['api/pagination.md'],
+  cursor: ['api/pagination.md'],
+  middleware: ['api/middleware.md'],
+  cache: ['api/caching.md'],
+  redis: ['api/caching.md'],
+  error: ['api/error-handling.md'],
 
-  // Frontend keywords
-  react: ['04-frontend.md'],
-  component: ['04-frontend.md'],
-  form: ['04-frontend.md'],
-  state: ['04-frontend.md'],
-  hook: ['04-frontend.md'],
+  // =========================================================================
+  // FRONTEND SNIPPETS
+  // =========================================================================
+  react: ['frontend/data-fetching.md', 'frontend/loading-states.md'],
+  component: ['frontend/loading-states.md', 'frontend/error-boundary.md'],
+  form: ['frontend/form-validation.md'],
+  'form-validation': ['frontend/form-validation.md'],
+  'react-hook-form': ['frontend/form-validation.md'],
+  loading: ['frontend/loading-states.md'],
+  skeleton: ['frontend/loading-states.md'],
+  spinner: ['frontend/loading-states.md'],
+  'error-boundary': ['frontend/error-boundary.md'],
+  fetch: ['frontend/data-fetching.md'],
+  swr: ['frontend/data-fetching.md'],
+  'server-action': ['frontend/data-fetching.md'],
+  optimistic: ['frontend/optimistic-update.md'],
+  'optimistic-update': ['frontend/optimistic-update.md'],
+  modal: ['frontend/modal.md'],
+  dialog: ['frontend/modal.md'],
+  toast: ['frontend/toast.md'],
+  notification: ['frontend/toast.md'],
+  alert: ['frontend/toast.md'],
 
-  // Payment keywords
-  payment: ['05-payments.md', '05b-paypal.md'],
-  stripe: ['05-payments.md'],
-  subscription: ['05-payments.md', '05b-paypal.md'],
-  billing: ['05-payments.md'],
-  checkout: ['05-payments.md', '05b-paypal.md'],
-  paypal: ['05b-paypal.md'],
+  // =========================================================================
+  // PAYMENT SNIPPETS
+  // =========================================================================
+  payment: ['payments/checkout.md', 'payments/subscription.md'],
+  stripe: ['payments/checkout.md', 'payments/subscription.md', 'payments/webhook.md'],
+  subscription: ['payments/subscription.md'],
+  recurring: ['payments/subscription.md'],
+  billing: ['payments/subscription.md', 'payments/customer-portal.md'],
+  checkout: ['payments/checkout.md'],
+  'customer-portal': ['payments/customer-portal.md'],
+  portal: ['payments/customer-portal.md'],
+  refund: ['payments/refund.md'],
+  'stripe-webhook': ['payments/webhook.md'],
 
+  // =========================================================================
+  // LEGACY PATTERNS (still supported for now)
+  // =========================================================================
   // Voice/VAPI keywords
   voice: ['06a-voice.md', '25c-voice-vapi.md'],
   vapi: ['06a-voice.md', '25c-voice-vapi.md'],
@@ -81,7 +141,7 @@ const KEYWORD_PATTERN_MAP: Record<string, string[]> = {
   wordpress: ['06g-wordpress.md'],
   cms: ['06g-wordpress.md'],
   integration: ['06f-api-patterns.md'],
-  webhook: ['06f-api-patterns.md'],
+  webhook: ['payments/webhook.md', '06f-api-patterns.md'],
 
   // Testing keywords
   test: ['08-testing.md'],
@@ -106,7 +166,7 @@ const KEYWORD_PATTERN_MAP: Record<string, string[]> = {
   // Environment keywords
   env: ['35-environment.md'],
   environment: ['35-environment.md'],
-  secret: ['35-environment.md', '02-auth.md'],
+  secret: ['35-environment.md'],
   config: ['35-environment.md'],
 };
 
