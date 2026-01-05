@@ -9,36 +9,59 @@ function LoginContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const callback = searchParams.get('callback');
+    try {
+      const callback = searchParams.get('callback');
 
-    // Build GitHub OAuth URL
-    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+      // Build GitHub OAuth URL
+      const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
 
-    if (!clientId) {
-      setError('GitHub OAuth not configured');
-      return;
+      console.log('vscode-login: clientId exists?', !!clientId);
+      console.log('vscode-login: callback?', callback?.substring(0, 50));
+
+      if (!clientId) {
+        setError('GitHub OAuth not configured');
+        return;
+      }
+
+      // Create state with callback info for VS Code extension
+      // Using btoa() instead of Buffer for browser compatibility
+      let state = 'web_login';
+      if (callback) {
+        try {
+          const stateObj = JSON.stringify({
+            type: 'vscode_login',
+            callback
+          });
+          // Use encodeURIComponent + btoa for Unicode safety
+          state = btoa(encodeURIComponent(stateObj))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
+        } catch (encodeErr) {
+          console.error('vscode-login: Failed to encode state:', encodeErr);
+          // Fallback to simple state
+          state = 'vscode_login';
+        }
+      }
+
+      // Always use www.codebakers.ai to match GitHub OAuth callback URL
+      const redirectUri = 'https://www.codebakers.ai/api/auth/github/callback';
+
+      const githubUrl = new URL('https://github.com/login/oauth/authorize');
+      githubUrl.searchParams.set('client_id', clientId);
+      githubUrl.searchParams.set('redirect_uri', redirectUri);
+      githubUrl.searchParams.set('scope', 'user:email');
+      githubUrl.searchParams.set('state', state);
+
+      const finalUrl = githubUrl.toString();
+      console.log('vscode-login: Redirecting to:', finalUrl.substring(0, 100));
+
+      // Redirect to GitHub
+      window.location.href = finalUrl;
+    } catch (err) {
+      console.error('vscode-login: Error in redirect:', err);
+      setError(`Redirect failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-
-    // Create state with callback info for VS Code extension
-    // Using btoa() instead of Buffer for browser compatibility
-    const state = callback ?
-      btoa(JSON.stringify({
-        type: 'vscode_login',
-        callback
-      })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') :
-      'web_login';
-
-    // Always use www.codebakers.ai to match GitHub OAuth callback URL
-    const redirectUri = 'https://www.codebakers.ai/api/auth/github/callback';
-
-    const githubUrl = new URL('https://github.com/login/oauth/authorize');
-    githubUrl.searchParams.set('client_id', clientId);
-    githubUrl.searchParams.set('redirect_uri', redirectUri);
-    githubUrl.searchParams.set('scope', 'user:email');
-    githubUrl.searchParams.set('state', state);
-
-    // Redirect to GitHub
-    window.location.href = githubUrl.toString();
   }, [searchParams]);
 
   if (error) {
