@@ -28,7 +28,8 @@ function LoginContent() {
       })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') :
       'web_login';
 
-    const redirectUri = `${window.location.origin}/api/auth/github/callback`;
+    // Always use www.codebakers.ai to match GitHub OAuth callback URL
+    const redirectUri = 'https://www.codebakers.ai/api/auth/github/callback';
 
     const githubUrl = new URL('https://github.com/login/oauth/authorize');
     githubUrl.searchParams.set('client_id', clientId);
