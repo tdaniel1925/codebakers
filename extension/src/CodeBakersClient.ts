@@ -205,11 +205,25 @@ export class CodeBakersClient {
         }
       }
 
-      const response = await this._fetchWithTimeout(`${this._getApiEndpoint()}/api/claude/key`, {
+      // Use plain object for headers (more compatible)
+      const authHeader = `Bearer ${this.sessionToken}`;
+      console.log('_initializeAnthropic: authHeader length:', authHeader.length);
+      console.log('_initializeAnthropic: authHeader preview:', authHeader.substring(0, 60));
+
+      const fetchOptions: RequestInit = {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.sessionToken}`
-        }
-      });
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+      };
+
+      console.log('_initializeAnthropic: fetchOptions.headers:', JSON.stringify(fetchOptions.headers));
+
+      const url = `${this._getApiEndpoint()}/api/claude/key`;
+      console.log('_initializeAnthropic: fetching:', url);
+
+      const response = await this._fetchWithTimeout(url, fetchOptions);
 
       interface ClaudeKeyResponse {
         apiKey?: string;
