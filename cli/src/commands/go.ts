@@ -1449,7 +1449,7 @@ async function handleApiKeyLogin(options: GoOptions = {}): Promise<void> {
 }
 
 /**
- * Show success message with clear next steps
+ * Show success message with clear next steps based on user's editor
  */
 async function showSuccessAndRestart(): Promise<void> {
   console.log(chalk.green(`
@@ -1460,21 +1460,103 @@ async function showSuccessAndRestart(): Promise<void> {
   ╚═══════════════════════════════════════════════════════════╝
   `));
 
-  console.log(chalk.yellow('  ⚠️  ONE MORE STEP - Restart Required\n'));
+  // Check if we're in non-interactive mode
+  const isNonInteractive = !process.stdin.isTTY;
 
-  console.log(chalk.white('  Claude Code needs to restart to load the CodeBakers MCP server.\n'));
+  if (isNonInteractive) {
+    // Non-interactive mode - show generic instructions
+    console.log(chalk.yellow('  ⚠️  RELOAD REQUIRED\n'));
+    console.log(chalk.white('  Your editor needs to reload to activate CodeBakers.\n'));
+    console.log(chalk.cyan('  For Cursor:'));
+    console.log(chalk.gray('    Press ') + chalk.cyan('Cmd/Ctrl+Shift+P') + chalk.gray(' → type ') + chalk.cyan('"Reload Window"') + chalk.gray(' → press Enter\n'));
+    console.log(chalk.cyan('  For VS Code with Claude Code:'));
+    console.log(chalk.gray('    Press ') + chalk.cyan('Cmd/Ctrl+Shift+P') + chalk.gray(' → type ') + chalk.cyan('"Reload Window"') + chalk.gray(' → press Enter\n'));
+    console.log(chalk.gray('  ─────────────────────────────────────────────────────────\n'));
+    console.log(chalk.gray('  Having issues? Run: ') + chalk.cyan('codebakers doctor') + chalk.gray(' to diagnose\n'));
+    return;
+  }
 
-  console.log(chalk.cyan('  How to restart Claude Code:\n'));
-  console.log(chalk.gray('    Option 1: ') + chalk.white('Close this window and run ') + chalk.cyan('claude') + chalk.white(' again'));
-  console.log(chalk.gray('    Option 2: ') + chalk.white('Press ') + chalk.cyan('Ctrl+C') + chalk.white(' and run ') + chalk.cyan('claude') + chalk.white(' again'));
-  console.log(chalk.gray('    Option 3: ') + chalk.white('In VS Code: ') + chalk.cyan('Cmd/Ctrl+Shift+P') + chalk.white(' → "Claude Code: Restart"\n'));
+  // Interactive mode - ask which editor they're using
+  console.log(chalk.white('  Which editor are you using?\n'));
+  console.log(chalk.gray('    1. ') + chalk.cyan('Cursor') + chalk.gray('                - AI code editor'));
+  console.log(chalk.gray('    2. ') + chalk.cyan('VS Code + Claude Code') + chalk.gray(' - VS Code with Claude extension\n'));
 
-  console.log(chalk.green('  After restart, try saying:\n'));
-  console.log(chalk.white('    "Build me a todo app with authentication"'));
-  console.log(chalk.white('    "Add a login page to my project"'));
-  console.log(chalk.white('    "Review my code and make it production-ready"\n'));
+  let editorChoice = '';
+  while (!['1', '2'].includes(editorChoice)) {
+    editorChoice = await prompt('  Enter 1 or 2: ');
+  }
+
+  console.log('');
+
+  if (editorChoice === '1') {
+    // Cursor instructions
+    await showCursorInstructions();
+  } else {
+    // VS Code + Claude Code instructions
+    await showVSCodeClaudeInstructions();
+  }
+}
+
+/**
+ * Show Cursor-specific instructions
+ */
+async function showCursorInstructions(): Promise<void> {
+  console.log(chalk.cyan('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+  console.log(chalk.white.bold('\n  🎯 CURSOR SETUP - Follow these steps:\n'));
+  console.log(chalk.cyan('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
+
+  console.log(chalk.yellow('  STEP 1: Reload Cursor to activate CodeBakers\n'));
+  console.log(chalk.gray('    Press ') + chalk.cyan('Cmd+Shift+P') + chalk.gray(' (Mac) or ') + chalk.cyan('Ctrl+Shift+P') + chalk.gray(' (Windows)'));
+  console.log(chalk.gray('    Type ') + chalk.cyan('"Reload Window"') + chalk.gray(' and press Enter\n'));
+
+  console.log(chalk.yellow('  STEP 2: Open the AI Chat\n'));
+  console.log(chalk.gray('    Press ') + chalk.cyan('Cmd+L') + chalk.gray(' (Mac) or ') + chalk.cyan('Ctrl+L') + chalk.gray(' (Windows)'));
+  console.log(chalk.gray('    This opens the Cursor Chat panel on the right side\n'));
+
+  console.log(chalk.yellow('  STEP 3: Start building!\n'));
+  console.log(chalk.gray('    Type your request in the chat. For example:\n'));
+  console.log(chalk.white('      "Build me a todo app with authentication"'));
+  console.log(chalk.white('      "Add a login page to my project"'));
+  console.log(chalk.white('      "Review my code and make it production-ready"\n'));
+
+  console.log(chalk.green('  ✅ You are now done with the terminal!\n'));
+  console.log(chalk.gray('     From now on, use the ') + chalk.cyan('Cursor Chat') + chalk.gray(' to talk to AI.'));
+  console.log(chalk.gray('     The terminal is only needed for running commands like npm.\n'));
 
   console.log(chalk.gray('  ─────────────────────────────────────────────────────────\n'));
+  console.log(chalk.gray('  Having issues? Run: ') + chalk.cyan('codebakers doctor') + chalk.gray(' to diagnose\n'));
+}
+
+/**
+ * Show VS Code + Claude Code specific instructions
+ */
+async function showVSCodeClaudeInstructions(): Promise<void> {
+  console.log(chalk.cyan('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+  console.log(chalk.white.bold('\n  🎯 VS CODE + CLAUDE CODE SETUP - Follow these steps:\n'));
+  console.log(chalk.cyan('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
+
+  console.log(chalk.yellow('  STEP 1: Reload VS Code to activate CodeBakers\n'));
+  console.log(chalk.gray('    Press ') + chalk.cyan('Cmd+Shift+P') + chalk.gray(' (Mac) or ') + chalk.cyan('Ctrl+Shift+P') + chalk.gray(' (Windows)'));
+  console.log(chalk.gray('    Type ') + chalk.cyan('"Reload Window"') + chalk.gray(' and press Enter\n'));
+
+  console.log(chalk.yellow('  STEP 2: Open Claude Code Chat\n'));
+  console.log(chalk.gray('    Look for the ') + chalk.cyan('Claude icon') + chalk.gray(' in the left sidebar'));
+  console.log(chalk.gray('    Click it to open the Claude Code chat panel\n'));
+  console.log(chalk.gray('    Or press ') + chalk.cyan('Cmd+Shift+P') + chalk.gray(' → type ') + chalk.cyan('"Claude Code: Open Chat"') + chalk.gray('\n'));
+
+  console.log(chalk.yellow('  STEP 3: Start building!\n'));
+  console.log(chalk.gray('    Type your request in the Claude chat. For example:\n'));
+  console.log(chalk.white('      "Build me a todo app with authentication"'));
+  console.log(chalk.white('      "Add a login page to my project"'));
+  console.log(chalk.white('      "Review my code and make it production-ready"\n'));
+
+  console.log(chalk.green('  ✅ You are now done with the terminal!\n'));
+  console.log(chalk.gray('     From now on, use the ') + chalk.cyan('Claude Code Chat') + chalk.gray(' panel to talk to AI.'));
+  console.log(chalk.gray('     The terminal is only needed for running commands like npm.\n'));
+
+  console.log(chalk.gray('  ─────────────────────────────────────────────────────────\n'));
+  console.log(chalk.gray('  Tip: ') + chalk.white('Make sure you have the Claude Code extension installed.'));
+  console.log(chalk.gray('       Get it from: ') + chalk.cyan('https://marketplace.visualstudio.com/items?itemName=anthropics.claude-code\n'));
   console.log(chalk.gray('  Having issues? Run: ') + chalk.cyan('codebakers doctor') + chalk.gray(' to diagnose\n'));
 }
 
