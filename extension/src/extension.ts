@@ -83,6 +83,15 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('codebakers.logout', async () => {
+      await client.logout();
+      if (chatProvider) {
+        chatProvider.refresh();
+      }
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('codebakers.showPatterns', async () => {
       const patterns = await client.getAvailablePatterns();
       const quickPick = vscode.window.createQuickPick();

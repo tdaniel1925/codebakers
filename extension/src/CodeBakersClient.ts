@@ -25,6 +25,24 @@ export class CodeBakersClient {
   constructor(private readonly context: vscode.ExtensionContext) {
     // Load cached session token
     this.sessionToken = context.globalState.get('codebakers.sessionToken') || null;
+
+    // Clean up corrupted tokens (URL-encoded or invalid)
+    if (this.sessionToken && this.sessionToken.includes('%')) {
+      console.log('CodeBakers: Clearing corrupted URL-encoded token');
+      this.sessionToken = null;
+      context.globalState.update('codebakers.sessionToken', undefined);
+    }
+  }
+
+  /**
+   * Logout and clear session
+   */
+  async logout(): Promise<void> {
+    this.sessionToken = null;
+    this.anthropic = null;
+    await this.context.globalState.update('codebakers.sessionToken', undefined);
+    await this.context.globalState.update('codebakers.user', undefined);
+    vscode.window.showInformationMessage('Logged out of CodeBakers');
   }
 
   /**

@@ -20,6 +20,10 @@ export declare class CodeBakersClient {
     private readonly DEFAULT_TIMEOUT;
     constructor(context: vscode.ExtensionContext);
     /**
+     * Logout and clear session
+     */
+    logout(): Promise<void>;
+    /**
      * Fetch with timeout to prevent hanging
      */
     private _fetchWithTimeout;
