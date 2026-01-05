@@ -213,7 +213,11 @@ class CodeBakersClient {
             }
             if (!response.ok) {
                 console.error('API error response:', JSON.stringify(data));
-                throw new Error(`API error ${response.status}: ${data.error || data.message || 'Unknown error'}`);
+                // Include token info in error for debugging
+                const tokenInfo = this.sessionToken
+                    ? `token len=${this.sessionToken.length}, starts=${this.sessionToken.substring(0, 10)}`
+                    : 'NO TOKEN';
+                throw new Error(`API ${response.status}: ${data.error || data.message || 'Unknown'} [${tokenInfo}]`);
             }
             if (!data.apiKey) {
                 throw new Error(`No API key in response: ${JSON.stringify(data)}`);

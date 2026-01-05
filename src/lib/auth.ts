@@ -128,9 +128,14 @@ export async function requireAuthOrApiKey(req: NextRequest): Promise<{
   }
 
   // Fall back to Supabase session
+  console.log('[Auth] No valid Bearer token, falling back to session');
   const session = await getServerSession();
   if (!session) {
-    throw new AuthenticationError('Authentication required');
+    // Include debug info in error message
+    const debugInfo = authHeader
+      ? `header present but invalid (len=${authHeader.length}, starts=${authHeader.substring(0, 20)})`
+      : 'no auth header';
+    throw new AuthenticationError(`Authentication required [${debugInfo}]`);
   }
 
   // Get the user's team
