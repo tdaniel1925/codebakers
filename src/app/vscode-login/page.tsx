@@ -20,11 +20,12 @@ function LoginContent() {
     }
 
     // Create state with callback info for VS Code extension
+    // Using btoa() instead of Buffer for browser compatibility
     const state = callback ?
-      Buffer.from(JSON.stringify({
+      btoa(JSON.stringify({
         type: 'vscode_login',
         callback
-      })).toString('base64url') :
+      })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') :
       'web_login';
 
     const redirectUri = `${window.location.origin}/api/auth/github/callback`;

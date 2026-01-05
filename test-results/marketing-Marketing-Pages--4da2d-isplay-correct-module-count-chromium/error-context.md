@@ -81,9 +81,16 @@
           - generic [ref=e84]: Claude Code
       - generic [ref=e86]:
         - iframe [ref=e87]:
-          - generic "YouTube Video Player" [ref=f2e3]:
-            - button "Play" [ref=f2e7] [cursor=pointer]:
-              - img
+          - generic [active] [ref=f2e1]:
+            - generic "YouTube Video Player" [ref=f2e3]
+            - generic [ref=f2e5]:
+              - generic:
+                - generic:
+                  - button "Play video" [ref=f2e10] [cursor=pointer]
+                  - button "Hide player controls" [ref=f2e12] [cursor=pointer]
+            - generic:
+              - dialog "Dialog"
+              - dialog "Dialog"
         - generic [ref=e88] [cursor=pointer]:
           - img [ref=e90]
           - paragraph [ref=e92]: Watch 2-min Demo

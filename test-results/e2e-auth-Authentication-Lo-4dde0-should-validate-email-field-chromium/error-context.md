@@ -1,0 +1,72 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e7]:
+      - link "CodeBakers" [ref=e8] [cursor=pointer]:
+        - /url: /
+        - img [ref=e10]
+        - generic [ref=e14]: CodeBakers
+      - heading "Ship production code on your first prompt." [level=1] [ref=e15]:
+        - text: Ship production code
+        - text: on your first prompt.
+      - paragraph [ref=e16]: 50K+ lines of battle-tested patterns for your AI assistant. Start free, no credit card.
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - img [ref=e19]
+          - generic [ref=e21]: 59 modules
+        - generic [ref=e22]:
+          - img [ref=e23]
+          - generic [ref=e25]: Works with Cursor & Claude
+        - generic [ref=e26]:
+          - img [ref=e27]
+          - generic [ref=e29]: Auto-generated tests
+        - generic [ref=e30]:
+          - img [ref=e31]
+          - generic [ref=e33]: Unlimited downloads
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - generic [ref=e36]: S
+          - generic [ref=e37]: M
+          - generic [ref=e38]: A
+          - generic [ref=e39]: J
+        - generic [ref=e40]: 1,200+ developers shipping faster
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]: Welcome back
+        - generic [ref=e46]: Sign in to your CodeBakers account
+      - generic [ref=e47]:
+        - button "Continue with GitHub" [ref=e48]:
+          - img
+          - text: Continue with GitHub
+        - generic [ref=e53]: or continue with email
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - generic [ref=e56]: Email
+            - textbox "Email" [ref=e57]:
+              - /placeholder: you@example.com
+          - generic [ref=e58]:
+            - generic [ref=e59]:
+              - generic [ref=e60]: Password
+              - link "Forgot password?" [ref=e61] [cursor=pointer]:
+                - /url: /forgot-password
+            - textbox "Password" [ref=e62]:
+              - /placeholder: Your password
+          - button "Sign In" [ref=e63]
+        - generic [ref=e64]:
+          - text: Don't have an account?
+          - link "Sign up" [ref=e65] [cursor=pointer]:
+            - /url: /signup
+        - generic [ref=e66]:
+          - paragraph [ref=e67]: "Prefer to code directly? Try our VS Code extension:"
+          - link "Install VS Code Extension" [ref=e68] [cursor=pointer]:
+            - /url: https://marketplace.visualstudio.com/items?itemName=codebakers.codebakers
+            - img [ref=e69]
+            - text: Install VS Code Extension
+          - paragraph [ref=e72]: 14-day free trial, instant access
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e78] [cursor=pointer]:
+    - img [ref=e79]
+  - alert [ref=e82]
+```

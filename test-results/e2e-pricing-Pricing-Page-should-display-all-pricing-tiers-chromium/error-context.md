@@ -1,0 +1,200 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - link "CodeBakers" [ref=e6] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e7]:
+          - link "Smart Prompts" [ref=e8] [cursor=pointer]:
+            - /url: /#smart-prompts
+          - link "Demo" [ref=e9] [cursor=pointer]:
+            - /url: /#demo
+          - link "Pricing" [ref=e10] [cursor=pointer]:
+            - /url: /pricing
+          - link "Compare" [ref=e11] [cursor=pointer]:
+            - /url: /compare
+          - link "Sign In" [ref=e12] [cursor=pointer]:
+            - /url: /login
+            - button "Sign In" [ref=e13]
+          - link "Get Started" [ref=e14] [cursor=pointer]:
+            - /url: /signup
+            - button "Get Started" [ref=e15]
+    - main [ref=e16]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - heading "Stop Fixing AI Mistakes" [level=1] [ref=e20]
+          - paragraph [ref=e21]: Cursor and Claude Code ignore your standards. CodeBakers enforces them.
+          - paragraph [ref=e22]: Save 20+ hours per project. Get production-ready code the first time.
+        - generic [ref=e23]:
+          - generic [ref=e24]: 14-Day Free Trial
+          - paragraph [ref=e25]: Try CodeBakers free for 14 days — unlimited access
+          - paragraph [ref=e26]: No credit card required · Cancel anytime
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - generic [ref=e29]: Most Popular
+            - generic [ref=e30]:
+              - heading "Pro" [level=2] [ref=e31]
+              - paragraph [ref=e32]: Save 20+ hours per project
+            - generic [ref=e33]:
+              - generic [ref=e34]: $99
+              - text: /month
+            - list [ref=e35]:
+              - listitem [ref=e36]:
+                - img [ref=e37]
+                - generic [ref=e39]: Unlimited Claude API — no token limits
+              - listitem [ref=e40]:
+                - img [ref=e41]
+                - generic [ref=e43]: Guaranteed pattern enforcement
+              - listitem [ref=e44]:
+                - img [ref=e45]
+                - generic [ref=e47]: 59 production modules
+              - listitem [ref=e48]:
+                - img [ref=e49]
+                - generic [ref=e51]: Perfect context recall
+              - listitem [ref=e52]:
+                - img [ref=e53]
+                - generic [ref=e55]: Auto-testing & Guardian
+              - listitem [ref=e56]:
+                - img [ref=e57]
+                - generic [ref=e59]: VS Code + Cursor + Claude Code
+              - listitem [ref=e60]:
+                - img [ref=e61]
+                - generic [ref=e63]: 95%+ pattern compliance
+              - listitem [ref=e64]:
+                - img [ref=e65]
+                - generic [ref=e67]: Email support
+            - button "Get Started" [ref=e68]:
+              - img
+              - text: Get Started
+            - paragraph [ref=e69]: Pay with credit card or PayPal
+          - generic [ref=e70]:
+            - generic [ref=e71]:
+              - heading "Team" [level=2] [ref=e72]
+              - paragraph [ref=e73]: For growing teams
+            - generic [ref=e74]:
+              - generic [ref=e75]: $249
+              - text: /month
+            - list [ref=e76]:
+              - listitem [ref=e77]:
+                - img [ref=e78]
+                - generic [ref=e80]: Everything in Pro
+              - listitem [ref=e81]:
+                - img [ref=e82]
+                - generic [ref=e84]: 5 team seats
+              - listitem [ref=e85]:
+                - img [ref=e86]
+                - generic [ref=e88]: Team management dashboard
+              - listitem [ref=e89]:
+                - img [ref=e90]
+                - generic [ref=e92]: Shared patterns & context
+              - listitem [ref=e93]:
+                - img [ref=e94]
+                - generic [ref=e96]: Priority support
+              - listitem [ref=e97]:
+                - img [ref=e98]
+                - generic [ref=e100]: Slack community
+            - button "Get Started" [ref=e101]:
+              - img
+              - text: Get Started
+            - paragraph [ref=e102]: Pay with credit card or PayPal
+          - generic [ref=e103]:
+            - generic [ref=e104]:
+              - heading "Enterprise" [level=2] [ref=e105]
+              - paragraph [ref=e106]: Unlimited teams & custom SLA
+            - generic [ref=e107]: Custom
+            - list [ref=e108]:
+              - listitem [ref=e109]:
+                - img [ref=e110]
+                - generic [ref=e112]: Everything in Team
+              - listitem [ref=e113]:
+                - img [ref=e114]
+                - generic [ref=e116]: Unlimited seats
+              - listitem [ref=e117]:
+                - img [ref=e118]
+                - generic [ref=e120]: Custom SLA (99.9% uptime)
+              - listitem [ref=e121]:
+                - img [ref=e122]
+                - generic [ref=e124]: Dedicated account manager
+              - listitem [ref=e125]:
+                - img [ref=e126]
+                - generic [ref=e128]: Custom pattern development
+              - listitem [ref=e129]:
+                - img [ref=e130]
+                - generic [ref=e132]: SSO/SAML integration
+              - listitem [ref=e133]:
+                - img [ref=e134]
+                - generic [ref=e136]: Invoice billing
+              - listitem [ref=e137]:
+                - img [ref=e138]
+                - generic [ref=e140]: On-premise deployment option
+            - button "Contact Us" [ref=e141]:
+              - img
+              - text: Contact Us
+            - paragraph [ref=e142]: Custom pricing & onboarding
+        - paragraph [ref=e144]: Secure payments powered by PayPal. Pay with credit card, debit card, or PayPal balance.
+        - generic [ref=e145]:
+          - heading "Frequently Asked Questions" [level=2] [ref=e146]
+          - generic [ref=e147]:
+            - generic [ref=e148]:
+              - heading "Which AI tools does this work with?" [level=3] [ref=e149]
+              - paragraph [ref=e150]: CodeBakers includes a VS Code extension with built-in Claude AI, plus CLI integration for Cursor IDE and Claude Code via MCP. Your subscription covers all platforms.
+            - generic [ref=e151]:
+              - heading "Can I pay without a PayPal account?" [level=3] [ref=e152]
+              - paragraph [ref=e153]: Yes! PayPal supports guest checkout with credit or debit cards. You don't need to create a PayPal account to subscribe.
+            - generic [ref=e154]:
+              - heading "Can I cancel anytime?" [level=3] [ref=e155]
+              - paragraph [ref=e156]: Yes, you can cancel your subscription at any time. You'll retain access until the end of your billing period. No questions asked.
+            - generic [ref=e157]:
+              - heading "What tech stack do the patterns cover?" [level=3] [ref=e158]
+              - paragraph [ref=e159]: Next.js 14+, React, TypeScript, Supabase, Drizzle ORM, Stripe, shadcn/ui, Tailwind CSS, Zod, React Hook Form, Playwright, and many integrations like Resend, VAPI, Inngest, and more.
+            - generic [ref=e160]:
+              - heading "How do I get started?" [level=3] [ref=e161]
+              - paragraph [ref=e162]: Install the CodeBakers extension from the VS Code marketplace, login with GitHub, and start coding. Patterns are loaded automatically when you chat with the AI. No manual setup required.
+            - generic [ref=e163]:
+              - heading "What does \"unlimited\" include?" [level=3] [ref=e164]
+              - paragraph [ref=e165]: Unlimited Claude API calls through our VS Code extension, unlimited pattern access, and unlimited projects. No token limits, no rate limits, no surprises.
+    - contentinfo [ref=e166]:
+      - generic [ref=e167]:
+        - generic [ref=e168]:
+          - generic [ref=e169]:
+            - heading "CodeBakers" [level=3] [ref=e170]
+            - paragraph [ref=e171]: Ship production-ready code from day one with 34 battle-tested pattern modules.
+          - generic [ref=e172]:
+            - heading "Product" [level=4] [ref=e173]
+            - list [ref=e174]:
+              - listitem [ref=e175]:
+                - link "Smart Prompts" [ref=e176] [cursor=pointer]:
+                  - /url: /#smart-prompts
+              - listitem [ref=e177]:
+                - link "Demo" [ref=e178] [cursor=pointer]:
+                  - /url: /#demo
+              - listitem [ref=e179]:
+                - link "Pricing" [ref=e180] [cursor=pointer]:
+                  - /url: /pricing
+              - listitem [ref=e181]:
+                - link "Compare" [ref=e182] [cursor=pointer]:
+                  - /url: /compare
+          - generic [ref=e183]:
+            - heading "Support" [level=4] [ref=e184]
+            - list [ref=e185]:
+              - listitem [ref=e186]:
+                - link "Documentation" [ref=e187] [cursor=pointer]:
+                  - /url: /setup
+          - generic [ref=e188]:
+            - heading "Legal" [level=4] [ref=e189]
+            - list [ref=e190]:
+              - listitem [ref=e191]:
+                - link "Privacy" [ref=e192] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e193]:
+                - link "Terms" [ref=e194] [cursor=pointer]:
+                  - /url: "#"
+        - generic [ref=e195]: © 2026 CodeBakers. All rights reserved.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e201] [cursor=pointer]:
+    - img [ref=e202]
+  - alert [ref=e205]
+```
