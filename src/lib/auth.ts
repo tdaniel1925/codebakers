@@ -59,15 +59,20 @@ interface VSCodeTokenPayload {
  */
 function parseVSCodeToken(token: string): VSCodeTokenPayload | null {
   try {
+    console.log('[Auth] Attempting to parse VS Code token, length:', token?.length);
     const decoded = Buffer.from(token, 'base64url').toString('utf-8');
+    console.log('[Auth] Decoded token preview:', decoded?.substring(0, 100));
     const payload = JSON.parse(decoded) as VSCodeTokenPayload;
 
     // Validate required fields
     if (payload.token && payload.teamId && payload.profileId) {
+      console.log('[Auth] VS Code token valid, teamId:', payload.teamId);
       return payload;
     }
+    console.log('[Auth] VS Code token missing required fields:', { hasToken: !!payload.token, hasTeamId: !!payload.teamId, hasProfileId: !!payload.profileId });
     return null;
-  } catch {
+  } catch (e) {
+    console.log('[Auth] Failed to parse VS Code token:', e instanceof Error ? e.message : 'Unknown error');
     return null;
   }
 }
@@ -89,12 +94,16 @@ export async function requireAuthOrApiKey(req: NextRequest): Promise<{
 }> {
   // Check for Bearer token
   const authHeader = req.headers.get('authorization');
+  console.log('[Auth] Auth header present:', !!authHeader, 'starts with Bearer:', authHeader?.startsWith('Bearer '));
+
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
+    console.log('[Auth] Token extracted, length:', token?.length, 'preview:', token?.substring(0, 30));
 
     // Check if it's a VS Code extension token (base64url-encoded JSON)
     const vsCodePayload = parseVSCodeToken(token);
     if (vsCodePayload) {
+      console.log('[Auth] VS Code token authenticated successfully');
       return {
         userId: vsCodePayload.profileId,
         teamId: vsCodePayload.teamId,
@@ -103,6 +112,7 @@ export async function requireAuthOrApiKey(req: NextRequest): Promise<{
       };
     }
 
+    console.log('[Auth] Not a VS Code token, trying as API key');
     // Otherwise treat as API key
     const validation = await ApiKeyService.validate(token);
 

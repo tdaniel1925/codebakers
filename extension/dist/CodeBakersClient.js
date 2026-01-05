@@ -106,9 +106,11 @@ class CodeBakersClient {
             }
             console.log('handleOAuthCallback: decoded preview:', decoded?.substring(0, 100));
             const tokenPayload = JSON.parse(decoded);
-            // Store session token (the full encoded payload, as the API expects it)
-            this.sessionToken = encodedToken;
-            await this.context.globalState.update('codebakers.sessionToken', encodedToken);
+            // Store session token (the decoded base64url payload, not URL-encoded)
+            // If the token was URL-encoded, we need to store the decoded version
+            const cleanToken = encodedToken.includes('%') ? decodeURIComponent(encodedToken) : encodedToken;
+            this.sessionToken = cleanToken;
+            await this.context.globalState.update('codebakers.sessionToken', cleanToken);
             // Store auth info for display
             this.currentPlan = tokenPayload.plan;
             this.trialInfo = tokenPayload.trial;
