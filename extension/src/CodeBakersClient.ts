@@ -188,6 +188,8 @@ export class CodeBakersClient {
 
       const data = await response.json() as ClaudeKeyResponse;
 
+      console.log('Claude key response:', response.status, JSON.stringify(data));
+
       // Handle subscription required error
       if (response.status === 402) {
         const selection = await vscode.window.showWarningMessage(
@@ -205,8 +207,12 @@ export class CodeBakersClient {
         throw new Error('SUBSCRIPTION_REQUIRED');
       }
 
-      if (!response.ok || !data.apiKey) {
-        throw new Error('Failed to get Claude API key');
+      if (!response.ok) {
+        throw new Error(`API error ${response.status}: ${data.error || data.message || 'Unknown error'}`);
+      }
+
+      if (!data.apiKey) {
+        throw new Error(`No API key in response: ${JSON.stringify(data)}`);
       }
 
       const { apiKey, plan, unlimited, trial } = data;

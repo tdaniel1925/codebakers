@@ -24,11 +24,20 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     const auth = await requireAuthOrApiKey(req);
+    console.log('[Claude Key] Auth:', { userId: auth.userId, teamId: auth.teamId, method: auth.authMethod });
+
     applyRateLimit(req, 'api:claude:key', auth.userId, rateLimitConfigs.apiRead);
 
     // For all auth methods, verify access from database (not just token)
     // This ensures beta grants and subscription changes take effect immediately
     const team = await TeamService.getById(auth.teamId);
+
+    console.log('[Claude Key] Team:', team ? {
+      id: team.id,
+      subscriptionStatus: team.subscriptionStatus,
+      betaGrantedAt: team.betaGrantedAt,
+      freeTrialExpiresAt: team.freeTrialExpiresAt,
+    } : 'NOT FOUND');
 
     if (!team) {
       throw new NotFoundError('Team');
@@ -38,6 +47,7 @@ export async function GET(req: NextRequest) {
     const hasSubscription = team.subscriptionStatus === 'active';
     const hasBeta = !!team.betaGrantedAt;
     const hasTrial = team.freeTrialExpiresAt && new Date(team.freeTrialExpiresAt) > new Date();
+    console.log('[Claude Key] Access check:', { hasSubscription, hasBeta, hasTrial, trialExpiry: team.freeTrialExpiresAt });
 
     const hasAccess = hasSubscription || hasBeta || hasTrial;
 
