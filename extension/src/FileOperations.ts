@@ -14,11 +14,122 @@ export interface CommandToRun {
   description?: string;
 }
 
+export interface OperationResult {
+  success: boolean;
+  error?: string;
+  backup?: FileBackup;
+}
+
+export interface FileBackup {
+  path: string;
+  originalContent: string | null; // null if file didn't exist
+  timestamp: number;
+}
+
 export class FileOperations {
   private workspaceRoot: string | undefined;
+  private _backups: Map<string, FileBackup> = new Map();
+  private _operationLock: Set<string> = new Set(); // Prevent concurrent operations on same file
 
   constructor() {
     this.workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  }
+
+  /**
+   * Check if a file exists
+   */
+  async fileExists(relativePath: string): Promise<boolean> {
+    if (!this.workspaceRoot) return false;
+
+    try {
+      const fullPath = path.join(this.workspaceRoot, relativePath);
+      await vscode.workspace.fs.stat(vscode.Uri.file(fullPath));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get a lock on a file path to prevent concurrent operations
+   */
+  private async acquireLock(relativePath: string, timeoutMs: number = 5000): Promise<boolean> {
+    const startTime = Date.now();
+
+    while (this._operationLock.has(relativePath)) {
+      if (Date.now() - startTime > timeoutMs) {
+        console.error(`FileOperations: Timeout waiting for lock on ${relativePath}`);
+        return false;
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    this._operationLock.add(relativePath);
+    return true;
+  }
+
+  private releaseLock(relativePath: string): void {
+    this._operationLock.delete(relativePath);
+  }
+
+  /**
+   * Create a backup of a file before modifying it
+   */
+  private async createBackup(relativePath: string): Promise<FileBackup> {
+    const content = await this.readFile(relativePath);
+    const backup: FileBackup = {
+      path: relativePath,
+      originalContent: content,
+      timestamp: Date.now()
+    };
+    this._backups.set(relativePath, backup);
+    return backup;
+  }
+
+  /**
+   * Restore a file from backup
+   */
+  async restoreFromBackup(relativePath: string): Promise<boolean> {
+    const backup = this._backups.get(relativePath);
+    if (!backup) {
+      vscode.window.showWarningMessage(`No backup found for ${relativePath}`);
+      return false;
+    }
+
+    try {
+      if (backup.originalContent === null) {
+        // File didn't exist before - delete it
+        await this.deleteFile(relativePath);
+      } else {
+        // Restore original content
+        await this.writeFile(relativePath, backup.originalContent);
+      }
+      this._backups.delete(relativePath);
+      vscode.window.showInformationMessage(`✅ Restored ${relativePath}`);
+      return true;
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to restore ${relativePath}: ${error}`);
+      return false;
+    }
+  }
+
+  /**
+   * Get all available backups
+   */
+  getBackups(): FileBackup[] {
+    return Array.from(this._backups.values());
+  }
+
+  /**
+   * Clear old backups (older than 1 hour)
+   */
+  cleanupOldBackups(): void {
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    for (const [path, backup] of this._backups) {
+      if (backup.timestamp < oneHourAgo) {
+        this._backups.delete(path);
+      }
+    }
   }
 
   /**
@@ -67,18 +178,36 @@ export class FileOperations {
   }
 
   /**
-   * Delete a file
+   * Delete a file with proper error handling
    */
   async deleteFile(relativePath: string): Promise<boolean> {
-    if (!this.workspaceRoot) return false;
+    if (!this.workspaceRoot) {
+      console.error('FileOperations: No workspace root');
+      return false;
+    }
 
     try {
       const fullPath = path.join(this.workspaceRoot, relativePath);
       const uri = vscode.Uri.file(fullPath);
+
+      // Check if file exists first
+      const exists = await this.fileExists(relativePath);
+      if (!exists) {
+        console.log(`FileOperations: File ${relativePath} doesn't exist, treating as success`);
+        return true; // File doesn't exist - that's fine, we wanted it gone anyway
+      }
+
       await vscode.workspace.fs.delete(uri);
+      console.log(`FileOperations: Deleted ${relativePath}`);
       return true;
-    } catch (error) {
-      console.error(`Failed to delete file ${relativePath}:`, error);
+    } catch (error: any) {
+      // Handle "file not found" as success (already deleted)
+      if (error?.code === 'FileNotFound' || error?.code === 'ENOENT') {
+        console.log(`FileOperations: File ${relativePath} already deleted`);
+        return true;
+      }
+      console.error(`FileOperations: Failed to delete ${relativePath}:`, error);
+      vscode.window.showErrorMessage(`Failed to delete ${relativePath}: ${error.message || error}`);
       return false;
     }
   }
@@ -101,18 +230,58 @@ export class FileOperations {
   }
 
   /**
-   * Apply a single file change
+   * Apply a single file change with locking and backup
    */
   async applyChange(change: FileChange): Promise<boolean> {
-    switch (change.action) {
-      case 'create':
-      case 'edit':
-        if (!change.content) return false;
-        return this.writeFile(change.path, change.content);
-      case 'delete':
-        return this.deleteFile(change.path);
-      default:
-        return false;
+    // Acquire lock to prevent concurrent operations on same file
+    const lockAcquired = await this.acquireLock(change.path);
+    if (!lockAcquired) {
+      vscode.window.showErrorMessage(`Cannot modify ${change.path} - another operation is in progress`);
+      return false;
+    }
+
+    try {
+      // Create backup before any modification
+      if (change.action === 'edit' || change.action === 'delete') {
+        await this.createBackup(change.path);
+      }
+
+      switch (change.action) {
+        case 'create':
+          if (!change.content) {
+            vscode.window.showErrorMessage(`Cannot create ${change.path} - no content provided`);
+            return false;
+          }
+          // Check if file already exists
+          const existsForCreate = await this.fileExists(change.path);
+          if (existsForCreate) {
+            // It's actually an edit, create backup
+            await this.createBackup(change.path);
+          }
+          return this.writeFile(change.path, change.content);
+
+        case 'edit':
+          if (!change.content) {
+            vscode.window.showErrorMessage(`Cannot edit ${change.path} - no content provided`);
+            return false;
+          }
+          // Check if file exists
+          const existsForEdit = await this.fileExists(change.path);
+          if (!existsForEdit) {
+            console.log(`FileOperations: File ${change.path} doesn't exist, creating instead of editing`);
+          }
+          return this.writeFile(change.path, change.content);
+
+        case 'delete':
+          return this.deleteFile(change.path);
+
+        default:
+          vscode.window.showErrorMessage(`Unknown action: ${(change as any).action}`);
+          return false;
+      }
+    } finally {
+      // Always release the lock
+      this.releaseLock(change.path);
     }
   }
 

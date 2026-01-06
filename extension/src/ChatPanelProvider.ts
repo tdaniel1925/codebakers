@@ -2,14 +2,25 @@ import * as vscode from 'vscode';
 import { CodeBakersClient, FileOperation, CommandToRun } from './CodeBakersClient';
 import { ProjectContext } from './ProjectContext';
 import { FileOperations } from './FileOperations';
+import { CodeValidator } from './CodeValidator';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   thinking?: string;
-  fileOperations?: FileOperation[];
-  commands?: CommandToRun[];
   timestamp: Date;
+}
+
+interface PendingChange {
+  id: string;
+  operation: FileOperation;
+  status: 'pending' | 'applied' | 'rejected';
+}
+
+interface PendingCommand {
+  id: string;
+  command: CommandToRun;
+  status: 'pending' | 'running' | 'done';
 }
 
 export class ChatPanelProvider {
@@ -19,6 +30,17 @@ export class ChatPanelProvider {
   private _conversationSummary: string = '';
   private readonly fileOps: FileOperations;
   private _abortController: AbortController | null = null;
+
+  // Separate tracking for pending operations (Claude Code style)
+  private _pendingChanges: PendingChange[] = [];
+  private _pendingCommands: PendingCommand[] = [];
+
+  // Throttling for streaming updates
+  private _streamBuffer: string = '';
+  private _thinkingBuffer: string = '';
+  private _streamThrottleTimer: NodeJS.Timeout | null = null;
+  private _lastStreamUpdate: number = 0;
+  private readonly STREAM_THROTTLE_MS = 50; // Update UI every 50ms max
 
   private constructor(
     private readonly context: vscode.ExtensionContext,
@@ -70,6 +92,8 @@ export class ChatPanelProvider {
         case 'clearChat':
           this._messages = [];
           this._conversationSummary = '';
+          this._pendingChanges = [];
+          this._pendingCommands = [];
           this._updateWebview();
           break;
         case 'runTool':
@@ -79,16 +103,25 @@ export class ChatPanelProvider {
           await this.client.login();
           break;
         case 'applyFile':
-          await this._applyFileOperation(data.operation);
+          await this._applyFileOperation(data.id);
           break;
         case 'applyAllFiles':
-          await this._applyAllFileOperations(data.operations);
+          await this._applyAllPendingChanges();
+          break;
+        case 'rejectFile':
+          this._rejectFileOperation(data.id);
+          break;
+        case 'rejectAllFiles':
+          this._rejectAllPendingChanges();
           break;
         case 'runCommand':
-          await this._runCommand(data.command);
+          await this._runCommand(data.id);
           break;
         case 'showDiff':
-          await this._showDiff(data.path, data.content);
+          await this._showDiff(data.id);
+          break;
+        case 'undoFile':
+          await this._undoFileOperation(data.id);
           break;
         case 'cancelRequest':
           this._cancelCurrentRequest();
@@ -159,10 +192,11 @@ export class ChatPanelProvider {
       this._panel.webview.postMessage({ type: 'typing', isTyping: true });
       const result = await this.client.executeTool(toolName, {});
 
-      this._panel.webview.postMessage({
-        type: 'toolResult',
-        tool: toolName,
-        result: result.data || result
+      // Add tool result as a message
+      this._messages.push({
+        role: 'assistant',
+        content: `**Tool: ${toolName}**\n\`\`\`json\n${JSON.stringify(result.data || result, null, 2)}\n\`\`\``,
+        timestamp: new Date()
       });
 
       if (toolName === 'guardian_status' && result.data?.health) {
@@ -173,94 +207,264 @@ export class ChatPanelProvider {
         });
       }
     } catch (error) {
-      this._panel.webview.postMessage({
-        type: 'toolResult',
-        tool: toolName,
-        result: { error: error instanceof Error ? error.message : 'Tool execution failed' }
+      this._messages.push({
+        role: 'assistant',
+        content: `**Tool Error: ${toolName}**\n${error instanceof Error ? error.message : 'Tool execution failed'}`,
+        timestamp: new Date()
       });
     } finally {
       this._panel?.webview.postMessage({ type: 'typing', isTyping: false });
+      this._updateWebview();
     }
   }
 
-  private async _applyFileOperation(operation: FileOperation) {
+  private async _applyFileOperation(id: string) {
     if (!this._panel) return;
+
+    const change = this._pendingChanges.find(c => c.id === id);
+    if (!change || change.status !== 'pending') return;
 
     try {
       const success = await this.fileOps.applyChange({
-        path: operation.path,
-        action: operation.action,
-        content: operation.content,
-        description: operation.description
+        path: change.operation.path,
+        action: change.operation.action,
+        content: change.operation.content,
+        description: change.operation.description
       });
 
       if (success) {
-        vscode.window.showInformationMessage(`✅ ${operation.action}: ${operation.path}`);
-        this._panel.webview.postMessage({
-          type: 'fileApplied',
-          path: operation.path,
-          success: true
-        });
+        change.status = 'applied';
+        vscode.window.showInformationMessage(`✅ ${change.operation.action}: ${change.operation.path}`);
 
-        // Open the file in the editor
-        if (operation.action !== 'delete') {
-          await this.fileOps.openFile(operation.path);
+        // Open the file if not a delete
+        if (change.operation.action !== 'delete') {
+          await this.fileOps.openFile(change.operation.path);
         }
       } else {
-        throw new Error('File operation failed');
+        throw new Error('Operation failed');
       }
     } catch (error) {
-      vscode.window.showErrorMessage(`❌ Failed to ${operation.action} ${operation.path}: ${error}`);
-      this._panel.webview.postMessage({
-        type: 'fileApplied',
-        path: operation.path,
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+      vscode.window.showErrorMessage(`❌ Failed: ${change.operation.path} - ${error}`);
+    }
+
+    this._updatePendingChanges();
+  }
+
+  private async _applyAllPendingChanges() {
+    if (!this._panel) return;
+
+    const pending = this._pendingChanges.filter(c => c.status === 'pending');
+    if (pending.length === 0) {
+      vscode.window.showInformationMessage('No pending changes to apply');
+      return;
+    }
+
+    // Show progress in webview
+    const total = pending.length;
+    this._panel?.webview.postMessage({
+      type: 'showProgress',
+      text: `Applying 0/${total} files...`,
+      current: 0,
+      total,
+      show: true
+    });
+
+    // Apply files in parallel batches of 5 for speed
+    const BATCH_SIZE = 5;
+    let success = 0;
+    let failed = 0;
+
+    for (let i = 0; i < pending.length; i += BATCH_SIZE) {
+      const batch = pending.slice(i, i + BATCH_SIZE);
+
+      const results = await Promise.allSettled(
+        batch.map(async (change) => {
+          try {
+            const result = await this.fileOps.applyChange({
+              path: change.operation.path,
+              action: change.operation.action,
+              content: change.operation.content,
+              description: change.operation.description
+            });
+
+            if (result) {
+              change.status = 'applied';
+              return true;
+            } else {
+              return false;
+            }
+          } catch (error) {
+            console.error(`Failed to apply ${change.operation.path}:`, error);
+            return false;
+          }
+        })
+      );
+
+      // Count results
+      results.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          success++;
+        } else {
+          failed++;
+        }
       });
+
+      // Update progress indicator
+      const done = success + failed;
+      this._panel?.webview.postMessage({
+        type: 'showProgress',
+        text: `Applying ${done}/${total} files...`,
+        current: done,
+        total,
+        show: true
+      });
+
+      // Update UI after each batch
+      this._updatePendingChanges();
+    }
+
+    this._panel?.webview.postMessage({ type: 'showProgress', show: false });
+    vscode.window.showInformationMessage(
+      `✅ Applied ${success} file(s)${failed > 0 ? `, ${failed} failed` : ''}`
+    );
+
+    // Auto-run TypeScript check after applying files
+    if (success > 0) {
+      await this._runTscCheck();
     }
   }
 
-  private async _applyAllFileOperations(operations: FileOperation[]) {
-    if (!this._panel) return;
+  private async _runTscCheck(autoRetry: boolean = true) {
+    // Check if project has TypeScript
+    const tsconfigExists = await this.fileOps.fileExists('tsconfig.json');
+    if (!tsconfigExists) {
+      return; // No TypeScript in project
+    }
 
-    const result = await this.fileOps.applyChanges(
-      operations.map(op => ({
-        path: op.path,
-        action: op.action,
-        content: op.content,
-        description: op.description
-      }))
-    );
-
-    vscode.window.showInformationMessage(
-      `✅ Applied ${result.success} file(s)${result.failed > 0 ? `, ${result.failed} failed` : ''}`
-    );
-
-    this._panel.webview.postMessage({
-      type: 'allFilesApplied',
-      success: result.success,
-      failed: result.failed
+    this._panel?.webview.postMessage({
+      type: 'showStatus',
+      text: 'Checking TypeScript...',
+      show: true
     });
-  }
-
-  private async _runCommand(command: CommandToRun) {
-    if (!this._panel) return;
 
     try {
-      await this.fileOps.runCommand(command.command, command.description || 'CodeBakers');
-      vscode.window.showInformationMessage(`🚀 Running: ${command.command}`);
+      const validator = new CodeValidator();
+      const result = await validator.runTypeScriptCheck();
+
+      this._panel?.webview.postMessage({ type: 'showStatus', show: false });
+
+      if (!result.passed && result.errors.length > 0) {
+        const action = await vscode.window.showWarningMessage(
+          `⚠️ TypeScript errors found (${result.errorCount})`,
+          'Auto-Fix with AI',
+          'Show Errors',
+          'Ignore'
+        );
+
+        if (action === 'Auto-Fix with AI' && autoRetry) {
+          // Send errors to AI for auto-fix
+          const errorMessage = `Please fix these TypeScript errors:\n\n${result.errors.map((e: any) =>
+            `${e.file}:${e.line}: ${e.message}`
+          ).join('\n')}`;
+
+          this._panel?.webview.postMessage({
+            type: 'showStatus',
+            text: 'AI fixing TypeScript errors...',
+            show: true
+          });
+
+          // Trigger a new AI request with the errors
+          await this.sendMessage(errorMessage);
+        } else if (action === 'Show Errors') {
+          // Show errors in output channel
+          const outputChannel = vscode.window.createOutputChannel('CodeBakers TSC');
+          outputChannel.clear();
+          outputChannel.appendLine('TypeScript Errors:');
+          outputChannel.appendLine('=================\n');
+          result.errors.forEach((e: any) => {
+            outputChannel.appendLine(`${e.file}:${e.line}:${e.column}`);
+            outputChannel.appendLine(`  ${e.message}\n`);
+          });
+          outputChannel.show();
+        }
+      } else {
+        vscode.window.showInformationMessage('✅ TypeScript check passed!');
+      }
     } catch (error) {
+      this._panel?.webview.postMessage({ type: 'showStatus', show: false });
+      console.error('TSC check failed:', error);
+    }
+  }
+
+  private _rejectFileOperation(id: string) {
+    const change = this._pendingChanges.find(c => c.id === id);
+    if (change && change.status === 'pending') {
+      change.status = 'rejected';
+      this._updatePendingChanges();
+    }
+  }
+
+  private _rejectAllPendingChanges() {
+    for (const change of this._pendingChanges) {
+      if (change.status === 'pending') {
+        change.status = 'rejected';
+      }
+    }
+    this._updatePendingChanges();
+  }
+
+  private async _runCommand(id: string) {
+    if (!this._panel) return;
+
+    const cmd = this._pendingCommands.find(c => c.id === id);
+    if (!cmd || cmd.status !== 'pending') return;
+
+    try {
+      cmd.status = 'running';
+      this._updatePendingChanges();
+
+      await this.fileOps.runCommand(cmd.command.command, cmd.command.description || 'CodeBakers');
+      cmd.status = 'done';
+      vscode.window.showInformationMessage(`🚀 Running: ${cmd.command.command}`);
+    } catch (error) {
+      cmd.status = 'pending'; // Reset to allow retry
       vscode.window.showErrorMessage(`❌ Failed to run command: ${error}`);
     }
+
+    this._updatePendingChanges();
   }
 
-  private async _showDiff(path: string, content: string) {
-    if (!this._panel) return;
+  private async _showDiff(id: string) {
+    const change = this._pendingChanges.find(c => c.id === id);
+    if (!change || !change.operation.content) return;
 
     try {
-      await this.fileOps.showDiff(path, content, `CodeBakers: ${path}`);
+      await this.fileOps.showDiff(
+        change.operation.path,
+        change.operation.content,
+        `CodeBakers: ${change.operation.path}`
+      );
     } catch (error) {
       vscode.window.showErrorMessage(`❌ Failed to show diff: ${error}`);
+    }
+  }
+
+  private async _undoFileOperation(id: string) {
+    const change = this._pendingChanges.find(c => c.id === id);
+    if (!change || change.status !== 'applied') {
+      vscode.window.showWarningMessage('Cannot undo - change was not applied');
+      return;
+    }
+
+    try {
+      const success = await this.fileOps.restoreFromBackup(change.operation.path);
+      if (success) {
+        // Mark as pending again so user can re-apply if desired
+        change.status = 'pending';
+        this._updatePendingChanges();
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`❌ Failed to undo: ${error}`);
     }
   }
 
@@ -273,10 +477,46 @@ export class ChatPanelProvider {
     }
   }
 
+  // Throttled streaming update
+  private _throttledStreamUpdate() {
+    const now = Date.now();
+
+    if (now - this._lastStreamUpdate < this.STREAM_THROTTLE_MS) {
+      // Schedule update if not already scheduled
+      if (!this._streamThrottleTimer) {
+        this._streamThrottleTimer = setTimeout(() => {
+          this._streamThrottleTimer = null;
+          this._sendStreamUpdate();
+        }, this.STREAM_THROTTLE_MS);
+      }
+      return;
+    }
+
+    this._sendStreamUpdate();
+  }
+
+  private _sendStreamUpdate() {
+    this._lastStreamUpdate = Date.now();
+
+    if (this._thinkingBuffer) {
+      this._panel?.webview.postMessage({
+        type: 'streamThinking',
+        thinking: this._thinkingBuffer
+      });
+    }
+
+    if (this._streamBuffer) {
+      this._panel?.webview.postMessage({
+        type: 'streamContent',
+        content: this._streamBuffer
+      });
+    }
+  }
+
   async sendMessage(userMessage: string) {
     if (!this._panel) return;
 
-    // Check if user is logged in before trying to send
+    // Check if user is logged in
     if (!this.client.hasSessionToken()) {
       this._panel.webview.postMessage({ type: 'showLogin' });
       vscode.window.showWarningMessage(
@@ -297,31 +537,27 @@ export class ChatPanelProvider {
     });
     this._updateWebview();
 
-    try {
-      // Create abort controller for this request
-      this._abortController = new AbortController();
+    // Reset stream buffers
+    this._streamBuffer = '';
+    this._thinkingBuffer = '';
 
+    try {
+      this._abortController = new AbortController();
       this._panel.webview.postMessage({ type: 'typing', isTyping: true });
 
       const projectState = await this.projectContext.getProjectState();
       const contextualizedMessages = await this._buildContextualizedMessages(userMessage, projectState);
 
-      // Use streaming callbacks to show thinking and content in real-time
       const response = await this.client.chat(contextualizedMessages, projectState, {
         onThinking: (thinking) => {
-          this._panel?.webview.postMessage({
-            type: 'streamThinking',
-            thinking
-          });
+          this._thinkingBuffer = thinking;
+          this._throttledStreamUpdate();
         },
         onContent: (content) => {
-          this._panel?.webview.postMessage({
-            type: 'streamContent',
-            content
-          });
+          this._streamBuffer = content;
+          this._throttledStreamUpdate();
         },
         onDone: () => {
-          // Show validation progress
           this._panel?.webview.postMessage({ type: 'validating' });
         },
         onError: (error) => {
@@ -333,14 +569,35 @@ export class ChatPanelProvider {
         abortSignal: this._abortController.signal
       });
 
+      // Add assistant message (content only, no file ops embedded)
       this._messages.push({
         role: 'assistant',
         content: response.content,
         thinking: response.thinking,
-        fileOperations: response.fileOperations,
-        commands: response.commands,
         timestamp: new Date()
       });
+
+      // Add file operations to pending changes panel
+      if (response.fileOperations && response.fileOperations.length > 0) {
+        for (const op of response.fileOperations) {
+          this._pendingChanges.push({
+            id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            operation: op,
+            status: 'pending'
+          });
+        }
+      }
+
+      // Add commands to pending commands
+      if (response.commands && response.commands.length > 0) {
+        for (const cmd of response.commands) {
+          this._pendingCommands.push({
+            id: `cmd-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            command: cmd,
+            status: 'pending'
+          });
+        }
+      }
 
       if (response.projectUpdates) {
         await this.projectContext.applyUpdates(response.projectUpdates);
@@ -350,12 +607,21 @@ export class ChatPanelProvider {
         await this._summarizeConversation();
       }
     } catch (error) {
-      this._messages.push({
-        role: 'assistant',
-        content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        timestamp: new Date()
-      });
+      if ((error as Error).message !== 'Request was cancelled') {
+        this._messages.push({
+          role: 'assistant',
+          content: `**Error:** ${error instanceof Error ? error.message : 'Unknown error'}`,
+          timestamp: new Date()
+        });
+      }
     } finally {
+      // Clear throttle timer
+      if (this._streamThrottleTimer) {
+        clearTimeout(this._streamThrottleTimer);
+        this._streamThrottleTimer = null;
+      }
+
+      this._abortController = null;
       this._panel?.webview.postMessage({ type: 'typing', isTyping: false });
       this._updateWebview();
     }
@@ -415,10 +681,36 @@ export class ChatPanelProvider {
         role: m.role,
         content: m.content,
         thinking: m.thinking,
-        fileOperations: m.fileOperations,
-        commands: m.commands,
         timestamp: m.timestamp.toISOString()
       }))
+    });
+
+    this._updatePendingChanges();
+  }
+
+  private _updatePendingChanges() {
+    if (!this._panel) return;
+
+    const pendingFileChanges = this._pendingChanges.filter(c => c.status === 'pending');
+    const pendingCmds = this._pendingCommands.filter(c => c.status === 'pending');
+
+    this._panel.webview.postMessage({
+      type: 'updatePendingChanges',
+      changes: this._pendingChanges.map(c => ({
+        id: c.id,
+        path: c.operation.path,
+        action: c.operation.action,
+        description: c.operation.description,
+        status: c.status,
+        hasContent: !!c.operation.content
+      })),
+      commands: this._pendingCommands.map(c => ({
+        id: c.id,
+        command: c.command.command,
+        description: c.command.description,
+        status: c.status
+      })),
+      pendingCount: pendingFileChanges.length + pendingCmds.length
     });
   }
 
@@ -447,93 +739,76 @@ export class ChatPanelProvider {
     }
 
     .header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--vscode-panel-border);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .header-icon {
-      width: 24px;
-      height: 24px;
-    }
-
-    .header-title {
-      font-weight: 600;
-      font-size: 14px;
-      flex: 1;
-    }
-
-    .clear-btn {
-      background: transparent;
-      border: none;
-      color: var(--vscode-foreground);
-      cursor: pointer;
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-    }
-
-    .clear-btn:hover {
-      background: var(--vscode-toolbar-hoverBackground);
-    }
-
-    .health-bar {
-      padding: 8px 20px;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--vscode-panel-border);
       display: flex;
       align-items: center;
       gap: 10px;
-      font-size: 12px;
+      flex-shrink: 0;
     }
 
-    .health-indicator {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #4caf50;
+    .header-icon {
+      width: 20px;
+      height: 20px;
     }
 
-    .health-indicator.warning { background: #ff9800; }
-    .health-indicator.error { background: #f44336; }
-
-    .health-text {
-      flex: 1;
-      color: var(--vscode-descriptionForeground);
-    }
-
-    .health-score {
+    .header-title {
       font-weight: 600;
-      color: #4caf50;
+      font-size: 13px;
+      flex: 1;
+    }
+
+    .header-btn {
+      background: transparent;
+      border: none;
+      color: var(--vscode-foreground);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    .header-btn:hover {
+      background: var(--vscode-toolbar-hoverBackground);
+      opacity: 1;
     }
 
     .plan-badge {
-      font-size: 11px;
-      padding: 3px 10px;
+      font-size: 10px;
+      padding: 2px 8px;
       background: var(--vscode-button-background);
       color: var(--vscode-button-foreground);
-      border-radius: 12px;
+      border-radius: 10px;
     }
 
     .plan-badge.trial {
       background: #f0a030;
     }
 
+    /* Main content area */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    /* Messages area */
     .messages {
       flex: 1;
       overflow-y: auto;
-      padding: 20px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
     }
 
     .message {
-      max-width: 85%;
-      padding: 12px 16px;
-      border-radius: 12px;
-      line-height: 1.6;
+      max-width: 90%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      line-height: 1.5;
       font-size: 13px;
     }
 
@@ -552,434 +827,276 @@ export class ChatPanelProvider {
 
     .message pre {
       background: var(--vscode-textCodeBlock-background);
-      padding: 10px;
-      border-radius: 6px;
+      padding: 8px;
+      border-radius: 4px;
       overflow-x: auto;
-      margin: 10px 0;
+      margin: 8px 0;
+      font-size: 12px;
     }
 
     .message code {
       font-family: var(--vscode-editor-font-family);
-      font-size: var(--vscode-editor-font-size);
+      font-size: 12px;
     }
 
     .message h1, .message h2, .message h3, .message h4 {
-      margin: 12px 0 8px 0;
+      margin: 10px 0 6px 0;
       font-weight: 600;
-      line-height: 1.3;
     }
 
-    .message h1 { font-size: 1.4em; }
-    .message h2 { font-size: 1.25em; }
+    .message h1 { font-size: 1.3em; }
+    .message h2 { font-size: 1.2em; }
     .message h3 { font-size: 1.1em; }
-    .message h4 { font-size: 1em; }
 
     .message ul, .message ol {
-      margin: 8px 0;
-      padding-left: 20px;
+      margin: 6px 0;
+      padding-left: 18px;
     }
 
-    .message li {
-      margin: 4px 0;
-    }
+    .message li { margin: 3px 0; }
 
     .message hr {
       border: none;
       border-top: 1px solid var(--vscode-panel-border);
-      margin: 12px 0;
+      margin: 10px 0;
     }
 
-    .message strong {
-      font-weight: 600;
-    }
+    .message p { margin: 6px 0; }
+    .message p:first-child { margin-top: 0; }
+    .message p:last-child { margin-bottom: 0; }
 
-    .message em {
-      font-style: italic;
-    }
-
-    .message p {
-      margin: 8px 0;
-    }
-
-    .message p:first-child {
-      margin-top: 0;
-    }
-
-    .message p:last-child {
-      margin-bottom: 0;
-    }
-
-    .typing-indicator {
-      display: none;
-      align-self: flex-start;
-      padding: 12px 16px;
-      background: var(--vscode-editor-inactiveSelectionBackground);
-      border-radius: 12px;
-    }
-
-    .typing-indicator.show {
+    .thinking-toggle {
       display: flex;
-      gap: 5px;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--vscode-textLink-foreground);
+      cursor: pointer;
+      margin-bottom: 8px;
+      padding: 4px 0;
+    }
+
+    .thinking-content {
+      background: var(--vscode-textBlockQuote-background);
+      border-left: 2px solid var(--vscode-textLink-foreground);
+      padding: 8px;
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      margin-bottom: 8px;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .thinking-content.show { display: block; }
+
+    .streaming-indicator {
+      align-self: flex-start;
+      display: none;
+      padding: 10px 14px;
+      background: var(--vscode-editor-inactiveSelectionBackground);
+      border-radius: 10px;
+      border-bottom-left-radius: 4px;
+      max-width: 90%;
+    }
+
+    .streaming-indicator.show { display: block; }
+
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+      padding: 8px 0;
     }
 
     .typing-dot {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       background: var(--vscode-foreground);
       border-radius: 50%;
-      animation: typing 1.4s infinite ease-in-out;
+      animation: bounce 1.4s infinite ease-in-out;
     }
 
     .typing-dot:nth-child(2) { animation-delay: 0.2s; }
     .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-    @keyframes typing {
-      0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
-      30% { transform: translateY(-4px); opacity: 1; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-6px); }
     }
 
-    .thinking-block {
-      background: var(--vscode-textBlockQuote-background);
-      border-left: 3px solid var(--vscode-textLink-foreground);
-      border-radius: 6px;
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-
-    .thinking-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 12px;
-      color: var(--vscode-textLink-foreground);
-      user-select: none;
-    }
-
-    .thinking-header:hover {
-      background: var(--vscode-list-hoverBackground);
-    }
-
-    .thinking-icon {
-      transition: transform 0.2s;
-    }
-
-    .thinking-block.collapsed .thinking-icon {
-      transform: rotate(-90deg);
-    }
-
-    .thinking-content {
-      padding: 0 12px 12px 12px;
-      font-size: 12px;
-      color: var(--vscode-descriptionForeground);
-      line-height: 1.5;
-      white-space: pre-wrap;
-      max-height: 300px;
+    /* Pending Changes Panel - Claude Code Style */
+    .pending-panel {
+      border-top: 1px solid var(--vscode-panel-border);
+      background: var(--vscode-sideBar-background);
+      max-height: 40vh;
       overflow-y: auto;
-    }
-
-    .thinking-block.collapsed .thinking-content {
       display: none;
+      flex-shrink: 0;
     }
 
-    .file-operations {
-      margin-top: 12px;
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 8px;
-      overflow: hidden;
-    }
+    .pending-panel.show { display: block; }
 
-    .file-ops-header {
+    .pending-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 12px;
+      padding: 10px 14px;
       background: var(--vscode-editor-inactiveSelectionBackground);
-      border-bottom: 1px solid var(--vscode-panel-border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
-    .file-ops-title {
-      font-size: 12px;
+    .pending-title {
       font-weight: 600;
+      font-size: 12px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
 
-    .apply-all-btn {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
+    .pending-count {
+      background: var(--vscode-badge-background);
+      color: var(--vscode-badge-foreground);
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+    }
+
+    .pending-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .accept-all-btn {
+      background: #28a745;
+      color: white;
       border: none;
       border-radius: 4px;
-      padding: 4px 12px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .accept-all-btn:hover { background: #218838; }
+
+    .reject-all-btn {
+      background: transparent;
+      color: var(--vscode-foreground);
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+      padding: 5px 12px;
       font-size: 11px;
       cursor: pointer;
     }
 
-    .apply-all-btn:hover {
-      background: var(--vscode-button-hoverBackground);
+    .reject-all-btn:hover {
+      background: var(--vscode-toolbar-hoverBackground);
     }
 
-    .file-op-card {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--vscode-panel-border);
+    .pending-list {
+      padding: 0;
+    }
+
+    .pending-item {
       display: flex;
       align-items: center;
       gap: 10px;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--vscode-panel-border);
     }
 
-    .file-op-card:last-child {
-      border-bottom: none;
+    .pending-item:last-child { border-bottom: none; }
+
+    .pending-item.applied {
+      opacity: 0.5;
+      background: rgba(40, 167, 69, 0.1);
     }
 
-    .file-op-icon {
-      font-size: 14px;
+    .pending-item.rejected {
+      opacity: 0.5;
+      text-decoration: line-through;
     }
 
-    .file-op-info {
+    .pending-icon {
+      width: 18px;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .pending-info {
       flex: 1;
       min-width: 0;
     }
 
-    .file-op-path {
+    .pending-path {
       font-family: var(--vscode-editor-font-family);
       font-size: 12px;
       color: var(--vscode-textLink-foreground);
-      word-break: break-all;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .file-op-desc {
-      font-size: 11px;
+    .pending-desc {
+      font-size: 10px;
       color: var(--vscode-descriptionForeground);
       margin-top: 2px;
     }
 
-    .file-op-actions {
+    .pending-item-actions {
       display: flex;
-      gap: 6px;
+      gap: 4px;
     }
 
-    .file-op-btn {
-      background: var(--vscode-button-secondaryBackground);
-      color: var(--vscode-button-secondaryForeground);
-      border: none;
-      border-radius: 4px;
-      padding: 4px 10px;
-      font-size: 11px;
+    .item-btn {
+      background: transparent;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 3px;
+      padding: 3px 8px;
+      font-size: 10px;
       cursor: pointer;
-    }
-
-    .file-op-btn:hover {
-      background: var(--vscode-button-secondaryHoverBackground);
-    }
-
-    .file-op-btn.primary {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
-    }
-
-    .file-op-btn.primary:hover {
-      background: var(--vscode-button-hoverBackground);
-    }
-
-    .file-op-btn.applied {
-      background: #4caf50;
-      color: white;
-      cursor: default;
-    }
-
-    .commands-section {
-      margin-top: 12px;
-    }
-
-    .command-card {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      background: var(--vscode-textCodeBlock-background);
-      border-radius: 6px;
-      margin-bottom: 8px;
-    }
-
-    .command-text {
-      flex: 1;
-      font-family: var(--vscode-editor-font-family);
-      font-size: 12px;
       color: var(--vscode-foreground);
     }
 
-    .command-desc {
-      font-size: 11px;
-      color: var(--vscode-descriptionForeground);
+    .item-btn:hover {
+      background: var(--vscode-toolbar-hoverBackground);
     }
 
-    .run-cmd-btn {
-      background: #4caf50;
+    .item-btn.accept {
+      background: #28a745;
+      border-color: #28a745;
       color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 12px;
+    }
+
+    .item-btn.accept:hover { background: #218838; }
+
+    .item-btn.reject {
+      color: #dc3545;
+      border-color: #dc3545;
+    }
+
+    .item-btn.reject:hover {
+      background: rgba(220, 53, 69, 0.1);
+    }
+
+    .command-item {
+      background: var(--vscode-textCodeBlock-background);
+    }
+
+    .command-text {
+      font-family: var(--vscode-editor-font-family);
       font-size: 11px;
-      cursor: pointer;
-      white-space: nowrap;
     }
 
-    .run-cmd-btn:hover {
-      background: #45a049;
-    }
-
-    .streaming-block {
-      align-self: flex-start;
-      max-width: 85%;
-      background: var(--vscode-editor-inactiveSelectionBackground);
-      border-radius: 12px;
-      border-bottom-left-radius: 4px;
-      overflow: hidden;
-    }
-
-    .streaming-thinking {
-      background: var(--vscode-textBlockQuote-background);
-      border-left: 3px solid var(--vscode-textLink-foreground);
-      padding: 10px 12px;
-      font-size: 12px;
-      color: var(--vscode-descriptionForeground);
-      max-height: 200px;
-      overflow-y: auto;
-    }
-
-    .streaming-thinking-header {
-      font-size: 11px;
-      color: var(--vscode-textLink-foreground);
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .streaming-content {
+    /* Input area */
+    .input-area {
       padding: 12px 16px;
-      line-height: 1.6;
-      font-size: 13px;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    .thinking-pulse {
-      animation: pulse 1.5s infinite;
-    }
-
-    .welcome {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-      text-align: center;
-    }
-
-    .welcome-icon {
-      font-size: 64px;
-      margin-bottom: 20px;
-    }
-
-    .welcome-title {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 10px;
-    }
-
-    .welcome-text {
-      color: var(--vscode-descriptionForeground);
-      margin-bottom: 30px;
-      max-width: 400px;
-    }
-
-    .quick-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-    }
-
-    .quick-action {
-      background: var(--vscode-button-secondaryBackground);
-      color: var(--vscode-button-secondaryForeground);
-      border: none;
-      border-radius: 20px;
-      padding: 8px 18px;
-      cursor: pointer;
-      font-size: 13px;
-      transition: background 0.2s;
-    }
-
-    .quick-action:hover {
-      background: var(--vscode-button-secondaryHoverBackground);
-    }
-
-    .login-prompt {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-      text-align: center;
-    }
-
-    .login-prompt.show {
-      display: flex;
-    }
-
-    .login-btn {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
-      border: none;
-      border-radius: 6px;
-      padding: 12px 24px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      margin-top: 20px;
-    }
-
-    .login-btn:hover {
-      background: var(--vscode-button-hoverBackground);
-    }
-
-    .tools-bar {
-      padding: 10px 20px;
       border-top: 1px solid var(--vscode-panel-border);
       display: flex;
       gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .tool-chip {
-      font-size: 11px;
-      padding: 5px 10px;
-      background: var(--vscode-button-secondaryBackground);
-      color: var(--vscode-button-secondaryForeground);
-      border: none;
-      border-radius: 14px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .tool-chip:hover {
-      background: var(--vscode-button-secondaryHoverBackground);
-    }
-
-    .input-area {
-      padding: 16px 20px;
-      border-top: 1px solid var(--vscode-panel-border);
-      display: flex;
-      gap: 10px;
+      flex-shrink: 0;
     }
 
     .input-area textarea {
@@ -987,13 +1104,13 @@ export class ChatPanelProvider {
       background: var(--vscode-input-background);
       color: var(--vscode-input-foreground);
       border: 1px solid var(--vscode-input-border);
-      border-radius: 8px;
-      padding: 12px 14px;
+      border-radius: 6px;
+      padding: 10px 12px;
       font-family: inherit;
       font-size: 13px;
       resize: none;
-      min-height: 44px;
-      max-height: 150px;
+      min-height: 40px;
+      max-height: 120px;
     }
 
     .input-area textarea:focus {
@@ -1001,15 +1118,19 @@ export class ChatPanelProvider {
       border-color: var(--vscode-focusBorder);
     }
 
+    .input-area textarea:disabled {
+      opacity: 0.6;
+    }
+
     .send-btn {
       background: var(--vscode-button-background);
       color: var(--vscode-button-foreground);
       border: none;
-      border-radius: 8px;
-      padding: 0 20px;
+      border-radius: 6px;
+      padding: 0 16px;
       cursor: pointer;
       font-weight: 500;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .send-btn:hover {
@@ -1022,45 +1143,101 @@ export class ChatPanelProvider {
     }
 
     .cancel-btn {
-      background: #e74c3c;
+      background: #dc3545;
       color: white;
       border: none;
-      border-radius: 8px;
-      padding: 0 20px;
+      border-radius: 6px;
+      padding: 0 16px;
       cursor: pointer;
       font-weight: 500;
-      font-size: 13px;
+      font-size: 12px;
       display: none;
     }
 
-    .cancel-btn:hover {
-      background: #c0392b;
-    }
+    .cancel-btn.show { display: block; }
+    .cancel-btn:hover { background: #c82333; }
 
-    .cancel-btn.show {
-      display: block;
-    }
-
-    .validation-indicator {
-      display: none;
-      align-self: flex-start;
-      padding: 12px 16px;
-      background: var(--vscode-editor-inactiveSelectionBackground);
-      border-radius: 12px;
-      border-bottom-left-radius: 4px;
-      font-size: 13px;
-      color: var(--vscode-foreground);
-    }
-
-    .validation-indicator.show {
+    /* Welcome screen */
+    .welcome {
+      flex: 1;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
+      padding: 30px;
+      text-align: center;
     }
 
-    .validation-spinner {
-      width: 16px;
-      height: 16px;
+    .welcome-icon { font-size: 48px; margin-bottom: 16px; }
+    .welcome-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .welcome-text { color: var(--vscode-descriptionForeground); margin-bottom: 20px; max-width: 350px; font-size: 13px; }
+
+    .quick-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .quick-action {
+      background: var(--vscode-button-secondaryBackground);
+      color: var(--vscode-button-secondaryForeground);
+      border: none;
+      border-radius: 16px;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .quick-action:hover {
+      background: var(--vscode-button-secondaryHoverBackground);
+    }
+
+    /* Login prompt */
+    .login-prompt {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .login-prompt.show { display: flex; }
+
+    .login-btn {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      margin-top: 16px;
+    }
+
+    .login-btn:hover {
+      background: var(--vscode-button-hoverBackground);
+    }
+
+    /* Status indicator */
+    .status-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--vscode-editor-inactiveSelectionBackground);
+      font-size: 12px;
+      border-top: 1px solid var(--vscode-panel-border);
+    }
+
+    .status-indicator.show { display: flex; }
+
+    .status-spinner {
+      width: 14px;
+      height: 14px;
       border: 2px solid var(--vscode-foreground);
       border-top-color: transparent;
       border-radius: 50%;
@@ -1071,23 +1248,21 @@ export class ChatPanelProvider {
       to { transform: rotate(360deg); }
     }
 
-    .error-message {
-      align-self: flex-start;
-      max-width: 85%;
-      padding: 12px 16px;
-      background: rgba(231, 76, 60, 0.2);
-      border: 1px solid #e74c3c;
-      border-radius: 12px;
-      color: #e74c3c;
-      font-size: 13px;
+    /* Progress bar */
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: var(--vscode-progressBar-background, #333);
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
     }
 
-    .footer {
-      padding: 10px 20px;
-      text-align: center;
-      font-size: 11px;
-      color: var(--vscode-descriptionForeground);
-      border-top: 1px solid var(--vscode-panel-border);
+    .progress-fill {
+      height: 100%;
+      background: var(--vscode-progressBar-foreground, #0e7ad3);
+      border-radius: 2px;
+      transition: width 0.2s ease;
     }
   </style>
 </head>
@@ -1098,63 +1273,58 @@ export class ChatPanelProvider {
     </svg>
     <span class="header-title">CodeBakers</span>
     <span class="plan-badge" id="planBadge">Pro</span>
-    <button class="clear-btn" onclick="clearChat()">Clear</button>
-  </div>
-
-  <div class="health-bar" id="healthBar">
-    <div class="health-indicator" id="healthIndicator"></div>
-    <span class="health-text">Project Health</span>
-    <span class="health-score" id="healthScore">--</span>
+    <button class="header-btn" onclick="clearChat()">Clear</button>
   </div>
 
   <div class="login-prompt" id="loginPrompt">
     <div class="welcome-icon">🔐</div>
     <div class="welcome-title">Sign in to CodeBakers</div>
-    <div class="welcome-text">Connect with GitHub to start your free trial and access AI-powered coding with production-ready patterns.</div>
+    <div class="welcome-text">Connect with GitHub to start your free trial.</div>
     <button class="login-btn" onclick="login()">Sign in with GitHub</button>
   </div>
 
-  <div class="messages" id="messages">
-    <div class="welcome" id="welcome">
-      <div class="welcome-icon">✨</div>
-      <div class="welcome-title">CodeBakers AI</div>
-      <div class="welcome-text">Production-ready code patterns with AI. Ask me to build features, audit code, or help with your project.</div>
-      <div class="quick-actions">
-        <button class="quick-action" onclick="quickAction('/build')">🔨 Build Project</button>
-        <button class="quick-action" onclick="quickAction('/feature')">✨ Add Feature</button>
-        <button class="quick-action" onclick="quickAction('/audit')">🔍 Audit Code</button>
-        <button class="quick-action" onclick="runTool('guardian_status')">🛡️ Health Check</button>
-      </div>
-    </div>
-
-    <div class="streaming-block" id="streaming" style="display: none;">
-      <div class="streaming-thinking" id="streamingThinking" style="display: none;">
-        <div class="streaming-thinking-header">
-          <span class="thinking-pulse">🧠</span> Thinking...
+  <div class="main-content" id="mainContent">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">🍪</div>
+        <div class="welcome-title">CodeBakers AI</div>
+        <div class="welcome-text">Production-ready code with AI. Ask me to build features, edit files, or audit your code.</div>
+        <div class="quick-actions">
+          <button class="quick-action" onclick="quickAction('/build')">Build Project</button>
+          <button class="quick-action" onclick="quickAction('/feature')">Add Feature</button>
+          <button class="quick-action" onclick="quickAction('/audit')">Audit Code</button>
         </div>
-        <div id="streamingThinkingContent"></div>
       </div>
-      <div class="streaming-content" id="streamingContent"></div>
+
+      <div class="streaming-indicator" id="streaming">
+        <div class="typing-dots">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+        <div id="streamingContent" style="margin-top: 8px; display: none;"></div>
+      </div>
     </div>
 
-    <div class="validation-indicator" id="validating">
-      <div class="validation-spinner"></div>
-      <span id="validatingText">Validating code...</span>
+    <!-- Claude Code Style Pending Changes Panel -->
+    <div class="pending-panel" id="pendingPanel">
+      <div class="pending-header">
+        <div class="pending-title">
+          <span>Pending Changes</span>
+          <span class="pending-count" id="pendingCount">0</span>
+        </div>
+        <div class="pending-actions">
+          <button class="reject-all-btn" onclick="rejectAll()">Reject All</button>
+          <button class="accept-all-btn" onclick="acceptAll()">Accept All</button>
+        </div>
+      </div>
+      <div class="pending-list" id="pendingList"></div>
     </div>
 
-    <div class="typing-indicator" id="typing">
-      <div class="typing-dot"></div>
-      <div class="typing-dot"></div>
-      <div class="typing-dot"></div>
+    <div class="status-indicator" id="statusIndicator">
+      <div class="status-spinner"></div>
+      <span id="statusText">Processing...</span>
     </div>
-  </div>
-
-  <div class="tools-bar">
-    <button class="tool-chip" onclick="runTool('guardian_status')">🛡️ Guardian</button>
-    <button class="tool-chip" onclick="runTool('list_patterns')">📋 Patterns</button>
-    <button class="tool-chip" onclick="runTool('run_tests')">🧪 Tests</button>
-    <button class="tool-chip" onclick="runTool('run_audit')">🔍 Audit</button>
-    <button class="tool-chip" onclick="runTool('ripple_check')">🌊 Ripple</button>
   </div>
 
   <div class="input-area">
@@ -1169,31 +1339,49 @@ export class ChatPanelProvider {
     <button class="cancel-btn" id="cancelBtn" onclick="cancelRequest()">Cancel</button>
   </div>
 
-  <div class="footer">
-    Powered by CodeBakers — a BotMakers Software
-  </div>
-
   <script>
     const vscode = acquireVsCodeApi();
     const messagesEl = document.getElementById('messages');
     const welcomeEl = document.getElementById('welcome');
     const loginPromptEl = document.getElementById('loginPrompt');
-    const typingEl = document.getElementById('typing');
+    const mainContentEl = document.getElementById('mainContent');
     const inputEl = document.getElementById('input');
     const sendBtn = document.getElementById('sendBtn');
     const cancelBtn = document.getElementById('cancelBtn');
-    const validatingEl = document.getElementById('validating');
-    const validatingTextEl = document.getElementById('validatingText');
     const streamingEl = document.getElementById('streaming');
-    const streamingThinkingEl = document.getElementById('streamingThinking');
-    const streamingThinkingContentEl = document.getElementById('streamingThinkingContent');
     const streamingContentEl = document.getElementById('streamingContent');
+    const pendingPanel = document.getElementById('pendingPanel');
+    const pendingList = document.getElementById('pendingList');
+    const pendingCount = document.getElementById('pendingCount');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusText = document.getElementById('statusText');
 
+    let currentMessages = [];
+    let currentChanges = [];
+    let currentCommands = [];
     let isStreaming = false;
+
+    // Command history for up/down navigation
+    let commandHistory = JSON.parse(localStorage.getItem('codebakers-history') || '[]');
+    let historyIndex = -1;
+    let tempInput = ''; // Store current input when navigating
 
     function sendMessage() {
       const message = inputEl.value.trim();
-      if (!message) return;
+      if (message) {
+        // Add to history (avoid duplicates of last command)
+        if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== message) {
+          commandHistory.push(message);
+          // Keep only last 50 commands
+          if (commandHistory.length > 50) {
+            commandHistory = commandHistory.slice(-50);
+          }
+          localStorage.setItem('codebakers-history', JSON.stringify(commandHistory));
+        }
+        historyIndex = -1;
+        tempInput = '';
+      }
+      if (!message || isStreaming) return;
 
       vscode.postMessage({ type: 'sendMessage', message });
       inputEl.value = '';
@@ -1207,16 +1395,14 @@ export class ChatPanelProvider {
 
     function setStreamingState(streaming) {
       isStreaming = streaming;
+      sendBtn.style.display = streaming ? 'none' : 'block';
+      cancelBtn.classList.toggle('show', streaming);
+      inputEl.disabled = streaming;
+      streamingEl.classList.toggle('show', streaming);
+
       if (streaming) {
-        sendBtn.style.display = 'none';
-        cancelBtn.classList.add('show');
-        inputEl.disabled = true;
-      } else {
-        sendBtn.style.display = 'block';
-        sendBtn.disabled = false;
-        cancelBtn.classList.remove('show');
-        inputEl.disabled = false;
-        validatingEl.classList.remove('show');
+        streamingContentEl.style.display = 'none';
+        streamingContentEl.innerHTML = '';
       }
     }
 
@@ -1229,173 +1415,112 @@ export class ChatPanelProvider {
       vscode.postMessage({ type: 'clearChat' });
     }
 
-    function runTool(toolName) {
-      vscode.postMessage({ type: 'runTool', tool: toolName });
-    }
-
     function login() {
       vscode.postMessage({ type: 'login' });
     }
 
-    function updateHealth(health, score) {
-      const indicator = document.getElementById('healthIndicator');
-      const scoreEl = document.getElementById('healthScore');
-
-      scoreEl.textContent = score + '%';
-
-      indicator.className = 'health-indicator';
-      if (score < 50) {
-        indicator.classList.add('error');
-        scoreEl.style.color = '#f44336';
-      } else if (score < 80) {
-        indicator.classList.add('warning');
-        scoreEl.style.color = '#ff9800';
-      } else {
-        scoreEl.style.color = '#4caf50';
-      }
+    function acceptAll() {
+      vscode.postMessage({ type: 'applyAllFiles' });
     }
 
-    function updatePlan(plan) {
-      const badge = document.getElementById('planBadge');
-      badge.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
-      badge.className = 'plan-badge';
-      if (plan === 'trial') {
-        badge.classList.add('trial');
-      }
+    function rejectAll() {
+      vscode.postMessage({ type: 'rejectAllFiles' });
+    }
+
+    function acceptFile(id) {
+      vscode.postMessage({ type: 'applyFile', id });
+    }
+
+    function rejectFile(id) {
+      vscode.postMessage({ type: 'rejectFile', id });
+    }
+
+    function showDiff(id) {
+      vscode.postMessage({ type: 'showDiff', id });
+    }
+
+    function undoFile(id) {
+      vscode.postMessage({ type: 'undoFile', id });
+    }
+
+    function runCommand(id) {
+      vscode.postMessage({ type: 'runCommand', id });
     }
 
     function handleKeydown(e) {
+      // Enter (without Shift) or Ctrl+Enter to send
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         sendMessage();
+        return;
+      }
+
+      // Up arrow: Previous command in history
+      if (e.key === 'ArrowUp' && commandHistory.length > 0) {
+        e.preventDefault();
+        if (historyIndex === -1) {
+          tempInput = inputEl.value; // Save current input
+          historyIndex = commandHistory.length - 1;
+        } else if (historyIndex > 0) {
+          historyIndex--;
+        }
+        inputEl.value = commandHistory[historyIndex];
+        autoResize(inputEl);
+        return;
+      }
+
+      // Down arrow: Next command in history
+      if (e.key === 'ArrowDown' && historyIndex !== -1) {
+        e.preventDefault();
+        if (historyIndex < commandHistory.length - 1) {
+          historyIndex++;
+          inputEl.value = commandHistory[historyIndex];
+        } else {
+          historyIndex = -1;
+          inputEl.value = tempInput; // Restore saved input
+        }
+        autoResize(inputEl);
+        return;
       }
     }
+
+    // Global keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // Ctrl+Shift+A: Accept all pending changes
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        acceptAll();
+        return;
+      }
+
+      // Escape: Cancel current request
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        cancelRequest();
+        return;
+      }
+
+      // Ctrl+Enter anywhere: Focus input and send if has content
+      if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        inputEl.focus();
+        if (inputEl.value.trim()) {
+          sendMessage();
+        }
+        return;
+      }
+
+      // Ctrl+/ : Focus input
+      if (e.ctrlKey && e.key === '/') {
+        e.preventDefault();
+        inputEl.focus();
+        return;
+      }
+    });
 
     function autoResize(el) {
       el.style.height = 'auto';
-      el.style.height = Math.min(el.scrollHeight, 150) + 'px';
-    }
-
-    function renderMessage(msg, msgIndex) {
-      const div = document.createElement('div');
-      div.className = 'message ' + msg.role;
-
-      let html = '';
-
-      // Add thinking block if present (for assistant messages)
-      if (msg.role === 'assistant' && msg.thinking) {
-        html += '<div class="thinking-block collapsed" onclick="toggleThinking(this)">';
-        html += '<div class="thinking-header">';
-        html += '<span class="thinking-icon">▼</span>';
-        html += '<span>🧠 View reasoning</span>';
-        html += '</div>';
-        html += '<div class="thinking-content">' + escapeHtml(msg.thinking) + '</div>';
-        html += '</div>';
-      }
-
-      html += formatContent(msg.content);
-
-      // Add file operations section if present
-      if (msg.role === 'assistant' && msg.fileOperations && msg.fileOperations.length > 0) {
-        html += '<div class="file-operations">';
-        html += '<div class="file-ops-header">';
-        html += '<span class="file-ops-title">📁 File Changes (' + msg.fileOperations.length + ')</span>';
-        if (msg.fileOperations.length > 1) {
-          html += '<button class="apply-all-btn" onclick="applyAllFiles(' + msgIndex + ')">Apply All</button>';
-        }
-        html += '</div>';
-
-        msg.fileOperations.forEach((op, opIndex) => {
-          const icon = op.action === 'create' ? '➕' : op.action === 'edit' ? '✏️' : '🗑️';
-          html += '<div class="file-op-card" id="file-op-' + msgIndex + '-' + opIndex + '">';
-          html += '<span class="file-op-icon">' + icon + '</span>';
-          html += '<div class="file-op-info">';
-          html += '<div class="file-op-path">' + escapeHtml(op.path) + '</div>';
-          if (op.description) {
-            html += '<div class="file-op-desc">' + escapeHtml(op.description) + '</div>';
-          }
-          html += '</div>';
-          html += '<div class="file-op-actions">';
-          if (op.action !== 'delete' && op.content) {
-            html += '<button class="file-op-btn" onclick="showDiff(' + msgIndex + ', ' + opIndex + ')">Diff</button>';
-          }
-          html += '<button class="file-op-btn primary" onclick="applyFile(' + msgIndex + ', ' + opIndex + ')">';
-          html += op.action === 'delete' ? 'Delete' : 'Apply';
-          html += '</button>';
-          html += '</div>';
-          html += '</div>';
-        });
-
-        html += '</div>';
-      }
-
-      // Add commands section if present
-      if (msg.role === 'assistant' && msg.commands && msg.commands.length > 0) {
-        html += '<div class="commands-section">';
-        msg.commands.forEach((cmd, cmdIndex) => {
-          html += '<div class="command-card">';
-          html += '<div class="command-text">';
-          html += '<code>' + escapeHtml(cmd.command) + '</code>';
-          if (cmd.description) {
-            html += '<div class="command-desc">' + escapeHtml(cmd.description) + '</div>';
-          }
-          html += '</div>';
-          html += '<button class="run-cmd-btn" onclick="runCmd(' + msgIndex + ', ' + cmdIndex + ')">▶ Run</button>';
-          html += '</div>';
-        });
-        html += '</div>';
-      }
-
-      div.innerHTML = html;
-      return div;
-    }
-
-    // Store messages for later access
-    let currentMessages = [];
-
-    function applyFile(msgIndex, opIndex) {
-      const msg = currentMessages[msgIndex];
-      if (msg && msg.fileOperations && msg.fileOperations[opIndex]) {
-        const op = msg.fileOperations[opIndex];
-        vscode.postMessage({ type: 'applyFile', operation: op });
-
-        // Update button to show "Applied"
-        const card = document.getElementById('file-op-' + msgIndex + '-' + opIndex);
-        if (card) {
-          const btn = card.querySelector('.file-op-btn.primary');
-          if (btn) {
-            btn.textContent = '✓ Applied';
-            btn.classList.add('applied');
-            btn.onclick = null;
-          }
-        }
-      }
-    }
-
-    function applyAllFiles(msgIndex) {
-      const msg = currentMessages[msgIndex];
-      if (msg && msg.fileOperations) {
-        vscode.postMessage({ type: 'applyAllFiles', operations: msg.fileOperations });
-      }
-    }
-
-    function showDiff(msgIndex, opIndex) {
-      const msg = currentMessages[msgIndex];
-      if (msg && msg.fileOperations && msg.fileOperations[opIndex]) {
-        const op = msg.fileOperations[opIndex];
-        vscode.postMessage({ type: 'showDiff', path: op.path, content: op.content });
-      }
-    }
-
-    function runCmd(msgIndex, cmdIndex) {
-      const msg = currentMessages[msgIndex];
-      if (msg && msg.commands && msg.commands[cmdIndex]) {
-        vscode.postMessage({ type: 'runCommand', command: msg.commands[cmdIndex] });
-      }
-    }
-
-    function toggleThinking(el) {
-      el.classList.toggle('collapsed');
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
     }
 
     function escapeHtml(text) {
@@ -1407,129 +1532,173 @@ export class ChatPanelProvider {
     function formatContent(content) {
       if (!content) return '';
 
-      // Preserve code blocks first (replace with placeholders)
+      let text = content;
+      const bt = String.fromCharCode(96); // backtick
+      const bt3 = bt + bt + bt;
+
+      // Step 1: Extract and protect code blocks
       const codeBlocks = [];
-      let processed = content.replace(/\`\`\`(\\w*)\\n([\\s\\S]*?)\`\`\`/g, function(match, lang, code) {
-        codeBlocks.push('<pre><code>' + escapeHtml(code) + '</code></pre>');
-        return '%%CODEBLOCK' + (codeBlocks.length - 1) + '%%';
+      const codeBlockPattern = bt3 + '([a-zA-Z]*)' + String.fromCharCode(10) + '([\\s\\S]*?)' + bt3;
+      text = text.replace(new RegExp(codeBlockPattern, 'g'), function(match, lang, code) {
+        const idx = codeBlocks.length;
+        codeBlocks.push('<pre class="code-block"><code>' + escapeHtml(code.trim()) + '</code></pre>');
+        return '%%CODE' + idx + '%%';
       });
 
-      // Preserve inline code
+      // Step 2: Extract and protect inline code
       const inlineCodes = [];
-      processed = processed.replace(/\`([^\`]+)\`/g, function(match, code) {
-        inlineCodes.push('<code>' + escapeHtml(code) + '</code>');
-        return '%%INLINE' + (inlineCodes.length - 1) + '%%';
+      const inlinePattern = bt + '([^' + bt + ']+)' + bt;
+      text = text.replace(new RegExp(inlinePattern, 'g'), function(match, code) {
+        const idx = inlineCodes.length;
+        inlineCodes.push('<code class="inline-code">' + escapeHtml(code) + '</code>');
+        return '%%INLINE' + idx + '%%';
       });
 
-      // Split into lines for block-level processing (handle both \\n and actual newlines)
-      const lines = processed.split(/\\n|\\r\\n?/);
-      const result = [];
-      let inList = false;
-      let listType = '';
+      // Step 3: Strip markdown to plain text (not converting to HTML tags)
+      // Remove headers markers but keep text
+      text = text.replace(/^#{1,6} /gm, '');
 
-      for (let i = 0; i < lines.length; i++) {
-        let line = lines[i];
+      // Remove bold markers but keep text: **text** -> text
+      text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
 
-        // Headers (check longest first)
-        if (/^####\\s+/.test(line)) {
-          if (inList) { result.push('</' + listType + '>'); inList = false; }
-          result.push('<h4>' + formatInline(line.replace(/^####\\s+/, '')) + '</h4>');
-          continue;
+      // Remove italic markers but keep text: *text* -> text
+      text = text.replace(/\*([^*]+)\*/g, '$1');
+
+      // Remove horizontal rules
+      text = text.replace(/^-{3,}$/gm, '');
+      text = text.replace(/^_{3,}$/gm, '');
+      text = text.replace(/^\*{3,}$/gm, '');
+
+      // Clean up list markers but keep text
+      text = text.replace(/^[\-\*] /gm, '• ');
+      text = text.replace(/^\d+\. /gm, '• ');
+
+      // Remove link syntax but show text: [text](url) -> text
+      text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+      // Step 4: Escape HTML in text (but not in code placeholders)
+      // Split by placeholders, escape non-placeholder parts, rejoin
+      const parts = text.split(/(%%CODE\d+%%|%%INLINE\d+%%)/g);
+      text = parts.map(part => {
+        if (part.match(/^%%CODE\d+%%$/) || part.match(/^%%INLINE\d+%%$/)) {
+          return part; // Keep placeholder as-is
         }
-        if (/^###\\s+/.test(line)) {
-          if (inList) { result.push('</' + listType + '>'); inList = false; }
-          result.push('<h3>' + formatInline(line.replace(/^###\\s+/, '')) + '</h3>');
-          continue;
-        }
-        if (/^##\\s+/.test(line)) {
-          if (inList) { result.push('</' + listType + '>'); inList = false; }
-          result.push('<h2>' + formatInline(line.replace(/^##\\s+/, '')) + '</h2>');
-          continue;
-        }
-        if (/^#\\s+/.test(line)) {
-          if (inList) { result.push('</' + listType + '>'); inList = false; }
-          result.push('<h1>' + formatInline(line.replace(/^#\\s+/, '')) + '</h1>');
-          continue;
-        }
+        return escapeHtml(part);
+      }).join('');
 
-        // Horizontal rule
-        if (/^-{3,}$/.test(line)) {
-          if (inList) { result.push('</' + listType + '>'); inList = false; }
-          result.push('<hr>');
-          continue;
-        }
-
-        // Unordered list (- item or * item)
-        if (/^[-*]\\s+/.test(line)) {
-          if (!inList || listType !== 'ul') {
-            if (inList) result.push('</' + listType + '>');
-            result.push('<ul>');
-            inList = true;
-            listType = 'ul';
-          }
-          result.push('<li>' + formatInline(line.replace(/^[-*]\\s+/, '')) + '</li>');
-          continue;
-        }
-
-        // Ordered list (1. item)
-        if (/^\\d+\\.\\s+/.test(line)) {
-          if (!inList || listType !== 'ol') {
-            if (inList) result.push('</' + listType + '>');
-            result.push('<ol>');
-            inList = true;
-            listType = 'ol';
-          }
-          result.push('<li>' + formatInline(line.replace(/^\\d+\\.\\s+/, '')) + '</li>');
-          continue;
-        }
-
-        // Close list if we hit a non-list line
-        if (inList && line.trim() !== '') {
-          result.push('</' + listType + '>');
-          inList = false;
-        }
-
-        // Empty line
-        if (line.trim() === '') {
-          if (inList) {
-            result.push('</' + listType + '>');
-            inList = false;
-          }
-          continue;
-        }
-
-        // Regular paragraph
-        result.push('<p>' + formatInline(line) + '</p>');
-      }
-
-      // Close any open list
-      if (inList) {
-        result.push('</' + listType + '>');
-      }
-
-      let html = result.join('');
-
-      // Restore code blocks and inline code
+      // Step 5: Restore code blocks and inline code
       for (let i = 0; i < codeBlocks.length; i++) {
-        html = html.replace('%%CODEBLOCK' + i + '%%', codeBlocks[i]);
+        text = text.replace('%%CODE' + i + '%%', codeBlocks[i]);
       }
       for (let i = 0; i < inlineCodes.length; i++) {
-        html = html.replace('%%INLINE' + i + '%%', inlineCodes[i]);
+        text = text.replace('%%INLINE' + i + '%%', inlineCodes[i]);
       }
 
-      return html;
+      // Step 6: Handle paragraphs and line breaks
+      const paragraphs = text.split(/\n\n+/);
+      const formatted = paragraphs.map(p => {
+        const trimmed = p.trim();
+        if (!trimmed) return '';
+        if (trimmed.startsWith('<pre') || trimmed.startsWith('<code')) return trimmed;
+        return '<p>' + trimmed.replace(/\n/g, '<br>') + '</p>';
+      }).filter(p => p).join('');
+
+      return formatted || '<p></p>';
     }
 
-    function formatInline(text) {
-      // Bold: **text** or __text__
-      text = text.replace(/\\*\\*([^*]+)\\*\\*/g, '<strong>$1</strong>');
-      text = text.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+    function renderMessage(msg, index) {
+      const div = document.createElement('div');
+      div.className = 'message ' + msg.role;
 
-      // Italic: *text* or _text_
-      text = text.replace(/\\*([^*]+)\\*/g, '<em>$1</em>');
-      text = text.replace(/\\b_([^_]+)_\\b/g, '<em>$1</em>');
+      let html = '';
 
-      return text;
+      // Thinking toggle
+      if (msg.role === 'assistant' && msg.thinking) {
+        html += '<div class="thinking-toggle" onclick="toggleThinking(this)">▶ Show reasoning</div>';
+        html += '<div class="thinking-content">' + escapeHtml(msg.thinking) + '</div>';
+      }
+
+      html += formatContent(msg.content);
+
+      div.innerHTML = html;
+      return div;
+    }
+
+    function toggleThinking(el) {
+      const content = el.nextElementSibling;
+      const isShown = content.classList.toggle('show');
+      el.textContent = isShown ? '▼ Hide reasoning' : '▶ Show reasoning';
+    }
+
+    function renderPendingChanges() {
+      const pending = currentChanges.filter(c => c.status === 'pending');
+      const pendingCmds = currentCommands.filter(c => c.status === 'pending');
+      const total = pending.length + pendingCmds.length;
+
+      pendingCount.textContent = total;
+      pendingPanel.classList.toggle('show', currentChanges.length > 0 || currentCommands.length > 0);
+
+      let html = '';
+
+      // File changes
+      for (const change of currentChanges) {
+        const icon = change.action === 'create' ? '➕' : change.action === 'edit' ? '✏️' : '🗑️';
+        const statusClass = change.status !== 'pending' ? change.status : '';
+
+        html += '<div class="pending-item ' + statusClass + '">';
+        html += '<span class="pending-icon">' + icon + '</span>';
+        html += '<div class="pending-info">';
+        html += '<div class="pending-path">' + escapeHtml(change.path) + '</div>';
+        if (change.description) {
+          html += '<div class="pending-desc">' + escapeHtml(change.description) + '</div>';
+        }
+        html += '</div>';
+
+        if (change.status === 'pending') {
+          html += '<div class="pending-item-actions">';
+          if (change.hasContent && change.action !== 'delete') {
+            html += '<button class="item-btn" onclick="showDiff(\'' + change.id + '\')">Diff</button>';
+          }
+          html += '<button class="item-btn reject" onclick="rejectFile(\'' + change.id + '\')">✕</button>';
+          html += '<button class="item-btn accept" onclick="acceptFile(\'' + change.id + '\')">✓</button>';
+          html += '</div>';
+        } else if (change.status === 'applied') {
+          html += '<div class="pending-item-actions">';
+          html += '<span style="font-size: 10px; color: #28a745; margin-right: 6px;">✓ applied</span>';
+          html += '<button class="item-btn" onclick="undoFile(\'' + change.id + '\')" title="Undo this change">↩</button>';
+          html += '</div>';
+        } else {
+          html += '<span style="font-size: 10px; opacity: 0.7;">' + change.status + '</span>';
+        }
+
+        html += '</div>';
+      }
+
+      // Commands
+      for (const cmd of currentCommands) {
+        const statusClass = cmd.status !== 'pending' ? cmd.status : '';
+
+        html += '<div class="pending-item command-item ' + statusClass + '">';
+        html += '<span class="pending-icon">▶</span>';
+        html += '<div class="pending-info">';
+        html += '<div class="command-text">' + escapeHtml(cmd.command) + '</div>';
+        if (cmd.description) {
+          html += '<div class="pending-desc">' + escapeHtml(cmd.description) + '</div>';
+        }
+        html += '</div>';
+
+        if (cmd.status === 'pending') {
+          html += '<div class="pending-item-actions">';
+          html += '<button class="item-btn accept" onclick="runCommand(\'' + cmd.id + '\')">Run</button>';
+          html += '</div>';
+        } else {
+          html += '<span style="font-size: 10px; opacity: 0.7;">' + cmd.status + '</span>';
+        }
+
+        html += '</div>';
+      }
+
+      pendingList.innerHTML = html;
     }
 
     window.addEventListener('message', event => {
@@ -1537,118 +1706,108 @@ export class ChatPanelProvider {
 
       switch (data.type) {
         case 'updateMessages':
-          // Store messages for file operations access
           currentMessages = data.messages;
+          welcomeEl.style.display = data.messages.length > 0 ? 'none' : 'flex';
 
-          if (data.messages.length > 0) {
-            welcomeEl.style.display = 'none';
-          } else {
-            welcomeEl.style.display = 'flex';
-          }
-
-          const existing = messagesEl.querySelectorAll('.message, .error-message');
+          // Clear and re-render messages
+          const existing = messagesEl.querySelectorAll('.message');
           existing.forEach(el => el.remove());
 
-          data.messages.forEach((msg, msgIndex) => {
-            messagesEl.insertBefore(renderMessage(msg, msgIndex), validatingEl);
+          data.messages.forEach((msg, i) => {
+            messagesEl.insertBefore(renderMessage(msg, i), streamingEl);
           });
 
           messagesEl.scrollTop = messagesEl.scrollHeight;
           setStreamingState(false);
           break;
 
+        case 'updatePendingChanges':
+          currentChanges = data.changes || [];
+          currentCommands = data.commands || [];
+          renderPendingChanges();
+          break;
+
         case 'typing':
-          typingEl.classList.toggle('show', data.isTyping);
           if (data.isTyping) {
-            // Show streaming block when typing starts
-            streamingEl.style.display = 'block';
-            streamingThinkingEl.style.display = 'none';
-            streamingThinkingContentEl.textContent = '';
-            streamingContentEl.innerHTML = '';
             welcomeEl.style.display = 'none';
           }
+          streamingEl.classList.toggle('show', data.isTyping);
           messagesEl.scrollTop = messagesEl.scrollHeight;
           break;
 
         case 'streamThinking':
-          streamingThinkingEl.style.display = 'block';
-          streamingThinkingContentEl.textContent = data.thinking;
-          messagesEl.scrollTop = messagesEl.scrollHeight;
+          // Could show thinking indicator if desired
           break;
 
         case 'streamContent':
+          streamingContentEl.style.display = 'block';
           streamingContentEl.innerHTML = formatContent(data.content);
           messagesEl.scrollTop = messagesEl.scrollHeight;
           break;
 
-        case 'streamDone':
-          // Hide streaming block - final message will be rendered by updateMessages
-          streamingEl.style.display = 'none';
+        case 'validating':
+          statusText.textContent = 'Validating TypeScript...';
+          statusIndicator.classList.add('show');
           break;
 
-        case 'updateHealth':
-          updateHealth(data.health, data.score);
+        case 'streamError':
+          statusIndicator.classList.remove('show');
+          setStreamingState(false);
+          alert('Error: ' + (data.error || 'Unknown error'));
+          break;
+
+        case 'requestCancelled':
+          statusIndicator.classList.remove('show');
+          setStreamingState(false);
           break;
 
         case 'updatePlan':
-          updatePlan(data.plan);
+          const badge = document.getElementById('planBadge');
+          badge.textContent = data.plan.charAt(0).toUpperCase() + data.plan.slice(1);
+          badge.className = 'plan-badge' + (data.plan === 'trial' ? ' trial' : '');
+          break;
+
+        case 'showStatus':
+          if (data.show) {
+            statusText.textContent = data.text || 'Processing...';
+            statusIndicator.classList.add('show');
+          } else {
+            statusIndicator.classList.remove('show');
+          }
+          break;
+
+        case 'showProgress':
+          if (data.show) {
+            const pct = data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
+            statusText.innerHTML = data.text + '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>';
+            statusIndicator.classList.add('show');
+          } else {
+            statusIndicator.classList.remove('show');
+          }
           break;
 
         case 'showLogin':
           loginPromptEl.classList.add('show');
-          messagesEl.style.display = 'none';
+          mainContentEl.style.display = 'none';
           break;
 
         case 'hideLogin':
           loginPromptEl.classList.remove('show');
-          messagesEl.style.display = 'flex';
+          mainContentEl.style.display = 'flex';
           break;
 
-        case 'toolResult':
-          const resultDiv = document.createElement('div');
-          resultDiv.className = 'message assistant';
-          resultDiv.innerHTML = '<strong>🔧 ' + data.tool + '</strong><br>' + formatContent(JSON.stringify(data.result, null, 2));
-          messagesEl.insertBefore(resultDiv, validatingEl);
-          messagesEl.scrollTop = messagesEl.scrollHeight;
-          break;
-
-        case 'validating':
-          // Show validation indicator with TSC check
-          validatingTextEl.textContent = 'Running TypeScript check...';
-          validatingEl.classList.add('show');
-          streamingEl.style.display = 'none';
-          typingEl.classList.remove('show');
-          messagesEl.scrollTop = messagesEl.scrollHeight;
-          break;
-
-        case 'streamError':
-          // Show error message
-          validatingEl.classList.remove('show');
-          streamingEl.style.display = 'none';
-          typingEl.classList.remove('show');
-          const errorDiv = document.createElement('div');
-          errorDiv.className = 'error-message';
-          errorDiv.textContent = '⚠️ ' + (data.error || 'An error occurred');
-          messagesEl.insertBefore(errorDiv, validatingEl);
-          messagesEl.scrollTop = messagesEl.scrollHeight;
-          setStreamingState(false);
-          break;
-
-        case 'requestCancelled':
-          // Hide all progress indicators
-          validatingEl.classList.remove('show');
-          streamingEl.style.display = 'none';
-          typingEl.classList.remove('show');
-          setStreamingState(false);
-          // Show cancelled message
-          const cancelledDiv = document.createElement('div');
-          cancelledDiv.className = 'message assistant';
-          cancelledDiv.innerHTML = '<em>Request cancelled</em>';
-          messagesEl.insertBefore(cancelledDiv, validatingEl);
-          messagesEl.scrollTop = messagesEl.scrollHeight;
+        case 'updateHealth':
+          // Could show health indicator
           break;
       }
     });
+
+    // Hide status after a delay
+    setInterval(() => {
+      if (!isStreaming) {
+        statusIndicator.classList.remove('show');
+      }
+    }, 3000);
   </script>
 </body>
 </html>`;

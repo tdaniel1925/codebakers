@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 let ChatPanelProvider: any;
 let CodeBakersClient: any;
 let ProjectContext: any;
+let DiffContentProvider: any;
 
 let chatPanel: any;
 let client: any;
@@ -28,6 +29,11 @@ async function loadModules(): Promise<boolean> {
     const contextModule = await import('./ProjectContext');
     ProjectContext = contextModule.ProjectContext;
     console.log('CodeBakers: ProjectContext loaded');
+
+    console.log('CodeBakers: Loading FileOperations...');
+    const fileOpsModule = await import('./FileOperations');
+    DiffContentProvider = fileOpsModule.DiffContentProvider;
+    console.log('CodeBakers: FileOperations loaded');
 
     console.log('CodeBakers: All modules loaded successfully');
     return true;
@@ -90,7 +96,7 @@ async function ensureInitialized(): Promise<boolean> {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('CodeBakers: activate() called - v1.0.42 (production ready: cancel button, TSC progress UI)');
+  console.log('CodeBakers: activate() called - v1.0.45 (plain text chat, parallel apply, keyboard shortcuts, command history, progress indicators, auto-TSC)');
   extensionContext = context;
 
   // IMMEDIATELY register commands - nothing can fail before this
@@ -210,6 +216,19 @@ export function activate(context: vscode.ExtensionContext) {
     console.error('CodeBakers: Status bar failed:', e);
   }
 
+  // Register diff content provider for showing file diffs
+  try {
+    if (DiffContentProvider) {
+      const diffProvider = new DiffContentProvider();
+      context.subscriptions.push(
+        vscode.workspace.registerTextDocumentContentProvider('codebakers-diff', diffProvider)
+      );
+      console.log('CodeBakers: Diff content provider registered');
+    }
+  } catch (e) {
+    console.error('CodeBakers: Diff provider registration failed:', e);
+  }
+
   // Register URI handler
   try {
     context.subscriptions.push(
@@ -288,7 +307,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   }, 500);
 
-  console.log('CodeBakers: activate() completed - v1.0.42');
+  console.log('CodeBakers: activate() completed - v1.0.45');
 }
 
 function updateStatusBar() {
