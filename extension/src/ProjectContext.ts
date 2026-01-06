@@ -28,6 +28,9 @@ interface ProjectState {
   hasTests?: boolean;
   openFile?: string;
   selectedText?: string;
+  fileTree?: string; // Project directory structure
+  existingTypes?: string; // Type inventory for reuse
+  installedPackages?: string[]; // List of npm packages
 
   // Conversation memory
   keyDecisions?: string[];
@@ -105,6 +108,15 @@ export class ProjectContext {
 
     // Get recently modified files
     state.recentFiles = await this._getRecentFiles(rootPath);
+
+    // Get file tree structure (for knowing where to create files)
+    state.fileTree = await this._getFileTree(rootPath);
+
+    // Get existing types for AI to reuse
+    state.existingTypes = await this._scanExistingTypes(rootPath);
+
+    // Store installed packages list
+    state.installedPackages = state.packageDeps?.slice(0, 50);
 
     // Read devlog for recent context
     const devlogPath = path.join(rootPath, '.codebakers', 'DEVLOG.md');
@@ -293,6 +305,165 @@ export class ProjectContext {
       .sort((a, b) => b.mtime - a.mtime)
       .slice(0, 10)
       .map(f => f.path);
+  }
+
+  /**
+   * Get file tree structure for AI context
+   * This helps the AI understand where files exist and where to create new ones
+   */
+  private async _getFileTree(rootPath: string, maxDepth: number = 4): Promise<string> {
+    const IGNORE_DIRS = new Set([
+      'node_modules', '.git', '.next', 'dist', 'build', '.vercel',
+      '.turbo', 'coverage', '.cache', '.nuxt', '.output', '__pycache__'
+    ]);
+
+    const IMPORTANT_DIRS = new Set([
+      'src', 'app', 'pages', 'components', 'lib', 'utils', 'hooks',
+      'api', 'services', 'types', 'styles', 'public', 'tests', '__tests__'
+    ]);
+
+    const lines: string[] = [];
+
+    const scan = (dir: string, prefix: string, depth: number): void => {
+      if (depth > maxDepth) return;
+
+      try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+        // Separate directories and files
+        const dirs = entries.filter(e => e.isDirectory() && !IGNORE_DIRS.has(e.name) && !e.name.startsWith('.'));
+        const files = entries.filter(e => e.isFile());
+
+        // Sort: important dirs first, then alphabetically
+        dirs.sort((a, b) => {
+          const aImportant = IMPORTANT_DIRS.has(a.name);
+          const bImportant = IMPORTANT_DIRS.has(b.name);
+          if (aImportant && !bImportant) return -1;
+          if (!aImportant && bImportant) return 1;
+          return a.name.localeCompare(b.name);
+        });
+
+        // Show directories
+        for (let i = 0; i < dirs.length; i++) {
+          const entry = dirs[i];
+          const isLast = i === dirs.length - 1 && files.length === 0;
+          const connector = isLast ? '└── ' : '├── ';
+          const childPrefix = isLast ? '    ' : '│   ';
+
+          lines.push(`${prefix}${connector}${entry.name}/`);
+          scan(path.join(dir, entry.name), prefix + childPrefix, depth + 1);
+        }
+
+        // Show key files at depth 0-1, or all files at deeper levels (limited)
+        const keyFiles = files.filter(f =>
+          depth <= 1 ?
+            ['package.json', 'tsconfig.json', '.env.example', 'next.config.js', 'next.config.mjs', 'drizzle.config.ts'].includes(f.name) ||
+            f.name.endsWith('.ts') || f.name.endsWith('.tsx')
+          : true
+        );
+
+        // Limit files shown at each level
+        const maxFiles = depth === 0 ? 5 : (depth === 1 ? 10 : 15);
+        const filesToShow = keyFiles.slice(0, maxFiles);
+        const hiddenCount = keyFiles.length - filesToShow.length;
+
+        for (let i = 0; i < filesToShow.length; i++) {
+          const file = filesToShow[i];
+          const isLast = i === filesToShow.length - 1 && hiddenCount === 0;
+          const connector = isLast ? '└── ' : '├── ';
+          lines.push(`${prefix}${connector}${file.name}`);
+        }
+
+        if (hiddenCount > 0) {
+          lines.push(`${prefix}└── ... (${hiddenCount} more files)`);
+        }
+
+      } catch (error) {
+        // Ignore permission errors
+      }
+    };
+
+    lines.push(path.basename(rootPath) + '/');
+    scan(rootPath, '', 0);
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Scan project for existing types that AI can reuse
+   * This prevents creating duplicate types
+   */
+  private async _scanExistingTypes(rootPath: string): Promise<string> {
+    const types: { name: string; file: string; kind: string }[] = [];
+
+    // Find TypeScript files in src/types, src/lib, etc
+    const typeDirs = ['src/types', 'src/lib', 'types', 'lib'];
+
+    for (const dir of typeDirs) {
+      const dirPath = path.join(rootPath, dir);
+      if (!fs.existsSync(dirPath)) continue;
+
+      try {
+        const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.ts') || f.endsWith('.tsx'));
+
+        for (const file of files.slice(0, 10)) { // Limit files per dir
+          const filePath = path.join(dirPath, file);
+          try {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const relativePath = path.join(dir, file);
+
+            // Extract interfaces
+            const interfaceRegex = /export\s+interface\s+(\w+)/g;
+            let match;
+            while ((match = interfaceRegex.exec(content)) !== null) {
+              types.push({ name: match[1], file: relativePath, kind: 'interface' });
+            }
+
+            // Extract type aliases
+            const typeRegex = /export\s+type\s+(\w+)/g;
+            while ((match = typeRegex.exec(content)) !== null) {
+              types.push({ name: match[1], file: relativePath, kind: 'type' });
+            }
+
+            // Extract enums
+            const enumRegex = /export\s+enum\s+(\w+)/g;
+            while ((match = enumRegex.exec(content)) !== null) {
+              types.push({ name: match[1], file: relativePath, kind: 'enum' });
+            }
+          } catch {
+            // Skip files we can't read
+          }
+        }
+      } catch {
+        // Skip dirs we can't read
+      }
+    }
+
+    if (types.length === 0) {
+      return '';
+    }
+
+    // Format for AI context
+    const lines = ['EXISTING TYPES (import these instead of creating new):'];
+    const byFile = new Map<string, typeof types>();
+
+    for (const t of types) {
+      const arr = byFile.get(t.file) || [];
+      arr.push(t);
+      byFile.set(t.file, arr);
+    }
+
+    for (const [file, fileTypes] of byFile) {
+      lines.push(`  ${file}:`);
+      for (const t of fileTypes.slice(0, 5)) {
+        lines.push(`    - ${t.kind} ${t.name}`);
+      }
+      if (fileTypes.length > 5) {
+        lines.push(`    ... and ${fileTypes.length - 5} more`);
+      }
+    }
+
+    return lines.slice(0, 30).join('\n'); // Limit output size
   }
 
   /**

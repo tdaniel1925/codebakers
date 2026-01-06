@@ -1,13 +1,44 @@
 import * as vscode from 'vscode';
 import Anthropic from '@anthropic-ai/sdk';
+import { CodeValidator, ValidationResult, DependencyCheck, TypeScriptCheckResult } from './CodeValidator';
+
+export interface FileOperation {
+  action: 'create' | 'edit' | 'delete';
+  path: string;
+  description?: string;
+  content?: string;
+}
+
+export interface CommandToRun {
+  command: string;
+  description?: string;
+}
 
 interface ChatResponse {
   content: string;
+  thinking?: string;
+  fileOperations?: FileOperation[];
+  commands?: CommandToRun[];
   projectUpdates?: {
     patterns?: string[];
     tasks?: string[];
     decisions?: Record<string, string>;
   };
+  validation?: ValidationResult;
+  dependencyCheck?: DependencyCheck;
+}
+
+interface StreamCallbacks {
+  onThinking?: (text: string) => void;
+  onContent?: (text: string) => void;
+  onDone?: () => void;
+  onError?: (error: Error) => void;
+  abortSignal?: AbortSignal;
+}
+
+interface ChatOptions {
+  maxRetries?: number;
+  runTypeScriptCheck?: boolean;
 }
 
 interface Pattern {
@@ -21,8 +52,12 @@ export class CodeBakersClient {
   private sessionToken: string | null = null;
   private patterns: Map<string, Pattern> = new Map();
   private readonly DEFAULT_TIMEOUT = 10000; // 10 seconds
+  private validator: CodeValidator;
+  private validatorInitialized: boolean = false;
 
   constructor(private readonly context: vscode.ExtensionContext) {
+    // Initialize code validator
+    this.validator = new CodeValidator();
     // Load cached session token
     this.sessionToken = context.globalState.get('codebakers.sessionToken') || null;
 
@@ -169,19 +204,36 @@ export class CodeBakersClient {
   }
 
   async login(): Promise<boolean> {
-    // Open browser to CodeBakers login
-    // The callback will be handled by the global URI handler in extension.ts
-    const callbackUri = await vscode.env.asExternalUri(
-      vscode.Uri.parse(`${vscode.env.uriScheme}://codebakers.codebakers/callback`)
-    );
+    try {
+      console.log('CodeBakers: login() called');
 
-    const loginUrl = `${this._getApiEndpoint()}/vscode-login?callback=${encodeURIComponent(callbackUri.toString())}`;
+      // Open browser to CodeBakers login
+      // The callback will be handled by the global URI handler in extension.ts
+      const uriScheme = vscode.env.uriScheme;
+      console.log('CodeBakers: uriScheme =', uriScheme);
 
-    vscode.env.openExternal(vscode.Uri.parse(loginUrl));
+      const rawCallbackUri = vscode.Uri.parse(`${uriScheme}://codebakers.codebakers/callback`);
+      console.log('CodeBakers: rawCallbackUri =', rawCallbackUri.toString());
 
-    // Return true to indicate login was initiated
-    // The actual login completion is handled by handleOAuthCallback
-    return true;
+      const callbackUri = await vscode.env.asExternalUri(rawCallbackUri);
+      console.log('CodeBakers: callbackUri =', callbackUri.toString());
+
+      const apiEndpoint = this._getApiEndpoint();
+      console.log('CodeBakers: apiEndpoint =', apiEndpoint);
+
+      const loginUrl = `${apiEndpoint}/vscode-login?callback=${encodeURIComponent(callbackUri.toString())}`;
+      console.log('CodeBakers: loginUrl =', loginUrl);
+
+      await vscode.env.openExternal(vscode.Uri.parse(loginUrl));
+      console.log('CodeBakers: openExternal called successfully');
+
+      // Return true to indicate login was initiated
+      // The actual login completion is handled by handleOAuthCallback
+      return true;
+    } catch (error) {
+      console.error('CodeBakers: login() error:', error);
+      throw error;
+    }
   }
 
   private currentPlan: string = 'trial';
@@ -340,7 +392,15 @@ export class CodeBakersClient {
     }
   }
 
-  async chat(messages: any[], projectState: any): Promise<ChatResponse> {
+  async chat(
+    messages: any[],
+    projectState: any,
+    callbacks?: StreamCallbacks,
+    options?: ChatOptions
+  ): Promise<ChatResponse> {
+    const maxRetries = options?.maxRetries ?? 3;
+    const runTscCheck = options?.runTypeScriptCheck ?? true;
+
     if (!this.anthropic) {
       await this._initializeAnthropic();
     }
@@ -360,38 +420,359 @@ export class CodeBakersClient {
       .map(p => `## Pattern: ${p.name}\n${p.content}`)
       .join('\n\n');
 
-    const fullSystemPrompt = `${systemPrompt}\n\n# LOADED PATTERNS\n${patternsContent}`;
+    // Extract system messages and add to system prompt (Claude API doesn't accept role: "system" in messages)
+    const systemMessages = messages.filter(m => m.role === 'system');
+    const chatMessages = messages.filter(m => m.role !== 'system');
 
-    try {
-      const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8192, // Unlimited plan - generous output
-        system: fullSystemPrompt,
-        messages: messages.map(m => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content
-        }))
-      });
+    // Build full system prompt including any context from "system" role messages
+    const contextFromMessages = systemMessages.length > 0
+      ? '\n\n# CONTEXT\n' + systemMessages.map(m => m.content).join('\n\n')
+      : '';
 
-      const content = response.content[0].type === 'text'
-        ? response.content[0].text
-        : '';
+    const fullSystemPrompt = `${systemPrompt}\n\n# LOADED PATTERNS\n${patternsContent}${contextFromMessages}`;
 
-      // Parse any project updates from the response
-      const projectUpdates = this._extractProjectUpdates(content);
+    // Retry logic with exponential backoff
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Check if aborted before starting
+        if (callbacks?.abortSignal?.aborted) {
+          throw new Error('Request was cancelled');
+        }
 
-      // Append footer
-      const contentWithFooter = content + '\n\n---\n🍪 **CodeBakers Active** | Patterns: ' +
-        relevantPatterns.map(p => p.name).join(', ') + ' | v6.12';
+        // Use streaming to show response in real-time
+        let fullText = '';
 
-      return {
-        content: contentWithFooter,
-        projectUpdates
-      };
-    } catch (error) {
-      console.error('Claude API error:', error);
-      throw error;
+        const stream = this.anthropic.messages.stream({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 16000,
+          system: fullSystemPrompt,
+          messages: chatMessages.map(m => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content
+          }))
+        });
+
+        // Set up abort handling
+        if (callbacks?.abortSignal) {
+          callbacks.abortSignal.addEventListener('abort', () => {
+            stream.abort();
+          });
+        }
+
+        // Handle streaming text events
+        stream.on('text', (text) => {
+          // Check if aborted during streaming
+          if (callbacks?.abortSignal?.aborted) {
+            stream.abort();
+            return;
+          }
+
+          fullText += text;
+
+          // Parse thinking and content in real-time
+          const { thinking, content } = this._parseThinkingAndContent(fullText);
+
+          if (thinking) {
+            callbacks?.onThinking?.(thinking);
+          }
+          callbacks?.onContent?.(content);
+        });
+
+        // Wait for completion
+        await stream.finalMessage();
+
+        // Check if aborted
+        if (callbacks?.abortSignal?.aborted) {
+          throw new Error('Request was cancelled');
+        }
+
+        callbacks?.onDone?.();
+
+        // Parse final thinking and content
+        const { thinking, content } = this._parseThinkingAndContent(fullText);
+
+        // Parse file operations and commands from response
+        const fileOperations = this.parseFileOperations(content);
+        const commands = this.parseCommands(content);
+
+        // Clean content for display (remove XML tags)
+        const cleanContent = this.cleanContentForDisplay(content);
+
+        // COMPLIANCE CHECK - Verify AI followed rules
+        const compliance = this._checkCompliance(fullText, thinking, fileOperations, cleanContent);
+
+        // VALIDATION - Deep code quality checks
+        let validation: ValidationResult | undefined;
+        let dependencyCheck: DependencyCheck | undefined;
+        let tscResult: TypeScriptCheckResult | undefined;
+
+        if (fileOperations.length > 0) {
+          // Initialize validator if needed
+          if (!this.validatorInitialized) {
+            await this.validator.initialize();
+            this.validatorInitialized = true;
+          }
+
+          // Check dependencies before allowing apply
+          dependencyCheck = this.validator.checkDependencies(fileOperations);
+
+          // Validate generated code
+          validation = await this.validator.validateFileOperations(fileOperations);
+
+          // Run TypeScript check if enabled
+          if (runTscCheck) {
+            tscResult = await this.validator.runTypeScriptCheck();
+            if (validation) {
+              validation.tscResult = tscResult;
+            }
+          }
+        }
+
+        // Parse any project updates from the response
+        const projectUpdates = this._extractProjectUpdates(cleanContent);
+
+        // Build footer with counts and validation status
+        const fileCount = fileOperations.length;
+        const cmdCount = commands.length;
+        const patternNames = relevantPatterns.map(p => p.name).join(', ') || 'core';
+
+        // Determine overall status
+        const hasComplianceIssues = !compliance.passed;
+        const hasValidationErrors = validation && !validation.passed;
+        const hasMissingDeps = dependencyCheck && dependencyCheck.missing.length > 0;
+        const hasTscErrors = tscResult && !tscResult.passed;
+
+        let statusIcon = '✅';
+        if (hasValidationErrors || hasTscErrors) statusIcon = '❌';
+        else if (hasComplianceIssues || hasMissingDeps) statusIcon = '⚠️';
+
+        let contentWithFooter = cleanContent;
+
+        // Add dependency warning if packages missing
+        if (hasMissingDeps && dependencyCheck) {
+          contentWithFooter += '\n\n---\n📦 **Missing Packages:**\n```bash\nnpm install ' +
+            dependencyCheck.missing.join(' ') + '\n```';
+        }
+
+        // Add TypeScript errors if any
+        if (hasTscErrors && tscResult) {
+          contentWithFooter += '\n\n---\n🔴 **TypeScript Errors (' + tscResult.errorCount + '):**\n' +
+            tscResult.errors.slice(0, 5).map(e => `- ${e.file}:${e.line} - ${e.message}`).join('\n');
+          if (tscResult.errorCount > 5) {
+            contentWithFooter += `\n  ...and ${tscResult.errorCount - 5} more`;
+          }
+        }
+
+        // Add validation errors/warnings
+        if (validation) {
+          if (validation.errors.length > 0) {
+            contentWithFooter += '\n\n---\n❌ **Validation Errors:**\n' +
+              validation.errors.map(e => `- ${e.file}: ${e.message}`).join('\n');
+          }
+          if (validation.warnings.length > 0) {
+            contentWithFooter += '\n\n---\n⚠️ **Warnings:**\n' +
+              validation.warnings.map(w => `- ${w.file}: ${w.message}`).join('\n');
+          }
+          if (validation.suggestions.length > 0) {
+            contentWithFooter += '\n\n---\n💡 **Suggestions:**\n' +
+              validation.suggestions.map(s => `- ${s}`).join('\n');
+          }
+        }
+
+        // Add compliance warning if rules were violated
+        if (hasComplianceIssues) {
+          contentWithFooter += '\n\n---\n⚠️ **Quality Warning:** ' + compliance.issues.join(', ');
+        }
+
+        // Build TSC status for footer
+        const tscStatus = tscResult ? (tscResult.passed ? '✅' : '❌') : '⏭️';
+
+        contentWithFooter += '\n\n---\n🍪 **CodeBakers** ' + statusIcon + ' | Files: ' +
+          fileCount + ' | Commands: ' + cmdCount + ' | TSC: ' + tscStatus + ' | Patterns: ' + patternNames + ' | v1.0.41';
+
+        return {
+          content: contentWithFooter,
+          thinking: thinking || undefined,
+          fileOperations: fileOperations.length > 0 ? fileOperations : undefined,
+          commands: commands.length > 0 ? commands : undefined,
+          projectUpdates,
+          validation,
+          dependencyCheck
+        };
+      } catch (error: any) {
+        lastError = error;
+        console.error(`Claude API error (attempt ${attempt}/${maxRetries}):`, error);
+
+        // Don't retry if cancelled
+        if (error.message === 'Request was cancelled') {
+          throw error;
+        }
+
+        // Don't retry auth errors
+        if (error.message?.includes('authenticated') || error.message?.includes('SUBSCRIPTION')) {
+          throw error;
+        }
+
+        // Retry with exponential backoff for network/API errors
+        if (attempt < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Max 10 seconds
+          callbacks?.onError?.(new Error(`Request failed, retrying in ${delay / 1000}s...`));
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
+
+    // All retries exhausted
+    const finalError = lastError || new Error('Request failed after multiple retries');
+    callbacks?.onError?.(finalError);
+    throw finalError;
+  }
+
+  /**
+   * Parse <thinking> tags from response to separate reasoning from content
+   */
+  private _parseThinkingAndContent(text: string): { thinking: string | null; content: string } {
+    const thinkingMatch = text.match(/<thinking>([\s\S]*?)<\/thinking>/);
+
+    if (thinkingMatch) {
+      const thinking = thinkingMatch[1].trim();
+      const content = text.replace(/<thinking>[\s\S]*?<\/thinking>\s*/g, '').trim();
+      return { thinking, content };
+    }
+
+    return { thinking: null, content: text };
+  }
+
+  /**
+   * Parse <file_operation> tags from response
+   */
+  parseFileOperations(text: string): FileOperation[] {
+    const operations: FileOperation[] = [];
+    const regex = /<file_operation>([\s\S]*?)<\/file_operation>/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      const block = match[1];
+
+      // Extract action
+      const actionMatch = block.match(/<action>(create|edit|delete)<\/action>/);
+      if (!actionMatch) continue;
+
+      // Extract path
+      const pathMatch = block.match(/<path>([^<]+)<\/path>/);
+      if (!pathMatch) continue;
+
+      // Extract optional description
+      const descMatch = block.match(/<description>([^<]+)<\/description>/);
+
+      // Extract content (only for create/edit)
+      const contentMatch = block.match(/<content>([\s\S]*?)<\/content>/);
+
+      operations.push({
+        action: actionMatch[1] as 'create' | 'edit' | 'delete',
+        path: pathMatch[1].trim(),
+        description: descMatch ? descMatch[1].trim() : undefined,
+        content: contentMatch ? contentMatch[1].trim() : undefined,
+      });
+    }
+
+    return operations;
+  }
+
+  /**
+   * Parse <run_command> tags from response
+   */
+  parseCommands(text: string): CommandToRun[] {
+    const commands: CommandToRun[] = [];
+    const regex = /<run_command>([\s\S]*?)<\/run_command>/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      const block = match[1];
+
+      // Extract command
+      const cmdMatch = block.match(/<command>([^<]+)<\/command>/);
+      if (!cmdMatch) continue;
+
+      // Extract optional description
+      const descMatch = block.match(/<description>([^<]+)<\/description>/);
+
+      commands.push({
+        command: cmdMatch[1].trim(),
+        description: descMatch ? descMatch[1].trim() : undefined,
+      });
+    }
+
+    return commands;
+  }
+
+  /**
+   * Remove file operation and command tags from content for display
+   */
+  cleanContentForDisplay(text: string): string {
+    return text
+      .replace(/<file_operation>[\s\S]*?<\/file_operation>/g, '')
+      .replace(/<run_command>[\s\S]*?<\/run_command>/g, '')
+      .trim();
+  }
+
+  /**
+   * COMPLIANCE CHECK - Verify the AI followed CodeBakers rules
+   * This is programmatic enforcement - catches when AI ignores instructions
+   */
+  private _checkCompliance(
+    fullText: string,
+    thinking: string | null,
+    fileOperations: FileOperation[],
+    cleanContent: string
+  ): { passed: boolean; issues: string[] } {
+    const issues: string[] = [];
+
+    // Check 1: Did AI include thinking block?
+    if (!thinking && cleanContent.length > 200) {
+      // Only flag for substantial responses
+      issues.push('Missing reasoning (thinking block)');
+    }
+
+    // Check 2: If response mentions code but no file_operation tags
+    const hasCodeBlocks = /```[\s\S]*?```/.test(fullText);
+    const mentionsFiles = /\.(tsx?|jsx?|css|json|md)\b/.test(cleanContent);
+    if (hasCodeBlocks && mentionsFiles && fileOperations.length === 0) {
+      issues.push('Code in markdown instead of file_operation tags');
+    }
+
+    // Check 3: Check for 'any' type usage in file operations
+    for (const op of fileOperations) {
+      if (op.content) {
+        // Check for `: any` type annotations
+        const anyCount = (op.content.match(/:\s*any\b/g) || []).length;
+        if (anyCount > 2) {
+          issues.push(`Excessive 'any' types in ${op.path} (${anyCount} found)`);
+        }
+
+        // Check for missing error handling in async functions
+        if (op.content.includes('async ') && !op.content.includes('try') && !op.content.includes('catch')) {
+          if (op.content.includes('await ')) {
+            issues.push(`Missing try/catch in ${op.path}`);
+          }
+        }
+      }
+    }
+
+    // Check 4: API routes should have error handling
+    for (const op of fileOperations) {
+      if (op.path.includes('/api/') && op.content) {
+        if (!op.content.includes('catch') && !op.content.includes('NextResponse.json')) {
+          issues.push(`API route ${op.path} may lack error handling`);
+        }
+      }
+    }
+
+    return {
+      passed: issues.length === 0,
+      issues
+    };
   }
 
   async summarize(text: string): Promise<string> {
@@ -520,42 +901,193 @@ export class CodeBakersClient {
   }
 
   private _buildSystemPrompt(projectState: any): string {
-    return `# CodeBakers AI Pattern System
-Version: 6.12
+    return `# CodeBakers AI Assistant
+Version: 1.0.37
 
-You are CodeBakers, an AI coding assistant that ALWAYS uses production-ready patterns.
+You are CodeBakers, an advanced AI coding assistant that can READ files, WRITE files, and RUN commands - just like Claude Code or Cursor.
 
-## MANDATORY RULES (Cannot be skipped)
+## YOUR CAPABILITIES
 
-1. **ALWAYS use patterns** - Never write code from memory when a pattern exists
-2. **ALWAYS show footer** - End every code response with the CodeBakers footer
-3. **ALWAYS write tests** - Every feature includes tests, no exceptions
-4. **ALWAYS handle errors** - Use try/catch, validation, and proper error responses
+You can:
+1. **Read files** - Access any file in the workspace
+2. **Write files** - Create new files or edit existing ones
+3. **Run commands** - Execute terminal commands (npm, git, etc.)
+4. **Apply patterns** - Use production-ready code patterns
 
-## TWO-GATE ENFORCEMENT
+## THINKING PROCESS (REQUIRED)
 
-Before writing code:
-1. Check which patterns apply to this task
-2. Load and follow those patterns exactly
+Before EVERY response, show your reasoning in <thinking> tags:
 
-Before saying "done":
-1. Verify tests exist and pass
-2. Verify TypeScript compiles
-3. Verify error handling is in place
+<thinking>
+- Understanding: What is the user asking for?
+- Analysis: What files exist? What needs to change?
+- Plan: Step-by-step implementation approach
+- Patterns: Which CodeBakers patterns apply?
+- Risks: What could go wrong? Edge cases?
+</thinking>
+
+## FILE OPERATIONS FORMAT
+
+When you need to create or edit files, use this EXACT format:
+
+<file_operation>
+<action>create</action>
+<path>src/components/LoginForm.tsx</path>
+<description>Create login form component with validation</description>
+<content>
+// File content here
+import React from 'react';
+// ... rest of code
+</content>
+</file_operation>
+
+For editing existing files:
+<file_operation>
+<action>edit</action>
+<path>src/app/page.tsx</path>
+<description>Add login button to homepage</description>
+<content>
+// FULL new file content (not a diff)
+</content>
+</file_operation>
+
+For deleting files:
+<file_operation>
+<action>delete</action>
+<path>src/old-file.ts</path>
+<description>Remove deprecated file</description>
+</file_operation>
+
+## COMMAND EXECUTION FORMAT
+
+When you need to run terminal commands:
+
+<run_command>
+<command>npm install zod react-hook-form</command>
+<description>Install form validation dependencies</description>
+</run_command>
+
+<run_command>
+<command>npx prisma db push</command>
+<description>Push schema changes to database</description>
+</run_command>
+
+## CODING STANDARDS
+
+1. **TypeScript** - Always use TypeScript with proper types
+2. **Error Handling** - Always wrap async operations in try/catch
+3. **Validation** - Use Zod for input validation
+4. **Loading States** - Always handle loading and error states
+5. **Accessibility** - Include ARIA labels, keyboard navigation
+6. **Security** - Never expose secrets, validate all inputs
+
+## CODE QUALITY REQUIREMENTS
+
+Every file you create/edit MUST have:
+- Proper imports (no unused imports)
+- Type annotations (no 'any' unless absolutely necessary)
+- Error boundaries for React components
+- Loading and error states for async operations
+- Comments for complex logic only
+
+## RESPONSE STRUCTURE
+
+1. <thinking>...</thinking> - Your reasoning (REQUIRED)
+2. Brief explanation of what you'll do
+3. <file_operation>...</file_operation> blocks for each file
+4. <run_command>...</run_command> blocks for commands
+5. Summary of changes made
+6. Footer with patterns used
 
 ## CURRENT PROJECT STATE
-${projectState ? JSON.stringify(projectState, null, 2) : 'No project state loaded'}
+${projectState ? JSON.stringify(projectState, null, 2) : 'No workspace open - ask user to open a project folder'}
 
-## RESPONSE FORMAT
+## PROJECT FILE STRUCTURE
+${projectState?.fileTree ? `
+IMPORTANT: Use this structure to know WHERE to create files:
+\`\`\`
+${projectState.fileTree}
+\`\`\`
+- Create API routes in the existing api/ folder
+- Create components in the existing components/ folder
+- Follow the existing project structure - DO NOT create new top-level folders unless necessary
+` : 'No file tree available - ask user to open a project folder'}
 
-After any code generation, include this footer:
+## EXISTING TYPES (Reuse these - do NOT recreate)
+${projectState?.existingTypes || 'No existing types found - you may create new types as needed'}
+
+## INSTALLED PACKAGES
+${projectState?.installedPackages?.length > 0 ? `
+Available packages (already installed):
+${projectState.installedPackages.slice(0, 30).join(', ')}
+
+IMPORTANT: Only import from packages listed above or Node.js built-ins.
+If you need a package not listed, include a <run_command> to install it.
+` : 'No package.json found'}
+
+## FOOTER (Required on every response with code)
+
 ---
-🍪 **CodeBakers Active** | Patterns: [list patterns used] | v6.12
+🍪 **CodeBakers** | Files: [count] | Commands: [count] | Patterns: [list] | v1.0.40
 
-## CRITICAL
-- You CANNOT skip patterns even if user asks for "quick" code
-- You CANNOT skip tests even if user says "I'll add them later"
-- You MUST show the footer on every response with code
+## CRITICAL RULES (ENFORCED - NOT OPTIONAL)
+
+These rules are STRUCTURALLY ENFORCED. The user PAID for this quality guarantee.
+
+### MANDATORY THINKING BLOCK
+You MUST start every response with <thinking>...</thinking> containing:
+1. What patterns from LOADED PATTERNS section apply?
+2. What existing code patterns should I match?
+3. What could go wrong? (error cases, edge cases)
+
+If your response lacks <thinking> tags, it is INVALID and will be rejected.
+
+### MANDATORY PATTERN USAGE
+Look at the "# LOADED PATTERNS" section below. You MUST:
+1. Use code structures shown in the patterns
+2. Use the same libraries (Zod, React Hook Form, etc.)
+3. Match the error handling style
+4. Include all required elements (loading states, validation, etc.)
+
+If you write code that ignores the loaded patterns, you are FAILING your job.
+
+### MANDATORY FILE OPERATION FORMAT
+For ANY file change, you MUST use:
+<file_operation>
+<action>create|edit|delete</action>
+<path>relative/path/to/file.ts</path>
+<description>What this change does</description>
+<content>COMPLETE file content - never partial</content>
+</file_operation>
+
+Code in regular markdown blocks will NOT be applied. Only <file_operation> blocks work.
+
+### MANDATORY TEST REQUIREMENT
+Every feature MUST include at least one test file. Do not ask "want me to add tests?" - just add them.
+
+### MANDATORY FOOTER
+End every code response with:
+---
+🍪 **CodeBakers** | Files: [count] | Commands: [count] | Patterns: [list] | v1.0.40
+
+### NEVER DO THESE (Pattern Violations)
+- ❌ Skip error handling (wrap async in try/catch)
+- ❌ Use 'any' type (use proper types from patterns)
+- ❌ Ignore loaded patterns (they exist for a reason)
+- ❌ Create files without validation (use Zod)
+- ❌ Skip loading states (always handle pending/error/success)
+- ❌ Write code from memory when patterns exist
+
+### SELF-CHECK BEFORE RESPONDING
+Before sending, verify:
+[ ] <thinking> block present?
+[ ] Patterns from LOADED PATTERNS section used?
+[ ] <file_operation> tags for all file changes?
+[ ] Error handling included?
+[ ] Loading states handled?
+[ ] Footer included?
+
+If any checkbox is NO, fix it before responding.
 `;
   }
 

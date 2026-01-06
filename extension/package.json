@@ -2,7 +2,7 @@
   "name": "codebakers",
   "displayName": "CodeBakers - Production Code, First Time",
   "description": "Stop fixing AI mistakes. Cursor and Claude Code ignore your standards — CodeBakers enforces them. Save 20+ hours per project with production-ready code the first time.",
-  "version": "1.0.21",
+  "version": "1.0.42",
   "publisher": "codebakers",
   "engines": {
     "vscode": "^1.85.0"
@@ -10,6 +10,7 @@
   "categories": [
     "Programming Languages",
     "Snippets",
+    "Machine Learning",
     "Other"
   ],
   "keywords": [
@@ -17,37 +18,24 @@
     "claude",
     "patterns",
     "code generation",
-    "best practices"
+    "best practices",
+    "copilot"
   ],
   "icon": "media/icon.png",
   "activationEvents": [
-    "onStartupFinished"
+    "*"
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "codebakers",
-          "title": "CodeBakers",
-          "icon": "media/icon.svg"
-        }
-      ]
-    },
-    "views": {
-      "codebakers": [
-        {
-          "type": "webview",
-          "id": "codebakers.chat",
-          "name": "Chat"
-        }
-      ]
-    },
     "commands": [
       {
         "command": "codebakers.openChat",
-        "title": "Open CodeBakers Chat",
-        "category": "CodeBakers"
+        "title": "Open CodeBakers",
+        "category": "CodeBakers",
+        "icon": {
+          "light": "media/icon.svg",
+          "dark": "media/icon.svg"
+        }
       },
       {
         "command": "codebakers.login",
@@ -70,6 +58,32 @@
         "category": "CodeBakers"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "codebakers.openChat",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "codebakers.openChat"
+        },
+        {
+          "command": "codebakers.login"
+        },
+        {
+          "command": "codebakers.logout"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "codebakers.openChat",
+        "key": "ctrl+alt+c",
+        "mac": "cmd+alt+c"
+      }
+    ],
     "configuration": {
       "title": "CodeBakers",
       "properties": {
@@ -87,9 +101,11 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run esbuild-base -- --production",
+    "compile": "npm run esbuild-base",
+    "esbuild-base": "node esbuild.js",
+    "esbuild-watch": "node esbuild.js --watch",
+    "watch": "npm run esbuild-watch",
     "package": "vsce package",
     "publish": "vsce publish"
   },
@@ -97,10 +113,12 @@
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^2.22.0",
+    "esbuild": "^0.27.2",
     "typescript": "^5.3.0"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.0"
+    "@anthropic-ai/sdk": "^0.32.0",
+    "node-fetch": "^2.7.0"
   },
   "repository": {
     "type": "git",
