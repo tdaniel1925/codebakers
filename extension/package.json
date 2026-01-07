@@ -2,7 +2,7 @@
   "name": "codebakers",
   "displayName": "CodeBakers - Production Code, First Time",
   "description": "Stop fixing AI mistakes. Cursor and Claude Code ignore your standards — CodeBakers enforces them. Save 20+ hours per project with production-ready code the first time.",
-  "version": "1.0.45",
+  "version": "1.0.59",
   "publisher": "codebakers",
   "engines": {
     "vscode": "^1.85.0"
@@ -56,6 +56,26 @@
         "command": "codebakers.runAudit",
         "title": "Run Code Audit",
         "category": "CodeBakers"
+      },
+      {
+        "command": "codebakers.askAboutSelection",
+        "title": "Ask CodeBakers About This",
+        "category": "CodeBakers"
+      },
+      {
+        "command": "codebakers.explainSelection",
+        "title": "Explain This Code",
+        "category": "CodeBakers"
+      },
+      {
+        "command": "codebakers.refactorSelection",
+        "title": "Refactor This Code",
+        "category": "CodeBakers"
+      },
+      {
+        "command": "codebakers.addTestsForSelection",
+        "title": "Add Tests for This",
+        "category": "CodeBakers"
       }
     ],
     "menus": {
@@ -63,6 +83,31 @@
         {
           "command": "codebakers.openChat",
           "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "submenu": "codebakers.contextMenu",
+          "group": "codebakers",
+          "when": "editorHasSelection"
+        }
+      ],
+      "codebakers.contextMenu": [
+        {
+          "command": "codebakers.askAboutSelection",
+          "group": "1_ask"
+        },
+        {
+          "command": "codebakers.explainSelection",
+          "group": "2_actions"
+        },
+        {
+          "command": "codebakers.refactorSelection",
+          "group": "2_actions"
+        },
+        {
+          "command": "codebakers.addTestsForSelection",
+          "group": "2_actions"
         }
       ],
       "commandPalette": [
@@ -74,9 +119,31 @@
         },
         {
           "command": "codebakers.logout"
+        },
+        {
+          "command": "codebakers.askAboutSelection",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "codebakers.explainSelection",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "codebakers.refactorSelection",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "codebakers.addTestsForSelection",
+          "when": "editorHasSelection"
         }
       ]
     },
+    "submenus": [
+      {
+        "id": "codebakers.contextMenu",
+        "label": "CodeBakers"
+      }
+    ],
     "keybindings": [
       {
         "command": "codebakers.openChat",

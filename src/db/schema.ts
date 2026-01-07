@@ -514,6 +514,11 @@ export const projects = pgTable('projects', {
   projectName: text('project_name').notNull(),
   projectDescription: text('project_description'),
 
+  // Public progress page
+  publicSlug: text('public_slug').unique(), // URL-safe slug for public page: /p/[slug]
+  isPublicPageEnabled: boolean('is_public_page_enabled').default(true), // Can be disabled by user
+  publicPageSettings: text('public_page_settings'), // JSON: { showPhases: true, showProgress: true, showTimeline: false, genericLabels: true }
+
   // Status and progress
   status: projectStatusEnum('status').default('discovery'),
   currentPhaseId: uuid('current_phase_id'),

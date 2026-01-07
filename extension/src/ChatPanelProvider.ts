@@ -23,6 +23,13 @@ interface PendingCommand {
   status: 'pending' | 'running' | 'done';
 }
 
+interface PinnedFile {
+  path: string;
+  name: string;
+  content?: string;
+  size?: number;
+}
+
 export class ChatPanelProvider {
   private static _instance: ChatPanelProvider | undefined;
   private _panel: vscode.WebviewPanel | undefined;
@@ -34,6 +41,9 @@ export class ChatPanelProvider {
   // Separate tracking for pending operations (Claude Code style)
   private _pendingChanges: PendingChange[] = [];
   private _pendingCommands: PendingCommand[] = [];
+
+  // Pinned files that persist across all messages (like Cursor's context files)
+  private _pinnedFiles: PinnedFile[] = [];
 
   // Throttling for streaming updates
   private _streamBuffer: string = '';
@@ -126,6 +136,16 @@ export class ChatPanelProvider {
         case 'cancelRequest':
           this._cancelCurrentRequest();
           break;
+        case 'addPinnedFile':
+          await this._addPinnedFile();
+          break;
+        case 'removePinnedFile':
+          this._removePinnedFile(data.path);
+          break;
+        case 'clearPinnedFiles':
+          this._pinnedFiles = [];
+          this._updatePinnedFiles();
+          break;
       }
     });
 
@@ -141,6 +161,23 @@ export class ChatPanelProvider {
       this._initializeStatus();
       this._updateWebview();
     }
+  }
+
+  /**
+   * Set the input field with context (e.g., from editor selection)
+   * This pre-fills the chat input without sending, allowing user to add their question
+   */
+  public setInputWithContext(text: string) {
+    if (!this._panel) {
+      this.show();
+    }
+    // Give panel time to initialize if just created
+    setTimeout(() => {
+      this._panel?.webview.postMessage({
+        type: 'setInputValue',
+        value: text
+      });
+    }, 100);
   }
 
   private async _initializeStatus() {
@@ -235,19 +272,25 @@ export class ChatPanelProvider {
       if (success) {
         change.status = 'applied';
         vscode.window.showInformationMessage(`✅ ${change.operation.action}: ${change.operation.path}`);
+        this._updatePendingChanges();
 
         // Open the file if not a delete
         if (change.operation.action !== 'delete') {
           await this.fileOps.openFile(change.operation.path);
         }
+
+        // Auto-remove after brief delay to show "applied" status
+        setTimeout(() => {
+          this._pendingChanges = this._pendingChanges.filter(c => c.id !== id);
+          this._updatePendingChanges();
+        }, 1500);
       } else {
         throw new Error('Operation failed');
       }
     } catch (error) {
       vscode.window.showErrorMessage(`❌ Failed: ${change.operation.path} - ${error}`);
+      this._updatePendingChanges();
     }
-
-    this._updatePendingChanges();
   }
 
   private async _applyAllPendingChanges() {
@@ -327,6 +370,10 @@ export class ChatPanelProvider {
     vscode.window.showInformationMessage(
       `✅ Applied ${success} file(s)${failed > 0 ? `, ${failed} failed` : ''}`
     );
+
+    // Clear applied changes from the list (keep only rejected/failed ones)
+    this._pendingChanges = this._pendingChanges.filter(c => c.status === 'rejected');
+    this._updatePendingChanges();
 
     // Auto-run TypeScript check after applying files
     if (success > 0) {
@@ -475,6 +522,76 @@ export class ChatPanelProvider {
       this._panel?.webview.postMessage({ type: 'requestCancelled' });
       vscode.window.showInformationMessage('Request cancelled');
     }
+  }
+
+  // Pinned files management (Cursor-style context files)
+  private async _addPinnedFile() {
+    const files = await vscode.window.showOpenDialog({
+      canSelectMany: true,
+      canSelectFolders: false,
+      openLabel: 'Add to Context',
+      filters: {
+        'Code Files': ['ts', 'tsx', 'js', 'jsx', 'json', 'md', 'css', 'html', 'py', 'go', 'rs', 'java', 'c', 'cpp', 'h'],
+        'All Files': ['*']
+      }
+    });
+
+    if (!files || files.length === 0) return;
+
+    for (const file of files) {
+      const relativePath = vscode.workspace.asRelativePath(file);
+
+      // Skip if already pinned
+      if (this._pinnedFiles.some(f => f.path === relativePath)) {
+        continue;
+      }
+
+      try {
+        const content = await this.fileOps.readFile(relativePath);
+        const stats = await vscode.workspace.fs.stat(file);
+
+        this._pinnedFiles.push({
+          path: relativePath,
+          name: relativePath.split('/').pop() || relativePath,
+          content: content || '',
+          size: stats.size
+        });
+      } catch (error) {
+        console.error(`Failed to read file ${relativePath}:`, error);
+        vscode.window.showWarningMessage(`Could not read: ${relativePath}`);
+      }
+    }
+
+    this._updatePinnedFiles();
+    vscode.window.showInformationMessage(`📎 Added ${files.length} file(s) to context`);
+  }
+
+  private _removePinnedFile(path: string) {
+    this._pinnedFiles = this._pinnedFiles.filter(f => f.path !== path);
+    this._updatePinnedFiles();
+  }
+
+  private _updatePinnedFiles() {
+    if (!this._panel) return;
+
+    this._panel.webview.postMessage({
+      type: 'updatePinnedFiles',
+      files: this._pinnedFiles.map(f => ({
+        path: f.path,
+        name: f.name,
+        size: f.size
+      }))
+    });
+  }
+
+  private _getPinnedFilesContext(): string {
+    if (this._pinnedFiles.length === 0) return '';
+
+    let context = '\n\n---\n## Pinned Context Files\n\n';
+    for (const file of this._pinnedFiles) {
+      context += `### ${file.path}\n\`\`\`\n${file.content || '(empty)'}\n\`\`\`\n\n`;
+    }
+    return context;
   }
 
   // Throttled streaming update
@@ -644,6 +761,15 @@ export class ChatPanelProvider {
       });
     }
 
+    // Include pinned files context (always available to AI)
+    const pinnedContext = this._getPinnedFilesContext();
+    if (pinnedContext) {
+      messages.push({
+        role: 'system',
+        content: `The user has pinned the following files for context. These files should be referenced when relevant:${pinnedContext}`
+      });
+    }
+
     const recentMessages = this._messages.slice(-10);
     for (const msg of recentMessages) {
       messages.push({
@@ -806,10 +932,18 @@ export class ChatPanelProvider {
 
     .message {
       max-width: 90%;
-      padding: 10px 14px;
+      padding: 12px 16px;
       border-radius: 10px;
-      line-height: 1.5;
+      line-height: 1.6;
       font-size: 13px;
+    }
+
+    .message p {
+      margin: 0 0 10px 0;
+    }
+
+    .message p:last-child {
+      margin-bottom: 0;
     }
 
     .message.user {
@@ -847,6 +981,33 @@ export class ChatPanelProvider {
     .message h1 { font-size: 1.3em; }
     .message h2 { font-size: 1.2em; }
     .message h3 { font-size: 1.1em; }
+
+    .message .chat-header-large {
+      font-size: 1.2em;
+      font-weight: 600;
+      color: var(--vscode-foreground);
+      margin: 12px 0 8px 0;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--vscode-panel-border);
+    }
+
+    .message .chat-header-medium {
+      font-size: 1.1em;
+      font-weight: 600;
+      color: var(--vscode-foreground);
+      margin: 10px 0 6px 0;
+    }
+
+    .message strong {
+      font-weight: 600;
+      color: var(--vscode-foreground);
+    }
+
+    .message .chat-hr {
+      border: none;
+      border-top: 1px solid var(--vscode-panel-border);
+      margin: 12px 0;
+    }
 
     .message ul, .message ol {
       margin: 6px 0;
@@ -934,6 +1095,7 @@ export class ChatPanelProvider {
       flex-shrink: 0;
     }
 
+    /* Show pending panel when there are changes */
     .pending-panel.show { display: block; }
 
     .pending-header {
@@ -1088,6 +1250,140 @@ export class ChatPanelProvider {
     .command-text {
       font-family: var(--vscode-editor-font-family);
       font-size: 11px;
+    }
+
+    /* Pinned Files Section (Cursor-style context) */
+    .pinned-files {
+      padding: 8px 16px;
+      border-top: 1px solid var(--vscode-panel-border);
+      background: var(--vscode-sideBar-background);
+      display: none;
+      flex-shrink: 0;
+    }
+
+    .pinned-files.show {
+      display: block;
+    }
+
+    .pinned-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .pinned-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--vscode-descriptionForeground);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pinned-count {
+      background: var(--vscode-badge-background);
+      color: var(--vscode-badge-foreground);
+      padding: 1px 5px;
+      border-radius: 8px;
+      font-size: 9px;
+    }
+
+    .pinned-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .pinned-btn {
+      background: transparent;
+      border: 1px solid var(--vscode-panel-border);
+      color: var(--vscode-foreground);
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .pinned-btn:hover {
+      background: var(--vscode-toolbar-hoverBackground);
+    }
+
+    .pinned-btn.add {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border: none;
+    }
+
+    .pinned-btn.add:hover {
+      background: var(--vscode-button-hoverBackground);
+    }
+
+    .pinned-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .pinned-file {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--vscode-editor-inactiveSelectionBackground);
+      padding: 3px 6px 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      max-width: 200px;
+    }
+
+    .pinned-file-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--vscode-textLink-foreground);
+    }
+
+    .pinned-file-remove {
+      background: transparent;
+      border: none;
+      color: var(--vscode-descriptionForeground);
+      cursor: pointer;
+      padding: 0;
+      font-size: 12px;
+      line-height: 1;
+      opacity: 0.7;
+    }
+
+    .pinned-file-remove:hover {
+      opacity: 1;
+      color: var(--vscode-errorForeground);
+    }
+
+    .add-files-hint {
+      padding: 8px 16px;
+      border-top: 1px solid var(--vscode-panel-border);
+      background: var(--vscode-sideBar-background);
+      flex-shrink: 0;
+    }
+
+    .add-files-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px dashed var(--vscode-panel-border);
+      color: var(--vscode-descriptionForeground);
+      padding: 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .add-files-btn:hover {
+      background: var(--vscode-toolbar-hoverBackground);
+      border-color: var(--vscode-focusBorder);
+      color: var(--vscode-foreground);
     }
 
     /* Input area */
@@ -1273,14 +1569,14 @@ export class ChatPanelProvider {
     </svg>
     <span class="header-title">CodeBakers</span>
     <span class="plan-badge" id="planBadge">Pro</span>
-    <button class="header-btn" onclick="clearChat()">Clear</button>
+    <button class="header-btn" id="clearBtn">Clear</button>
   </div>
 
   <div class="login-prompt" id="loginPrompt">
     <div class="welcome-icon">🔐</div>
     <div class="welcome-title">Sign in to CodeBakers</div>
     <div class="welcome-text">Connect with GitHub to start your free trial.</div>
-    <button class="login-btn" onclick="login()">Sign in with GitHub</button>
+    <button class="login-btn" id="loginBtn">Sign in with GitHub</button>
   </div>
 
   <div class="main-content" id="mainContent">
@@ -1290,9 +1586,9 @@ export class ChatPanelProvider {
         <div class="welcome-title">CodeBakers AI</div>
         <div class="welcome-text">Production-ready code with AI. Ask me to build features, edit files, or audit your code.</div>
         <div class="quick-actions">
-          <button class="quick-action" onclick="quickAction('/build')">Build Project</button>
-          <button class="quick-action" onclick="quickAction('/feature')">Add Feature</button>
-          <button class="quick-action" onclick="quickAction('/audit')">Audit Code</button>
+          <button class="quick-action" data-action="/build">Build Project</button>
+          <button class="quick-action" data-action="/feature">Add Feature</button>
+          <button class="quick-action" data-action="/audit">Audit Code</button>
         </div>
       </div>
 
@@ -1314,8 +1610,8 @@ export class ChatPanelProvider {
           <span class="pending-count" id="pendingCount">0</span>
         </div>
         <div class="pending-actions">
-          <button class="reject-all-btn" onclick="rejectAll()">Reject All</button>
-          <button class="accept-all-btn" onclick="acceptAll()">Accept All</button>
+          <button class="reject-all-btn" id="rejectAllBtn">Reject All</button>
+          <button class="accept-all-btn" id="acceptAllBtn">Accept All</button>
         </div>
       </div>
       <div class="pending-list" id="pendingList"></div>
@@ -1327,16 +1623,37 @@ export class ChatPanelProvider {
     </div>
   </div>
 
+  <!-- Pinned Files Section (Cursor-style context) -->
+  <div class="pinned-files" id="pinnedFiles">
+    <div class="pinned-header">
+      <div class="pinned-title">
+        <span>📎 Context Files</span>
+        <span class="pinned-count" id="pinnedCount">0</span>
+      </div>
+      <div class="pinned-actions">
+        <button class="pinned-btn" id="clearPinnedBtn">Clear</button>
+        <button class="pinned-btn add" id="addPinnedBtn">+ Add</button>
+      </div>
+    </div>
+    <div class="pinned-list" id="pinnedList"></div>
+  </div>
+
+  <!-- Add Files Button (shown when no files pinned) -->
+  <div class="add-files-hint" id="addFilesHint">
+    <button class="add-files-btn" id="addFilesBtn">
+      <span>📎</span>
+      <span>Add files to context (always included in chat)</span>
+    </button>
+  </div>
+
   <div class="input-area">
     <textarea
       id="input"
       placeholder="Ask CodeBakers anything..."
       rows="1"
-      onkeydown="handleKeydown(event)"
-      oninput="autoResize(this)"
     ></textarea>
-    <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
-    <button class="cancel-btn" id="cancelBtn" onclick="cancelRequest()">Cancel</button>
+    <button class="send-btn" id="sendBtn">Send</button>
+    <button class="cancel-btn" id="cancelBtn">Cancel</button>
   </div>
 
   <script>
@@ -1355,10 +1672,15 @@ export class ChatPanelProvider {
     const pendingCount = document.getElementById('pendingCount');
     const statusIndicator = document.getElementById('statusIndicator');
     const statusText = document.getElementById('statusText');
+    const pinnedFilesEl = document.getElementById('pinnedFiles');
+    const pinnedListEl = document.getElementById('pinnedList');
+    const pinnedCountEl = document.getElementById('pinnedCount');
+    const addFilesHint = document.getElementById('addFilesHint');
 
     let currentMessages = [];
     let currentChanges = [];
     let currentCommands = [];
+    let currentPinnedFiles = [];
     let isStreaming = false;
 
     // Command history for up/down navigation
@@ -1367,7 +1689,9 @@ export class ChatPanelProvider {
     let tempInput = ''; // Store current input when navigating
 
     function sendMessage() {
+      console.log('CodeBakers: sendMessage() called');
       const message = inputEl.value.trim();
+      console.log('CodeBakers: message =', message, 'isStreaming =', isStreaming);
       if (message) {
         // Add to history (avoid duplicates of last command)
         if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== message) {
@@ -1381,8 +1705,12 @@ export class ChatPanelProvider {
         historyIndex = -1;
         tempInput = '';
       }
-      if (!message || isStreaming) return;
+      if (!message || isStreaming) {
+        console.log('CodeBakers: sendMessage() blocked - message empty or isStreaming');
+        return;
+      }
 
+      console.log('CodeBakers: posting message to extension');
       vscode.postMessage({ type: 'sendMessage', message });
       inputEl.value = '';
       inputEl.style.height = 'auto';
@@ -1533,77 +1861,140 @@ export class ChatPanelProvider {
       if (!content) return '';
 
       let text = content;
-      const bt = String.fromCharCode(96); // backtick
-      const bt3 = bt + bt + bt;
+      const newline = String.fromCharCode(10);
+      const backtick = String.fromCharCode(96);
+      const asterisk = String.fromCharCode(42);
+      const underscore = String.fromCharCode(95);
+      const hash = String.fromCharCode(35);
 
-      // Step 1: Extract and protect code blocks
+      // Extract and protect code blocks first (triple backtick blocks)
       const codeBlocks = [];
-      const codeBlockPattern = bt3 + '([a-zA-Z]*)' + String.fromCharCode(10) + '([\\s\\S]*?)' + bt3;
-      text = text.replace(new RegExp(codeBlockPattern, 'g'), function(match, lang, code) {
-        const idx = codeBlocks.length;
+      const bt3 = backtick + backtick + backtick;
+      let idx = 0;
+      while (text.indexOf(bt3) !== -1) {
+        const start = text.indexOf(bt3);
+        const afterStart = start + 3;
+        let langEnd = afterStart;
+        while (langEnd < text.length && text.charAt(langEnd) !== newline) langEnd++;
+        const end = text.indexOf(bt3, langEnd);
+        if (end === -1) break;
+        const code = text.substring(langEnd + 1, end);
         codeBlocks.push('<pre class="code-block"><code>' + escapeHtml(code.trim()) + '</code></pre>');
-        return '%%CODE' + idx + '%%';
-      });
+        text = text.substring(0, start) + '%%CODEBLOCK' + idx + '%%' + text.substring(end + 3);
+        idx++;
+      }
 
-      // Step 2: Extract and protect inline code
+      // Extract and protect inline code (single backtick spans)
       const inlineCodes = [];
-      const inlinePattern = bt + '([^' + bt + ']+)' + bt;
-      text = text.replace(new RegExp(inlinePattern, 'g'), function(match, code) {
-        const idx = inlineCodes.length;
-        inlineCodes.push('<code class="inline-code">' + escapeHtml(code) + '</code>');
-        return '%%INLINE' + idx + '%%';
-      });
-
-      // Step 3: Strip markdown to plain text (not converting to HTML tags)
-      // Remove headers markers but keep text
-      text = text.replace(/^#{1,6} /gm, '');
-
-      // Remove bold markers but keep text: **text** -> text
-      text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
-
-      // Remove italic markers but keep text: *text* -> text
-      text = text.replace(/\*([^*]+)\*/g, '$1');
-
-      // Remove horizontal rules
-      text = text.replace(/^-{3,}$/gm, '');
-      text = text.replace(/^_{3,}$/gm, '');
-      text = text.replace(/^\*{3,}$/gm, '');
-
-      // Clean up list markers but keep text
-      text = text.replace(/^[\-\*] /gm, '• ');
-      text = text.replace(/^\d+\. /gm, '• ');
-
-      // Remove link syntax but show text: [text](url) -> text
-      text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-
-      // Step 4: Escape HTML in text (but not in code placeholders)
-      // Split by placeholders, escape non-placeholder parts, rejoin
-      const parts = text.split(/(%%CODE\d+%%|%%INLINE\d+%%)/g);
-      text = parts.map(part => {
-        if (part.match(/^%%CODE\d+%%$/) || part.match(/^%%INLINE\d+%%$/)) {
-          return part; // Keep placeholder as-is
+      idx = 0;
+      while (text.indexOf(backtick) !== -1) {
+        const start = text.indexOf(backtick);
+        const end = text.indexOf(backtick, start + 1);
+        if (end === -1) break;
+        const code = text.substring(start + 1, end);
+        if (code.indexOf(newline) === -1) {
+          inlineCodes.push('<code class="inline-code">' + escapeHtml(code) + '</code>');
+          text = text.substring(0, start) + '%%INLINE' + idx + '%%' + text.substring(end + 1);
+          idx++;
+        } else {
+          break;
         }
-        return escapeHtml(part);
-      }).join('');
+      }
 
-      // Step 5: Restore code blocks and inline code
+      // Convert headers BEFORE escaping (# ## ### at start of line -> styled headers)
+      const headerLines = text.split(newline);
+      for (let i = 0; i < headerLines.length; i++) {
+        let line = headerLines[i];
+        let level = 0;
+        while (line.length > 0 && line.charAt(0) === hash) {
+          level++;
+          line = line.substring(1);
+        }
+        if (level > 0 && line.charAt(0) === ' ') {
+          line = line.substring(1);
+          // Convert to styled header (h1-h3 styles)
+          const headerClass = level <= 2 ? 'header-large' : 'header-medium';
+          headerLines[i] = '%%HEADER_START_' + headerClass + '%%' + line + '%%HEADER_END%%';
+        }
+      }
+      text = headerLines.join(newline);
+
+      // Convert bold **text** or __text__ BEFORE escaping
+      const doubleAst = asterisk + asterisk;
+      const doubleUnd = underscore + underscore;
+
+      // Find and replace **bold** patterns
+      let searchPos = 0;
+      while (true) {
+        const start = text.indexOf(doubleAst, searchPos);
+        if (start === -1) break;
+        const end = text.indexOf(doubleAst, start + 2);
+        if (end === -1) break;
+        const boldText = text.substring(start + 2, end);
+        if (boldText.indexOf(newline) === -1 && boldText.length > 0) {
+          text = text.substring(0, start) + '%%BOLD_START%%' + boldText + '%%BOLD_END%%' + text.substring(end + 2);
+          searchPos = start + boldText.length + 20;
+        } else {
+          searchPos = start + 2;
+        }
+      }
+
+      // Same for __bold__
+      searchPos = 0;
+      while (true) {
+        const start = text.indexOf(doubleUnd, searchPos);
+        if (start === -1) break;
+        const end = text.indexOf(doubleUnd, start + 2);
+        if (end === -1) break;
+        const boldText = text.substring(start + 2, end);
+        if (boldText.indexOf(newline) === -1 && boldText.length > 0) {
+          text = text.substring(0, start) + '%%BOLD_START%%' + boldText + '%%BOLD_END%%' + text.substring(end + 2);
+          searchPos = start + boldText.length + 20;
+        } else {
+          searchPos = start + 2;
+        }
+      }
+
+      // Now escape HTML
+      text = escapeHtml(text);
+
+      // Convert horizontal rules
+      const hrLines = text.split(newline);
+      for (let i = 0; i < hrLines.length; i++) {
+        const trimmed = hrLines[i].trim();
+        if (trimmed === '---' || trimmed === '___') {
+          hrLines[i] = '<hr class="chat-hr">';
+        }
+      }
+      text = hrLines.join(newline);
+
+      // Restore formatting placeholders to HTML
+      text = text.split('%%BOLD_START%%').join('<strong>');
+      text = text.split('%%BOLD_END%%').join('</strong>');
+      text = text.split('%%HEADER_START_header-large%%').join('<div class="chat-header-large">');
+      text = text.split('%%HEADER_START_header-medium%%').join('<div class="chat-header-medium">');
+      text = text.split('%%HEADER_END%%').join('</div>');
+
+      // Restore code blocks and inline code
       for (let i = 0; i < codeBlocks.length; i++) {
-        text = text.replace('%%CODE' + i + '%%', codeBlocks[i]);
+        text = text.split('%%CODEBLOCK' + i + '%%').join(codeBlocks[i]);
       }
       for (let i = 0; i < inlineCodes.length; i++) {
-        text = text.replace('%%INLINE' + i + '%%', inlineCodes[i]);
+        text = text.split('%%INLINE' + i + '%%').join(inlineCodes[i]);
       }
 
-      // Step 6: Handle paragraphs and line breaks
-      const paragraphs = text.split(/\n\n+/);
-      const formatted = paragraphs.map(p => {
-        const trimmed = p.trim();
-        if (!trimmed) return '';
-        if (trimmed.startsWith('<pre') || trimmed.startsWith('<code')) return trimmed;
-        return '<p>' + trimmed.replace(/\n/g, '<br>') + '</p>';
-      }).filter(p => p).join('');
+      // Convert to paragraphs with line breaks
+      const paragraphs = [];
+      const chunks = text.split(newline + newline);
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i].trim();
+        if (chunk) {
+          const chunkLines = chunk.split(newline);
+          paragraphs.push('<p>' + chunkLines.join('<br>') + '</p>');
+        }
+      }
 
-      return formatted || '<p></p>';
+      return paragraphs.join('') || '<p></p>';
     }
 
     function renderMessage(msg, index) {
@@ -1614,7 +2005,7 @@ export class ChatPanelProvider {
 
       // Thinking toggle
       if (msg.role === 'assistant' && msg.thinking) {
-        html += '<div class="thinking-toggle" onclick="toggleThinking(this)">▶ Show reasoning</div>';
+        html += '<div class="thinking-toggle" data-action="toggle-thinking">▶ Show reasoning</div>';
         html += '<div class="thinking-content">' + escapeHtml(msg.thinking) + '</div>';
       }
 
@@ -1633,9 +2024,11 @@ export class ChatPanelProvider {
     function renderPendingChanges() {
       const pending = currentChanges.filter(c => c.status === 'pending');
       const pendingCmds = currentCommands.filter(c => c.status === 'pending');
+      const applied = currentChanges.filter(c => c.status === 'applied');
       const total = pending.length + pendingCmds.length;
 
       pendingCount.textContent = total;
+      // Show panel when there are pending OR recently applied items (applied items auto-clear after delay)
       pendingPanel.classList.toggle('show', currentChanges.length > 0 || currentCommands.length > 0);
 
       let html = '';
@@ -1657,15 +2050,15 @@ export class ChatPanelProvider {
         if (change.status === 'pending') {
           html += '<div class="pending-item-actions">';
           if (change.hasContent && change.action !== 'delete') {
-            html += '<button class="item-btn" onclick="showDiff(\'' + change.id + '\')">Diff</button>';
+            html += '<button class="item-btn" data-action="diff" data-id="' + change.id + '">Diff</button>';
           }
-          html += '<button class="item-btn reject" onclick="rejectFile(\'' + change.id + '\')">✕</button>';
-          html += '<button class="item-btn accept" onclick="acceptFile(\'' + change.id + '\')">✓</button>';
+          html += '<button class="item-btn reject" data-action="reject" data-id="' + change.id + '">✕</button>';
+          html += '<button class="item-btn accept" data-action="accept" data-id="' + change.id + '">✓</button>';
           html += '</div>';
         } else if (change.status === 'applied') {
           html += '<div class="pending-item-actions">';
           html += '<span style="font-size: 10px; color: #28a745; margin-right: 6px;">✓ applied</span>';
-          html += '<button class="item-btn" onclick="undoFile(\'' + change.id + '\')" title="Undo this change">↩</button>';
+          html += '<button class="item-btn" data-action="undo" data-id="' + change.id + '" title="Undo this change">↩</button>';
           html += '</div>';
         } else {
           html += '<span style="font-size: 10px; opacity: 0.7;">' + change.status + '</span>';
@@ -1689,7 +2082,7 @@ export class ChatPanelProvider {
 
         if (cmd.status === 'pending') {
           html += '<div class="pending-item-actions">';
-          html += '<button class="item-btn accept" onclick="runCommand(\'' + cmd.id + '\')">Run</button>';
+          html += '<button class="item-btn accept" data-action="run" data-id="' + cmd.id + '">Run</button>';
           html += '</div>';
         } else {
           html += '<span style="font-size: 10px; opacity: 0.7;">' + cmd.status + '</span>';
@@ -1699,6 +2092,40 @@ export class ChatPanelProvider {
       }
 
       pendingList.innerHTML = html;
+    }
+
+    function renderPinnedFiles() {
+      pinnedCountEl.textContent = currentPinnedFiles.length;
+
+      // Show/hide sections based on whether files are pinned
+      if (currentPinnedFiles.length > 0) {
+        pinnedFilesEl.classList.add('show');
+        addFilesHint.style.display = 'none';
+      } else {
+        pinnedFilesEl.classList.remove('show');
+        addFilesHint.style.display = 'block';
+      }
+
+      let html = '';
+      for (const file of currentPinnedFiles) {
+        html += '<div class="pinned-file">';
+        html += '<span class="pinned-file-name" title="' + escapeHtml(file.path) + '">' + escapeHtml(file.name) + '</span>';
+        html += '<button class="pinned-file-remove" data-action="remove-pinned" data-path="' + escapeHtml(file.path) + '" title="Remove from context">×</button>';
+        html += '</div>';
+      }
+      pinnedListEl.innerHTML = html;
+    }
+
+    function addPinnedFile() {
+      vscode.postMessage({ type: 'addPinnedFile' });
+    }
+
+    function removePinnedFile(path) {
+      vscode.postMessage({ type: 'removePinnedFile', path: path });
+    }
+
+    function clearPinnedFiles() {
+      vscode.postMessage({ type: 'clearPinnedFiles' });
     }
 
     window.addEventListener('message', event => {
@@ -1727,12 +2154,28 @@ export class ChatPanelProvider {
           renderPendingChanges();
           break;
 
+        case 'updatePinnedFiles':
+          currentPinnedFiles = data.files || [];
+          renderPinnedFiles();
+          break;
+
         case 'typing':
           if (data.isTyping) {
             welcomeEl.style.display = 'none';
+          } else {
+            setStreamingState(false);
           }
           streamingEl.classList.toggle('show', data.isTyping);
           messagesEl.scrollTop = messagesEl.scrollHeight;
+          break;
+
+        case 'setInputValue':
+          // Set input field value (e.g., from editor selection context)
+          inputEl.value = data.value || '';
+          inputEl.focus();
+          // Scroll to bottom and trigger resize
+          inputEl.style.height = 'auto';
+          inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + 'px';
           break;
 
         case 'streamThinking':
@@ -1808,6 +2251,121 @@ export class ChatPanelProvider {
         statusIndicator.classList.remove('show');
       }
     }, 3000);
+
+    // ============================================
+    // Event Listeners (CSP-compliant, no inline handlers)
+    // ============================================
+
+    // Send button
+    document.getElementById('sendBtn').addEventListener('click', function() {
+      console.log('CodeBakers: Send button clicked');
+      sendMessage();
+    });
+
+    // Cancel button
+    document.getElementById('cancelBtn').addEventListener('click', function() {
+      console.log('CodeBakers: Cancel button clicked');
+      cancelRequest();
+    });
+
+    // Clear button
+    document.getElementById('clearBtn').addEventListener('click', function() {
+      console.log('CodeBakers: Clear button clicked');
+      clearChat();
+    });
+
+    // Login button
+    document.getElementById('loginBtn').addEventListener('click', function() {
+      console.log('CodeBakers: Login button clicked');
+      login();
+    });
+
+    // Accept All button
+    document.getElementById('acceptAllBtn').addEventListener('click', function() {
+      console.log('CodeBakers: Accept All clicked');
+      acceptAll();
+    });
+
+    // Reject All button
+    document.getElementById('rejectAllBtn').addEventListener('click', function() {
+      console.log('CodeBakers: Reject All clicked');
+      rejectAll();
+    });
+
+    // Pinned files buttons
+    document.getElementById('addPinnedBtn').addEventListener('click', function() {
+      console.log('CodeBakers: Add Pinned File clicked');
+      addPinnedFile();
+    });
+
+    document.getElementById('clearPinnedBtn').addEventListener('click', function() {
+      console.log('CodeBakers: Clear Pinned Files clicked');
+      clearPinnedFiles();
+    });
+
+    document.getElementById('addFilesBtn').addEventListener('click', function() {
+      console.log('CodeBakers: Add Files Hint clicked');
+      addPinnedFile();
+    });
+
+    // Quick action buttons
+    document.querySelectorAll('.quick-action').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const action = this.getAttribute('data-action');
+        console.log('CodeBakers: Quick action clicked:', action);
+        quickAction(action);
+      });
+    });
+
+    // Input textarea events
+    inputEl.addEventListener('keydown', function(e) {
+      handleKeydown(e);
+    });
+
+    inputEl.addEventListener('input', function() {
+      autoResize(this);
+    });
+
+    // Event delegation for dynamically created buttons (pending changes, commands, thinking)
+    document.addEventListener('click', function(e) {
+      const target = e.target;
+      if (!target || !target.getAttribute) return;
+
+      const action = target.getAttribute('data-action');
+      const id = target.getAttribute('data-id');
+
+      if (action === 'diff' && id) {
+        console.log('CodeBakers: Diff clicked for', id);
+        showDiff(id);
+      } else if (action === 'accept' && id) {
+        console.log('CodeBakers: Accept clicked for', id);
+        acceptFile(id);
+      } else if (action === 'reject' && id) {
+        console.log('CodeBakers: Reject clicked for', id);
+        rejectFile(id);
+      } else if (action === 'undo' && id) {
+        console.log('CodeBakers: Undo clicked for', id);
+        undoFile(id);
+      } else if (action === 'run' && id) {
+        console.log('CodeBakers: Run command clicked for', id);
+        runCommand(id);
+      } else if (action === 'toggle-thinking') {
+        console.log('CodeBakers: Toggle thinking clicked');
+        const content = target.nextElementSibling;
+        if (content) {
+          const isShown = content.classList.toggle('show');
+          target.textContent = isShown ? '▼ Hide reasoning' : '▶ Show reasoning';
+        }
+      } else if (action === 'remove-pinned') {
+        const path = target.getAttribute('data-path');
+        if (path) {
+          console.log('CodeBakers: Remove pinned file clicked:', path);
+          removePinnedFile(path);
+        }
+      }
+    });
+
+    console.log('CodeBakers: All event listeners registered');
   </script>
 </body>
 </html>`;

@@ -23,10 +23,11 @@ export async function GET(req: NextRequest) {
     const auth = await requireAuthOrApiKey(req);
     applyRateLimit(req, 'api:projects:read', auth.userId);
 
-    const projects = await ProjectTrackingService.getTeamProjects(auth.teamId);
+    const projectsList = await ProjectTrackingService.getTeamProjects(auth.teamId);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.codebakers.ai';
 
     return successResponse({
-      projects: projects.map((p) => ({
+      projects: projectsList.map((p) => ({
         id: p.id,
         projectHash: p.projectHash,
         projectName: p.projectName,
@@ -39,6 +40,9 @@ export async function GET(req: NextRequest) {
         startedAt: p.startedAt,
         completedAt: p.completedAt,
         lastActivityAt: p.lastActivityAt,
+        publicSlug: p.publicSlug,
+        publicProgressUrl: p.publicSlug ? `${baseUrl}/p/${p.publicSlug}` : null,
+        isPublicPageEnabled: p.isPublicPageEnabled,
       })),
     });
   } catch (error) {
@@ -73,6 +77,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Build public progress URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.codebakers.ai';
+    const publicProgressUrl = project.publicSlug ? `${baseUrl}/p/${project.publicSlug}` : null;
+
     return successResponse({
       project: {
         id: project.id,
@@ -81,6 +89,9 @@ export async function POST(req: NextRequest) {
         status: project.status,
         overallProgress: project.overallProgress,
         startedAt: project.startedAt,
+        publicSlug: project.publicSlug,
+        publicProgressUrl,
+        isPublicPageEnabled: project.isPublicPageEnabled,
       },
     });
   } catch (error) {

@@ -24,6 +24,27 @@ import {
   type NewProjectRiskFlag,
 } from '@/db';
 import { eq, desc, and, sql } from 'drizzle-orm';
+import { randomBytes } from 'crypto';
+
+/**
+ * Generate a URL-safe public slug for a project
+ * Format: project-name-8chars (e.g., "my-saas-app-a1b2c3d4")
+ */
+function generatePublicSlug(projectName: string): string {
+  // Sanitize project name: lowercase, remove special chars, replace spaces with hyphens
+  const sanitized = projectName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .substring(0, 30)
+    .replace(/^-|-$/g, '');
+
+  // Generate random suffix for uniqueness
+  const randomSuffix = randomBytes(4).toString('hex');
+
+  return `${sanitized || 'project'}-${randomSuffix}`;
+}
 
 export class ProjectTrackingService {
   // ========================================
@@ -50,7 +71,8 @@ export class ProjectTrackingService {
       return existing[0];
     }
 
-    // Create new project
+    // Create new project with public progress page
+    const publicSlug = generatePublicSlug(projectName);
     const [project] = await db
       .insert(projects)
       .values({
@@ -58,6 +80,14 @@ export class ProjectTrackingService {
         projectHash,
         projectName,
         projectDescription,
+        publicSlug,
+        isPublicPageEnabled: true,
+        publicPageSettings: JSON.stringify({
+          showPhases: true,
+          showProgress: true,
+          showTimeline: false,
+          genericLabels: true,
+        }),
       })
       .returning();
 

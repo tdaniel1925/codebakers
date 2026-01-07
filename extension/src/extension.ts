@@ -47,6 +47,62 @@ async function loadModules(): Promise<boolean> {
   }
 }
 
+async function handleSelectionCommand(action: 'ask' | 'explain' | 'refactor' | 'tests'): Promise<void> {
+  const initialized = await ensureInitialized();
+  if (!initialized) return;
+
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    vscode.window.showWarningMessage('No active editor');
+    return;
+  }
+
+  const selection = editor.selection;
+  if (selection.isEmpty) {
+    vscode.window.showWarningMessage('No text selected');
+    return;
+  }
+
+  const selectedText = editor.document.getText(selection);
+  const fileName = editor.document.fileName;
+  const relativePath = vscode.workspace.asRelativePath(fileName);
+  const languageId = editor.document.languageId;
+  const startLine = selection.start.line + 1;
+  const endLine = selection.end.line + 1;
+
+  // Build the prompt based on action
+  let prompt = '';
+  switch (action) {
+    case 'ask':
+      prompt = `I have a question about this code from ${relativePath} (lines ${startLine}-${endLine}):\n\n\`\`\`${languageId}\n${selectedText}\n\`\`\`\n\n`;
+      break;
+    case 'explain':
+      prompt = `Please explain this code from ${relativePath} (lines ${startLine}-${endLine}):\n\n\`\`\`${languageId}\n${selectedText}\n\`\`\``;
+      break;
+    case 'refactor':
+      prompt = `Please refactor this code from ${relativePath} (lines ${startLine}-${endLine}) to improve readability, performance, or follow best practices:\n\n\`\`\`${languageId}\n${selectedText}\n\`\`\``;
+      break;
+    case 'tests':
+      prompt = `Please write tests for this code from ${relativePath} (lines ${startLine}-${endLine}):\n\n\`\`\`${languageId}\n${selectedText}\n\`\`\``;
+      break;
+  }
+
+  try {
+    chatPanel.show();
+    // Send the selection context to the chat panel
+    if (action === 'ask') {
+      // For "ask", pre-fill the input but don't send yet
+      chatPanel.setInputWithContext(prompt);
+    } else {
+      // For other actions, send immediately
+      await chatPanel.sendMessage(prompt);
+    }
+  } catch (e) {
+    console.error('CodeBakers: Error handling selection command:', e);
+    vscode.window.showErrorMessage(`CodeBakers error: ${e}`);
+  }
+}
+
 async function ensureInitialized(): Promise<boolean> {
   if (client && projectContext && chatPanel) {
     console.log('CodeBakers: Already initialized');
@@ -96,7 +152,7 @@ async function ensureInitialized(): Promise<boolean> {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('CodeBakers: activate() called - v1.0.45 (plain text chat, parallel apply, keyboard shortcuts, command history, progress indicators, auto-TSC)');
+  console.log('CodeBakers: activate() called - v1.0.59 (editor context menu)');
   extensionContext = context;
 
   // IMMEDIATELY register commands - nothing can fail before this
@@ -194,7 +250,36 @@ export function activate(context: vscode.ExtensionContext) {
       })
     );
 
-    console.log('CodeBakers: All 5 commands registered successfully');
+    // Editor selection context menu commands
+    context.subscriptions.push(
+      vscode.commands.registerCommand('codebakers.askAboutSelection', async () => {
+        console.log('CodeBakers: askAboutSelection command executed');
+        await handleSelectionCommand('ask');
+      })
+    );
+
+    context.subscriptions.push(
+      vscode.commands.registerCommand('codebakers.explainSelection', async () => {
+        console.log('CodeBakers: explainSelection command executed');
+        await handleSelectionCommand('explain');
+      })
+    );
+
+    context.subscriptions.push(
+      vscode.commands.registerCommand('codebakers.refactorSelection', async () => {
+        console.log('CodeBakers: refactorSelection command executed');
+        await handleSelectionCommand('refactor');
+      })
+    );
+
+    context.subscriptions.push(
+      vscode.commands.registerCommand('codebakers.addTestsForSelection', async () => {
+        console.log('CodeBakers: addTestsForSelection command executed');
+        await handleSelectionCommand('tests');
+      })
+    );
+
+    console.log('CodeBakers: All 9 commands registered successfully');
 
   } catch (error) {
     // This should NEVER happen since registerCommand is synchronous
@@ -307,7 +392,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   }, 500);
 
-  console.log('CodeBakers: activate() completed - v1.0.45');
+  console.log('CodeBakers: activate() completed - v1.0.59');
 }
 
 function updateStatusBar() {
