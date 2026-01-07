@@ -1651,6 +1651,24 @@ export class ChatPanelProvider {
       background: var(--vscode-toolbar-hoverBackground);
     }
 
+    .pending-close-btn {
+      background: transparent;
+      color: var(--vscode-foreground);
+      border: none;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 2px 6px;
+      margin-left: 4px;
+      opacity: 0.6;
+      border-radius: 4px;
+    }
+
+    .pending-close-btn:hover {
+      opacity: 1;
+      background: var(--vscode-toolbar-hoverBackground);
+    }
+
     .pending-list {
       padding: 0;
     }
@@ -2634,6 +2652,7 @@ export class ChatPanelProvider {
         <div class="pending-actions">
           <button class="reject-all-btn" id="rejectAllBtn">Reject All</button>
           <button class="accept-all-btn" id="acceptAllBtn">Accept All</button>
+          <button class="pending-close-btn" id="pendingCloseBtn" title="Close">×</button>
         </div>
       </div>
       <div class="pending-list" id="pendingList"></div>
@@ -3119,12 +3138,21 @@ export class ChatPanelProvider {
       vscode.postMessage({ type: 'login' });
     }
 
+    function closePendingPanel() {
+      const pendingPanel = document.getElementById('pendingPanel');
+      if (pendingPanel) {
+        pendingPanel.classList.remove('show');
+      }
+    }
+
     function acceptAll() {
       vscode.postMessage({ type: 'applyAllFiles' });
+      closePendingPanel();
     }
 
     function rejectAll() {
       vscode.postMessage({ type: 'rejectAllFiles' });
+      closePendingPanel();
     }
 
     function acceptFile(id) {
@@ -3158,14 +3186,23 @@ export class ChatPanelProvider {
     }
 
     function showBuildingAnimation() {
+      console.log('CodeBakers: showBuildingAnimation called, previewEnabled:', previewEnabled);
       if (!previewEnabled) return;
+      if (!buildingOverlay) {
+        console.error('CodeBakers: buildingOverlay element not found!');
+        return;
+      }
       buildingOverlay.classList.add('active');
       previewEmpty.style.display = 'none';
+      console.log('CodeBakers: Building animation shown');
     }
 
     function hideBuildingAnimation() {
+      console.log('CodeBakers: hideBuildingAnimation called');
       if (!previewEnabled) return;
-      buildingOverlay.classList.remove('active');
+      if (buildingOverlay) {
+        buildingOverlay.classList.remove('active');
+      }
     }
 
     // Node type colors matching types.ts
@@ -3184,6 +3221,7 @@ export class ChatPanelProvider {
     };
 
     function renderPreviewNodes(nodes, edges) {
+      console.log('CodeBakers: renderPreviewNodes called with', nodes.length, 'nodes and', edges.length, 'edges');
       if (!previewEnabled) return;
 
       previewNodesData = nodes || [];
@@ -3283,6 +3321,7 @@ export class ChatPanelProvider {
 
     // Parse AI response for architecture suggestions
     function parseArchitectureFromResponse(content) {
+      console.log('CodeBakers: parseArchitectureFromResponse called, content length:', content?.length);
       const nodes = [];
       const edges = [];
 
@@ -3347,6 +3386,7 @@ export class ChatPanelProvider {
         }
       });
 
+      console.log('CodeBakers: parseArchitectureFromResponse found', nodes.length, 'nodes,', edges.length, 'edges');
       return { nodes, edges };
     }
 
@@ -3895,6 +3935,12 @@ export class ChatPanelProvider {
     document.getElementById('rejectAllBtn').addEventListener('click', function() {
       console.log('CodeBakers: Reject All clicked');
       rejectAll();
+    });
+
+    // Close Pending Panel button
+    document.getElementById('pendingCloseBtn').addEventListener('click', function() {
+      console.log('CodeBakers: Close Pending Panel clicked');
+      closePendingPanel();
     });
 
     // Pinned files buttons

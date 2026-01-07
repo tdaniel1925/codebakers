@@ -2,7 +2,7 @@
   "name": "codebakers",
   "displayName": "CodeBakers - Production Code, First Time",
   "description": "Stop fixing AI mistakes. Cursor and Claude Code ignore your standards — CodeBakers enforces them. Save 20+ hours per project with production-ready code the first time.",
-  "version": "1.0.70",
+  "version": "1.0.71",
   "publisher": "codebakers",
   "engines": {
     "vscode": "^1.85.0"

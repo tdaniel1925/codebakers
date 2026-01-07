@@ -43,7 +43,11 @@ nul
 cli/node_modules/
 cli/dist/
 
-.vercel
+# Extension build artifacts
+extension/.vscode-test/
+extension/node_modules/
+extension/*.vsix
+extension/dist/
 
 # CodeBakers patterns - MUST be committed for admin sync to work
 # .claude/
