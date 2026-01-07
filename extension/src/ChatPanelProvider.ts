@@ -3782,9 +3782,12 @@ export class ChatPanelProvider {
           setStreamingState(false);
 
           // Parse the last AI response for architecture nodes
+          // Only stop animation when we actually receive an assistant response
           if (previewEnabled && data.messages.length > 0) {
             const lastMsg = data.messages[data.messages.length - 1];
+            // Only process when the last message is from AI (not user's message)
             if (lastMsg.role === 'assistant' && lastMsg.content) {
+              console.log('CodeBakers: Got assistant response, parsing for architecture');
               const { nodes, edges } = parseArchitectureFromResponse(lastMsg.content);
               console.log('CodeBakers: updateMessages - parsed nodes:', nodes.length, 'edges:', edges.length);
               if (nodes.length > 0) {
@@ -3797,13 +3800,9 @@ export class ChatPanelProvider {
                 // No nodes found, just stop the animation
                 stopBuildingAnimation();
               }
-            } else {
-              // No assistant message, stop animation
-              stopBuildingAnimation();
             }
-          } else {
-            // Preview disabled or no messages, stop animation
-            stopBuildingAnimation();
+            // If last message is from user, keep animation running - AI is still processing
+            console.log('CodeBakers: updateMessages - lastMsg.role:', lastMsg.role);
           }
           break;
 
