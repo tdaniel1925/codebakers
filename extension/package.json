@@ -2,7 +2,7 @@
   "name": "codebakers",
   "displayName": "CodeBakers - Production Code, First Time",
   "description": "Stop fixing AI mistakes. Cursor and Claude Code ignore your standards — CodeBakers enforces them. Save 20+ hours per project with production-ready code the first time.",
-  "version": "1.0.60",
+  "version": "1.0.62",
   "publisher": "codebakers",
   "engines": {
     "vscode": "^1.85.0"
@@ -76,11 +76,6 @@
         "command": "codebakers.addTestsForSelection",
         "title": "Add Tests for This",
         "category": "CodeBakers"
-      },
-      {
-        "command": "codebakers.togglePairProgramming",
-        "title": "Toggle Pair Programming Suggestions",
-        "category": "CodeBakers"
       }
     ],
     "menus": {
@@ -140,9 +135,6 @@
         {
           "command": "codebakers.addTestsForSelection",
           "when": "editorHasSelection"
-        },
-        {
-          "command": "codebakers.togglePairProgramming"
         }
       ]
     },
@@ -171,11 +163,6 @@
           "type": "boolean",
           "default": true,
           "description": "Show CodeBakers footer after code generation"
-        },
-        "codebakers.pairProgramming": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable real-time pair programming suggestions (AI analyzes your code as you type)"
         }
       }
     }

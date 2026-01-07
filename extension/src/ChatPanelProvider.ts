@@ -155,6 +155,9 @@ export class ChatPanelProvider {
         case 'deploy':
           this._deployToVercel();
           break;
+        case 'gitPush':
+          this._pushToGitHub();
+          break;
         case 'loadTeamNotes':
           this._loadTeamNotes();
           break;
@@ -714,6 +717,183 @@ export class ChatPanelProvider {
       }
 
       vscode.window.showErrorMessage(`Deployment failed: ${errorMsg}`);
+    } finally {
+      this._panel?.webview.postMessage({ type: 'showStatus', show: false });
+      this._updateWebview();
+    }
+  }
+
+  /**
+   * Push to GitHub with one click
+   */
+  private async _pushToGitHub() {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+      vscode.window.showErrorMessage('No workspace folder open');
+      return;
+    }
+
+    const rootPath = workspaceFolder.uri.fsPath;
+    const cp = require('child_process');
+
+    // First check if this is a git repo
+    try {
+      await new Promise<void>((resolve, reject) => {
+        cp.exec('git rev-parse --git-dir', { cwd: rootPath }, (error: any) => {
+          if (error) reject(error);
+          else resolve();
+        });
+      });
+    } catch {
+      vscode.window.showErrorMessage('Not a git repository. Run `git init` first.');
+      return;
+    }
+
+    // Check for uncommitted changes
+    let hasChanges = false;
+    try {
+      const status = await new Promise<string>((resolve, reject) => {
+        cp.exec('git status --porcelain', { cwd: rootPath }, (error: any, stdout: string) => {
+          if (error) reject(error);
+          else resolve(stdout);
+        });
+      });
+      hasChanges = status.trim().length > 0;
+    } catch (error: any) {
+      vscode.window.showErrorMessage(`Git error: ${error.message}`);
+      return;
+    }
+
+    // If there are changes, ask for commit message
+    let commitMessage = '';
+    if (hasChanges) {
+      const input = await vscode.window.showInputBox({
+        prompt: 'Enter commit message (or leave empty to skip commit)',
+        placeHolder: 'feat: add new feature',
+        value: 'chore: update from CodeBakers'
+      });
+
+      if (input === undefined) {
+        return; // User cancelled
+      }
+      commitMessage = input;
+    }
+
+    // Show progress
+    this._panel?.webview.postMessage({
+      type: 'showStatus',
+      show: true,
+      text: '📤 Pushing to GitHub...'
+    });
+
+    // Add message to chat
+    this._messages.push({
+      role: 'assistant',
+      content: hasChanges && commitMessage
+        ? `📤 **Pushing to GitHub...**\n\nCommitting changes and pushing to remote...`
+        : `📤 **Pushing to GitHub...**\n\nPushing to remote...`,
+      timestamp: new Date()
+    });
+    this._updateWebview();
+
+    try {
+      let output = '';
+
+      // If we have changes and a commit message, stage and commit
+      if (hasChanges && commitMessage) {
+        // Stage all changes
+        await new Promise<void>((resolve, reject) => {
+          cp.exec('git add -A', { cwd: rootPath }, (error: any) => {
+            if (error) reject(error);
+            else resolve();
+          });
+        });
+
+        // Commit
+        const commitResult = await new Promise<string>((resolve, reject) => {
+          cp.exec(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, { cwd: rootPath }, (error: any, stdout: string) => {
+            if (error && !stdout) reject(error);
+            else resolve(stdout);
+          });
+        });
+        output += commitResult + '\n';
+      }
+
+      // Push to remote
+      const pushResult = await new Promise<string>((resolve, reject) => {
+        cp.exec('git push', { cwd: rootPath, timeout: 60000 }, (error: any, stdout: string, stderr: string) => {
+          if (error && !stdout && !stderr) reject(error);
+          else resolve(stdout + stderr);
+        });
+      });
+      output += pushResult;
+
+      // Get the remote URL for display
+      let remoteUrl = '';
+      try {
+        remoteUrl = await new Promise<string>((resolve) => {
+          cp.exec('git remote get-url origin', { cwd: rootPath }, (_error: any, stdout: string) => {
+            resolve(stdout.trim());
+          });
+        });
+        // Convert SSH URL to HTTPS for clickable link
+        if (remoteUrl.startsWith('git@github.com:')) {
+          remoteUrl = remoteUrl.replace('git@github.com:', 'https://github.com/').replace(/\.git$/, '');
+        }
+      } catch {
+        // Ignore - remote URL is optional for display
+      }
+
+      // Success message
+      let successMsg = '✅ **Pushed to GitHub successfully!**\n\n';
+      if (remoteUrl && remoteUrl.includes('github.com')) {
+        successMsg += `🔗 **Repository:** [${remoteUrl}](${remoteUrl})\n\n`;
+      }
+      if (hasChanges && commitMessage) {
+        successMsg += `📝 **Commit:** ${commitMessage}\n\n`;
+      }
+      successMsg += '```\n' + output.slice(-300) + '\n```';
+
+      this._messages.push({
+        role: 'assistant',
+        content: successMsg,
+        timestamp: new Date()
+      });
+
+      vscode.window.showInformationMessage(
+        `✅ Pushed to GitHub!${remoteUrl ? '' : ''}`,
+        remoteUrl.includes('github.com') ? 'Open Repository' : undefined as any
+      ).then(selection => {
+        if (selection === 'Open Repository' && remoteUrl) {
+          vscode.env.openExternal(vscode.Uri.parse(remoteUrl));
+        }
+      });
+
+    } catch (error: any) {
+      const errorMsg = error.message || 'Unknown error';
+
+      // Check for common errors
+      if (errorMsg.includes('no upstream') || errorMsg.includes('no tracking')) {
+        this._messages.push({
+          role: 'assistant',
+          content: `❌ **No upstream branch set**\n\nRun this to set up tracking:\n\`\`\`bash\ngit push -u origin main\n\`\`\``,
+          timestamp: new Date()
+        });
+      } else if (errorMsg.includes('Permission denied') || errorMsg.includes('authentication')) {
+        this._messages.push({
+          role: 'assistant',
+          content: `❌ **Authentication failed**\n\nMake sure you have:\n1. GitHub CLI installed (\`gh auth login\`)\n2. Or SSH keys configured\n3. Or Git credentials stored`,
+          timestamp: new Date()
+        });
+      } else {
+        this._messages.push({
+          role: 'assistant',
+          content: `❌ **Push failed**\n\n\`\`\`\n${errorMsg}\n\`\`\``,
+          timestamp: new Date()
+        });
+      }
+
+      vscode.window.showErrorMessage(`Push failed: ${errorMsg}`);
     } finally {
       this._panel?.webview.postMessage({ type: 'showStatus', show: false });
       this._updateWebview();
@@ -1937,6 +2117,64 @@ export class ChatPanelProvider {
       background: linear-gradient(135deg, #111 0%, #444 100%);
     }
 
+    .quick-action.github {
+      background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+      color: white;
+      border-color: #238636;
+    }
+
+    .quick-action.github:hover {
+      background: linear-gradient(135deg, #2ea043 0%, #3fb950 100%);
+    }
+
+    /* Persistent Action Bar (always visible) */
+    .action-bar {
+      display: flex;
+      gap: 6px;
+      padding: 8px 12px;
+      background: var(--vscode-editor-background);
+      border-top: 1px solid var(--vscode-panel-border);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .action-bar .action-btn {
+      background: var(--vscode-button-secondaryBackground);
+      color: var(--vscode-button-secondaryForeground);
+      border: 1px solid var(--vscode-button-border, transparent);
+      border-radius: 12px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .action-bar .action-btn:hover {
+      background: var(--vscode-button-secondaryHoverBackground);
+    }
+
+    .action-bar .action-btn.github {
+      background: #238636;
+      color: white;
+      border-color: #238636;
+    }
+
+    .action-bar .action-btn.github:hover {
+      background: #2ea043;
+    }
+
+    .action-bar .action-btn.deploy {
+      background: #333;
+      color: white;
+      border-color: #444;
+    }
+
+    .action-bar .action-btn.deploy:hover {
+      background: #444;
+    }
+
     /* Login prompt */
     .login-prompt {
       flex: 1;
@@ -2056,7 +2294,10 @@ export class ChatPanelProvider {
         <div class="quick-actions">
           <button class="quick-action" data-action="/build">Build Project</button>
           <button class="quick-action" data-action="/feature">Add Feature</button>
-          <button class="quick-action" data-action="/audit">Audit Code</button>
+          <button class="quick-action" data-action="/audit">🔍 Audit</button>
+          <button class="quick-action" data-action="/test">🧪 Test</button>
+          <button class="quick-action" data-action="/fix">🔧 Fix</button>
+          <button class="quick-action github" data-action="/git-push">📤 Push</button>
           <button class="quick-action deploy" data-action="/deploy">🚀 Deploy</button>
         </div>
       </div>
@@ -2127,6 +2368,15 @@ export class ChatPanelProvider {
       <span>📎</span>
       <span>Add files to context (always included in chat)</span>
     </button>
+  </div>
+
+  <!-- Persistent Action Bar -->
+  <div class="action-bar">
+    <button class="action-btn" data-action="/audit">🔍 Audit</button>
+    <button class="action-btn" data-action="/test">🧪 Test</button>
+    <button class="action-btn" data-action="/fix">🔧 Fix</button>
+    <button class="action-btn github" data-action="/git-push">📤 Push</button>
+    <button class="action-btn deploy" data-action="/deploy">🚀 Deploy</button>
   </div>
 
   <div class="input-area">
@@ -2483,6 +2733,11 @@ export class ChatPanelProvider {
       // Handle deploy directly without going through chat
       if (command === '/deploy') {
         vscode.postMessage({ type: 'deploy' });
+        return;
+      }
+      // Handle git push directly
+      if (command === '/git-push') {
+        vscode.postMessage({ type: 'gitPush' });
         return;
       }
       inputEl.value = command + ' ';
@@ -3066,11 +3321,20 @@ export class ChatPanelProvider {
       addPinnedFile();
     });
 
-    // Quick action buttons
+    // Quick action buttons (welcome screen)
     document.querySelectorAll('.quick-action').forEach(function(btn) {
       btn.addEventListener('click', function() {
         const action = this.getAttribute('data-action');
         console.log('CodeBakers: Quick action clicked:', action);
+        quickAction(action);
+      });
+    });
+
+    // Action bar buttons (persistent)
+    document.querySelectorAll('.action-bar .action-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const action = this.getAttribute('data-action');
+        console.log('CodeBakers: Action bar clicked:', action);
         quickAction(action);
       });
     });
