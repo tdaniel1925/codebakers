@@ -2,7 +2,7 @@
   "name": "codebakers",
   "displayName": "CodeBakers - Production Code, First Time",
   "description": "Stop fixing AI mistakes. Cursor and Claude Code ignore your standards — CodeBakers enforces them. Save 20+ hours per project with production-ready code the first time.",
-  "version": "1.0.62",
+  "version": "1.0.68",
   "publisher": "codebakers",
   "engines": {
     "vscode": "^1.85.0"
@@ -76,6 +76,24 @@
         "command": "codebakers.addTestsForSelection",
         "title": "Add Tests for This",
         "category": "CodeBakers"
+      },
+      {
+        "command": "codebakers.openMindMap",
+        "title": "Open Mind Map",
+        "category": "CodeBakers",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "codebakers.openBuildPlanner",
+        "title": "Open Build Planner",
+        "category": "CodeBakers",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "codebakers.runTests",
+        "title": "Run Project Tests",
+        "category": "CodeBakers",
+        "icon": "$(beaker)"
       }
     ],
     "menus": {
@@ -135,6 +153,15 @@
         {
           "command": "codebakers.addTestsForSelection",
           "when": "editorHasSelection"
+        },
+        {
+          "command": "codebakers.openMindMap"
+        },
+        {
+          "command": "codebakers.openBuildPlanner"
+        },
+        {
+          "command": "codebakers.runTests"
         }
       ]
     },
@@ -149,6 +176,16 @@
         "command": "codebakers.openChat",
         "key": "ctrl+alt+c",
         "mac": "cmd+alt+c"
+      },
+      {
+        "command": "codebakers.openMindMap",
+        "key": "ctrl+alt+m",
+        "mac": "cmd+alt+m"
+      },
+      {
+        "command": "codebakers.openBuildPlanner",
+        "key": "ctrl+alt+b",
+        "mac": "cmd+alt+b"
       }
     ],
     "configuration": {
@@ -170,17 +207,27 @@
   "scripts": {
     "vscode:prepublish": "npm run esbuild-base -- --production",
     "compile": "npm run esbuild-base",
+    "compile:tests": "tsc -p ./",
     "esbuild-base": "node esbuild.js",
     "esbuild-watch": "node esbuild.js --watch",
     "watch": "npm run esbuild-watch",
+    "pretest": "npm run compile && npm run compile:tests",
+    "test": "node ./dist/test/runTest.js",
+    "test:unit": "npx mocha --require ts-node/register src/test/unit/*.test.ts",
     "package": "vsce package",
     "publish": "vsce publish"
   },
   "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^2.22.0",
     "esbuild": "^0.27.2",
+    "glob": "^13.0.0",
+    "mocha": "^11.7.5",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.0"
   },
   "dependencies": {

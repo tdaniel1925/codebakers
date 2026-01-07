@@ -5,6 +5,8 @@ let ChatPanelProvider: any;
 let CodeBakersClient: any;
 let ProjectContext: any;
 let DiffContentProvider: any;
+let MindMapPanelProvider: any;
+let BuildPlannerProvider: any;
 
 let chatPanel: any;
 let client: any;
@@ -34,6 +36,16 @@ async function loadModules(): Promise<boolean> {
     const fileOpsModule = await import('./FileOperations');
     DiffContentProvider = fileOpsModule.DiffContentProvider;
     console.log('CodeBakers: FileOperations loaded');
+
+    console.log('CodeBakers: Loading MindMapPanelProvider...');
+    const mindmapModule = await import('./mindmap');
+    MindMapPanelProvider = mindmapModule.MindMapPanelProvider;
+    console.log('CodeBakers: MindMapPanelProvider loaded');
+
+    console.log('CodeBakers: Loading BuildPlannerProvider...');
+    const plannerModule = await import('./planner');
+    BuildPlannerProvider = plannerModule.BuildPlannerProvider;
+    console.log('CodeBakers: BuildPlannerProvider loaded');
 
     console.log('CodeBakers: All modules loaded successfully');
     return true;
@@ -152,7 +164,7 @@ async function ensureInitialized(): Promise<boolean> {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('CodeBakers: activate() called - v1.0.62');
+  console.log('CodeBakers: activate() called - v1.0.66');
   extensionContext = context;
 
   // IMMEDIATELY register commands - nothing can fail before this
@@ -279,7 +291,60 @@ export function activate(context: vscode.ExtensionContext) {
       })
     );
 
-    console.log('CodeBakers: All 9 commands registered successfully');
+    // Mind Map command
+    context.subscriptions.push(
+      vscode.commands.registerCommand('codebakers.openMindMap', async () => {
+        console.log('CodeBakers: openMindMap command executed');
+
+        // Load module if not loaded
+        if (!MindMapPanelProvider) {
+          try {
+            const mindmapModule = await import('./mindmap');
+            MindMapPanelProvider = mindmapModule.MindMapPanelProvider;
+          } catch (e) {
+            console.error('CodeBakers: Failed to load MindMap module:', e);
+            vscode.window.showErrorMessage('Failed to load Mind Map module');
+            return;
+          }
+        }
+
+        try {
+          const panel = MindMapPanelProvider.createOrShow(extensionContext.extensionUri);
+          panel.analyze();
+        } catch (e) {
+          console.error('CodeBakers: Error opening mind map:', e);
+          vscode.window.showErrorMessage(`Mind Map error: ${e}`);
+        }
+      })
+    );
+
+    // Build Planner command
+    context.subscriptions.push(
+      vscode.commands.registerCommand('codebakers.openBuildPlanner', async () => {
+        console.log('CodeBakers: openBuildPlanner command executed');
+
+        // Load module if not loaded
+        if (!BuildPlannerProvider) {
+          try {
+            const plannerModule = await import('./planner');
+            BuildPlannerProvider = plannerModule.BuildPlannerProvider;
+          } catch (e) {
+            console.error('CodeBakers: Failed to load Build Planner module:', e);
+            vscode.window.showErrorMessage('Failed to load Build Planner module');
+            return;
+          }
+        }
+
+        try {
+          BuildPlannerProvider.createOrShow(extensionContext.extensionUri);
+        } catch (e) {
+          console.error('CodeBakers: Error opening build planner:', e);
+          vscode.window.showErrorMessage(`Build Planner error: ${e}`);
+        }
+      })
+    );
+
+    console.log('CodeBakers: All 11 commands registered successfully');
 
   } catch (error) {
     // This should NEVER happen since registerCommand is synchronous
@@ -392,7 +457,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   }, 500);
 
-  console.log('CodeBakers: activate() completed - v1.0.62');
+  console.log('CodeBakers: activate() completed - v1.0.66');
 }
 
 function updateStatusBar() {

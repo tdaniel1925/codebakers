@@ -13,7 +13,12 @@ function cleanDist() {
     for (const file of files) {
       if (file !== 'extension.js') {
         const filePath = path.join(distDir, file);
-        fs.unlinkSync(filePath);
+        const stat = fs.statSync(filePath);
+        if (stat.isDirectory()) {
+          fs.rmSync(filePath, { recursive: true, force: true });
+        } else {
+          fs.unlinkSync(filePath);
+        }
         console.log('Cleaned:', file);
       }
     }

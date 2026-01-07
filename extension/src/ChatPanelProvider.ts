@@ -158,6 +158,9 @@ export class ChatPanelProvider {
         case 'gitPush':
           this._pushToGitHub();
           break;
+        case 'openMindMap':
+          vscode.commands.executeCommand('codebakers.openMindMap');
+          break;
         case 'loadTeamNotes':
           this._loadTeamNotes();
           break;
@@ -2175,6 +2178,17 @@ export class ChatPanelProvider {
       background: #444;
     }
 
+    .action-bar .action-btn.mindmap {
+      background: #1e3a5f;
+      color: #60a5fa;
+      border-color: #3b82f6;
+    }
+
+    .action-bar .action-btn.mindmap:hover {
+      background: #2563eb;
+      color: white;
+    }
+
     /* Login prompt */
     .login-prompt {
       flex: 1;
@@ -2375,6 +2389,7 @@ export class ChatPanelProvider {
     <button class="action-btn" data-action="/audit">🔍 Audit</button>
     <button class="action-btn" data-action="/test">🧪 Test</button>
     <button class="action-btn" data-action="/fix">🔧 Fix</button>
+    <button class="action-btn mindmap" data-action="/mindmap">🗺️ Map</button>
     <button class="action-btn github" data-action="/git-push">📤 Push</button>
     <button class="action-btn deploy" data-action="/deploy">🚀 Deploy</button>
   </div>
@@ -2738,6 +2753,11 @@ export class ChatPanelProvider {
       // Handle git push directly
       if (command === '/git-push') {
         vscode.postMessage({ type: 'gitPush' });
+        return;
+      }
+      // Handle mind map directly
+      if (command === '/mindmap') {
+        vscode.postMessage({ type: 'openMindMap' });
         return;
       }
       inputEl.value = command + ' ';
