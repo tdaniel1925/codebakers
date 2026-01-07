@@ -161,6 +161,9 @@ export class ChatPanelProvider {
         case 'openMindMap':
           vscode.commands.executeCommand('codebakers.openMindMap');
           break;
+        case 'openPreview':
+          this._openPreviewInBrowser(data.port || 3000);
+          break;
         case 'loadTeamNotes':
           this._loadTeamNotes();
           break;
@@ -901,6 +904,12 @@ export class ChatPanelProvider {
       this._panel?.webview.postMessage({ type: 'showStatus', show: false });
       this._updateWebview();
     }
+  }
+
+  private _openPreviewInBrowser(port: number = 3000) {
+    const url = `http://localhost:${port}`;
+    vscode.env.openExternal(vscode.Uri.parse(url));
+    vscode.window.showInformationMessage(`Opening ${url} in browser...`);
   }
 
   /**
@@ -2207,6 +2216,16 @@ export class ChatPanelProvider {
       color: white;
     }
 
+    .action-bar .action-btn.preview {
+      background: #0d9488;
+      color: white;
+      border-color: #14b8a6;
+    }
+
+    .action-bar .action-btn.preview:hover {
+      background: #14b8a6;
+    }
+
     /* Login prompt */
     .login-prompt {
       flex: 1;
@@ -2738,6 +2757,7 @@ export class ChatPanelProvider {
     <button class="action-btn mindmap" data-action="/mindmap">🗺️ Map</button>
     <button class="action-btn github" data-action="/git-push">📤 Push</button>
     <button class="action-btn deploy" data-action="/deploy">🚀 Deploy</button>
+    <button class="action-btn preview" data-action="/preview" title="Open app in browser">👁️ Preview</button>
   </div>
 
   <div class="input-area">
@@ -3135,6 +3155,11 @@ export class ChatPanelProvider {
       // Handle mind map directly
       if (command === '/mindmap') {
         vscode.postMessage({ type: 'openMindMap' });
+        return;
+      }
+      // Handle preview in browser
+      if (command === '/preview') {
+        vscode.postMessage({ type: 'openPreview', port: 3000 });
         return;
       }
       inputEl.value = command + ' ';
