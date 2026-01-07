@@ -2387,10 +2387,11 @@ export class ChatPanelProvider {
     .preview-canvas {
       flex: 1;
       position: relative;
-      overflow: hidden;
+      overflow: auto;
       background:
         radial-gradient(circle at 1px 1px, var(--vscode-panel-border, #3c3c3c) 1px, transparent 0);
       background-size: 20px 20px;
+      padding: 16px;
     }
 
     /* Building Animation Overlay */
@@ -2485,43 +2486,115 @@ export class ChatPanelProvider {
       40% { transform: scale(1); opacity: 1; }
     }
 
-    /* Preview Nodes */
+    /* Preview Nodes - Vertical Cascade Mind Map */
     .preview-nodes {
-      position: absolute;
-      inset: 0;
-      padding: 20px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      min-height: 100%;
+      padding-bottom: 40px;
+    }
+
+    .preview-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .preview-section-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--vscode-descriptionForeground, #888);
+      padding: 0 4px;
+      margin-bottom: 4px;
+    }
+
+    .preview-section-nodes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .preview-node {
-      position: absolute;
+      position: relative;
       padding: 10px 14px;
       border-radius: 8px;
       font-size: 12px;
       font-weight: 500;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-      cursor: default;
+      cursor: grab;
       opacity: 0;
-      transform: scale(0.8);
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform: translateY(10px);
+      transition: all 0.3s ease, box-shadow 0.2s ease;
+      user-select: none;
     }
 
     .preview-node.visible {
       opacity: 1;
-      transform: scale(1);
+      transform: translateY(0);
+    }
+
+    .preview-node:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .preview-node.dragging {
+      cursor: grabbing;
+      opacity: 0.8;
+      z-index: 100;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     }
 
     .preview-node .node-icon {
       margin-right: 6px;
     }
 
-    .preview-node .node-name {
+    .preview-node .node-label {
       font-weight: 600;
+      display: block;
     }
 
-    .preview-node .node-type {
+    .preview-node .node-name {
       font-size: 10px;
       opacity: 0.7;
-      margin-left: 8px;
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* Tooltip Popup */
+    .preview-tooltip {
+      position: fixed;
+      max-width: 250px;
+      padding: 10px 14px;
+      background: var(--vscode-editorHoverWidget-background, #252526);
+      border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--vscode-editorHoverWidget-foreground, #cccccc);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .preview-tooltip.visible {
+      opacity: 1;
+    }
+
+    .preview-tooltip-title {
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--vscode-foreground);
+    }
+
+    .preview-tooltip-desc {
+      color: var(--vscode-descriptionForeground, #999);
     }
 
     /* Node type colors */
@@ -2710,6 +2783,12 @@ export class ChatPanelProvider {
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Tooltip for node descriptions -->
+  <div class="preview-tooltip" id="previewTooltip">
+    <div class="preview-tooltip-title"></div>
+    <div class="preview-tooltip-desc"></div>
   </div>
 
   <!-- Pinned Files Section (Cursor-style context) -->
@@ -3241,20 +3320,132 @@ export class ChatPanelProvider {
       }
     }
 
-    // Node type colors matching types.ts
-    const NODE_COLORS = {
-      page: { bg: '#dbeafe', border: '#3b82f6', icon: '📄' },
-      component: { bg: '#dcfce7', border: '#22c55e', icon: '🧩' },
-      api: { bg: '#fef3c7', border: '#f59e0b', icon: '🔌' },
-      database: { bg: '#fce7f3', border: '#ec4899', icon: '🗄️' },
-      type: { bg: '#e0e7ff', border: '#6366f1', icon: '📝' },
-      hook: { bg: '#f3e8ff', border: '#a855f7', icon: '🪝' },
-      service: { bg: '#ccfbf1', border: '#14b8a6', icon: '⚙️' },
-      middleware: { bg: '#fed7aa', border: '#f97316', icon: '🔀' },
-      context: { bg: '#cffafe', border: '#06b6d4', icon: '🌐' },
-      action: { bg: '#fecaca', border: '#ef4444', icon: '⚡' },
-      job: { bg: '#e5e7eb', border: '#6b7280', icon: '⏰' }
+    // Node type colors and descriptions (plain English for beginners)
+    const NODE_INFO = {
+      page: {
+        icon: '📄',
+        label: 'Page',
+        description: 'A screen users can visit. Like the homepage, login page, or dashboard. Each page has its own URL.'
+      },
+      component: {
+        icon: '🧩',
+        label: 'Component',
+        description: 'A reusable building block for your pages. Like a button, card, or navigation bar. Build once, use anywhere.'
+      },
+      api: {
+        icon: '🔌',
+        label: 'API Endpoint',
+        description: 'A backend endpoint that handles data. When users submit a form, log in, or load data, an API handles it.'
+      },
+      database: {
+        icon: '🗄️',
+        label: 'Database Table',
+        description: 'A table to store your data permanently. Like a spreadsheet that saves users, orders, or posts.'
+      },
+      type: {
+        icon: '📝',
+        label: 'Type Definition',
+        description: 'A blueprint that defines the shape of your data. Like saying "a User has a name, email, and age".'
+      },
+      hook: {
+        icon: '🪝',
+        label: 'React Hook',
+        description: 'Reusable logic for your components. Like "fetch user data" or "track form input". Write once, use anywhere.'
+      },
+      service: {
+        icon: '⚙️',
+        label: 'Service',
+        description: 'A helper module that does a specific job. Like sending emails, processing payments, or talking to external services.'
+      },
+      middleware: {
+        icon: '🔀',
+        label: 'Middleware',
+        description: 'A security checkpoint that runs before pages load. Checks if users are logged in or have permission.'
+      },
+      context: {
+        icon: '🌐',
+        label: 'Context Provider',
+        description: 'Shared data that many components can access. Like the current user or theme. No need to pass it manually.'
+      },
+      action: {
+        icon: '⚡',
+        label: 'Server Action',
+        description: 'A function that runs on the server when users submit forms. Handles creating, updating, or deleting data securely.'
+      },
+      job: {
+        icon: '⏰',
+        label: 'Background Job',
+        description: 'A task that runs automatically in the background. Like sending weekly emails or cleaning up old data.'
+      }
     };
+
+    // Section order for vertical cascade (top to bottom)
+    const SECTION_ORDER = [
+      { type: 'page', title: 'Pages' },
+      { type: 'component', title: 'Components' },
+      { type: 'api', title: 'API Endpoints' },
+      { type: 'service', title: 'Services' },
+      { type: 'hook', title: 'Hooks' },
+      { type: 'context', title: 'Context' },
+      { type: 'middleware', title: 'Middleware' },
+      { type: 'action', title: 'Actions' },
+      { type: 'type', title: 'Types' },
+      { type: 'database', title: 'Database' },
+      { type: 'job', title: 'Background Jobs' }
+    ];
+
+    // Convert camelCase/PascalCase to readable text
+    function humanize(name) {
+      if (!name) return '';
+      // Handle special cases
+      if (name === 'api' || name === 'API') return 'API';
+      if (name === 'cta' || name === 'CTA') return 'Call to Action';
+      // Insert space before capitals, then clean up
+      return name
+        .replace(/([a-z])([A-Z])/g, '$1 $2')  // camelCase
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')  // HTTPServer -> HTTP Server
+        .replace(/[-_]/g, ' ')  // snake_case and kebab-case
+        .replace(/\\s+/g, ' ')  // multiple spaces
+        .trim();
+    }
+
+    // Tooltip element
+    const previewTooltip = document.getElementById('previewTooltip');
+    const tooltipTitle = previewTooltip.querySelector('.preview-tooltip-title');
+    const tooltipDesc = previewTooltip.querySelector('.preview-tooltip-desc');
+
+    function showTooltip(nodeEl, nodeType, nodeName) {
+      const info = NODE_INFO[nodeType] || NODE_INFO.component;
+      tooltipTitle.textContent = info.label + ': ' + humanize(nodeName);
+      tooltipDesc.textContent = info.description;
+
+      const rect = nodeEl.getBoundingClientRect();
+      const tooltipRect = previewTooltip.getBoundingClientRect();
+
+      // Position tooltip above the node, or below if not enough space
+      let top = rect.top - 10;
+      let left = rect.left + (rect.width / 2);
+
+      previewTooltip.style.left = left + 'px';
+      previewTooltip.style.top = top + 'px';
+      previewTooltip.style.transform = 'translate(-50%, -100%)';
+
+      // If tooltip would go off top of screen, show below instead
+      if (top - 80 < 0) {
+        previewTooltip.style.top = (rect.bottom + 10) + 'px';
+        previewTooltip.style.transform = 'translate(-50%, 0)';
+      }
+
+      previewTooltip.classList.add('visible');
+    }
+
+    function hideTooltip() {
+      previewTooltip.classList.remove('visible');
+    }
+
+    // Drag state
+    let draggedNode = null;
+    let dragOffset = { x: 0, y: 0 };
 
     function renderPreviewNodes(nodes, edges) {
       console.log('CodeBakers: renderPreviewNodes called with', nodes.length, 'nodes and', edges.length, 'edges');
@@ -3265,7 +3456,7 @@ export class ChatPanelProvider {
 
       // Clear existing
       previewNodes.innerHTML = '';
-      previewEdges.innerHTML = '';
+      previewEdges.style.display = 'none'; // Hide SVG edges in vertical layout
 
       if (previewNodesData.length === 0) {
         previewEmpty.style.display = 'flex';
@@ -3274,79 +3465,100 @@ export class ChatPanelProvider {
 
       previewEmpty.style.display = 'none';
 
-      // Calculate positions in a simple grid layout
-      const canvasWidth = previewCanvas.offsetWidth - 40;
-      const canvasHeight = previewCanvas.offsetHeight - 60;
-      const cols = Math.ceil(Math.sqrt(previewNodesData.length));
-      const rows = Math.ceil(previewNodesData.length / cols);
-      const cellWidth = canvasWidth / cols;
-      const cellHeight = canvasHeight / rows;
-
-      // Render nodes with staggered animation
-      previewNodesData.forEach((node, index) => {
-        const colors = NODE_COLORS[node.type] || NODE_COLORS.component;
-        const col = index % cols;
-        const row = Math.floor(index / cols);
-        const x = 20 + col * cellWidth + cellWidth / 2 - 60;
-        const y = 40 + row * cellHeight + cellHeight / 2 - 30;
-
-        const nodeEl = document.createElement('div');
-        nodeEl.className = 'preview-node reveal node-' + node.type;
-        nodeEl.style.left = x + 'px';
-        nodeEl.style.top = y + 'px';
-        nodeEl.style.animationDelay = (index * 150) + 'ms';
-        nodeEl.dataset.nodeId = node.id;
-        nodeEl.innerHTML = '<span class="preview-node-icon">' + colors.icon + '</span>' +
-          '<span class="preview-node-name">' + escapeHtml(node.name) + '</span>' +
-          '<span class="preview-node-type">' + node.type + '</span>';
-
-        previewNodes.appendChild(nodeEl);
-
-        // Store position for edge drawing
-        node._x = x + 60; // center
-        node._y = y + 30;
+      // Group nodes by type for vertical cascade
+      const nodesByType = {};
+      previewNodesData.forEach(node => {
+        if (!nodesByType[node.type]) {
+          nodesByType[node.type] = [];
+        }
+        nodesByType[node.type].push(node);
       });
 
-      // Render edges after nodes are positioned
-      setTimeout(() => {
-        renderPreviewEdges();
-      }, previewNodesData.length * 150 + 200);
+      // Render sections in order (vertical cascade)
+      let animationIndex = 0;
+      SECTION_ORDER.forEach(section => {
+        const sectionNodes = nodesByType[section.type];
+        if (!sectionNodes || sectionNodes.length === 0) return;
+
+        // Create section container
+        const sectionEl = document.createElement('div');
+        sectionEl.className = 'preview-section';
+
+        // Section title
+        const titleEl = document.createElement('div');
+        titleEl.className = 'preview-section-title';
+        titleEl.textContent = section.title;
+        sectionEl.appendChild(titleEl);
+
+        // Nodes container
+        const nodesContainer = document.createElement('div');
+        nodesContainer.className = 'preview-section-nodes';
+
+        // Render each node
+        sectionNodes.forEach(node => {
+          const info = NODE_INFO[node.type] || NODE_INFO.component;
+          const nodeEl = document.createElement('div');
+          nodeEl.className = 'preview-node';
+          nodeEl.dataset.type = node.type;
+          nodeEl.dataset.nodeId = node.id;
+          nodeEl.dataset.nodeName = node.name;
+          nodeEl.style.animationDelay = (animationIndex * 80) + 'ms';
+
+          // Plain English label with original name below
+          const displayLabel = humanize(node.name);
+          nodeEl.innerHTML =
+            '<span class="node-icon">' + info.icon + '</span>' +
+            '<span class="node-label">' + escapeHtml(displayLabel) + '</span>' +
+            '<span class="node-name">' + escapeHtml(node.name) + '</span>';
+
+          // Show as visible with stagger
+          setTimeout(() => {
+            nodeEl.classList.add('visible');
+          }, animationIndex * 80);
+
+          // Tooltip on hover
+          nodeEl.addEventListener('mouseenter', function(e) {
+            showTooltip(this, node.type, node.name);
+          });
+          nodeEl.addEventListener('mouseleave', hideTooltip);
+
+          // Drag functionality
+          nodeEl.addEventListener('mousedown', function(e) {
+            if (e.button !== 0) return; // Left click only
+            draggedNode = this;
+            const rect = this.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            this.classList.add('dragging');
+            hideTooltip();
+          });
+
+          nodesContainer.appendChild(nodeEl);
+          animationIndex++;
+        });
+
+        sectionEl.appendChild(nodesContainer);
+        previewNodes.appendChild(sectionEl);
+      });
     }
 
+    // Global drag handlers
+    document.addEventListener('mousemove', function(e) {
+      if (!draggedNode) return;
+      // For now, just show visual feedback during drag
+      // Full repositioning would require absolute positioning
+    });
+
+    document.addEventListener('mouseup', function(e) {
+      if (draggedNode) {
+        draggedNode.classList.remove('dragging');
+        draggedNode = null;
+      }
+    });
+
     function renderPreviewEdges() {
-      if (!previewEnabled || previewEdgesData.length === 0) return;
-
-      const svgNS = 'http://www.w3.org/2000/svg';
-      previewEdges.innerHTML = '';
-
-      previewEdgesData.forEach((edge, index) => {
-        const sourceNode = previewNodesData.find(n => n.id === edge.source);
-        const targetNode = previewNodesData.find(n => n.id === edge.target);
-
-        if (!sourceNode || !targetNode) return;
-
-        const path = document.createElementNS(svgNS, 'path');
-        const x1 = sourceNode._x;
-        const y1 = sourceNode._y;
-        const x2 = targetNode._x;
-        const y2 = targetNode._y;
-
-        // Curved path
-        const midX = (x1 + x2) / 2;
-        const midY = (y1 + y2) / 2 - 30;
-        const d = 'M ' + x1 + ' ' + y1 + ' Q ' + midX + ' ' + midY + ' ' + x2 + ' ' + y2;
-
-        path.setAttribute('d', d);
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', 'var(--vscode-textLink-foreground)');
-        path.setAttribute('stroke-width', '2');
-        path.setAttribute('stroke-dasharray', '1000');
-        path.setAttribute('stroke-dashoffset', '1000');
-        path.style.animation = 'drawEdge 0.8s ease forwards';
-        path.style.animationDelay = (index * 100) + 'ms';
-
-        previewEdges.appendChild(path);
-      });
+      // Edges are hidden in vertical cascade layout
+      // The visual hierarchy replaces connection lines
     }
 
     function escapeHtml(text) {
