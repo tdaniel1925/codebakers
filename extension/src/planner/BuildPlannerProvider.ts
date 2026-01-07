@@ -1816,6 +1816,17 @@ What would you like to customize first?`,
       outline: none;
     }
 
+    .node-type-hint {
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: var(--bg);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      border-left: 3px solid var(--accent);
+    }
+
     .modal-footer {
       display: flex;
       justify-content: flex-end;
@@ -2083,20 +2094,23 @@ What would you like to customize first?`,
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label">Node Type</label>
-          <select class="form-select" id="new-node-type">
-            <option value="page">📄 Page</option>
-            <option value="component">🧩 Component</option>
-            <option value="api">🔌 API Route</option>
-            <option value="database">🗄️ Database Table</option>
-            <option value="type">📝 Type/Interface</option>
-            <option value="hook">🪝 Hook</option>
-            <option value="service">⚙️ Service</option>
-            <option value="context">🌐 Context</option>
-            <option value="action">⚡ Server Action</option>
-            <option value="middleware">🔀 Middleware</option>
-            <option value="job">⏰ Background Job</option>
+          <label class="form-label">What do you want to add?</label>
+          <select class="form-select" id="new-node-type" onchange="updateNodeTypeDescription()">
+            <option value="page">📄 Page - A screen users visit</option>
+            <option value="component">🧩 Component - Reusable UI block</option>
+            <option value="api">🔌 API - Backend data handler</option>
+            <option value="database">🗄️ Database - Store data permanently</option>
+            <option value="type">📝 Type - Data blueprint</option>
+            <option value="hook">🪝 Hook - Reusable logic</option>
+            <option value="service">⚙️ Service - Helper module</option>
+            <option value="context">🌐 Context - Shared app data</option>
+            <option value="action">⚡ Action - Form handler</option>
+            <option value="middleware">🔀 Middleware - Security check</option>
+            <option value="job">⏰ Job - Background task</option>
           </select>
+          <div id="node-type-hint" class="node-type-hint">
+            A screen users can visit. Like the homepage, login page, or dashboard. Each page has its own URL.
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Name</label>
@@ -2568,6 +2582,28 @@ What would you like to customize first?`,
 
     function closeAddNodeModal() {
       document.getElementById('add-node-modal').classList.remove('show');
+    }
+
+    // Beginner-friendly descriptions for each node type
+    const nodeTypeDescriptions = {
+      page: 'A screen users can visit. Like the homepage, login page, or dashboard. Each page has its own URL.',
+      component: 'A reusable building block for your pages. Like a button, card, or navigation bar. Build once, use anywhere.',
+      api: 'A backend endpoint that handles data. When users submit a form, log in, or load their profile, an API handles it.',
+      database: 'A table to store your data permanently. Like a spreadsheet that saves users, orders, or posts.',
+      type: 'A blueprint that defines the shape of your data. Like saying "a User has a name, email, and age". Helps prevent bugs.',
+      hook: 'Reusable logic for your components. Like "fetch user data" or "track form input". Write once, use anywhere.',
+      service: 'A helper module that does a specific job. Like sending emails, processing payments, or talking to external services.',
+      context: 'Shared data that many components can access. Like the current user, theme (dark/light), or language.',
+      action: 'A function that runs on the server when users submit forms. Handles creating posts, updating profiles, etc.',
+      middleware: 'A security checkpoint that runs before pages load. Checks if users are logged in or have permission.',
+      job: 'A task that runs automatically in the background. Like sending weekly emails or cleaning up old data.',
+    };
+
+    function updateNodeTypeDescription() {
+      const select = document.getElementById('new-node-type');
+      const hint = document.getElementById('node-type-hint');
+      const description = nodeTypeDescriptions[select.value] || '';
+      hint.textContent = description;
     }
 
     function addNodeFromModal() {

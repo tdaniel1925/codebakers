@@ -361,7 +361,7 @@ export interface AIPlannerConfig {
 export const NODE_DEFAULTS: Record<PlanNodeType, Partial<PlanNode>> = {
   page: {
     type: 'page',
-    description: 'A Next.js page',
+    description: 'A screen users can visit. Like the homepage, login page, or dashboard. Each page has its own URL (e.g., /about, /settings).',
     details: {
       route: '/',
       isProtected: false,
@@ -369,7 +369,7 @@ export const NODE_DEFAULTS: Record<PlanNodeType, Partial<PlanNode>> = {
   },
   component: {
     type: 'component',
-    description: 'A React component',
+    description: 'A reusable building block for your pages. Like a button, card, or navigation bar. Build once, use anywhere.',
     details: {
       props: [],
       hasState: false,
@@ -377,7 +377,7 @@ export const NODE_DEFAULTS: Record<PlanNodeType, Partial<PlanNode>> = {
   },
   api: {
     type: 'api',
-    description: 'An API route',
+    description: 'A backend endpoint that handles data. When users submit a form, log in, or load their profile, an API handles it behind the scenes.',
     details: {
       httpMethod: 'GET',
       requestBody: [],
@@ -386,7 +386,7 @@ export const NODE_DEFAULTS: Record<PlanNodeType, Partial<PlanNode>> = {
   },
   database: {
     type: 'database',
-    description: 'A database table',
+    description: 'A table to store your data permanently. Like a spreadsheet that saves users, orders, or posts. Your app reads from and writes to this.',
     details: {
       columns: [],
       relations: [],
@@ -394,45 +394,45 @@ export const NODE_DEFAULTS: Record<PlanNodeType, Partial<PlanNode>> = {
   },
   type: {
     type: 'type',
-    description: 'A TypeScript type',
+    description: 'A blueprint that defines the shape of your data. Like saying "a User has a name, email, and age". Helps prevent bugs.',
     details: {
       fields: [],
     },
   },
   hook: {
     type: 'hook',
-    description: 'A React hook',
+    description: 'Reusable logic for your components. Like "fetch user data" or "track form input". Write the logic once, use it in any component.',
     details: {
       dependencies: [],
     },
   },
   service: {
     type: 'service',
-    description: 'A service module',
+    description: 'A helper module that does a specific job. Like sending emails, processing payments, or talking to external services. Keeps your code organized.',
     details: {
       methods: [],
     },
   },
   middleware: {
     type: 'middleware',
-    description: 'A middleware function',
+    description: 'A security checkpoint that runs before pages load. Checks if users are logged in, have permission, or blocks bad requests.',
     details: {},
   },
   context: {
     type: 'context',
-    description: 'A React context provider',
+    description: 'Shared data that many components can access. Like the current user, theme (dark/light), or language. No need to pass it manually everywhere.',
     details: {},
   },
   action: {
     type: 'action',
-    description: 'A server action',
+    description: 'A function that runs on the server when users submit forms. Handles things like creating posts, updating profiles, or processing orders securely.',
     details: {
       formFields: [],
     },
   },
   job: {
     type: 'job',
-    description: 'A background job',
+    description: 'A task that runs automatically in the background. Like sending weekly emails, cleaning up old data, or syncing with other services.',
     details: {},
   },
 };
