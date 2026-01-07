@@ -3086,11 +3086,14 @@ export class ChatPanelProvider {
       inputEl.value = '';
       inputEl.style.height = 'auto';
       setStreamingState(true);
+      startBuildingAnimation();
     }
 
     function cancelRequest() {
       vscode.postMessage({ type: 'cancelRequest' });
     }
+
+    let buildingAnimationActive = false;
 
     function setStreamingState(streaming) {
       isStreaming = streaming;
@@ -3102,12 +3105,20 @@ export class ChatPanelProvider {
       if (streaming) {
         streamingContentEl.style.display = 'none';
         streamingContentEl.innerHTML = '';
-        // Show building animation when AI starts thinking
-        showBuildingAnimation();
-      } else {
-        // Hide building animation when AI is done
-        hideBuildingAnimation();
       }
+      // Note: Building animation is now controlled separately, not by streaming state
+    }
+
+    function startBuildingAnimation() {
+      console.log('CodeBakers: startBuildingAnimation called');
+      buildingAnimationActive = true;
+      showBuildingAnimation();
+    }
+
+    function stopBuildingAnimation() {
+      console.log('CodeBakers: stopBuildingAnimation called');
+      buildingAnimationActive = false;
+      hideBuildingAnimation();
     }
 
     function quickAction(command) {
@@ -3775,13 +3786,24 @@ export class ChatPanelProvider {
             const lastMsg = data.messages[data.messages.length - 1];
             if (lastMsg.role === 'assistant' && lastMsg.content) {
               const { nodes, edges } = parseArchitectureFromResponse(lastMsg.content);
+              console.log('CodeBakers: updateMessages - parsed nodes:', nodes.length, 'edges:', edges.length);
               if (nodes.length > 0) {
-                // Small delay to let building animation finish hiding
+                // Stop building animation and show nodes with slight delay for visual transition
                 setTimeout(() => {
+                  stopBuildingAnimation();
                   renderPreviewNodes(nodes, edges);
                 }, 300);
+              } else {
+                // No nodes found, just stop the animation
+                stopBuildingAnimation();
               }
+            } else {
+              // No assistant message, stop animation
+              stopBuildingAnimation();
             }
+          } else {
+            // Preview disabled or no messages, stop animation
+            stopBuildingAnimation();
           }
           break;
 
@@ -3833,12 +3855,14 @@ export class ChatPanelProvider {
         case 'streamError':
           statusIndicator.classList.remove('show');
           setStreamingState(false);
+          stopBuildingAnimation();
           alert('Error: ' + (data.error || 'Unknown error'));
           break;
 
         case 'requestCancelled':
           statusIndicator.classList.remove('show');
           setStreamingState(false);
+          stopBuildingAnimation();
           break;
 
         case 'updatePlan':
