@@ -36,6 +36,32 @@ interface ProjectState {
   keyDecisions?: string[];
   completedTasks?: string[];
   blockers?: string[];
+
+  // AI Project Memory
+  aiMemory?: AIMemory;
+}
+
+// AI Project Memory - persists across sessions
+interface AIMemory {
+  // Architectural decisions learned from conversations
+  architecture: MemoryItem[];
+  // User preferences and coding style
+  preferences: MemoryItem[];
+  // Important files and their purposes
+  keyFiles: MemoryItem[];
+  // Common patterns used in this project
+  patterns: MemoryItem[];
+  // Things to avoid (learned from errors/feedback)
+  avoid: MemoryItem[];
+  // Last updated timestamp
+  lastUpdated: string;
+}
+
+interface MemoryItem {
+  content: string;
+  confidence: number; // 0-1, higher = more certain
+  source: 'user' | 'inferred' | 'explicit'; // Where this came from
+  timestamp: string;
 }
 
 interface ProjectUpdate {
@@ -141,6 +167,9 @@ export class ProjectContext {
         console.error('Failed to read blockers:', error);
       }
     }
+
+    // Load AI Project Memory
+    state.aiMemory = await this._loadAIMemory(rootPath);
 
     // Cache the result
     this._cache = state;
@@ -522,5 +551,207 @@ export class ProjectContext {
     }
 
     return blockers;
+  }
+
+  // ==================== AI PROJECT MEMORY ====================
+
+  /**
+   * Load AI memory from .codebakers/memory.json
+   */
+  private async _loadAIMemory(rootPath: string): Promise<AIMemory | undefined> {
+    const memoryPath = path.join(rootPath, '.codebakers', 'memory.json');
+
+    if (!fs.existsSync(memoryPath)) {
+      return undefined;
+    }
+
+    try {
+      const content = fs.readFileSync(memoryPath, 'utf-8');
+      return JSON.parse(content) as AIMemory;
+    } catch (error) {
+      console.error('Failed to load AI memory:', error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Save AI memory to .codebakers/memory.json
+   */
+  private async _saveAIMemory(rootPath: string, memory: AIMemory): Promise<void> {
+    const codebakersDir = path.join(rootPath, '.codebakers');
+    const memoryPath = path.join(codebakersDir, 'memory.json');
+
+    // Ensure .codebakers directory exists
+    if (!fs.existsSync(codebakersDir)) {
+      fs.mkdirSync(codebakersDir, { recursive: true });
+    }
+
+    memory.lastUpdated = new Date().toISOString();
+    fs.writeFileSync(memoryPath, JSON.stringify(memory, null, 2));
+  }
+
+  /**
+   * Add a memory item to the AI memory
+   */
+  async addMemory(
+    category: keyof Omit<AIMemory, 'lastUpdated'>,
+    content: string,
+    source: MemoryItem['source'] = 'inferred',
+    confidence: number = 0.7
+  ): Promise<void> {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) return;
+
+    const rootPath = workspaceFolder.uri.fsPath;
+    let memory = await this._loadAIMemory(rootPath);
+
+    // Initialize memory if it doesn't exist
+    if (!memory) {
+      memory = {
+        architecture: [],
+        preferences: [],
+        keyFiles: [],
+        patterns: [],
+        avoid: [],
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    // Check for duplicates (similar content)
+    const existing = memory[category].find(m =>
+      this._similarContent(m.content, content)
+    );
+
+    if (existing) {
+      // Update confidence if higher
+      if (confidence > existing.confidence) {
+        existing.confidence = confidence;
+        existing.timestamp = new Date().toISOString();
+      }
+      return;
+    }
+
+    // Add new memory item
+    const newItem: MemoryItem = {
+      content,
+      confidence,
+      source,
+      timestamp: new Date().toISOString()
+    };
+
+    memory[category].push(newItem);
+
+    // Keep only top 20 items per category (highest confidence)
+    memory[category] = memory[category]
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 20);
+
+    await this._saveAIMemory(rootPath, memory);
+    this._cache = null; // Invalidate cache
+  }
+
+  /**
+   * Check if two strings are similar (simple implementation)
+   */
+  private _similarContent(a: string, b: string): boolean {
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const na = normalize(a);
+    const nb = normalize(b);
+
+    // Check if one contains the other
+    if (na.includes(nb) || nb.includes(na)) return true;
+
+    // Simple similarity check
+    const words1 = new Set(a.toLowerCase().split(/\s+/));
+    const words2 = new Set(b.toLowerCase().split(/\s+/));
+    const intersection = [...words1].filter(w => words2.has(w));
+    const union = new Set([...words1, ...words2]);
+
+    return intersection.length / union.size > 0.7;
+  }
+
+  /**
+   * Format AI memory for inclusion in system prompt
+   */
+  formatMemoryForPrompt(memory: AIMemory): string {
+    const sections: string[] = ['## 🧠 AI Project Memory (learned from previous sessions)'];
+
+    const formatCategory = (items: MemoryItem[], title: string, emoji: string): void => {
+      const highConfidence = items.filter(m => m.confidence >= 0.5);
+      if (highConfidence.length === 0) return;
+
+      sections.push(`\n### ${emoji} ${title}`);
+      for (const item of highConfidence.slice(0, 10)) {
+        const conf = item.confidence >= 0.9 ? '✓' : item.confidence >= 0.7 ? '~' : '?';
+        sections.push(`- [${conf}] ${item.content}`);
+      }
+    };
+
+    formatCategory(memory.architecture, 'Architecture Decisions', '🏗️');
+    formatCategory(memory.preferences, 'User Preferences', '⚙️');
+    formatCategory(memory.keyFiles, 'Key Files', '📁');
+    formatCategory(memory.patterns, 'Common Patterns', '🔄');
+    formatCategory(memory.avoid, 'Things to Avoid', '⛔');
+
+    if (sections.length === 1) {
+      return ''; // No memories to show
+    }
+
+    return sections.join('\n');
+  }
+
+  /**
+   * Learn from AI response - extract key insights to remember
+   */
+  async learnFromResponse(response: string, userMessage: string): Promise<void> {
+    // Look for explicit memory markers in the response
+    const memoryPatterns = [
+      { pattern: /REMEMBER:\s*(.+?)(?:\n|$)/gi, category: 'architecture' as const },
+      { pattern: /USER PREFERS:\s*(.+?)(?:\n|$)/gi, category: 'preferences' as const },
+      { pattern: /KEY FILE:\s*(.+?)(?:\n|$)/gi, category: 'keyFiles' as const },
+      { pattern: /PATTERN:\s*(.+?)(?:\n|$)/gi, category: 'patterns' as const },
+      { pattern: /AVOID:\s*(.+?)(?:\n|$)/gi, category: 'avoid' as const },
+    ];
+
+    for (const { pattern, category } of memoryPatterns) {
+      let match;
+      while ((match = pattern.exec(response)) !== null) {
+        await this.addMemory(category, match[1].trim(), 'explicit', 0.95);
+      }
+    }
+
+    // Auto-learn from certain patterns
+    // If user corrects something, remember to avoid it
+    if (userMessage.toLowerCase().includes("don't") ||
+        userMessage.toLowerCase().includes("never") ||
+        userMessage.toLowerCase().includes("stop")) {
+      const avoidMatch = userMessage.match(/(?:don't|never|stop)\s+(.+?)(?:\.|$)/i);
+      if (avoidMatch) {
+        await this.addMemory('avoid', avoidMatch[1].trim(), 'user', 0.9);
+      }
+    }
+
+    // If user says "always" or "prefer", remember it
+    if (userMessage.toLowerCase().includes("always") ||
+        userMessage.toLowerCase().includes("prefer")) {
+      const prefMatch = userMessage.match(/(?:always|prefer)\s+(.+?)(?:\.|$)/i);
+      if (prefMatch) {
+        await this.addMemory('preferences', prefMatch[1].trim(), 'user', 0.9);
+      }
+    }
+  }
+
+  /**
+   * Clear all AI memories
+   */
+  async clearMemory(): Promise<void> {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) return;
+
+    const memoryPath = path.join(workspaceFolder.uri.fsPath, '.codebakers', 'memory.json');
+    if (fs.existsSync(memoryPath)) {
+      fs.unlinkSync(memoryPath);
+    }
+    this._cache = null;
   }
 }

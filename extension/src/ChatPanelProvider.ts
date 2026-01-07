@@ -146,6 +146,21 @@ export class ChatPanelProvider {
           this._pinnedFiles = [];
           this._updatePinnedFiles();
           break;
+        case 'resetSessionStats':
+          this.client.resetSessionStats();
+          break;
+        case 'logProjectTime':
+          this._logProjectTime(data);
+          break;
+        case 'deploy':
+          this._deployToVercel();
+          break;
+        case 'loadTeamNotes':
+          this._loadTeamNotes();
+          break;
+        case 'saveTeamNotes':
+          this._saveTeamNotes(data.notes);
+          break;
       }
     });
 
@@ -524,6 +539,233 @@ export class ChatPanelProvider {
     }
   }
 
+  /**
+   * Log project time for billing purposes
+   * Persists to .codebakers/timelog.json
+   */
+  private _logProjectTime(data: {
+    activeTime: number;
+    totalCost: number;
+    requests: number;
+    tokens: number;
+    isSessionEnd?: boolean;
+  }) {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) return;
+
+    const fs = require('fs');
+    const path = require('path');
+    const rootPath = workspaceFolder.uri.fsPath;
+    const codebakersDir = path.join(rootPath, '.codebakers');
+    const timelogPath = path.join(codebakersDir, 'timelog.json');
+
+    // Ensure .codebakers directory exists
+    if (!fs.existsSync(codebakersDir)) {
+      fs.mkdirSync(codebakersDir, { recursive: true });
+    }
+
+    // Load existing timelog
+    let timelog: {
+      sessions: Array<{
+        date: string;
+        activeMinutes: number;
+        cost: number;
+        requests: number;
+        tokens: number;
+      }>;
+      totals: {
+        totalMinutes: number;
+        totalCost: number;
+        totalRequests: number;
+        totalTokens: number;
+      };
+    } = {
+      sessions: [],
+      totals: { totalMinutes: 0, totalCost: 0, totalRequests: 0, totalTokens: 0 }
+    };
+
+    if (fs.existsSync(timelogPath)) {
+      try {
+        timelog = JSON.parse(fs.readFileSync(timelogPath, 'utf-8'));
+      } catch {
+        // Use default if corrupted
+      }
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const activeMinutes = Math.round(data.activeTime / 60000);
+
+    // Find or create today's session entry
+    let todaySession = timelog.sessions.find(s => s.date === today);
+    if (!todaySession) {
+      todaySession = { date: today, activeMinutes: 0, cost: 0, requests: 0, tokens: 0 };
+      timelog.sessions.push(todaySession);
+    }
+
+    // Update today's session (take the max values as they're cumulative)
+    todaySession.activeMinutes = Math.max(todaySession.activeMinutes, activeMinutes);
+    todaySession.cost = Math.max(todaySession.cost, data.totalCost);
+    todaySession.requests = Math.max(todaySession.requests, data.requests);
+    todaySession.tokens = Math.max(todaySession.tokens, data.tokens);
+
+    // Recalculate totals
+    timelog.totals = {
+      totalMinutes: timelog.sessions.reduce((sum, s) => sum + s.activeMinutes, 0),
+      totalCost: timelog.sessions.reduce((sum, s) => sum + s.cost, 0),
+      totalRequests: timelog.sessions.reduce((sum, s) => sum + s.requests, 0),
+      totalTokens: timelog.sessions.reduce((sum, s) => sum + s.tokens, 0)
+    };
+
+    // Keep only last 90 days of sessions
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 90);
+    timelog.sessions = timelog.sessions.filter(s => new Date(s.date) >= cutoff);
+
+    // Write updated timelog
+    fs.writeFileSync(timelogPath, JSON.stringify(timelog, null, 2));
+  }
+
+  /**
+   * Deploy to Vercel with one click
+   */
+  private async _deployToVercel() {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+      vscode.window.showErrorMessage('No workspace folder open');
+      return;
+    }
+
+    // Show progress
+    this._panel?.webview.postMessage({
+      type: 'showStatus',
+      show: true,
+      text: '🚀 Deploying to Vercel...'
+    });
+
+    // Add deploying message to chat
+    this._messages.push({
+      role: 'assistant',
+      content: '🚀 **Starting Vercel deployment...**\n\nRunning `vercel --prod`...',
+      timestamp: new Date()
+    });
+    this._updateWebview();
+
+    try {
+      const cp = require('child_process');
+      const rootPath = workspaceFolder.uri.fsPath;
+
+      // Run vercel --prod
+      const result = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+        cp.exec(
+          'npx vercel --prod --yes',
+          { cwd: rootPath, timeout: 300000 }, // 5 minute timeout
+          (error: any, stdout: string, stderr: string) => {
+            if (error && !stdout) {
+              reject(error);
+            } else {
+              resolve({ stdout, stderr });
+            }
+          }
+        );
+      });
+
+      // Extract deployment URL from output
+      const urlMatch = result.stdout.match(/https:\/\/[^\s]+\.vercel\.app/);
+      const deployUrl = urlMatch ? urlMatch[0] : null;
+
+      // Success message
+      let successMsg = '✅ **Deployment successful!**\n\n';
+      if (deployUrl) {
+        successMsg += `🔗 **Live URL:** [${deployUrl}](${deployUrl})\n\n`;
+      }
+      successMsg += '```\n' + result.stdout.slice(-500) + '\n```';
+
+      this._messages.push({
+        role: 'assistant',
+        content: successMsg,
+        timestamp: new Date()
+      });
+
+      vscode.window.showInformationMessage(
+        `✅ Deployed successfully!${deployUrl ? ` URL: ${deployUrl}` : ''}`,
+        'Open URL'
+      ).then(selection => {
+        if (selection === 'Open URL' && deployUrl) {
+          vscode.env.openExternal(vscode.Uri.parse(deployUrl));
+        }
+      });
+
+    } catch (error: any) {
+      const errorMsg = error.message || 'Unknown error';
+
+      // Check if Vercel CLI is not installed
+      if (errorMsg.includes('vercel') && errorMsg.includes('not found')) {
+        this._messages.push({
+          role: 'assistant',
+          content: '❌ **Vercel CLI not found**\n\nPlease install it first:\n```bash\nnpm install -g vercel\n```\n\nThen run `vercel login` to authenticate.',
+          timestamp: new Date()
+        });
+      } else {
+        this._messages.push({
+          role: 'assistant',
+          content: `❌ **Deployment failed**\n\n\`\`\`\n${errorMsg}\n\`\`\`\n\nMake sure you have:\n1. Vercel CLI installed (\`npm i -g vercel\`)\n2. Logged in (\`vercel login\`)\n3. Project linked (\`vercel link\`)`,
+          timestamp: new Date()
+        });
+      }
+
+      vscode.window.showErrorMessage(`Deployment failed: ${errorMsg}`);
+    } finally {
+      this._panel?.webview.postMessage({ type: 'showStatus', show: false });
+      this._updateWebview();
+    }
+  }
+
+  /**
+   * Load team notes from .codebakers/team-notes.md
+   */
+  private _loadTeamNotes() {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) return;
+
+    const fs = require('fs');
+    const path = require('path');
+    const notesPath = path.join(workspaceFolder.uri.fsPath, '.codebakers', 'team-notes.md');
+
+    let notes = '';
+    if (fs.existsSync(notesPath)) {
+      try {
+        notes = fs.readFileSync(notesPath, 'utf-8');
+      } catch {
+        // File doesn't exist yet, that's ok
+      }
+    }
+
+    this._panel?.webview.postMessage({
+      type: 'updateTeamNotes',
+      notes
+    });
+  }
+
+  /**
+   * Save team notes to .codebakers/team-notes.md
+   */
+  private _saveTeamNotes(notes: string) {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) return;
+
+    const fs = require('fs');
+    const path = require('path');
+    const codebakersDir = path.join(workspaceFolder.uri.fsPath, '.codebakers');
+    const notesPath = path.join(codebakersDir, 'team-notes.md');
+
+    // Ensure .codebakers directory exists
+    if (!fs.existsSync(codebakersDir)) {
+      fs.mkdirSync(codebakersDir, { recursive: true });
+    }
+
+    fs.writeFileSync(notesPath, notes);
+  }
+
   // Pinned files management (Cursor-style context files)
   private async _addPinnedFile() {
     const files = await vscode.window.showOpenDialog({
@@ -694,6 +936,14 @@ export class ChatPanelProvider {
         timestamp: new Date()
       });
 
+      // Send usage stats to webview for cost tracking
+      if (response.usage) {
+        this._panel?.webview.postMessage({
+          type: 'updateSessionStats',
+          usage: response.usage
+        });
+      }
+
       // Add file operations to pending changes panel
       if (response.fileOperations && response.fileOperations.length > 0) {
         for (const op of response.fileOperations) {
@@ -719,6 +969,9 @@ export class ChatPanelProvider {
       if (response.projectUpdates) {
         await this.projectContext.applyUpdates(response.projectUpdates);
       }
+
+      // Learn from the response and user message for AI memory
+      await this.projectContext.learnFromResponse(response.content, userMessage);
 
       if (this._messages.length > 20) {
         await this._summarizeConversation();
@@ -768,6 +1021,17 @@ export class ChatPanelProvider {
         role: 'system',
         content: `The user has pinned the following files for context. These files should be referenced when relevant:${pinnedContext}`
       });
+    }
+
+    // Include AI Project Memory (learned from previous sessions)
+    if (projectState?.aiMemory) {
+      const memoryPrompt = this.projectContext.formatMemoryForPrompt(projectState.aiMemory);
+      if (memoryPrompt) {
+        messages.push({
+          role: 'system',
+          content: memoryPrompt
+        });
+      }
     }
 
     const recentMessages = this._messages.slice(-10);
@@ -910,6 +1174,53 @@ export class ChatPanelProvider {
 
     .plan-badge.trial {
       background: #f0a030;
+    }
+
+    /* Session stats bar */
+    .session-stats {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 12px;
+      background: var(--vscode-editor-background);
+      border-bottom: 1px solid var(--vscode-panel-border);
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+    }
+
+    .session-stats .stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .session-stats .stat-label {
+      opacity: 0.7;
+    }
+
+    .session-stats .stat-value {
+      font-weight: 500;
+      color: var(--vscode-foreground);
+    }
+
+    .session-stats .stat-value.cost {
+      color: #4ec9b0;
+    }
+
+    .session-stats .reset-btn {
+      margin-left: auto;
+      background: transparent;
+      border: none;
+      color: var(--vscode-descriptionForeground);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+
+    .session-stats .reset-btn:hover {
+      background: var(--vscode-toolbar-hoverBackground);
+      color: var(--vscode-foreground);
     }
 
     /* Main content area */
@@ -1234,6 +1545,14 @@ export class ChatPanelProvider {
 
     .item-btn.accept:hover { background: #218838; }
 
+    .item-btn.preview {
+      background: #0d6efd;
+      border-color: #0d6efd;
+      color: white;
+    }
+
+    .item-btn.preview:hover { background: #0b5ed7; }
+
     .item-btn.reject {
       color: #dc3545;
       border-color: #dc3545;
@@ -1358,6 +1677,69 @@ export class ChatPanelProvider {
       color: var(--vscode-errorForeground);
     }
 
+    /* Team Notes */
+    .team-notes {
+      padding: 8px 12px;
+      border-top: 1px solid var(--vscode-panel-border);
+      background: var(--vscode-sideBar-background);
+      flex-shrink: 0;
+    }
+
+    .team-notes-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .team-notes-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .team-notes-hint {
+      font-size: 10px;
+      opacity: 0.6;
+      font-weight: normal;
+    }
+
+    .team-btn {
+      background: var(--vscode-button-secondaryBackground);
+      color: var(--vscode-button-secondaryForeground);
+      border: none;
+      border-radius: 4px;
+      padding: 3px 10px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+
+    .team-btn:hover {
+      background: var(--vscode-button-secondaryHoverBackground);
+    }
+
+    .team-notes-input {
+      width: 100%;
+      min-height: 50px;
+      max-height: 100px;
+      resize: vertical;
+      background: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border: 1px solid var(--vscode-input-border);
+      border-radius: 4px;
+      padding: 8px;
+      font-size: 11px;
+      font-family: var(--vscode-font-family);
+      line-height: 1.4;
+    }
+
+    .team-notes-input:focus {
+      outline: none;
+      border-color: var(--vscode-focusBorder);
+    }
+
     .add-files-hint {
       padding: 8px 16px;
       border-top: 1px solid var(--vscode-panel-border);
@@ -1453,6 +1835,62 @@ export class ChatPanelProvider {
     .cancel-btn.show { display: block; }
     .cancel-btn:hover { background: #c82333; }
 
+    /* Voice button */
+    .voice-btn {
+      background: transparent;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      padding: 0 12px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 40px;
+      transition: all 0.2s;
+    }
+
+    .voice-btn:hover {
+      background: var(--vscode-toolbar-hoverBackground);
+      border-color: var(--vscode-focusBorder);
+    }
+
+    .voice-btn.listening {
+      background: #dc3545;
+      border-color: #dc3545;
+      animation: pulse 1.5s infinite;
+    }
+
+    .voice-btn.listening::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      border: 2px solid #dc3545;
+      animation: ripple 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    @keyframes ripple {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+
+    .voice-status {
+      font-size: 10px;
+      color: var(--vscode-descriptionForeground);
+      text-align: center;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .voice-status.show { display: block; }
+
     /* Welcome screen */
     .welcome {
       flex: 1;
@@ -1487,6 +1925,16 @@ export class ChatPanelProvider {
 
     .quick-action:hover {
       background: var(--vscode-button-secondaryHoverBackground);
+    }
+
+    .quick-action.deploy {
+      background: linear-gradient(135deg, #000 0%, #333 100%);
+      color: white;
+      border-color: #444;
+    }
+
+    .quick-action.deploy:hover {
+      background: linear-gradient(135deg, #111 0%, #444 100%);
     }
 
     /* Login prompt */
@@ -1572,6 +2020,26 @@ export class ChatPanelProvider {
     <button class="header-btn" id="clearBtn">Clear</button>
   </div>
 
+  <div class="session-stats" id="sessionStats">
+    <div class="stat">
+      <span class="stat-label">Requests:</span>
+      <span class="stat-value" id="statRequests">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Tokens:</span>
+      <span class="stat-value" id="statTokens">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Session Cost:</span>
+      <span class="stat-value cost" id="statCost">$0.0000</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Time:</span>
+      <span class="stat-value" id="statTime">0m</span>
+    </div>
+    <button class="reset-btn" id="resetStatsBtn" title="Reset session stats">↺ Reset</button>
+  </div>
+
   <div class="login-prompt" id="loginPrompt">
     <div class="welcome-icon">🔐</div>
     <div class="welcome-title">Sign in to CodeBakers</div>
@@ -1589,6 +2057,7 @@ export class ChatPanelProvider {
           <button class="quick-action" data-action="/build">Build Project</button>
           <button class="quick-action" data-action="/feature">Add Feature</button>
           <button class="quick-action" data-action="/audit">Audit Code</button>
+          <button class="quick-action deploy" data-action="/deploy">🚀 Deploy</button>
         </div>
       </div>
 
@@ -1638,6 +2107,20 @@ export class ChatPanelProvider {
     <div class="pinned-list" id="pinnedList"></div>
   </div>
 
+  <!-- Team Notes Section (shared project context for team) -->
+  <div class="team-notes" id="teamNotes">
+    <div class="team-notes-header">
+      <div class="team-notes-title">
+        <span>👥 Team Notes</span>
+        <span class="team-notes-hint">(shared with team)</span>
+      </div>
+      <div class="team-notes-actions">
+        <button class="team-btn" id="saveTeamNotesBtn">Save</button>
+      </div>
+    </div>
+    <textarea class="team-notes-input" id="teamNotesInput" placeholder="Add shared notes, decisions, or context for your team..."></textarea>
+  </div>
+
   <!-- Add Files Button (shown when no files pinned) -->
   <div class="add-files-hint" id="addFilesHint">
     <button class="add-files-btn" id="addFilesBtn">
@@ -1652,9 +2135,11 @@ export class ChatPanelProvider {
       placeholder="Ask CodeBakers anything..."
       rows="1"
     ></textarea>
+    <button class="voice-btn" id="voiceBtn" title="Voice input (click to speak)">🎤</button>
     <button class="send-btn" id="sendBtn">Send</button>
     <button class="cancel-btn" id="cancelBtn">Cancel</button>
   </div>
+  <div class="voice-status" id="voiceStatus">Listening...</div>
 
   <script>
     const vscode = acquireVsCodeApi();
@@ -1682,6 +2167,266 @@ export class ChatPanelProvider {
     let currentCommands = [];
     let currentPinnedFiles = [];
     let isStreaming = false;
+
+    // Session stats elements
+    const statRequestsEl = document.getElementById('statRequests');
+    const statTokensEl = document.getElementById('statTokens');
+    const statCostEl = document.getElementById('statCost');
+    const statTimeEl = document.getElementById('statTime');
+    const resetStatsBtn = document.getElementById('resetStatsBtn');
+
+    // Session stats tracking
+    let sessionStats = {
+      requests: 0,
+      tokens: 0,
+      cost: 0,
+      startTime: Date.now(),
+      activeTime: 0, // in milliseconds
+      lastActivity: Date.now(),
+      isActive: true
+    };
+
+    // Activity detection constants
+    const IDLE_THRESHOLD = 5 * 60 * 1000; // 5 minutes of no activity = idle
+    const ACTIVITY_CHECK_INTERVAL = 30 * 1000; // Check every 30 seconds
+
+    // Update session time every minute
+    setInterval(() => {
+      updateSessionTime();
+    }, 60000);
+
+    // Activity detection - pause timer when user is idle
+    setInterval(() => {
+      const now = Date.now();
+      const timeSinceActivity = now - sessionStats.lastActivity;
+
+      if (timeSinceActivity > IDLE_THRESHOLD && sessionStats.isActive) {
+        // User went idle
+        sessionStats.isActive = false;
+        statTimeEl.style.opacity = '0.5'; // Dim to show idle
+        statTimeEl.title = 'Timer paused (idle)';
+      }
+    }, ACTIVITY_CHECK_INTERVAL);
+
+    // Track user activity
+    function recordActivity() {
+      const now = Date.now();
+      if (!sessionStats.isActive) {
+        // User came back from idle
+        sessionStats.isActive = true;
+        statTimeEl.style.opacity = '1';
+        statTimeEl.title = '';
+      } else {
+        // Add active time since last activity (capped at reasonable amount)
+        const timeDiff = Math.min(now - sessionStats.lastActivity, IDLE_THRESHOLD);
+        sessionStats.activeTime += timeDiff;
+      }
+      sessionStats.lastActivity = now;
+    }
+
+    // Register activity on user interactions
+    inputEl.addEventListener('input', recordActivity);
+    inputEl.addEventListener('focus', recordActivity);
+    document.addEventListener('click', recordActivity);
+    document.addEventListener('keydown', recordActivity);
+
+    function updateSessionTime() {
+      // Calculate total elapsed and active time
+      const totalElapsed = Date.now() - sessionStats.startTime;
+
+      // If user is currently active, add time since last activity to active time
+      let displayActiveTime = sessionStats.activeTime;
+      if (sessionStats.isActive) {
+        displayActiveTime += Math.min(Date.now() - sessionStats.lastActivity, IDLE_THRESHOLD);
+      }
+
+      const activeMinutes = Math.floor(displayActiveTime / 60000);
+      const activeHours = Math.floor(activeMinutes / 60);
+
+      // Show active time (billable) vs total elapsed
+      const activeDisplay = activeHours > 0
+        ? activeHours + 'h ' + (activeMinutes % 60) + 'm'
+        : activeMinutes + 'm';
+
+      statTimeEl.textContent = activeDisplay;
+      statTimeEl.title = sessionStats.isActive ? 'Active time (billable)' : 'Timer paused (idle)';
+    }
+
+    function updateSessionStats(usage) {
+      recordActivity(); // Mark activity when we get a response
+
+      if (usage) {
+        sessionStats.requests += 1;
+        sessionStats.tokens += usage.totalTokens || 0;
+        sessionStats.cost += usage.estimatedCost || 0;
+      }
+      statRequestsEl.textContent = sessionStats.requests;
+      statTokensEl.textContent = sessionStats.tokens.toLocaleString();
+      statCostEl.textContent = '$' + sessionStats.cost.toFixed(4);
+      updateSessionTime();
+
+      // Log time to project (async, non-blocking)
+      vscode.postMessage({
+        type: 'logProjectTime',
+        activeTime: sessionStats.activeTime,
+        totalCost: sessionStats.cost,
+        requests: sessionStats.requests,
+        tokens: sessionStats.tokens
+      });
+    }
+
+    function resetSessionStats() {
+      // Save final time before reset
+      vscode.postMessage({
+        type: 'logProjectTime',
+        activeTime: sessionStats.activeTime,
+        totalCost: sessionStats.cost,
+        requests: sessionStats.requests,
+        tokens: sessionStats.tokens,
+        isSessionEnd: true
+      });
+
+      sessionStats = {
+        requests: 0,
+        tokens: 0,
+        cost: 0,
+        startTime: Date.now(),
+        activeTime: 0,
+        lastActivity: Date.now(),
+        isActive: true
+      };
+      updateSessionStats(null);
+      vscode.postMessage({ type: 'resetSessionStats' });
+    }
+
+    resetStatsBtn.addEventListener('click', resetSessionStats);
+
+    // Voice input using Web Speech API
+    const voiceBtn = document.getElementById('voiceBtn');
+    const voiceStatus = document.getElementById('voiceStatus');
+    let recognition = null;
+    let isListening = false;
+
+    // Initialize speech recognition if available
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        isListening = true;
+        voiceBtn.classList.add('listening');
+        voiceBtn.textContent = '🔴';
+        voiceStatus.textContent = 'Listening...';
+        voiceStatus.classList.add('show');
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        voiceBtn.classList.remove('listening');
+        voiceBtn.textContent = '🎤';
+        voiceStatus.classList.remove('show');
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        let isFinal = false;
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            isFinal = true;
+          }
+        }
+
+        // Show interim results in input
+        if (!isFinal) {
+          inputEl.value = transcript;
+          voiceStatus.textContent = 'Listening: ' + transcript.substring(0, 30) + '...';
+        } else {
+          // Final result - put in input and optionally send
+          inputEl.value = transcript;
+          voiceStatus.textContent = 'Got: ' + transcript.substring(0, 30) + (transcript.length > 30 ? '...' : '');
+
+          // Auto-resize textarea
+          inputEl.style.height = 'auto';
+          inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + 'px';
+
+          // Auto-send after brief delay (user can cancel by clicking elsewhere)
+          setTimeout(() => {
+            if (inputEl.value === transcript && transcript.trim()) {
+              sendMessage();
+            }
+          }, 500);
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        isListening = false;
+        voiceBtn.classList.remove('listening');
+        voiceBtn.textContent = '🎤';
+
+        if (event.error === 'not-allowed') {
+          voiceStatus.textContent = 'Microphone access denied';
+        } else if (event.error === 'no-speech') {
+          voiceStatus.textContent = 'No speech detected';
+        } else {
+          voiceStatus.textContent = 'Error: ' + event.error;
+        }
+
+        setTimeout(() => voiceStatus.classList.remove('show'), 2000);
+      };
+    } else {
+      // Speech recognition not supported
+      voiceBtn.style.display = 'none';
+    }
+
+    voiceBtn.addEventListener('click', () => {
+      if (!recognition) {
+        voiceStatus.textContent = 'Voice not supported in this environment';
+        voiceStatus.classList.add('show');
+        setTimeout(() => voiceStatus.classList.remove('show'), 2000);
+        return;
+      }
+
+      if (isListening) {
+        recognition.stop();
+      } else {
+        try {
+          recognition.start();
+        } catch (e) {
+          // Already started
+          recognition.stop();
+        }
+      }
+    });
+
+    // Team Notes functionality
+    const teamNotesInput = document.getElementById('teamNotesInput');
+    const saveTeamNotesBtn = document.getElementById('saveTeamNotesBtn');
+
+    // Load team notes on startup
+    vscode.postMessage({ type: 'loadTeamNotes' });
+
+    saveTeamNotesBtn.addEventListener('click', () => {
+      const notes = teamNotesInput.value;
+      vscode.postMessage({ type: 'saveTeamNotes', notes });
+      saveTeamNotesBtn.textContent = 'Saved ✓';
+      setTimeout(() => {
+        saveTeamNotesBtn.textContent = 'Save';
+      }, 1500);
+    });
+
+    // Auto-save on blur
+    teamNotesInput.addEventListener('blur', () => {
+      const notes = teamNotesInput.value;
+      if (notes.trim()) {
+        vscode.postMessage({ type: 'saveTeamNotes', notes });
+      }
+    });
 
     // Command history for up/down navigation
     let commandHistory = JSON.parse(localStorage.getItem('codebakers-history') || '[]');
@@ -1735,6 +2480,11 @@ export class ChatPanelProvider {
     }
 
     function quickAction(command) {
+      // Handle deploy directly without going through chat
+      if (command === '/deploy') {
+        vscode.postMessage({ type: 'deploy' });
+        return;
+      }
       inputEl.value = command + ' ';
       inputEl.focus();
     }
@@ -2050,10 +2800,10 @@ export class ChatPanelProvider {
         if (change.status === 'pending') {
           html += '<div class="pending-item-actions">';
           if (change.hasContent && change.action !== 'delete') {
-            html += '<button class="item-btn" data-action="diff" data-id="' + change.id + '">Diff</button>';
+            html += '<button class="item-btn preview" data-action="diff" data-id="' + change.id + '" title="Preview changes before applying">👁 Preview</button>';
           }
-          html += '<button class="item-btn reject" data-action="reject" data-id="' + change.id + '">✕</button>';
-          html += '<button class="item-btn accept" data-action="accept" data-id="' + change.id + '">✓</button>';
+          html += '<button class="item-btn reject" data-action="reject" data-id="' + change.id + '" title="Reject this change">✕</button>';
+          html += '<button class="item-btn accept" data-action="accept" data-id="' + change.id + '" title="Apply this change">✓ Apply</button>';
           html += '</div>';
         } else if (change.status === 'applied') {
           html += '<div class="pending-item-actions">';
@@ -2208,6 +2958,14 @@ export class ChatPanelProvider {
           const badge = document.getElementById('planBadge');
           badge.textContent = data.plan.charAt(0).toUpperCase() + data.plan.slice(1);
           badge.className = 'plan-badge' + (data.plan === 'trial' ? ' trial' : '');
+          break;
+
+        case 'updateSessionStats':
+          updateSessionStats(data.usage);
+          break;
+
+        case 'updateTeamNotes':
+          teamNotesInput.value = data.notes || '';
           break;
 
         case 'showStatus':

@@ -14,6 +14,21 @@ export interface CommandToRun {
   description?: string;
 }
 
+interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimatedCost: number; // in USD
+}
+
+interface SessionStats {
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCost: number;
+  requestCount: number;
+  startTime: Date;
+}
+
 interface ChatResponse {
   content: string;
   thinking?: string;
@@ -26,6 +41,7 @@ interface ChatResponse {
   };
   validation?: ValidationResult;
   dependencyCheck?: DependencyCheck;
+  usage?: TokenUsage;
 }
 
 interface StreamCallbacks {
@@ -55,6 +71,19 @@ export class CodeBakersClient {
   private validator: CodeValidator;
   private validatorInitialized: boolean = false;
 
+  // Session cost tracking
+  private sessionStats: SessionStats = {
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalCost: 0,
+    requestCount: 0,
+    startTime: new Date()
+  };
+
+  // Claude Sonnet 4 pricing (as of Jan 2025)
+  private readonly PRICE_PER_1K_INPUT = 0.003; // $3 per 1M input tokens
+  private readonly PRICE_PER_1K_OUTPUT = 0.015; // $15 per 1M output tokens
+
   constructor(private readonly context: vscode.ExtensionContext) {
     // Initialize code validator
     this.validator = new CodeValidator();
@@ -78,6 +107,44 @@ export class CodeBakersClient {
     await this.context.globalState.update('codebakers.sessionToken', undefined);
     await this.context.globalState.update('codebakers.user', undefined);
     vscode.window.showInformationMessage('Logged out of CodeBakers');
+  }
+
+  /**
+   * Get current session statistics for cost tracking
+   */
+  getSessionStats(): SessionStats & { formattedCost: string; formattedDuration: string } {
+    const now = new Date();
+    const durationMs = now.getTime() - this.sessionStats.startTime.getTime();
+    const minutes = Math.floor(durationMs / 60000);
+    const hours = Math.floor(minutes / 60);
+
+    return {
+      ...this.sessionStats,
+      formattedCost: `$${this.sessionStats.totalCost.toFixed(4)}`,
+      formattedDuration: hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`
+    };
+  }
+
+  /**
+   * Reset session stats (e.g., when starting fresh)
+   */
+  resetSessionStats(): void {
+    this.sessionStats = {
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      totalCost: 0,
+      requestCount: 0,
+      startTime: new Date()
+    };
+  }
+
+  /**
+   * Calculate cost for a given token usage
+   */
+  private _calculateCost(inputTokens: number, outputTokens: number): number {
+    const inputCost = (inputTokens / 1000) * this.PRICE_PER_1K_INPUT;
+    const outputCost = (outputTokens / 1000) * this.PRICE_PER_1K_OUTPUT;
+    return inputCost + outputCost;
   }
 
   /**
@@ -479,8 +546,29 @@ export class CodeBakersClient {
           callbacks?.onContent?.(content);
         });
 
-        // Wait for completion
-        await stream.finalMessage();
+        // Wait for completion and get usage stats
+        const finalMessage = await stream.finalMessage();
+
+        // Capture token usage from the response
+        let usage: TokenUsage | undefined;
+        if (finalMessage.usage) {
+          const inputTokens = finalMessage.usage.input_tokens;
+          const outputTokens = finalMessage.usage.output_tokens;
+          const cost = this._calculateCost(inputTokens, outputTokens);
+
+          usage = {
+            inputTokens,
+            outputTokens,
+            totalTokens: inputTokens + outputTokens,
+            estimatedCost: cost
+          };
+
+          // Update session stats
+          this.sessionStats.totalInputTokens += inputTokens;
+          this.sessionStats.totalOutputTokens += outputTokens;
+          this.sessionStats.totalCost += cost;
+          this.sessionStats.requestCount += 1;
+        }
 
         // Check if aborted
         if (callbacks?.abortSignal?.aborted) {
@@ -588,8 +676,12 @@ export class CodeBakersClient {
         // Build TSC status for footer
         const tscStatus = tscResult ? (tscResult.passed ? '✅' : '❌') : '⏭️';
 
+        // Build cost display
+        const costDisplay = usage ? ` | Cost: $${usage.estimatedCost.toFixed(4)}` : '';
+        const tokenDisplay = usage ? ` | Tokens: ${usage.totalTokens.toLocaleString()}` : '';
+
         contentWithFooter += '\n\n---\n🍪 **CodeBakers** ' + statusIcon + ' | Files: ' +
-          fileCount + ' | Commands: ' + cmdCount + ' | TSC: ' + tscStatus + ' | Patterns: ' + patternNames + ' | v1.0.41';
+          fileCount + ' | Commands: ' + cmdCount + ' | TSC: ' + tscStatus + tokenDisplay + costDisplay + ' | ' + patternNames;
 
         return {
           content: contentWithFooter,
@@ -598,7 +690,8 @@ export class CodeBakersClient {
           commands: commands.length > 0 ? commands : undefined,
           projectUpdates,
           validation,
-          dependencyCheck
+          dependencyCheck,
+          usage
         };
       } catch (error: any) {
         lastError = error;
