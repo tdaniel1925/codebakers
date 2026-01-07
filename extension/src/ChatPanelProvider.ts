@@ -1368,6 +1368,465 @@ export class ChatPanelProvider {
       background: #f0a030;
     }
 
+    /* View Mode Toggle Buttons */
+    .view-mode-toggle {
+      display: flex;
+      gap: 2px;
+      background: var(--vscode-input-background, #3c3c3c);
+      border-radius: 6px;
+      padding: 2px;
+      margin-left: auto;
+    }
+
+    .view-mode-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      color: var(--vscode-foreground);
+      font-size: 11px;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: all 0.2s ease;
+    }
+
+    .view-mode-btn:hover {
+      opacity: 0.9;
+    }
+
+    .view-mode-btn.active {
+      background: var(--vscode-button-background, #0e639c);
+      color: var(--vscode-button-foreground, #fff);
+      opacity: 1;
+    }
+
+    .view-mode-btn .mode-icon {
+      font-size: 12px;
+    }
+
+    /* Pending Badge */
+    .pending-badge {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: var(--vscode-badge-background, #4d4d4d);
+      color: var(--vscode-badge-foreground, #fff);
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      animation: pendingPulse 2s ease-in-out infinite;
+    }
+
+    .pending-badge.visible {
+      display: flex;
+    }
+
+    .pending-badge:hover {
+      background: var(--vscode-button-background, #0e639c);
+    }
+
+    .pending-badge .badge-icon {
+      font-size: 12px;
+    }
+
+    .pending-badge .badge-count {
+      min-width: 16px;
+      text-align: center;
+    }
+
+    @keyframes pendingPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* Slide-out Pending Panel */
+    .pending-slideout {
+      position: fixed;
+      top: 0;
+      right: -320px;
+      width: 300px;
+      height: 100%;
+      background: var(--vscode-sideBar-background, #252526);
+      border-left: 1px solid var(--vscode-panel-border, #3c3c3c);
+      z-index: 1000;
+      transition: right 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pending-slideout.open {
+      right: 0;
+    }
+
+    .pending-slideout-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--vscode-panel-border, #3c3c3c);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .pending-slideout-title {
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pending-slideout-close {
+      background: transparent;
+      border: none;
+      color: var(--vscode-foreground);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+      opacity: 0.7;
+    }
+
+    .pending-slideout-close:hover {
+      opacity: 1;
+    }
+
+    .pending-slideout-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .pending-slideout-actions {
+      padding: 12px 16px;
+      border-top: 1px solid var(--vscode-panel-border, #3c3c3c);
+      display: flex;
+      gap: 8px;
+    }
+
+    .pending-slideout-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .pending-slideout-btn.accept {
+      background: var(--vscode-button-background, #0e639c);
+      color: var(--vscode-button-foreground, #fff);
+    }
+
+    .pending-slideout-btn.accept:hover {
+      background: var(--vscode-button-hoverBackground, #1177bb);
+    }
+
+    .pending-slideout-btn.reject {
+      background: var(--vscode-button-secondaryBackground, #3a3d41);
+      color: var(--vscode-button-secondaryForeground, #fff);
+    }
+
+    .pending-slideout-btn.reject:hover {
+      background: var(--vscode-button-secondaryHoverBackground, #45494e);
+    }
+
+    .pending-file-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--vscode-list-hoverBackground, #2a2d2e);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .pending-file-item:hover {
+      background: var(--vscode-list-activeSelectionBackground, #094771);
+    }
+
+    .pending-file-item .file-icon {
+      opacity: 0.7;
+    }
+
+    .pending-file-item .file-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pending-file-item .file-action {
+      font-size: 10px;
+      padding: 2px 6px;
+      background: var(--vscode-badge-background, #4d4d4d);
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .pending-history {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--vscode-panel-border, #3c3c3c);
+    }
+
+    .pending-history-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--vscode-descriptionForeground, #888);
+      margin-bottom: 8px;
+    }
+
+    .pending-history-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground, #888);
+    }
+
+    .pending-history-item .check {
+      color: #4ec9b0;
+    }
+
+    /* Slideout overlay */
+    .slideout-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .slideout-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Canvas Mode Layout */
+    .canvas-mode .split-container {
+      flex-direction: column;
+    }
+
+    .canvas-mode .main-content {
+      display: none;
+    }
+
+    .canvas-mode .preview-panel {
+      display: flex !important;
+      flex: 1 !important;
+      width: 100% !important;
+      border-left: none !important;
+    }
+
+    .canvas-mode .preview-header {
+      display: none;
+    }
+
+    .canvas-mode .preview-canvas {
+      border-radius: 0;
+    }
+
+    /* AI Response Bar */
+    .ai-response-bar {
+      display: none;
+      flex-direction: column;
+      border-top: 1px solid var(--vscode-panel-border, #3c3c3c);
+      background: var(--vscode-editor-background, #1e1e1e);
+      max-height: 200px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .canvas-mode .ai-response-bar {
+      display: flex;
+    }
+
+    .ai-response-bar.collapsed {
+      max-height: 40px;
+    }
+
+    .ai-response-bar-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      min-height: 40px;
+    }
+
+    .ai-response-bar-header:hover {
+      background: var(--vscode-list-hoverBackground, #2a2d2e);
+    }
+
+    .ai-response-icon {
+      font-size: 14px;
+    }
+
+    .ai-response-summary {
+      flex: 1;
+      font-size: 12px;
+      color: var(--vscode-foreground);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ai-response-toggle {
+      font-size: 10px;
+      opacity: 0.6;
+      transition: transform 0.2s ease;
+    }
+
+    .ai-response-bar.collapsed .ai-response-toggle {
+      transform: rotate(180deg);
+    }
+
+    .ai-response-content {
+      padding: 0 16px 12px;
+      overflow-y: auto;
+      flex: 1;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .ai-response-bar.collapsed .ai-response-content {
+      display: none;
+    }
+
+    /* Canvas Mode Chat Input */
+    .canvas-chat-input {
+      display: none;
+      padding: 12px 16px;
+      border-top: 1px solid var(--vscode-panel-border, #3c3c3c);
+      background: var(--vscode-editor-background, #1e1e1e);
+    }
+
+    .canvas-mode .canvas-chat-input {
+      display: block;
+    }
+
+    .canvas-mode .input-area,
+    .canvas-mode .action-bar,
+    .canvas-mode .pinned-files,
+    .canvas-mode .team-notes,
+    .canvas-mode .add-files-hint {
+      display: none !important;
+    }
+
+    .canvas-input-context {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground, #888);
+    }
+
+    .canvas-input-context .context-node {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      background: var(--vscode-badge-background, #4d4d4d);
+      border-radius: 4px;
+    }
+
+    .canvas-input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .canvas-input-field {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--vscode-input-background, #3c3c3c);
+      border: 1px solid var(--vscode-input-border, #3c3c3c);
+      border-radius: 6px;
+      color: var(--vscode-input-foreground, #cccccc);
+      font-size: 13px;
+      resize: none;
+      font-family: inherit;
+    }
+
+    .canvas-input-field:focus {
+      outline: none;
+      border-color: var(--vscode-focusBorder, #007acc);
+    }
+
+    .canvas-send-btn {
+      padding: 10px 20px;
+      background: var(--vscode-button-background, #0e639c);
+      color: var(--vscode-button-foreground, #fff);
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .canvas-send-btn:hover {
+      background: var(--vscode-button-hoverBackground, #1177bb);
+    }
+
+    .canvas-send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Node Selection State */
+    .preview-node.selected {
+      box-shadow: 0 0 0 3px var(--vscode-focusBorder, #007acc), 0 4px 12px rgba(0, 0, 0, 0.4);
+      transform: translateY(-2px) scale(1.02);
+    }
+
+    .preview-node .node-actions {
+      display: none;
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--vscode-editorWidget-background, #252526);
+      border: 1px solid var(--vscode-editorWidget-border, #454545);
+      border-radius: 4px;
+      padding: 4px;
+      gap: 2px;
+      z-index: 10;
+    }
+
+    .preview-node.selected .node-actions,
+    .preview-node:hover .node-actions {
+      display: flex;
+    }
+
+    .node-action-btn {
+      padding: 4px 8px;
+      background: transparent;
+      border: none;
+      border-radius: 3px;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+
+    .node-action-btn:hover {
+      background: var(--vscode-toolbar-hoverBackground, #5a5d5e);
+      opacity: 1;
+    }
+
     /* Session stats bar */
     .session-stats {
       display: flex;
@@ -2672,10 +3131,25 @@ export class ChatPanelProvider {
     </svg>
     <span class="header-title">CodeBakers</span>
     <span class="plan-badge" id="planBadge">Pro</span>
-    <button class="preview-toggle active" id="previewToggle" title="Toggle Live Preview">
-      <span class="toggle-icon">🗺️</span>
-      <span class="toggle-label">Live</span>
-    </button>
+
+    <!-- View Mode Toggle -->
+    <div class="view-mode-toggle">
+      <button class="view-mode-btn active" id="canvasModeBtn" title="Canvas Mode - Visual architecture view">
+        <span class="mode-icon">🗺️</span>
+        <span>Canvas</span>
+      </button>
+      <button class="view-mode-btn" id="classicModeBtn" title="Classic Mode - Traditional chat view">
+        <span class="mode-icon">💬</span>
+        <span>Classic</span>
+      </button>
+    </div>
+
+    <!-- Pending Changes Badge -->
+    <div class="pending-badge" id="pendingBadge" title="Click to review pending changes">
+      <span class="badge-icon">📋</span>
+      <span class="badge-count" id="pendingBadgeCount">0</span>
+    </div>
+
     <button class="header-btn" id="clearBtn">Clear</button>
   </div>
 
@@ -2697,6 +3171,28 @@ export class ChatPanelProvider {
       <span class="stat-value" id="statTime">0m</span>
     </div>
     <button class="reset-btn" id="resetStatsBtn" title="Reset session stats">↺ Reset</button>
+  </div>
+
+  <!-- Pending Changes Slide-out Overlay -->
+  <div class="pending-overlay" id="pendingOverlay"></div>
+
+  <!-- Pending Changes Slide-out Panel -->
+  <div class="pending-slideout" id="pendingSlideout">
+    <div class="pending-slideout-header">
+      <div class="pending-slideout-title">
+        <span>📋</span>
+        <span>Pending Changes</span>
+        <span class="pending-slideout-count" id="pendingSlideoutCount">0</span>
+      </div>
+      <button class="pending-slideout-close" id="pendingSlideoutClose">×</button>
+    </div>
+    <div class="pending-slideout-content" id="pendingSlideoutContent">
+      <!-- Pending files will be rendered here -->
+    </div>
+    <div class="pending-slideout-actions">
+      <button class="pending-slideout-btn reject" id="slideoutRejectAll">Reject All</button>
+      <button class="pending-slideout-btn accept" id="slideoutAcceptAll">Accept All</button>
+    </div>
   </div>
 
   <div class="login-prompt" id="loginPrompt">
@@ -2780,6 +3276,39 @@ export class ChatPanelProvider {
         <div class="preview-empty" id="previewEmpty">
           <div class="empty-icon">🏗️</div>
           <div class="empty-text">Start chatting to see your app architecture appear here</div>
+        </div>
+      </div>
+
+      <!-- AI Response Bar (Canvas Mode) -->
+      <div class="ai-response-bar" id="aiResponseBar">
+        <div class="ai-response-header" id="aiResponseHeader">
+          <div class="ai-response-indicator">
+            <span class="ai-dot"></span>
+            <span class="ai-response-status" id="aiResponseStatus">Ready</span>
+          </div>
+          <span class="ai-response-summary" id="aiResponseSummary">Click to expand details</span>
+          <button class="ai-response-toggle" id="aiResponseToggle">▲</button>
+        </div>
+        <div class="ai-response-content" id="aiResponseContent">
+          <div class="ai-response-text" id="aiResponseText"></div>
+        </div>
+      </div>
+
+      <!-- Canvas Mode Chat Input -->
+      <div class="canvas-chat-input" id="canvasChatInput">
+        <div class="canvas-input-context" id="canvasInputContext">
+          <!-- Shows selected node context -->
+        </div>
+        <div class="canvas-input-row">
+          <textarea id="canvasInput" placeholder="Ask CodeBakers about your architecture..." rows="1"></textarea>
+          <button class="canvas-voice-btn" id="canvasVoiceBtn" title="Voice input">🎤</button>
+          <button class="canvas-send-btn" id="canvasSendBtn">Send</button>
+        </div>
+        <div class="canvas-quick-actions">
+          <button class="canvas-action" data-action="explain">💡 Explain</button>
+          <button class="canvas-action" data-action="add-feature">➕ Add Feature</button>
+          <button class="canvas-action" data-action="connect">🔗 Connect</button>
+          <button class="canvas-action" data-action="generate">⚡ Generate Code</button>
         </div>
       </div>
     </div>
@@ -2882,6 +3411,31 @@ export class ChatPanelProvider {
     const previewEmpty = document.getElementById('previewEmpty');
     const previewCanvas = document.getElementById('previewCanvas');
 
+    // Canvas Mode elements
+    const canvasModeBtn = document.getElementById('canvasModeBtn');
+    const classicModeBtn = document.getElementById('classicModeBtn');
+    const pendingBadge = document.getElementById('pendingBadge');
+    const pendingBadgeCount = document.getElementById('pendingBadgeCount');
+    const pendingOverlay = document.getElementById('pendingOverlay');
+    const pendingSlideout = document.getElementById('pendingSlideout');
+    const pendingSlideoutCount = document.getElementById('pendingSlideoutCount');
+    const pendingSlideoutContent = document.getElementById('pendingSlideoutContent');
+    const pendingSlideoutClose = document.getElementById('pendingSlideoutClose');
+    const slideoutAcceptAll = document.getElementById('slideoutAcceptAll');
+    const slideoutRejectAll = document.getElementById('slideoutRejectAll');
+    const aiResponseBar = document.getElementById('aiResponseBar');
+    const aiResponseHeader = document.getElementById('aiResponseHeader');
+    const aiResponseStatus = document.getElementById('aiResponseStatus');
+    const aiResponseSummary = document.getElementById('aiResponseSummary');
+    const aiResponseToggle = document.getElementById('aiResponseToggle');
+    const aiResponseContent = document.getElementById('aiResponseContent');
+    const aiResponseText = document.getElementById('aiResponseText');
+    const canvasChatInput = document.getElementById('canvasChatInput');
+    const canvasInput = document.getElementById('canvasInput');
+    const canvasInputContext = document.getElementById('canvasInputContext');
+    const canvasSendBtn = document.getElementById('canvasSendBtn');
+    const canvasVoiceBtn = document.getElementById('canvasVoiceBtn');
+
     let currentMessages = [];
     let currentChanges = [];
     let currentCommands = [];
@@ -2892,6 +3446,11 @@ export class ChatPanelProvider {
     let previewEnabled = true;
     let previewNodesData = [];
     let previewEdgesData = [];
+
+    // Canvas Mode state
+    let isCanvasMode = true; // Default to canvas mode
+    let selectedNodeId = null;
+    let aiResponseExpanded = false;
 
     // Session stats elements
     const statRequestsEl = document.getElementById('statRequests');
@@ -3291,6 +3850,221 @@ export class ChatPanelProvider {
     }
 
     // =====================================
+    // Canvas Mode Functions
+    // =====================================
+
+    function setViewMode(mode) {
+      isCanvasMode = (mode === 'canvas');
+
+      // Update body class
+      document.body.classList.toggle('canvas-mode', isCanvasMode);
+
+      // Update toggle button states
+      if (canvasModeBtn && classicModeBtn) {
+        canvasModeBtn.classList.toggle('active', isCanvasMode);
+        classicModeBtn.classList.toggle('active', !isCanvasMode);
+      }
+
+      // In canvas mode, always show preview and hide classic chat elements
+      if (splitContainer) {
+        splitContainer.classList.toggle('preview-active', true); // Always show preview in canvas mode
+      }
+
+      console.log('CodeBakers: View mode set to', mode);
+    }
+
+    function openPendingSlideout() {
+      if (pendingSlideout && pendingOverlay) {
+        pendingOverlay.classList.add('show');
+        pendingSlideout.classList.add('open');
+        renderPendingSlideoutContent();
+      }
+    }
+
+    function closePendingSlideout() {
+      if (pendingSlideout && pendingOverlay) {
+        pendingOverlay.classList.remove('show');
+        pendingSlideout.classList.remove('open');
+      }
+    }
+
+    function renderPendingSlideoutContent() {
+      if (!pendingSlideoutContent) return;
+
+      const pendingFiles = currentChanges.filter(c => c.status === 'pending');
+
+      if (pendingFiles.length === 0) {
+        pendingSlideoutContent.innerHTML = '<div class="pending-empty">No pending changes</div>';
+        return;
+      }
+
+      pendingSlideoutContent.innerHTML = pendingFiles.map(change => {
+        const fileName = change.operation.filePath.split('/').pop() || change.operation.filePath.split('\\\\').pop();
+        const opIcon = change.operation.operation === 'create' ? '✨' :
+                       change.operation.operation === 'delete' ? '🗑️' : '📝';
+
+        return '<div class="pending-file-item">' +
+          '<div class="pending-file-info">' +
+            '<span class="pending-file-icon">' + opIcon + '</span>' +
+            '<span class="pending-file-name">' + fileName + '</span>' +
+          '</div>' +
+          '<div class="pending-file-actions">' +
+            '<button class="pending-item-btn diff" data-action="diff" data-id="' + change.id + '">Diff</button>' +
+            '<button class="pending-item-btn accept" data-action="accept" data-id="' + change.id + '">✓</button>' +
+            '<button class="pending-item-btn reject" data-action="reject" data-id="' + change.id + '">✕</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function updatePendingBadge() {
+      const pendingCount = currentChanges.filter(c => c.status === 'pending').length;
+
+      if (pendingBadge && pendingBadgeCount) {
+        pendingBadgeCount.textContent = pendingCount;
+        pendingBadge.classList.toggle('has-pending', pendingCount > 0);
+      }
+
+      if (pendingSlideoutCount) {
+        pendingSlideoutCount.textContent = pendingCount;
+      }
+    }
+
+    function toggleAIResponseBar() {
+      aiResponseExpanded = !aiResponseExpanded;
+
+      if (aiResponseBar) {
+        aiResponseBar.classList.toggle('expanded', aiResponseExpanded);
+      }
+
+      if (aiResponseToggle) {
+        aiResponseToggle.textContent = aiResponseExpanded ? '▼' : '▲';
+      }
+    }
+
+    function updateAIResponseBar(status, summary, fullText) {
+      if (aiResponseStatus) {
+        aiResponseStatus.textContent = status || 'Ready';
+      }
+
+      if (aiResponseSummary) {
+        aiResponseSummary.textContent = summary || 'Click to expand details';
+      }
+
+      if (aiResponseText) {
+        aiResponseText.innerHTML = fullText || '';
+      }
+
+      // Show pulsing dot when processing
+      if (aiResponseBar) {
+        aiResponseBar.classList.toggle('processing', status === 'Processing...');
+      }
+    }
+
+    function sendCanvasMessage() {
+      if (!canvasInput) return;
+
+      const message = canvasInput.value.trim();
+      if (!message || isStreaming) return;
+
+      // Add selected node context if any
+      let fullMessage = message;
+      if (selectedNodeId) {
+        const selectedNode = previewNodesData.find(n => n.id === selectedNodeId);
+        if (selectedNode) {
+          fullMessage = '[Context: ' + selectedNode.type + ' - ' + selectedNode.name + '] ' + message;
+        }
+      }
+
+      // Clear input and send
+      canvasInput.value = '';
+      autoResize(canvasInput);
+
+      // Use the same message sending logic as classic mode
+      setStreamingState(true);
+      updateAIResponseBar('Processing...', 'Working on your request...', '');
+      vscode.postMessage({ type: 'sendMessage', message: fullMessage });
+    }
+
+    function handleCanvasAction(action) {
+      if (!selectedNodeId && action !== 'add-feature') {
+        // No node selected, prompt user
+        if (canvasInput) {
+          canvasInput.focus();
+          canvasInput.placeholder = 'Select a node first, or describe what you want to add...';
+        }
+        return;
+      }
+
+      const selectedNode = previewNodesData.find(n => n.id === selectedNodeId);
+      let prompt = '';
+
+      switch (action) {
+        case 'explain':
+          prompt = selectedNode ?
+            'Explain the ' + selectedNode.type + ' "' + selectedNode.name + '" - what does it do and how does it work?' : '';
+          break;
+        case 'add-feature':
+          prompt = 'Add a new feature: ';
+          if (canvasInput) {
+            canvasInput.value = prompt;
+            canvasInput.focus();
+            canvasInput.setSelectionRange(prompt.length, prompt.length);
+          }
+          return;
+        case 'connect':
+          prompt = selectedNode ?
+            'What should ' + selectedNode.name + ' connect to? Suggest connections and relationships.' : '';
+          break;
+        case 'generate':
+          prompt = selectedNode ?
+            'Generate the code for ' + selectedNode.type + ' "' + selectedNode.name + '"' : '';
+          break;
+      }
+
+      if (prompt && canvasInput) {
+        canvasInput.value = prompt;
+        sendCanvasMessage();
+      }
+    }
+
+    function selectNode(nodeId) {
+      // Deselect previous
+      if (selectedNodeId) {
+        const prevNode = document.querySelector('.preview-node[data-id="' + selectedNodeId + '"]');
+        if (prevNode) prevNode.classList.remove('selected');
+      }
+
+      // Select new
+      selectedNodeId = nodeId;
+
+      if (nodeId) {
+        const newNode = document.querySelector('.preview-node[data-id="' + nodeId + '"]');
+        if (newNode) newNode.classList.add('selected');
+
+        // Update canvas input context
+        const nodeData = previewNodesData.find(n => n.id === nodeId);
+        if (nodeData && canvasInputContext) {
+          canvasInputContext.innerHTML =
+            '<div class="context-chip">' +
+              '<span class="context-icon">' + (NODE_INFO[nodeData.type]?.icon || '📦') + '</span>' +
+              '<span class="context-name">' + nodeData.name + '</span>' +
+              '<button class="context-clear" onclick="selectNode(null)">×</button>' +
+            '</div>';
+          canvasInputContext.classList.add('has-context');
+        }
+      } else {
+        if (canvasInputContext) {
+          canvasInputContext.innerHTML = '';
+          canvasInputContext.classList.remove('has-context');
+        }
+      }
+    }
+
+    // Make selectNode available globally for onclick handlers
+    window.selectNode = selectNode;
+
+    // =====================================
     // Live Preview Functions
     // =====================================
 
@@ -3521,6 +4295,13 @@ export class ChatPanelProvider {
             showTooltip(this, node.type, node.name);
           });
           nodeEl.addEventListener('mouseleave', hideTooltip);
+
+          // Click to select (for canvas mode)
+          nodeEl.addEventListener('click', function(e) {
+            if (!draggedNode) { // Only select if not dragging
+              selectNode(node.id);
+            }
+          });
 
           // Drag functionality
           nodeEl.addEventListener('mousedown', function(e) {
@@ -4131,6 +4912,7 @@ export class ChatPanelProvider {
           currentChanges = data.changes || [];
           currentCommands = data.commands || [];
           renderPendingChanges();
+          updatePendingBadge();
           break;
 
         case 'updatePinnedFiles':
@@ -4141,8 +4923,10 @@ export class ChatPanelProvider {
         case 'typing':
           if (data.isTyping) {
             welcomeEl.style.display = 'none';
+            updateAIResponseBar('Processing...', 'Working on your request...', '');
           } else {
             setStreamingState(false);
+            updateAIResponseBar('Ready', 'Click to see last response', '');
           }
           streamingEl.classList.toggle('show', data.isTyping);
           messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -4165,6 +4949,9 @@ export class ChatPanelProvider {
           streamingContentEl.style.display = 'block';
           streamingContentEl.innerHTML = formatContent(data.content);
           messagesEl.scrollTop = messagesEl.scrollHeight;
+          // Update AI response bar with brief summary
+          var contentPreview = data.content.substring(0, 100).replace(/[#*]/g, '').replace(/\x60/g, '').trim();
+          updateAIResponseBar('Generating...', contentPreview + (data.content.length > 100 ? '...' : ''), formatContent(data.content));
           break;
 
         case 'validating':
@@ -4329,6 +5116,118 @@ export class ChatPanelProvider {
     inputEl.addEventListener('input', function() {
       autoResize(this);
     });
+
+    // ============================================
+    // Canvas Mode Event Handlers
+    // ============================================
+
+    // View Mode Toggle - Canvas Mode
+    if (canvasModeBtn) {
+      canvasModeBtn.addEventListener('click', function() {
+        console.log('CodeBakers: Canvas Mode clicked');
+        setViewMode('canvas');
+      });
+    }
+
+    // View Mode Toggle - Classic Mode
+    if (classicModeBtn) {
+      classicModeBtn.addEventListener('click', function() {
+        console.log('CodeBakers: Classic Mode clicked');
+        setViewMode('classic');
+      });
+    }
+
+    // Pending Badge - Open Slideout
+    if (pendingBadge) {
+      pendingBadge.addEventListener('click', function() {
+        console.log('CodeBakers: Pending Badge clicked');
+        openPendingSlideout();
+      });
+    }
+
+    // Pending Slideout - Close Button
+    if (pendingSlideoutClose) {
+      pendingSlideoutClose.addEventListener('click', function() {
+        console.log('CodeBakers: Pending Slideout Close clicked');
+        closePendingSlideout();
+      });
+    }
+
+    // Pending Slideout - Overlay Click to Close
+    if (pendingOverlay) {
+      pendingOverlay.addEventListener('click', function() {
+        console.log('CodeBakers: Pending Overlay clicked');
+        closePendingSlideout();
+      });
+    }
+
+    // Pending Slideout - Accept All
+    if (slideoutAcceptAll) {
+      slideoutAcceptAll.addEventListener('click', function() {
+        console.log('CodeBakers: Slideout Accept All clicked');
+        acceptAll();
+        closePendingSlideout();
+      });
+    }
+
+    // Pending Slideout - Reject All
+    if (slideoutRejectAll) {
+      slideoutRejectAll.addEventListener('click', function() {
+        console.log('CodeBakers: Slideout Reject All clicked');
+        rejectAll();
+        closePendingSlideout();
+      });
+    }
+
+    // AI Response Bar - Toggle Expand/Collapse
+    if (aiResponseHeader) {
+      aiResponseHeader.addEventListener('click', function() {
+        console.log('CodeBakers: AI Response Header clicked');
+        toggleAIResponseBar();
+      });
+    }
+
+    // Canvas Chat Input - Send Button
+    if (canvasSendBtn) {
+      canvasSendBtn.addEventListener('click', function() {
+        console.log('CodeBakers: Canvas Send clicked');
+        sendCanvasMessage();
+      });
+    }
+
+    // Canvas Chat Input - Voice Button
+    if (canvasVoiceBtn) {
+      canvasVoiceBtn.addEventListener('click', function() {
+        console.log('CodeBakers: Canvas Voice clicked');
+        startVoiceInput();
+      });
+    }
+
+    // Canvas Chat Input - Keyboard
+    if (canvasInput) {
+      canvasInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendCanvasMessage();
+        }
+      });
+
+      canvasInput.addEventListener('input', function() {
+        autoResize(this);
+      });
+    }
+
+    // Canvas Quick Actions
+    document.querySelectorAll('.canvas-action').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const action = this.getAttribute('data-action');
+        console.log('CodeBakers: Canvas action clicked:', action);
+        handleCanvasAction(action);
+      });
+    });
+
+    // Initialize Canvas Mode on load
+    setViewMode(isCanvasMode ? 'canvas' : 'classic');
 
     // Event delegation for dynamically created buttons (pending changes, commands, thinking)
     document.addEventListener('click', function(e) {
