@@ -319,7 +319,8 @@ export type WebviewToExtensionMessage =
   | { type: 'load-plan'; planId: string }
   | { type: 'new-plan' }
   | { type: 'update-viewport'; viewport: Plan['viewport'] }
-  | { type: 'request-ai-review' };
+  | { type: 'request-ai-review' }
+  | { type: 'run-tests' };
 
 export type ExtensionToWebviewMessage =
   | { type: 'init'; plan: Plan; templates: PlanTemplate[] }
