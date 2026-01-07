@@ -2260,6 +2260,299 @@ export class ChatPanelProvider {
       border-radius: 2px;
       transition: width 0.2s ease;
     }
+
+    /* ========================================
+       LIVE PREVIEW - Split Screen Layout
+       ======================================== */
+
+    .preview-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: transparent;
+      border: 1px solid var(--vscode-button-secondaryBackground, #3c3c3c);
+      border-radius: 4px;
+      color: var(--vscode-foreground);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-right: auto;
+    }
+
+    .preview-toggle:hover {
+      background: var(--vscode-button-secondaryHoverBackground, #454545);
+    }
+
+    .preview-toggle.active {
+      background: var(--vscode-button-background, #0e639c);
+      border-color: var(--vscode-button-background, #0e639c);
+      color: var(--vscode-button-foreground, #fff);
+    }
+
+    .preview-toggle .toggle-icon {
+      font-size: 12px;
+    }
+
+    .split-container {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .split-container .main-content {
+      flex: 1;
+      min-width: 0;
+      transition: flex 0.3s ease;
+    }
+
+    .split-container.preview-active .main-content {
+      flex: 0.55;
+    }
+
+    .preview-panel {
+      display: none;
+      flex-direction: column;
+      width: 0;
+      background: var(--vscode-sideBar-background, #252526);
+      border-left: 1px solid var(--vscode-panel-border, #3c3c3c);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .split-container.preview-active .preview-panel {
+      display: flex;
+      flex: 0.45;
+      width: auto;
+    }
+
+    .preview-header {
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      border-bottom: 1px solid var(--vscode-panel-border, #3c3c3c);
+      background: var(--vscode-titleBar-activeBackground, #1e1e1e);
+    }
+
+    .preview-title {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--vscode-foreground);
+    }
+
+    .preview-hint {
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground, #888);
+      margin-top: 2px;
+    }
+
+    .preview-canvas {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 1px 1px, var(--vscode-panel-border, #3c3c3c) 1px, transparent 0);
+      background-size: 20px 20px;
+    }
+
+    /* Building Animation Overlay */
+    .building-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 10;
+    }
+
+    .building-overlay.active {
+      display: flex;
+    }
+
+    .building-animation {
+      text-align: center;
+      color: var(--vscode-foreground);
+    }
+
+    .blueprint-grid {
+      width: 120px;
+      height: 80px;
+      margin: 0 auto 16px;
+      border: 2px solid var(--vscode-button-background, #0e639c);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      animation: blueprintPulse 2s ease-in-out infinite;
+    }
+
+    .blueprint-grid::before,
+    .blueprint-grid::after {
+      content: '';
+      position: absolute;
+      background: var(--vscode-button-background, #0e639c);
+      opacity: 0.3;
+    }
+
+    .blueprint-grid::before {
+      width: 100%;
+      height: 1px;
+      top: 50%;
+      animation: scanLine 1.5s ease-in-out infinite;
+    }
+
+    .blueprint-grid::after {
+      width: 1px;
+      height: 100%;
+      left: 50%;
+      animation: scanLine 1.5s ease-in-out infinite 0.75s;
+    }
+
+    @keyframes blueprintPulse {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.02); opacity: 1; }
+    }
+
+    @keyframes scanLine {
+      0% { opacity: 0.1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 0.1; }
+    }
+
+    .building-text {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .building-dots {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+    }
+
+    .building-dots span {
+      width: 6px;
+      height: 6px;
+      background: var(--vscode-button-background, #0e639c);
+      border-radius: 50%;
+      animation: buildingDot 1.4s ease-in-out infinite;
+    }
+
+    .building-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .building-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes buildingDot {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Preview Nodes */
+    .preview-nodes {
+      position: absolute;
+      inset: 0;
+      padding: 20px;
+    }
+
+    .preview-node {
+      position: absolute;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      cursor: default;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .preview-node.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .preview-node .node-icon {
+      margin-right: 6px;
+    }
+
+    .preview-node .node-name {
+      font-weight: 600;
+    }
+
+    .preview-node .node-type {
+      font-size: 10px;
+      opacity: 0.7;
+      margin-left: 8px;
+    }
+
+    /* Node type colors */
+    .preview-node[data-type="page"] { background: #dbeafe; border: 2px solid #3b82f6; color: #1e40af; }
+    .preview-node[data-type="component"] { background: #dcfce7; border: 2px solid #22c55e; color: #166534; }
+    .preview-node[data-type="api"] { background: #fef3c7; border: 2px solid #f59e0b; color: #92400e; }
+    .preview-node[data-type="database"] { background: #fce7f3; border: 2px solid #ec4899; color: #9d174d; }
+    .preview-node[data-type="type"] { background: #e0e7ff; border: 2px solid #6366f1; color: #3730a3; }
+    .preview-node[data-type="service"] { background: #ccfbf1; border: 2px solid #14b8a6; color: #115e59; }
+    .preview-node[data-type="middleware"] { background: #fed7aa; border: 2px solid #f97316; color: #9a3412; }
+    .preview-node[data-type="hook"] { background: #f3e8ff; border: 2px solid #a855f7; color: #6b21a8; }
+    .preview-node[data-type="context"] { background: #cffafe; border: 2px solid #06b6d4; color: #155e75; }
+    .preview-node[data-type="action"] { background: #fecaca; border: 2px solid #ef4444; color: #991b1b; }
+    .preview-node[data-type="job"] { background: #e5e7eb; border: 2px solid #6b7280; color: #374151; }
+
+    /* Preview Edges (SVG) */
+    .preview-edges {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .preview-edge {
+      stroke: var(--vscode-button-background, #0e639c);
+      stroke-width: 2;
+      fill: none;
+      opacity: 0;
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      transition: opacity 0.3s ease;
+    }
+
+    .preview-edge.visible {
+      opacity: 0.6;
+      animation: drawEdge 0.8s ease forwards;
+    }
+
+    @keyframes drawEdge {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* Empty State */
+    .preview-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--vscode-descriptionForeground, #888);
+    }
+
+    .preview-empty.hidden {
+      display: none;
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .empty-text {
+      font-size: 13px;
+      text-align: center;
+      max-width: 200px;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -2269,6 +2562,10 @@ export class ChatPanelProvider {
     </svg>
     <span class="header-title">CodeBakers</span>
     <span class="plan-badge" id="planBadge">Pro</span>
+    <button class="preview-toggle active" id="previewToggle" title="Toggle Live Preview">
+      <span class="toggle-icon">🗺️</span>
+      <span class="toggle-label">Live</span>
+    </button>
     <button class="header-btn" id="clearBtn">Clear</button>
   </div>
 
@@ -2299,8 +2596,9 @@ export class ChatPanelProvider {
     <button class="login-btn" id="loginBtn">Sign in with GitHub</button>
   </div>
 
-  <div class="main-content" id="mainContent">
-    <div class="messages" id="messages">
+  <div class="split-container" id="splitContainer">
+    <div class="main-content" id="mainContent">
+      <div class="messages" id="messages">
       <div class="welcome" id="welcome">
         <div class="welcome-icon">🍪</div>
         <div class="welcome-title">CodeBakers AI</div>
@@ -2344,6 +2642,35 @@ export class ChatPanelProvider {
     <div class="status-indicator" id="statusIndicator">
       <div class="status-spinner"></div>
       <span id="statusText">Processing...</span>
+    </div>
+    </div>
+
+    <!-- Live Preview Panel -->
+    <div class="preview-panel" id="previewPanel">
+      <div class="preview-header">
+        <span class="preview-title">🗺️ Your App Architecture</span>
+        <span class="preview-hint">Watch your app take shape</span>
+      </div>
+      <div class="preview-canvas" id="previewCanvas">
+        <!-- Building Animation -->
+        <div class="building-overlay" id="buildingOverlay">
+          <div class="building-animation">
+            <div class="blueprint-grid"></div>
+            <div class="building-text">Building your app...</div>
+            <div class="building-dots">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+        <!-- Nodes will be rendered here -->
+        <svg class="preview-edges" id="previewEdges"></svg>
+        <div class="preview-nodes" id="previewNodes"></div>
+        <!-- Empty state -->
+        <div class="preview-empty" id="previewEmpty">
+          <div class="empty-icon">🏗️</div>
+          <div class="empty-text">Start chatting to see your app architecture appear here</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2427,11 +2754,26 @@ export class ChatPanelProvider {
     const pinnedCountEl = document.getElementById('pinnedCount');
     const addFilesHint = document.getElementById('addFilesHint');
 
+    // Live Preview elements
+    const previewToggleBtn = document.getElementById('previewToggle');
+    const splitContainer = document.getElementById('splitContainer');
+    const previewPanel = document.getElementById('previewPanel');
+    const buildingOverlay = document.getElementById('buildingOverlay');
+    const previewNodes = document.getElementById('previewNodes');
+    const previewEdges = document.getElementById('previewEdges');
+    const previewEmpty = document.getElementById('previewEmpty');
+    const previewCanvas = document.getElementById('previewCanvas');
+
     let currentMessages = [];
     let currentChanges = [];
     let currentCommands = [];
     let currentPinnedFiles = [];
     let isStreaming = false;
+
+    // Live Preview state
+    let previewEnabled = true;
+    let previewNodesData = [];
+    let previewEdgesData = [];
 
     // Session stats elements
     const statRequestsEl = document.getElementById('statRequests');
@@ -2741,6 +3083,11 @@ export class ChatPanelProvider {
       if (streaming) {
         streamingContentEl.style.display = 'none';
         streamingContentEl.innerHTML = '';
+        // Show building animation when AI starts thinking
+        showBuildingAnimation();
+      } else {
+        // Hide building animation when AI is done
+        hideBuildingAnimation();
       }
     }
 
@@ -2798,6 +3145,217 @@ export class ChatPanelProvider {
 
     function runCommand(id) {
       vscode.postMessage({ type: 'runCommand', id });
+    }
+
+    // =====================================
+    // Live Preview Functions
+    // =====================================
+
+    function togglePreview() {
+      previewEnabled = !previewEnabled;
+      previewToggleBtn.classList.toggle('active', previewEnabled);
+      splitContainer.classList.toggle('preview-active', previewEnabled);
+    }
+
+    function showBuildingAnimation() {
+      if (!previewEnabled) return;
+      buildingOverlay.classList.add('active');
+      previewEmpty.style.display = 'none';
+    }
+
+    function hideBuildingAnimation() {
+      if (!previewEnabled) return;
+      buildingOverlay.classList.remove('active');
+    }
+
+    // Node type colors matching types.ts
+    const NODE_COLORS = {
+      page: { bg: '#dbeafe', border: '#3b82f6', icon: '📄' },
+      component: { bg: '#dcfce7', border: '#22c55e', icon: '🧩' },
+      api: { bg: '#fef3c7', border: '#f59e0b', icon: '🔌' },
+      database: { bg: '#fce7f3', border: '#ec4899', icon: '🗄️' },
+      type: { bg: '#e0e7ff', border: '#6366f1', icon: '📝' },
+      hook: { bg: '#f3e8ff', border: '#a855f7', icon: '🪝' },
+      service: { bg: '#ccfbf1', border: '#14b8a6', icon: '⚙️' },
+      middleware: { bg: '#fed7aa', border: '#f97316', icon: '🔀' },
+      context: { bg: '#cffafe', border: '#06b6d4', icon: '🌐' },
+      action: { bg: '#fecaca', border: '#ef4444', icon: '⚡' },
+      job: { bg: '#e5e7eb', border: '#6b7280', icon: '⏰' }
+    };
+
+    function renderPreviewNodes(nodes, edges) {
+      if (!previewEnabled) return;
+
+      previewNodesData = nodes || [];
+      previewEdgesData = edges || [];
+
+      // Clear existing
+      previewNodes.innerHTML = '';
+      previewEdges.innerHTML = '';
+
+      if (previewNodesData.length === 0) {
+        previewEmpty.style.display = 'flex';
+        return;
+      }
+
+      previewEmpty.style.display = 'none';
+
+      // Calculate positions in a simple grid layout
+      const canvasWidth = previewCanvas.offsetWidth - 40;
+      const canvasHeight = previewCanvas.offsetHeight - 60;
+      const cols = Math.ceil(Math.sqrt(previewNodesData.length));
+      const rows = Math.ceil(previewNodesData.length / cols);
+      const cellWidth = canvasWidth / cols;
+      const cellHeight = canvasHeight / rows;
+
+      // Render nodes with staggered animation
+      previewNodesData.forEach((node, index) => {
+        const colors = NODE_COLORS[node.type] || NODE_COLORS.component;
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        const x = 20 + col * cellWidth + cellWidth / 2 - 60;
+        const y = 40 + row * cellHeight + cellHeight / 2 - 30;
+
+        const nodeEl = document.createElement('div');
+        nodeEl.className = 'preview-node reveal node-' + node.type;
+        nodeEl.style.left = x + 'px';
+        nodeEl.style.top = y + 'px';
+        nodeEl.style.animationDelay = (index * 150) + 'ms';
+        nodeEl.dataset.nodeId = node.id;
+        nodeEl.innerHTML = '<span class="preview-node-icon">' + colors.icon + '</span>' +
+          '<span class="preview-node-name">' + escapeHtml(node.name) + '</span>' +
+          '<span class="preview-node-type">' + node.type + '</span>';
+
+        previewNodes.appendChild(nodeEl);
+
+        // Store position for edge drawing
+        node._x = x + 60; // center
+        node._y = y + 30;
+      });
+
+      // Render edges after nodes are positioned
+      setTimeout(() => {
+        renderPreviewEdges();
+      }, previewNodesData.length * 150 + 200);
+    }
+
+    function renderPreviewEdges() {
+      if (!previewEnabled || previewEdgesData.length === 0) return;
+
+      const svgNS = 'http://www.w3.org/2000/svg';
+      previewEdges.innerHTML = '';
+
+      previewEdgesData.forEach((edge, index) => {
+        const sourceNode = previewNodesData.find(n => n.id === edge.source);
+        const targetNode = previewNodesData.find(n => n.id === edge.target);
+
+        if (!sourceNode || !targetNode) return;
+
+        const path = document.createElementNS(svgNS, 'path');
+        const x1 = sourceNode._x;
+        const y1 = sourceNode._y;
+        const x2 = targetNode._x;
+        const y2 = targetNode._y;
+
+        // Curved path
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2 - 30;
+        const d = 'M ' + x1 + ' ' + y1 + ' Q ' + midX + ' ' + midY + ' ' + x2 + ' ' + y2;
+
+        path.setAttribute('d', d);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', 'var(--vscode-textLink-foreground)');
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('stroke-dasharray', '1000');
+        path.setAttribute('stroke-dashoffset', '1000');
+        path.style.animation = 'drawEdge 0.8s ease forwards';
+        path.style.animationDelay = (index * 100) + 'ms';
+
+        previewEdges.appendChild(path);
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Parse AI response for architecture suggestions
+    function parseArchitectureFromResponse(content) {
+      const nodes = [];
+      const edges = [];
+
+      // Look for node patterns in the response
+      // Pattern: "add a [type] called [name]" or "[type]: [name]"
+      const nodePatterns = [
+        /(?:add|create|need)(?:ing|s)?\s+(?:a|an)\s+(page|component|api|database|hook|service|middleware|context|action|job|type)\s+(?:called|named|for)?\s*['""]?([A-Za-z0-9_]+)['""]?/gi,
+        /(page|component|api|database|hook|service|middleware|context|action|job|type)[\s:]+['""]?([A-Za-z0-9_]+)['""]?/gi,
+        /\b([A-Za-z0-9_]+)\s+(page|component|api|database|hook|service|middleware|context|action|job|type)\b/gi
+      ];
+
+      nodePatterns.forEach(pattern => {
+        let match;
+        while ((match = pattern.exec(content)) !== null) {
+          let type, name;
+          if (match[1].toLowerCase() in NODE_COLORS) {
+            type = match[1].toLowerCase();
+            name = match[2];
+          } else if (match[2].toLowerCase() in NODE_COLORS) {
+            type = match[2].toLowerCase();
+            name = match[1];
+          } else {
+            continue;
+          }
+
+          // Avoid duplicates
+          if (!nodes.find(n => n.name.toLowerCase() === name.toLowerCase())) {
+            nodes.push({
+              id: 'node_' + Date.now() + '_' + nodes.length,
+              type: type,
+              name: name,
+              description: ''
+            });
+          }
+        }
+      });
+
+      // Look for relationship patterns
+      // Pattern: "[name] uses [name]", "[name] calls [name]", etc.
+      const edgePatterns = [
+        /([A-Za-z0-9_]+)\s+(uses|calls|renders|imports|queries|mutates|extends|triggers|provides)\s+([A-Za-z0-9_]+)/gi
+      ];
+
+      edgePatterns.forEach(pattern => {
+        let match;
+        while ((match = pattern.exec(content)) !== null) {
+          const sourceName = match[1];
+          const edgeType = match[2].toLowerCase();
+          const targetName = match[3];
+
+          const sourceNode = nodes.find(n => n.name.toLowerCase() === sourceName.toLowerCase());
+          const targetNode = nodes.find(n => n.name.toLowerCase() === targetName.toLowerCase());
+
+          if (sourceNode && targetNode) {
+            edges.push({
+              id: 'edge_' + Date.now() + '_' + edges.length,
+              source: sourceNode.id,
+              target: targetNode.id,
+              type: edgeType
+            });
+          }
+        }
+      });
+
+      return { nodes, edges };
+    }
+
+    // Preview toggle click handler
+    previewToggleBtn.addEventListener('click', togglePreview);
+
+    // Initialize preview panel state (default: enabled)
+    if (previewEnabled) {
+      splitContainer.classList.add('preview-active');
     }
 
     function handleKeydown(e) {
@@ -3171,6 +3729,20 @@ export class ChatPanelProvider {
 
           messagesEl.scrollTop = messagesEl.scrollHeight;
           setStreamingState(false);
+
+          // Parse the last AI response for architecture nodes
+          if (previewEnabled && data.messages.length > 0) {
+            const lastMsg = data.messages[data.messages.length - 1];
+            if (lastMsg.role === 'assistant' && lastMsg.content) {
+              const { nodes, edges } = parseArchitectureFromResponse(lastMsg.content);
+              if (nodes.length > 0) {
+                // Small delay to let building animation finish hiding
+                setTimeout(() => {
+                  renderPreviewNodes(nodes, edges);
+                }, 300);
+              }
+            }
+          }
           break;
 
         case 'updatePendingChanges':
