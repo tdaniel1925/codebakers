@@ -3360,69 +3360,153 @@ export class ChatPanelProvider {
       console.log('CodeBakers: parseArchitectureFromResponse called, content length:', content?.length);
       const nodes = [];
       const edges = [];
+      const addedNames = new Set();
 
-      // Look for node patterns in the response
-      // Pattern: "add a [type] called [name]" or "[type]: [name]"
-      const nodePatterns = [
-        /(?:add|create|need)(?:ing|s)?\s+(?:a|an)\s+(page|component|api|database|hook|service|middleware|context|action|job|type)\s+(?:called|named|for)?\s*['""]?([A-Za-z0-9_]+)['""]?/gi,
-        /(page|component|api|database|hook|service|middleware|context|action|job|type)[\s:]+['""]?([A-Za-z0-9_]+)['""]?/gi,
-        /\b([A-Za-z0-9_]+)\s+(page|component|api|database|hook|service|middleware|context|action|job|type)\b/gi
+      function addNode(type, name, description = '') {
+        const normalizedName = name.toLowerCase();
+        if (!addedNames.has(normalizedName) && name.length > 1) {
+          addedNames.add(normalizedName);
+          nodes.push({
+            id: 'node_' + Date.now() + '_' + nodes.length,
+            type: type,
+            name: name,
+            description: description
+          });
+        }
+      }
+
+      // 1. Extract from file paths (most reliable)
+      // Matches: src/app/page.tsx, src/components/Hero.tsx, app/api/auth/route.ts, etc.
+      const filePathPattern = /(?:src\\/|app\\/|pages\\/|components\\/|lib\\/|hooks\\/|services\\/|types\\/|api\\/)([^/\\s]+(?:\\/[^/\\s]+)*)\\.(tsx?|jsx?)/gi;
+      let match;
+      while ((match = filePathPattern.exec(content)) !== null) {
+        const filePath = match[1];
+        const parts = filePath.split('/');
+        const fileName = parts[parts.length - 1];
+
+        // Determine type from path
+        let type = 'component';
+        const fullPath = match[0].toLowerCase();
+
+        if (fullPath.includes('/api/') || fullPath.includes('route.ts')) {
+          type = 'api';
+        } else if (fullPath.includes('/app/') && (fileName === 'page' || fileName === 'layout')) {
+          type = 'page';
+        } else if (fullPath.includes('pages/') && !fullPath.includes('api')) {
+          type = 'page';
+        } else if (fullPath.includes('/hooks/') || fileName.startsWith('use')) {
+          type = 'hook';
+        } else if (fullPath.includes('/services/') || fullPath.includes('/lib/')) {
+          type = 'service';
+        } else if (fullPath.includes('/types/') || fileName.includes('type') || fileName.includes('interface')) {
+          type = 'type';
+        } else if (fullPath.includes('middleware')) {
+          type = 'middleware';
+        } else if (fullPath.includes('context') || fileName.includes('Context') || fileName.includes('Provider')) {
+          type = 'context';
+        }
+
+        // Clean up the name
+        let name = fileName.replace(/\\.(tsx?|jsx?)$/i, '');
+        if (name === 'page' || name === 'layout' || name === 'route') {
+          // Use the folder name instead
+          name = parts.length > 1 ? parts[parts.length - 2] : name;
+        }
+        // Convert to PascalCase for display
+        name = name.charAt(0).toUpperCase() + name.slice(1);
+
+        addNode(type, name);
+      }
+
+      // 2. Look for component/page mentions in prose
+      const prosePatterns = [
+        /(?:creat|add|build|implement)(?:e|ing|ed|s)?\\s+(?:a|an|the)?\\s*([A-Z][a-zA-Z0-9]*(?:Page|Component|Form|Modal|Card|Button|Header|Footer|Nav|Sidebar|Section|Hero|List|Table|Grid|Layout|View|Screen|Panel|Widget|Bar|Menu|Dropdown|Input|Dialog))/g,
+        /([A-Z][a-zA-Z0-9]*(?:Page|Component|Form|Modal|Card|Header|Footer|Nav|Sidebar|Section|Hero|Layout))\\s+(?:component|page)?/g
       ];
 
-      nodePatterns.forEach(pattern => {
-        let match;
-        while ((match = pattern.exec(content)) !== null) {
-          let type, name;
-          if (match[1].toLowerCase() in NODE_COLORS) {
-            type = match[1].toLowerCase();
-            name = match[2];
-          } else if (match[2].toLowerCase() in NODE_COLORS) {
-            type = match[2].toLowerCase();
-            name = match[1];
-          } else {
-            continue;
+      prosePatterns.forEach(pattern => {
+        let m;
+        while ((m = pattern.exec(content)) !== null) {
+          const name = m[1];
+          let type = 'component';
+          const lowerName = name.toLowerCase();
+          if (lowerName.includes('page') || lowerName.includes('screen') || lowerName.includes('view')) {
+            type = 'page';
           }
-
-          // Avoid duplicates
-          if (!nodes.find(n => n.name.toLowerCase() === name.toLowerCase())) {
-            nodes.push({
-              id: 'node_' + Date.now() + '_' + nodes.length,
-              type: type,
-              name: name,
-              description: ''
-            });
-          }
+          addNode(type, name);
         }
       });
 
-      // Look for relationship patterns
-      // Pattern: "[name] uses [name]", "[name] calls [name]", etc.
-      const edgePatterns = [
-        /([A-Za-z0-9_]+)\s+(uses|calls|renders|imports|queries|mutates|extends|triggers|provides)\s+([A-Za-z0-9_]+)/gi
-      ];
-
-      edgePatterns.forEach(pattern => {
-        let match;
-        while ((match = pattern.exec(content)) !== null) {
-          const sourceName = match[1];
-          const edgeType = match[2].toLowerCase();
-          const targetName = match[3];
-
-          const sourceNode = nodes.find(n => n.name.toLowerCase() === sourceName.toLowerCase());
-          const targetNode = nodes.find(n => n.name.toLowerCase() === targetName.toLowerCase());
-
-          if (sourceNode && targetNode) {
-            edges.push({
-              id: 'edge_' + Date.now() + '_' + edges.length,
-              source: sourceNode.id,
-              target: targetNode.id,
-              type: edgeType
-            });
-          }
+      // 3. Extract from code blocks - look for function/const exports
+      const exportPattern = /export\\s+(?:default\\s+)?(?:function|const|class)\\s+([A-Z][a-zA-Z0-9]*)/g;
+      while ((match = exportPattern.exec(content)) !== null) {
+        const name = match[1];
+        let type = 'component';
+        const lowerName = name.toLowerCase();
+        if (lowerName.includes('hook') || name.startsWith('use')) {
+          type = 'hook';
+        } else if (lowerName.includes('service') || lowerName.includes('client') || lowerName.includes('api')) {
+          type = 'service';
+        } else if (lowerName.includes('context') || lowerName.includes('provider')) {
+          type = 'context';
         }
+        addNode(type, name);
+      }
+
+      // 4. Look for database/schema mentions
+      const dbPatterns = [
+        /(?:table|schema|model|entity)(?:\\s+(?:for|called|named))?\\s+['"]?([a-zA-Z_][a-zA-Z0-9_]*)['"]?/gi,
+        /createTable\\s*\\(\\s*['"]([a-zA-Z_][a-zA-Z0-9_]*)['"]?/g
+      ];
+      dbPatterns.forEach(pattern => {
+        let m;
+        while ((m = pattern.exec(content)) !== null) {
+          addNode('database', m[1].charAt(0).toUpperCase() + m[1].slice(1));
+        }
+      });
+
+      // 5. If we still have no nodes, try to detect from common landing page elements
+      if (nodes.length === 0) {
+        const landingPageKeywords = [
+          { pattern: /hero\\s*(?:section|component|area)?/gi, name: 'Hero', type: 'component' },
+          { pattern: /navigation|navbar|nav\\s*bar/gi, name: 'Navigation', type: 'component' },
+          { pattern: /header/gi, name: 'Header', type: 'component' },
+          { pattern: /footer/gi, name: 'Footer', type: 'component' },
+          { pattern: /(?:feature|features)\\s*(?:section|list|grid)?/gi, name: 'Features', type: 'component' },
+          { pattern: /(?:testimonial|testimonials)/gi, name: 'Testimonials', type: 'component' },
+          { pattern: /(?:pricing|plans)/gi, name: 'Pricing', type: 'component' },
+          { pattern: /(?:cta|call[\\s-]to[\\s-]action)/gi, name: 'CTA', type: 'component' },
+          { pattern: /contact\\s*(?:form|section)?/gi, name: 'Contact', type: 'component' },
+          { pattern: /landing\\s*page/gi, name: 'LandingPage', type: 'page' },
+          { pattern: /home\\s*page/gi, name: 'HomePage', type: 'page' }
+        ];
+
+        landingPageKeywords.forEach(({ pattern, name, type }) => {
+          if (pattern.test(content)) {
+            addNode(type, name);
+          }
+        });
+      }
+
+      // Generate edges based on common patterns (pages render components)
+      const pageNodes = nodes.filter(n => n.type === 'page');
+      const componentNodes = nodes.filter(n => n.type === 'component');
+
+      pageNodes.forEach(page => {
+        componentNodes.forEach(comp => {
+          edges.push({
+            id: 'edge_' + Date.now() + '_' + edges.length,
+            source: page.id,
+            target: comp.id,
+            type: 'renders'
+          });
+        });
       });
 
       console.log('CodeBakers: parseArchitectureFromResponse found', nodes.length, 'nodes,', edges.length, 'edges');
+      if (nodes.length > 0) {
+        console.log('CodeBakers: Nodes found:', nodes.map(n => n.type + ':' + n.name).join(', '));
+      }
       return { nodes, edges };
     }
 
