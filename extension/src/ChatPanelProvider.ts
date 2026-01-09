@@ -1393,45 +1393,109 @@ export class ChatPanelProvider {
         });
       }
 
-      // Auto-apply file operations immediately (no popup)
+      // ABSOLUTE ENFORCEMENT: Check Gate 2 compliance before applying files
       if (response.fileOperations && response.fileOperations.length > 0) {
-        const appliedFiles: string[] = [];
-        for (const op of response.fileOperations) {
-          try {
-            const result = await this.fileOps.applyChange({
-              path: op.path,
-              action: op.action,
-              content: op.content,
-              description: op.description
-            });
-            if (result) {
-              appliedFiles.push(op.path);
-              // Track for potential undo
-              this._pendingChanges.push({
-                id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                operation: op,
-                status: 'applied'
+        const gate2Passed = response.gate2?.passed ?? true;
+        const complianceScore = response.gate2?.compliance?.score ?? 100;
+        const MINIMUM_COMPLIANCE_SCORE = 60; // Threshold for auto-apply
+
+        // Only auto-apply if Gate 2 passed AND compliance score is acceptable
+        if (gate2Passed && complianceScore >= MINIMUM_COMPLIANCE_SCORE) {
+          const appliedFiles: string[] = [];
+          for (const op of response.fileOperations) {
+            try {
+              const result = await this.fileOps.applyChange({
+                path: op.path,
+                action: op.action,
+                content: op.content,
+                description: op.description
               });
+              if (result) {
+                appliedFiles.push(op.path);
+                // Track for potential undo
+                this._pendingChanges.push({
+                  id: `file-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+                  operation: op,
+                  status: 'applied'
+                });
+              }
+            } catch (error) {
+              console.error(`Failed to apply ${op.path}:`, error);
             }
-          } catch (error) {
-            console.error(`Failed to apply ${op.path}:`, error);
           }
-        }
-        // Show toast notification
-        if (appliedFiles.length > 0) {
-          this._showAppliedToast(appliedFiles);
+          // Show toast notification
+          if (appliedFiles.length > 0) {
+            this._showAppliedToast(appliedFiles);
+          }
+        } else {
+          // ENFORCEMENT BLOCKED: Add files to pending instead of auto-applying
+          const issues = response.gate2?.issues || ['Compliance validation failed'];
+
+          vscode.window.showWarningMessage(
+            `⛔ CodeBakers Enforcement: Files blocked (Score: ${complianceScore}/100). Issues: ${issues.join(', ')}`,
+            'Apply Anyway',
+            'View Issues'
+          ).then(async (choice) => {
+            if (choice === 'Apply Anyway') {
+              // User override - apply files
+              for (const change of this._pendingChanges.filter(c => c.status === 'pending')) {
+                try {
+                  await this.fileOps.applyChange({
+                    path: change.operation.path,
+                    action: change.operation.action,
+                    content: change.operation.content,
+                    description: change.operation.description
+                  });
+                  change.status = 'applied';
+                } catch (error) {
+                  console.error(`Failed to apply ${change.operation.path}:`, error);
+                }
+              }
+              this._updatePendingChanges();
+              vscode.window.showInformationMessage('✅ Files applied (enforcement overridden)');
+            } else if (choice === 'View Issues') {
+              // Show detailed issues
+              const detail = [
+                `**Compliance Score:** ${complianceScore}/100`,
+                `**Issues:**`,
+                ...issues.map(i => `- ${i}`),
+                '',
+                `**Deductions:**`,
+                ...(response.gate2?.compliance?.deductions || []).map(d => `- ${d.issue} (-${d.points} points)`)
+              ].join('\n');
+              vscode.window.showInformationMessage(detail, { modal: true });
+            }
+          });
+
+          // Add files to pending (not auto-applied)
+          for (const op of response.fileOperations) {
+            this._pendingChanges.push({
+              id: `file-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+              operation: op,
+              status: 'pending'
+            });
+          }
+          this._updatePendingChanges();
+
+          console.warn('CodeBakers: Files BLOCKED by enforcement. Score:', complianceScore, 'Issues:', issues);
         }
       }
 
-      // Handle commands - auto-run by default unless requireApproval is enabled
+      // Handle commands - auto-run only if Gate 2 passed
       if (response.commands && response.commands.length > 0) {
         const requireApproval = vscode.workspace.getConfiguration('codebakers').get('requireApproval', false);
+        const gate2Passed = response.gate2?.passed ?? true;
+        const complianceScore = response.gate2?.compliance?.score ?? 100;
+        const MINIMUM_COMPLIANCE_SCORE = 60;
+
+        // Block commands if Gate 2 failed
+        const enforcementPassed = gate2Passed && complianceScore >= MINIMUM_COMPLIANCE_SCORE;
 
         for (const cmd of response.commands) {
           const cmdId = `cmd-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
-          if (requireApproval) {
-            // Add to pending for manual approval
+          if (requireApproval || !enforcementPassed) {
+            // Add to pending for manual approval (or enforcement blocked)
             this._pendingCommands.push({
               id: cmdId,
               command: cmd,
@@ -1456,6 +1520,11 @@ export class ChatPanelProvider {
               vscode.window.showErrorMessage(`❌ Failed: ${cmd.command}`);
             }
           }
+        }
+
+        // Update UI to show pending commands if enforcement blocked
+        if (!enforcementPassed) {
+          this._updatePendingChanges();
         }
       }
 

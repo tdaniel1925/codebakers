@@ -76,7 +76,7 @@ test.describe('Auth Pages', () => {
     await page.goto('/login');
 
     // Check login form exists
-    await expect(page.getByText('Welcome back')).toBeVisible();
+    await expect(page.getByText('Welcome back').first()).toBeVisible();
     await expect(page.getByLabel(/email/i)).toBeVisible();
     await expect(page.getByLabel(/password/i)).toBeVisible();
   });
