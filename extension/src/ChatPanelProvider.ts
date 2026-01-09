@@ -20,7 +20,7 @@ interface PendingChange {
 interface PendingCommand {
   id: string;
   command: CommandToRun;
-  status: 'pending' | 'running' | 'done';
+  status: 'pending' | 'running' | 'done' | 'error';
 }
 
 interface PinnedFile {
@@ -1423,14 +1423,39 @@ export class ChatPanelProvider {
         }
       }
 
-      // Add commands to pending commands
+      // Handle commands - auto-run by default unless requireApproval is enabled
       if (response.commands && response.commands.length > 0) {
+        const requireApproval = vscode.workspace.getConfiguration('codebakers').get('requireApproval', false);
+
         for (const cmd of response.commands) {
-          this._pendingCommands.push({
-            id: `cmd-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            command: cmd,
-            status: 'pending'
-          });
+          const cmdId = `cmd-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+          if (requireApproval) {
+            // Add to pending for manual approval
+            this._pendingCommands.push({
+              id: cmdId,
+              command: cmd,
+              status: 'pending'
+            });
+          } else {
+            // Auto-run command immediately
+            try {
+              this._pendingCommands.push({
+                id: cmdId,
+                command: cmd,
+                status: 'running'
+              });
+              await this.fileOps.runCommand(cmd.command, cmd.description || 'CodeBakers');
+              const pendingCmd = this._pendingCommands.find(c => c.id === cmdId);
+              if (pendingCmd) pendingCmd.status = 'done';
+              vscode.window.showInformationMessage(`✅ Ran: ${cmd.command}`);
+            } catch (error) {
+              const pendingCmd = this._pendingCommands.find(c => c.id === cmdId);
+              if (pendingCmd) pendingCmd.status = 'error';
+              console.error(`Failed to run command ${cmd.command}:`, error);
+              vscode.window.showErrorMessage(`❌ Failed: ${cmd.command}`);
+            }
+          }
         }
       }
 
