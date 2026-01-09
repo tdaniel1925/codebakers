@@ -3,6 +3,9 @@ import { CodeBakersClient, FileOperation, CommandToRun } from './CodeBakersClien
 import { ProjectContext } from './ProjectContext';
 import { FileOperations } from './FileOperations';
 import { CodeValidator } from './CodeValidator';
+import { ProjectStateManager } from './ProjectStateManager';
+import { OnboardingWizard } from './OnboardingWizard';
+import { ContextPreserver } from './ContextPreserver';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -38,6 +41,12 @@ export class ChatPanelProvider {
   private readonly fileOps: FileOperations;
   private _abortController: AbortController | null = null;
 
+  // Intelligent Onboarding System
+  private _stateManager: ProjectStateManager | null = null;
+  private _onboardingWizard: OnboardingWizard | null = null;
+  private _contextPreserver: ContextPreserver | null = null;
+  private _onboardingCompleted: boolean = false;
+
   // Separate tracking for pending operations (Claude Code style)
   private _pendingChanges: PendingChange[] = [];
   private _pendingCommands: PendingCommand[] = [];
@@ -58,6 +67,32 @@ export class ChatPanelProvider {
     private readonly projectContext: ProjectContext
   ) {
     this.fileOps = new FileOperations();
+    this._initializeOnboardingSystem();
+  }
+
+  private async _initializeOnboardingSystem(): Promise<void> {
+    // Get workspace root
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceRoot) {
+      console.log('No workspace folder found - skipping onboarding system');
+      return;
+    }
+
+    // Initialize Project State Manager
+    this._stateManager = new ProjectStateManager(workspaceRoot);
+
+    // Initialize Context Preserver with state manager
+    this._contextPreserver = new ContextPreserver(this._stateManager);
+    await this._contextPreserver.initialize();
+
+    // Check if onboarding is needed
+    const { needsOnboarding, config } = await this._stateManager.initialize();
+    this._onboardingCompleted = !needsOnboarding;
+
+    // If we have config, check for session recovery
+    if (config && this._contextPreserver.checkRecovery('').needsRecovery) {
+      console.log('Session recovery needed - context was compacted');
+    }
   }
 
   public static getInstance(
@@ -179,6 +214,12 @@ export class ChatPanelProvider {
         case 'installPackages':
           this._installPackages(data.packages);
           break;
+        case 'onboarding-action':
+          this._handleOnboardingAction(data.action, data.data);
+          break;
+        case 'checkOnboarding':
+          this._checkAndShowOnboarding();
+          break;
       }
     });
 
@@ -250,6 +291,10 @@ export class ChatPanelProvider {
           score: 85
         });
       }
+
+      // Check if onboarding is needed (after successful login check)
+      await this._checkAndShowOnboarding();
+
     } catch (error) {
       console.error('Failed to initialize status:', error);
     }
@@ -1701,6 +1746,96 @@ This is STRUCTURAL enforcement - do not skip these steps.`
     });
   }
 
+  // =========================================================================
+  // Intelligent Onboarding System
+  // =========================================================================
+
+  private async _checkAndShowOnboarding(): Promise<void> {
+    if (!this._panel || !this._stateManager) return;
+
+    const { needsOnboarding } = await this._stateManager.initialize();
+
+    if (needsOnboarding) {
+      // Initialize onboarding wizard
+      this._onboardingWizard = new OnboardingWizard(
+        this._stateManager,
+        (message) => this._panel?.webview.postMessage(message)
+      );
+
+      await this._onboardingWizard.initialize();
+
+      // Show onboarding in webview
+      this._panel.webview.postMessage({
+        type: 'showOnboarding',
+        show: true
+      });
+    } else {
+      this._onboardingCompleted = true;
+      this._panel.webview.postMessage({
+        type: 'showOnboarding',
+        show: false
+      });
+    }
+  }
+
+  private _handleOnboardingAction(action: string, data: any): void {
+    if (!this._onboardingWizard) {
+      // Initialize wizard if not already done
+      if (this._stateManager) {
+        this._onboardingWizard = new OnboardingWizard(
+          this._stateManager,
+          (message) => this._panel?.webview.postMessage(message)
+        );
+      }
+    }
+
+    if (this._onboardingWizard) {
+      this._onboardingWizard.handleInput(action, data);
+
+      // Check if onboarding is complete
+      if (!this._onboardingWizard.isOnboardingRequired()) {
+        this._onboardingCompleted = true;
+        this._panel?.webview.postMessage({
+          type: 'showOnboarding',
+          show: false
+        });
+
+        // Record work session start
+        if (this._stateManager) {
+          const config = this._stateManager.loadConfig();
+          if (config?.discovery?.projectDescription) {
+            this._stateManager.startWorkSession(
+              'Project Setup',
+              `Onboarding completed for ${config.projectType} project`
+            );
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Get context to inject into AI messages for session continuity
+   */
+  private _getContextForMessage(): string {
+    if (!this._contextPreserver) return '';
+    return this._contextPreserver.getContextForInjection();
+  }
+
+  /**
+   * Record an action for context preservation
+   */
+  private _recordAction(action: string): void {
+    this._contextPreserver?.recordAction(action);
+  }
+
+  /**
+   * Check if we need to block chat until onboarding is complete
+   */
+  private _shouldBlockChat(): boolean {
+    return !this._onboardingCompleted && this._stateManager !== null;
+  }
+
   private _getHtmlForWebview(webview: vscode.Webview): string {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -3064,14 +3199,31 @@ This is STRUCTURAL enforcement - do not skip these steps.`
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 12px 16px;
+      padding: 12px 16px 4px;
       color: var(--vscode-foreground);
       font-size: 13px;
-      opacity: 0.8;
     }
 
-    .thinking-label span {
-      font-weight: 500;
+    .thinking-icon {
+      font-size: 16px;
+    }
+
+    .thinking-title {
+      font-weight: 600;
+      color: #dc2626;
+    }
+
+    .thinking-tip {
+      padding: 0 16px 12px;
+      font-size: 12px;
+      color: var(--vscode-descriptionForeground);
+      line-height: 1.4;
+      animation: tipFade 0.3s ease-in-out;
+    }
+
+    @keyframes tipFade {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .typing-dots {
@@ -3826,6 +3978,207 @@ This is STRUCTURAL enforcement - do not skip these steps.`
 
     .login-btn:hover {
       background: var(--vscode-button-hoverBackground);
+    }
+
+    /* Onboarding Container */
+    .onboarding-container {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow-y: auto;
+      background: var(--vscode-editor-background);
+    }
+
+    .onboarding-container.show {
+      display: flex;
+    }
+
+    .onboarding-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 500px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .onboarding-step {
+      padding: 24px;
+      text-align: center;
+    }
+
+    .onboarding-step h2 {
+      margin: 16px 0 8px;
+      font-size: 1.5rem;
+      color: var(--vscode-foreground);
+    }
+
+    .onboarding-step p {
+      color: var(--vscode-descriptionForeground);
+      margin-bottom: 16px;
+    }
+
+    .onboarding-step .subtitle {
+      font-size: 0.875rem;
+      margin-bottom: 24px;
+    }
+
+    .step-indicator {
+      font-size: 0.75rem;
+      color: var(--vscode-descriptionForeground);
+      margin-bottom: 8px;
+    }
+
+    .onboarding-icon {
+      color: #dc2626;
+      margin-bottom: 8px;
+    }
+
+    .onboarding-primary-btn {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .onboarding-primary-btn:hover {
+      background: #b91c1c;
+    }
+
+    .onboarding-primary-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .onboarding-secondary-btn {
+      background: transparent;
+      color: var(--vscode-foreground);
+      border: 1px solid var(--vscode-input-border);
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+
+    .skill-options, .project-options, .method-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .skill-btn, .project-btn, .method-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 16px;
+      background: var(--vscode-input-background);
+      border: 1px solid var(--vscode-input-border);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.2s;
+      position: relative;
+      color: var(--vscode-foreground);
+    }
+
+    .skill-btn:hover, .project-btn:hover, .method-btn:hover {
+      border-color: #dc2626;
+    }
+
+    .skill-btn.recommended, .method-btn.recommended {
+      border-color: #dc2626;
+    }
+
+    .skill-icon, .project-icon, .method-icon {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+    }
+
+    .skill-title, .project-title, .method-title {
+      font-weight: 600;
+      color: var(--vscode-foreground);
+      margin-bottom: 4px;
+    }
+
+    .skill-desc, .project-desc, .method-desc {
+      font-size: 0.875rem;
+      color: var(--vscode-descriptionForeground);
+    }
+
+    .recommended-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 0.75rem;
+      background: #dc2626;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .onboarding-form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .onboarding-form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: var(--vscode-foreground);
+    }
+
+    .onboarding-form-group input,
+    .onboarding-form-group textarea,
+    .onboarding-form-group select {
+      width: 100%;
+      padding: 10px;
+      background: var(--vscode-input-background);
+      border: 1px solid var(--vscode-input-border);
+      border-radius: 6px;
+      color: var(--vscode-foreground);
+      font-size: 0.875rem;
+    }
+
+    .onboarding-form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .stack-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 20px 0;
+      text-align: left;
+    }
+
+    .stack-item {
+      padding: 12px;
+      background: var(--vscode-input-background);
+      border-radius: 8px;
+    }
+
+    .stack-label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--vscode-descriptionForeground);
+      margin-bottom: 4px;
+    }
+
+    .stack-value {
+      font-weight: 500;
+      color: var(--vscode-foreground);
+    }
+
+    .success-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
     }
 
     /* Status indicator */
@@ -4776,32 +5129,39 @@ This is STRUCTURAL enforcement - do not skip these steps.`
     <button class="login-btn" id="loginBtn">Sign in with GitHub</button>
   </div>
 
+  <!-- Onboarding Wizard Container -->
+  <div class="onboarding-container" id="onboardingContainer">
+    <div class="onboarding-content" id="onboardingContent">
+      <!-- Onboarding steps will be injected here -->
+    </div>
+  </div>
+
   <div class="split-container" id="splitContainer">
     <div class="main-content" id="mainContent">
       <div class="messages" id="messages">
       <div class="welcome" id="welcome">
         <div class="welcome-icon">🍪</div>
-        <div class="welcome-title">Welcome to CodeBakers</div>
-        <div class="welcome-text">Your AI coding assistant with production-ready patterns.</div>
+        <div class="welcome-title">Ready to build!</div>
+        <div class="welcome-text">Just describe what you want in plain English.</div>
 
         <div class="getting-started">
-          <div class="getting-started-title">Getting Started</div>
+          <div class="getting-started-title">How it works</div>
           <div class="getting-started-items">
             <div class="getting-started-item">
               <span class="item-icon">💬</span>
-              <span class="item-text">Describe what you want to build in plain English</span>
-            </div>
-            <div class="getting-started-item">
-              <span class="item-icon">📁</span>
-              <span class="item-text">I can create files, edit code, and run commands</span>
+              <span class="item-text">Tell me what you need - I'll write the code</span>
             </div>
             <div class="getting-started-item">
               <span class="item-icon">✨</span>
-              <span class="item-text">All code follows production-ready patterns</span>
+              <span class="item-text">Changes apply automatically - no approve buttons!</span>
+            </div>
+            <div class="getting-started-item">
+              <span class="item-icon">↩️</span>
+              <span class="item-text">Made a mistake? Say "undo that" anytime</span>
             </div>
             <div class="getting-started-item">
               <span class="item-icon">🧪</span>
-              <span class="item-text">Tests and type-checking included automatically</span>
+              <span class="item-text">Tests and type-checking run automatically</span>
             </div>
           </div>
           <div class="getting-started-examples">
@@ -4815,13 +5175,15 @@ This is STRUCTURAL enforcement - do not skip these steps.`
 
       <div class="streaming-indicator" id="streaming">
         <div class="thinking-label">
-          <span>Thinking</span>
+          <span class="thinking-icon">🍪</span>
+          <span class="thinking-title">CodeBakers Tip:</span>
           <div class="typing-dots">
             <div class="typing-dot"></div>
             <div class="typing-dot"></div>
             <div class="typing-dot"></div>
           </div>
         </div>
+        <div class="thinking-tip" id="thinkingTip">Just describe what you want in plain English!</div>
         <div id="streamingContent" style="display: none;"></div>
       </div>
 
@@ -4947,6 +5309,20 @@ This is STRUCTURAL enforcement - do not skip these steps.`
     const canvasSendBtn = document.getElementById('canvasSendBtn');
     const canvasVoiceBtn = document.getElementById('canvasVoiceBtn');
 
+    // Onboarding elements
+    const onboardingContainer = document.getElementById('onboardingContainer');
+    const onboardingContent = document.getElementById('onboardingContent');
+    let onboardingActive = false;
+
+    // Onboarding action handler (global function for onclick)
+    window.handleOnboarding = function(action, data) {
+      vscode.postMessage({
+        type: 'onboarding-action',
+        action: action,
+        data: data || {}
+      });
+    };
+
     // Pre-Flight Impact Check elements
     const preflightPanel = document.getElementById('preflightPanel');
     const preflightFiles = document.getElementById('preflightFiles');
@@ -4960,6 +5336,54 @@ This is STRUCTURAL enforcement - do not skip these steps.`
     let currentCommands = [];
     let currentPinnedFiles = [];
     let isStreaming = false;
+
+    // CodeBakers Tips - shown during thinking
+    const codeBakersTips = [
+      "Just describe what you want in plain English!",
+      "Say 'add a login page' - I'll handle the rest.",
+      "Changes auto-apply by default. You can undo anytime!",
+      "I write tests for everything automatically.",
+      "All code follows production-ready patterns.",
+      "Try: 'Fix the TypeScript errors' - I'll find and fix them.",
+      "Pin files for context - they're included in every message.",
+      "Say 'review my code' for a quality audit.",
+      "I can clone designs from screenshots or URLs!",
+      "Every feature gets proper error handling.",
+      "Say 'deploy' when you're ready to ship!",
+      "I run TypeScript checks after every change.",
+      "Try: 'Add dark mode' - I'll wire it all up.",
+      "All database queries use safe, typed patterns.",
+      "Say 'add tests' and I'll create comprehensive tests.",
+      "I preserve your existing code style.",
+      "Authentication? Payments? Just ask!",
+      "Your project state is saved - I remember context.",
+      "Try: 'Optimize this' for performance improvements.",
+      "I follow your stack - no random rewrites!"
+    ];
+    let tipIndex = 0;
+    let tipInterval = null;
+    const thinkingTipEl = document.getElementById('thinkingTip');
+
+    function startTipCycling() {
+      tipIndex = Math.floor(Math.random() * codeBakersTips.length);
+      if (thinkingTipEl) thinkingTipEl.textContent = codeBakersTips[tipIndex];
+      tipInterval = setInterval(() => {
+        tipIndex = (tipIndex + 1) % codeBakersTips.length;
+        if (thinkingTipEl) {
+          thinkingTipEl.style.animation = 'none';
+          thinkingTipEl.offsetHeight; // Force reflow
+          thinkingTipEl.style.animation = 'tipFade 0.3s ease-in-out';
+          thinkingTipEl.textContent = codeBakersTips[tipIndex];
+        }
+      }, 4000); // Change tip every 4 seconds
+    }
+
+    function stopTipCycling() {
+      if (tipInterval) {
+        clearInterval(tipInterval);
+        tipInterval = null;
+      }
+    }
 
     // Live Preview state
     let previewEnabled = true;
@@ -5499,6 +5923,13 @@ This is STRUCTURAL enforcement - do not skip these steps.`
         if (cancelBtn) cancelBtn.classList.toggle('show', streaming);
         if (inputEl) inputEl.disabled = streaming;
         if (streamingEl) streamingEl.classList.toggle('show', streaming);
+
+        // Start/stop tip cycling
+        if (streaming) {
+          startTipCycling();
+        } else {
+          stopTipCycling();
+        }
 
         if (streaming && streamingContentEl) {
           streamingContentEl.style.display = 'none';
@@ -7657,6 +8088,38 @@ This is STRUCTURAL enforcement - do not skip these steps.`
 
         case 'updateHealth':
           // Could show health indicator
+          break;
+
+        case 'showOnboarding':
+          onboardingActive = data.show;
+          if (onboardingContainer) {
+            if (data.show) {
+              onboardingContainer.classList.add('show');
+              mainContentEl.style.display = 'none';
+              if (loginPromptEl) loginPromptEl.classList.remove('show');
+            } else {
+              onboardingContainer.classList.remove('show');
+              mainContentEl.style.display = 'flex';
+            }
+          }
+          break;
+
+        case 'onboarding-update':
+          if (onboardingContent && data.html) {
+            onboardingContent.innerHTML = data.html;
+          }
+          break;
+
+        case 'onboarding-complete':
+          onboardingActive = false;
+          if (onboardingContainer) {
+            onboardingContainer.classList.remove('show');
+          }
+          mainContentEl.style.display = 'flex';
+          // Show welcome with completed message
+          if (welcomeEl) {
+            welcomeEl.style.display = 'flex';
+          }
           break;
       }
     });
