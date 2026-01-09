@@ -306,25 +306,40 @@ export class FileOperations {
 
   /**
    * Run a command in the integrated terminal
+   * Automatically converts bash-style && to PowerShell-compatible ; on Windows
    */
   async runCommand(command: string, name?: string): Promise<void> {
+    // Convert bash-style && to PowerShell-compatible ; on Windows
+    let processedCommand = command;
+    if (process.platform === 'win32') {
+      // Replace && with ; for PowerShell compatibility
+      processedCommand = command.replace(/\s*&&\s*/g, '; ');
+    }
+
     const terminal = vscode.window.createTerminal({
       name: name || 'CodeBakers',
       cwd: this.workspaceRoot
     });
 
     terminal.show();
-    terminal.sendText(command);
+    terminal.sendText(processedCommand);
   }
 
   /**
    * Run a command and capture output (for quick commands)
+   * Automatically converts bash-style && to PowerShell-compatible ; on Windows
    */
   async runCommandWithOutput(command: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const { exec } = require('child_process');
 
-      exec(command, { cwd: this.workspaceRoot, timeout: 30000 }, (error: any, stdout: string, stderr: string) => {
+      // Convert bash-style && to PowerShell-compatible ; on Windows
+      let processedCommand = command;
+      if (process.platform === 'win32') {
+        processedCommand = command.replace(/\s*&&\s*/g, '; ');
+      }
+
+      exec(processedCommand, { cwd: this.workspaceRoot, timeout: 30000 }, (error: any, stdout: string, stderr: string) => {
         if (error) {
           reject(new Error(stderr || error.message));
         } else {
