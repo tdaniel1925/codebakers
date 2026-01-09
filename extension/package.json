@@ -1,210 +1,102 @@
 {
   "name": "codebakers",
-  "displayName": "CodeBakers - Production Code, First Time",
-  "description": "Stop fixing AI mistakes. Cursor and Claude Code ignore your standards — CodeBakers enforces them. Save 20+ hours per project with production-ready code the first time.",
-  "version": "1.0.118",
+  "displayName": "CodeBakers - AI Pattern Enforcement",
+  "description": "Enforce coding standards in Claude Code and Cursor. Syncs CLAUDE.md and .cursorrules to ensure AI follows your patterns.",
+  "version": "2.0.0",
   "publisher": "codebakers",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
     "Programming Languages",
-    "Snippets",
-    "Machine Learning",
     "Other"
   ],
   "keywords": [
     "ai",
     "claude",
+    "cursor",
     "patterns",
-    "code generation",
-    "best practices",
-    "copilot"
+    "rules",
+    "claude code",
+    "cursorrules"
   ],
   "icon": "media/icon.png",
   "activationEvents": [
-    "*"
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
+        "command": "codebakers.showMenu",
+        "title": "CodeBakers: Show Options",
+        "category": "CodeBakers"
+      },
+      {
+        "command": "codebakers.initPatterns",
+        "title": "CodeBakers: Initialize Patterns",
+        "category": "CodeBakers"
+      },
+      {
+        "command": "codebakers.syncPatterns",
+        "title": "CodeBakers: Sync Pattern Files",
+        "category": "CodeBakers"
+      },
+      {
+        "command": "codebakers.updatePatterns",
+        "title": "CodeBakers: Update Patterns from Server",
+        "category": "CodeBakers"
+      },
+      {
+        "command": "codebakers.openClaudeMd",
+        "title": "CodeBakers: Open CLAUDE.md",
+        "category": "CodeBakers"
+      },
+      {
+        "command": "codebakers.refreshStatus",
+        "title": "CodeBakers: Refresh Status",
+        "category": "CodeBakers"
+      },
+      {
         "command": "codebakers.openChat",
-        "title": "Open CodeBakers",
-        "category": "CodeBakers",
-        "icon": {
-          "light": "media/icon.svg",
-          "dark": "media/icon.svg"
-        }
-      },
-      {
-        "command": "codebakers.login",
-        "title": "Login to CodeBakers",
+        "title": "CodeBakers: About (Legacy)",
         "category": "CodeBakers"
-      },
-      {
-        "command": "codebakers.logout",
-        "title": "Logout from CodeBakers",
-        "category": "CodeBakers"
-      },
-      {
-        "command": "codebakers.showPatterns",
-        "title": "Show Available Patterns",
-        "category": "CodeBakers"
-      },
-      {
-        "command": "codebakers.runAudit",
-        "title": "Run Code Audit",
-        "category": "CodeBakers"
-      },
-      {
-        "command": "codebakers.askAboutSelection",
-        "title": "Ask CodeBakers About This",
-        "category": "CodeBakers"
-      },
-      {
-        "command": "codebakers.explainSelection",
-        "title": "Explain This Code",
-        "category": "CodeBakers"
-      },
-      {
-        "command": "codebakers.refactorSelection",
-        "title": "Refactor This Code",
-        "category": "CodeBakers"
-      },
-      {
-        "command": "codebakers.addTestsForSelection",
-        "title": "Add Tests for This",
-        "category": "CodeBakers"
-      },
-      {
-        "command": "codebakers.openMindMap",
-        "title": "Open Mind Map",
-        "category": "CodeBakers",
-        "icon": "$(type-hierarchy)"
-      },
-      {
-        "command": "codebakers.openBuildPlanner",
-        "title": "Open Build Planner",
-        "category": "CodeBakers",
-        "icon": "$(layout)"
-      },
-      {
-        "command": "codebakers.runTests",
-        "title": "Run Project Tests",
-        "category": "CodeBakers",
-        "icon": "$(beaker)"
       }
     ],
     "menus": {
-      "editor/title": [
-        {
-          "command": "codebakers.openChat",
-          "group": "navigation"
-        }
-      ],
-      "editor/context": [
-        {
-          "submenu": "codebakers.contextMenu",
-          "group": "codebakers",
-          "when": "editorHasSelection"
-        }
-      ],
-      "codebakers.contextMenu": [
-        {
-          "command": "codebakers.askAboutSelection",
-          "group": "1_ask"
-        },
-        {
-          "command": "codebakers.explainSelection",
-          "group": "2_actions"
-        },
-        {
-          "command": "codebakers.refactorSelection",
-          "group": "2_actions"
-        },
-        {
-          "command": "codebakers.addTestsForSelection",
-          "group": "2_actions"
-        }
-      ],
       "commandPalette": [
         {
-          "command": "codebakers.openChat"
+          "command": "codebakers.showMenu"
         },
         {
-          "command": "codebakers.login"
+          "command": "codebakers.initPatterns"
         },
         {
-          "command": "codebakers.logout"
+          "command": "codebakers.syncPatterns"
         },
         {
-          "command": "codebakers.askAboutSelection",
-          "when": "editorHasSelection"
+          "command": "codebakers.updatePatterns"
         },
         {
-          "command": "codebakers.explainSelection",
-          "when": "editorHasSelection"
+          "command": "codebakers.openClaudeMd"
         },
         {
-          "command": "codebakers.refactorSelection",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "codebakers.addTestsForSelection",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "codebakers.openMindMap"
-        },
-        {
-          "command": "codebakers.openBuildPlanner"
-        },
-        {
-          "command": "codebakers.runTests"
+          "command": "codebakers.refreshStatus"
         }
       ]
     },
-    "submenus": [
-      {
-        "id": "codebakers.contextMenu",
-        "label": "CodeBakers"
-      }
-    ],
-    "keybindings": [
-      {
-        "command": "codebakers.openChat",
-        "key": "ctrl+alt+c",
-        "mac": "cmd+alt+c"
-      },
-      {
-        "command": "codebakers.openMindMap",
-        "key": "ctrl+alt+m",
-        "mac": "cmd+alt+m"
-      },
-      {
-        "command": "codebakers.openBuildPlanner",
-        "key": "ctrl+alt+b",
-        "mac": "cmd+alt+b"
-      }
-    ],
     "configuration": {
       "title": "CodeBakers",
       "properties": {
-        "codebakers.apiEndpoint": {
+        "codebakers.apiKey": {
           "type": "string",
-          "default": "https://www.codebakers.ai",
-          "description": "CodeBakers API endpoint"
+          "default": "",
+          "description": "Your CodeBakers API key for downloading patterns"
         },
-        "codebakers.autoShowFooter": {
+        "codebakers.autoSync": {
           "type": "boolean",
           "default": true,
-          "description": "Show CodeBakers footer after code generation"
-        },
-        "codebakers.requireApproval": {
-          "type": "boolean",
-          "default": false,
-          "description": "Require approval before applying file changes and running commands. When disabled (default), changes are applied automatically."
+          "description": "Automatically sync CLAUDE.md and .cursorrules when one changes"
         }
       }
     }
@@ -212,32 +104,18 @@
   "scripts": {
     "vscode:prepublish": "npm run esbuild-base -- --production",
     "compile": "npm run esbuild-base",
-    "compile:tests": "tsc -p ./",
     "esbuild-base": "node esbuild.js",
     "esbuild-watch": "node esbuild.js --watch",
     "watch": "npm run esbuild-watch",
-    "pretest": "npm run compile && npm run compile:tests",
-    "test": "node ./dist/test/runTest.js",
-    "test:unit": "npx mocha --require ts-node/register src/test/unit/*.test.ts",
     "package": "vsce package",
     "publish": "vsce publish"
   },
   "devDependencies": {
-    "@types/glob": "^8.1.0",
-    "@types/mocha": "^10.0.10",
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
-    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^2.22.0",
     "esbuild": "^0.27.2",
-    "glob": "^13.0.0",
-    "mocha": "^11.7.5",
-    "ts-node": "^10.9.2",
     "typescript": "^5.3.0"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.0",
-    "node-fetch": "^2.7.0"
   },
   "repository": {
     "type": "git",
