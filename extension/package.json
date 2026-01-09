@@ -2,7 +2,7 @@
   "name": "codebakers",
   "displayName": "CodeBakers - AI Pattern Enforcement",
   "description": "Enforce coding standards in Claude Code and Cursor. Syncs CLAUDE.md and .cursorrules to ensure AI follows your patterns.",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "publisher": "codebakers",
   "engines": {
     "vscode": "^1.85.0"
