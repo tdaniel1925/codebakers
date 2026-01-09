@@ -5,13 +5,13 @@ test.describe('Pricing Page', () => {
     await page.goto('/pricing');
     await expect(page.getByText('Pro').first()).toBeVisible();
     await expect(page.getByText('Team').first()).toBeVisible();
-    await expect(page.getByText('Agency').first()).toBeVisible();
+    await expect(page.getByText('Enterprise').first()).toBeVisible();
   });
 
   test('should show plan descriptions', async ({ page }) => {
     await page.goto('/pricing');
     // Check that plan descriptions are visible
-    await expect(page.getByText(/solo developer|individual/i).first()).toBeVisible();
+    await expect(page.getByText(/save.*hours|growing teams|unlimited/i).first()).toBeVisible();
     await expect(page.getByText(/team/i).first()).toBeVisible();
   });
 

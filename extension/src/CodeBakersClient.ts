@@ -42,6 +42,12 @@ interface ChatResponse {
   validation?: ValidationResult;
   dependencyCheck?: DependencyCheck;
   usage?: TokenUsage;
+  gate2?: {
+    passed: boolean;
+    issues: string[];
+    compliance: { score: number; deductions: Array<{ rule: string; issue: string; points: number }> };
+    message?: string;
+  };
 }
 
 interface StreamCallbacks {
@@ -79,6 +85,13 @@ export class CodeBakersClient {
     requestCount: 0,
     startTime: new Date()
   };
+
+  // Enforcement session for server-side gates
+  private currentEnforcementSession: {
+    token: string;
+    patterns: Array<{ name: string; content: string; relevance: number }>;
+    expiresAt: string;
+  } | null = null;
 
   // Claude Sonnet 4 pricing (as of Jan 2025)
   private readonly PRICE_PER_1K_INPUT = 0.003; // $3 per 1M input tokens
@@ -479,13 +492,38 @@ export class CodeBakersClient {
     // Build the system prompt with CodeBakers enforcement
     const systemPrompt = this._buildSystemPrompt(projectState);
 
-    // Detect which patterns might be relevant based on the conversation
-    const relevantPatterns = await this._detectRelevantPatterns(messages);
+    // GATE 1: Call server-side pattern discovery
+    // This creates an enforcement session and returns relevant patterns
+    const lastMessage = messages[messages.length - 1]?.content || '';
+    let serverPatterns: Array<{ name: string; content: string; relevance: number }> = [];
 
-    // Include pattern content in system prompt
-    const patternsContent = relevantPatterns
-      .map(p => `## Pattern: ${p.name}\n${p.content}`)
-      .join('\n\n');
+    try {
+      // Extract keywords for pattern matching
+      const keywords = this._extractKeywords(lastMessage);
+
+      // Call server to discover patterns and create enforcement session
+      const discoveryResult = await this._callDiscoverPatterns(lastMessage, keywords);
+
+      if (discoveryResult && discoveryResult.sessionToken) {
+        this.currentEnforcementSession = {
+          token: discoveryResult.sessionToken,
+          patterns: discoveryResult.patterns || [],
+          expiresAt: discoveryResult.expiresAt || new Date(Date.now() + 3600000).toISOString(),
+        };
+        serverPatterns = discoveryResult.patterns || [];
+        console.log('CodeBakers: GATE 1 passed - enforcement session created:', discoveryResult.sessionToken.substring(0, 20) + '...');
+      }
+    } catch (error) {
+      console.warn('CodeBakers: Server pattern discovery failed, falling back to local patterns:', error);
+      // Fall back to local pattern detection
+      const localPatterns = await this._detectRelevantPatterns(messages);
+      serverPatterns = localPatterns.map(p => ({ name: p.name, content: p.content, relevance: 1 }));
+    }
+
+    // Include pattern content in system prompt (prefer server patterns)
+    const patternsContent = serverPatterns.length > 0
+      ? serverPatterns.map(p => `## Pattern: ${p.name}\n${p.content}`).join('\n\n')
+      : (await this._detectRelevantPatterns(messages)).map(p => `## Pattern: ${p.name}\n${p.content}`).join('\n\n');
 
     // Extract system messages and add to system prompt (Claude API doesn't accept role: "system" in messages)
     const systemMessages = messages.filter(m => m.role === 'system');
@@ -496,7 +534,12 @@ export class CodeBakersClient {
       ? '\n\n# CONTEXT\n' + systemMessages.map(m => m.content).join('\n\n')
       : '';
 
-    const fullSystemPrompt = `${systemPrompt}\n\n# LOADED PATTERNS\n${patternsContent}${contextFromMessages}`;
+    // Add enforcement reminder to system prompt
+    const enforcementReminder = this.currentEnforcementSession
+      ? '\n\n# ENFORCEMENT\nYou are in an enforced session. Follow the loaded patterns exactly. Your code will be validated against these patterns before being applied.'
+      : '';
+
+    const fullSystemPrompt = `${systemPrompt}\n\n# LOADED PATTERNS\n${patternsContent}${contextFromMessages}${enforcementReminder}`;
 
     // Retry logic with exponential backoff
     let lastError: Error | null = null;
@@ -623,7 +666,7 @@ export class CodeBakersClient {
         // Build footer with counts and validation status
         const fileCount = fileOperations.length;
         const cmdCount = commands.length;
-        const patternNames = relevantPatterns.map(p => p.name).join(', ') || 'core';
+        const patternNames = serverPatterns.map(p => p.name).join(', ') || 'core';
 
         // Determine overall status
         const hasComplianceIssues = !compliance.passed;
@@ -683,6 +726,49 @@ export class CodeBakersClient {
         contentWithFooter += '\n\n---\n🍪 **CodeBakers** ' + statusIcon + ' | Files: ' +
           fileCount + ' | Commands: ' + cmdCount + ' | TSC: ' + tscStatus + tokenDisplay + costDisplay + ' | ' + patternNames;
 
+        // GATE 2: Validate completion if we have an enforcement session and file operations
+        let gate2Result: {
+          passed: boolean;
+          issues: string[];
+          compliance: { score: number; deductions: Array<{ rule: string; issue: string; points: number }> };
+          message?: string;
+        } | null = null;
+
+        if (this.currentEnforcementSession && fileOperations.length > 0) {
+          try {
+            const filesModified = fileOperations.map(op => op.path);
+            const testsWritten = fileOperations.filter(op =>
+              op.path.includes('.test.') || op.path.includes('.spec.') || op.path.includes('/__tests__/')
+            ).map(op => op.path);
+
+            gate2Result = await this._callValidateComplete(
+              this.currentEnforcementSession.token,
+              lastMessage.substring(0, 100), // Use first 100 chars as feature name
+              filesModified,
+              testsWritten,
+              testsWritten.length > 0, // testsRun
+              tscResult?.passed ?? true, // testsPassed (use TSC as proxy)
+              tscResult?.passed ?? true  // typescriptPassed
+            );
+
+            if (gate2Result) {
+              if (gate2Result.passed) {
+                console.log('CodeBakers: GATE 2 passed - compliance score:', gate2Result.compliance.score);
+                contentWithFooter += ` | Gate 2: ✅ (${gate2Result.compliance.score}/100)`;
+              } else {
+                console.warn('CodeBakers: GATE 2 failed:', gate2Result.issues);
+                contentWithFooter += `\n\n⚠️ **Gate 2 Issues:** ${gate2Result.issues.join(', ')}`;
+                contentWithFooter += ` | Gate 2: ❌`;
+              }
+            }
+
+            // Clear the enforcement session after validation
+            this.currentEnforcementSession = null;
+          } catch (error) {
+            console.warn('CodeBakers: Gate 2 validation error:', error);
+          }
+        }
+
         return {
           content: contentWithFooter,
           thinking: thinking || undefined,
@@ -691,7 +777,8 @@ export class CodeBakersClient {
           projectUpdates,
           validation,
           dependencyCheck,
-          usage
+          usage,
+          gate2: gate2Result || undefined
         };
       } catch (error: any) {
         lastError = error;
@@ -1231,6 +1318,157 @@ If any checkbox is NO, fix it before responding.
     }
 
     return Object.keys(updates).length > 0 ? updates : undefined;
+  }
+
+  /**
+   * Extract keywords from a message for pattern matching
+   */
+  private _extractKeywords(message: string): string[] {
+    const keywordPatterns: Record<string, string[]> = {
+      database: ['database', 'db', 'schema', 'table', 'query', 'drizzle', 'postgres', 'sql'],
+      auth: ['auth', 'login', 'signup', 'session', 'password', 'oauth', 'jwt', 'token'],
+      api: ['api', 'route', 'endpoint', 'rest', 'fetch', 'request', 'response'],
+      frontend: ['component', 'react', 'form', 'ui', 'page', 'button', 'modal'],
+      payments: ['payment', 'stripe', 'billing', 'subscription', 'checkout', 'price'],
+      testing: ['test', 'testing', 'playwright', 'vitest', 'jest', 'spec'],
+    };
+
+    const lowerMessage = message.toLowerCase();
+    const foundKeywords: string[] = [];
+
+    for (const [category, words] of Object.entries(keywordPatterns)) {
+      if (words.some(word => lowerMessage.includes(word))) {
+        foundKeywords.push(category);
+      }
+    }
+
+    return foundKeywords.length > 0 ? foundKeywords : ['general'];
+  }
+
+  /**
+   * Call server-side pattern discovery (GATE 1)
+   * Creates an enforcement session and returns relevant patterns
+   */
+  private async _callDiscoverPatterns(task: string, keywords: string[]): Promise<{
+    sessionToken: string;
+    patterns: Array<{ name: string; content: string; relevance: number }>;
+    expiresAt: string;
+    message?: string;
+  } | null> {
+    if (!this.sessionToken) {
+      console.log('CodeBakers: No session token, skipping server pattern discovery');
+      return null;
+    }
+
+    try {
+      const url = `${this._getApiEndpoint()}/api/patterns/discover`;
+      const projectPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+      const response = await this._fetchWithTimeout(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.sessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          task,
+          keywords,
+          projectPath,
+        }),
+      }, 15000); // 15 second timeout
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn('CodeBakers: Pattern discovery failed:', errorData);
+        return null;
+      }
+
+      const data = await response.json() as {
+        sessionToken?: string;
+        patterns?: Array<{ name: string; content: string; relevance: number }>;
+        expiresAt?: string;
+        message?: string;
+      };
+      return {
+        sessionToken: data.sessionToken || '',
+        patterns: data.patterns || [],
+        expiresAt: data.expiresAt || '',
+        message: data.message,
+      };
+    } catch (error) {
+      console.warn('CodeBakers: Pattern discovery error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Call server-side validation (GATE 2)
+   * Validates that patterns were followed before allowing file operations
+   */
+  private async _callValidateComplete(
+    sessionToken: string,
+    featureName: string,
+    filesModified: string[],
+    testsWritten: string[] = [],
+    testsRun: boolean = false,
+    testsPassed: boolean = false,
+    typescriptPassed: boolean = true
+  ): Promise<{
+    passed: boolean;
+    issues: string[];
+    compliance: { score: number; deductions: Array<{ rule: string; issue: string; points: number }> };
+    message?: string;
+  } | null> {
+    if (!this.sessionToken) {
+      return null;
+    }
+
+    try {
+      const url = `${this._getApiEndpoint()}/api/patterns/validate`;
+
+      const response = await this._fetchWithTimeout(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.sessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionToken,
+          featureName,
+          filesModified,
+          testsWritten,
+          testsRun,
+          testsPassed,
+          typescriptPassed,
+        }),
+      }, 15000);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({})) as { error?: string };
+        console.warn('CodeBakers: Validation failed:', errorData);
+        return {
+          passed: false,
+          issues: [errorData.error || 'Validation failed'],
+          compliance: { score: 0, deductions: [] },
+        };
+      }
+
+      const data = await response.json() as {
+        passed?: boolean;
+        issues?: string[];
+        compliance?: { score: number; deductions: Array<{ rule: string; issue: string; points: number }> };
+        message?: string;
+      };
+      return {
+        passed: data.passed ?? false,
+        issues: data.issues || [],
+        compliance: data.compliance || { score: 100, deductions: [] },
+        message: data.message,
+      };
+    } catch (error) {
+      console.warn('CodeBakers: Validation error:', error);
+      return null;
+    }
   }
 
   private _getApiEndpoint(): string {

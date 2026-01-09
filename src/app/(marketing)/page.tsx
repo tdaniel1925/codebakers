@@ -33,6 +33,25 @@ import {
   Bot,
   Wand2,
   Play,
+  LayoutGrid,
+  MousePointer2,
+  Workflow,
+  Box,
+  Keyboard,
+  Mic,
+  FileCode,
+  GitBranch,
+  Gauge,
+  RefreshCw,
+  Target,
+  Puzzle,
+  Lightbulb,
+  Eye,
+  Send,
+  PanelLeft,
+  LayoutTemplate,
+  BookOpen,
+  Blocks,
 } from 'lucide-react';
 
 // Animation variants
@@ -50,131 +69,115 @@ const staggerContainer = {
   },
 };
 
-// Data
-const painPoints = [
+// Revolutionary features
+const revolutionaryFeatures = [
   {
-    icon: Clock,
-    title: 'Hours of prompting',
-    description: '"Add loading state... now handle errors... add validation..."',
+    icon: LayoutGrid,
+    title: 'Visual Canvas Builder',
+    description: 'See your entire app architecture as an interactive mind map. Drag, connect, and build visually.',
+    highlight: true,
   },
   {
-    icon: AlertCircle,
-    title: 'Missing edge cases',
-    description: 'AI forgets error handling, security, accessibility every time.',
+    icon: Wand2,
+    title: 'AI That Follows Rules',
+    description: '59 production modules force AI to use your patterns, not generic code. No more "fix this" loops.',
   },
   {
-    icon: RotateCcw,
-    title: 'Endless revisions',
-    description: 'Round after round of "fix this, now fix that" loops.',
+    icon: LayoutTemplate,
+    title: 'One-Click Templates',
+    description: 'Start with SaaS, dashboard, or landing page templates. Full architecture in seconds.',
   },
   {
-    icon: Layers,
-    title: 'No consistency',
-    description: 'Different patterns, different styles, spaghetti code.',
+    icon: Gauge,
+    title: 'Real-Time Health',
+    description: 'Architecture health indicators show issues before you build. Catch problems early.',
   },
 ];
 
-const promptOptimizerSteps = [
+const canvasModeFeatures = [
+  {
+    icon: Eye,
+    title: 'See Everything',
+    description: 'Pages, components, APIs, database - visualized as connected nodes you can click and explore.',
+  },
+  {
+    icon: MousePointer2,
+    title: 'Click to Build',
+    description: 'Click any node to generate code. Click connections to understand data flow. Click "+" to add features.',
+  },
+  {
+    icon: Workflow,
+    title: 'Smart Connections',
+    description: 'Bezier curves show relationships: pages to components, APIs to database, auth to everything.',
+  },
+  {
+    icon: Keyboard,
+    title: 'Developer Shortcuts',
+    description: 'N for new node, E to edit, D to delete, T for templates. Vim users, rejoice.',
+  },
+];
+
+const beforeAfterComparison = [
+  {
+    before: 'Type prompts in chat',
+    after: 'Visual canvas with architecture',
+    icon: LayoutGrid,
+  },
+  {
+    before: 'Generic AI-generated code',
+    after: '59 production pattern modules',
+    icon: FileCode,
+  },
+  {
+    before: 'Hope nothing breaks',
+    after: 'Health indicators warn you first',
+    icon: Gauge,
+  },
+  {
+    before: 'Start from scratch every time',
+    after: 'Templates gallery for instant start',
+    icon: LayoutTemplate,
+  },
+  {
+    before: 'Chat-only interface',
+    after: '30/70 split: canvas + chat',
+    icon: PanelLeft,
+  },
+  {
+    before: 'Forget what you built',
+    after: 'Visual map of entire architecture',
+    icon: GitBranch,
+  },
+];
+
+const workflowSteps = [
   {
     step: 1,
-    label: 'You type',
-    example: '"Add login form"',
-    color: 'text-gray-500',
+    title: 'Describe or Choose Template',
+    description: 'Tell AI what you want or pick from SaaS, Dashboard, or Landing Page templates.',
+    icon: Lightbulb,
+    visual: '"Build a project management app with teams and tasks"',
   },
   {
     step: 2,
-    label: 'AI optimizes',
-    example: 'Adds 15+ production requirements automatically',
-    color: 'text-amber-500',
+    title: 'See Architecture Instantly',
+    description: 'Watch as nodes appear: pages, components, APIs, database tables - all connected.',
+    icon: Eye,
+    visual: '6 pages, 12 components, 8 API routes visualized',
   },
   {
     step: 3,
-    label: 'You get',
-    example: 'Complete auth with validation, errors, tests, a11y',
-    color: 'text-green-500',
-  },
-];
-
-const demoTabs = [
-  {
-    id: 'auth',
-    label: 'Authentication',
-    icon: Lock,
-    code: `// Your prompt: "Add login form"
-
-// CodeBakers generates:
-export function LoginForm() {
-  const form = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
-  });
-
-  const login = useMutation({
-    mutationFn: authApi.login,
-    onSuccess: () => router.push('/dashboard'),
-    onError: (err) => toast.error(err.message),
-  });
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(login.mutate)}>
-        <FormField name="email" ... />
-        <FormField name="password" ... />
-        <Button loading={login.isPending}>
-          Sign In
-        </Button>
-      </form>
-    </Form>
-  );
-}`,
+    title: 'Refine Visually',
+    description: 'Click nodes to expand. Delete what you don\'t need. Add features with "+". Drag to reorganize.',
+    icon: MousePointer2,
+    visual: 'Click "Users Page" → Add "Invite Modal" component',
   },
   {
-    id: 'payments',
-    label: 'Stripe Payments',
-    icon: CreditCard,
-    code: `// Your prompt: "Add subscription checkout"
-
-// CodeBakers generates:
-export async function POST(req: Request) {
-  const { priceId } = await req.json();
-  const user = await getCurrentUser();
-
-  const session = await stripe.checkout.sessions.create({
-    customer: user.stripeCustomerId,
-    mode: 'subscription',
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: \`\${APP_URL}/dashboard?success=1\`,
-    cancel_url: \`\${APP_URL}/pricing\`,
-    metadata: { userId: user.id },
-  });
-
-  return Response.json({ url: session.url });
-}`,
-  },
-  {
-    id: 'api',
-    label: 'API Routes',
-    icon: Webhook,
-    code: `// Your prompt: "Create users API endpoint"
-
-// CodeBakers generates:
-export const GET = withAuth(async (req, { user }) => {
-  const { page, limit } = paginationSchema.parse(
-    Object.fromEntries(req.nextUrl.searchParams)
-  );
-
-  const users = await db.query.users.findMany({
-    limit,
-    offset: (page - 1) * limit,
-    where: eq(users.teamId, user.teamId),
-    orderBy: desc(users.createdAt),
-  });
-
-  return Response.json({
-    success: true,
-    data: users,
-    meta: { page, limit },
-  });
-});`,
+    step: 4,
+    title: 'Generate Production Code',
+    description: 'One click generates code using your patterns. Not generic AI slop - your standards.',
+    icon: Code2,
+    visual: 'Zod validation, error handling, tests - all included',
   },
 ];
 
@@ -235,73 +238,26 @@ const moduleCategories = [
   },
 ];
 
-const steps = [
-  {
-    step: 1,
-    title: 'Install Extension',
-    description: 'Get CodeBakers from the VS Code Marketplace',
-    code: 'Search "CodeBakers" in Extensions',
-  },
-  {
-    step: 2,
-    title: 'Sign In with GitHub',
-    description: 'One-click authentication, no passwords needed',
-    code: 'Click "Sign In" → Authorize',
-  },
-  {
-    step: 3,
-    title: 'Start Coding',
-    description: `Patterns are loaded automatically when you chat`,
-    code: '"Build me a todo app"',
-  },
-];
-
-const aiCompatibility = [
-  { name: 'Cursor', icon: Code2, supported: true },
-  { name: 'Claude Code', icon: Bot, supported: true },
-];
-
-const industryExperts = [
-  {
-    icon: Heart,
-    title: 'Healthcare & HIPAA',
-    description: 'PHI handling, HIPAA compliance, secure patient data, audit trails',
-    module: '22-experts-health.md',
-  },
-  {
-    icon: Building2,
-    title: 'Finance & PCI',
-    description: 'PCI-DSS compliance, financial transactions, banking integrations',
-    module: '23-experts-finance.md',
-  },
-  {
-    icon: Scale,
-    title: 'Legal & Contracts',
-    description: 'Legal tech patterns, contract management, e-signatures, privacy',
-    module: '24-experts-legal.md',
-  },
-];
-
 const testimonials = [
   {
     name: 'Jason Jennings',
     role: 'Senior Developer at TechCorp',
     avatar: 'JJ',
-    content: 'CodeBakers cut our development time by 60%. What used to take a week now takes two days.',
+    content: 'Canvas Mode changed everything. I can finally SEE what I\'m building before the code exists. It\'s like having a technical architect and AI coder in one.',
     rating: 5,
   },
   {
     name: 'Melissa Starke',
     role: 'Founder, ShipFast.io',
     avatar: 'MS',
-    content: 'Finally, AI that writes production code. No more fixing auth bugs or missing error handling.',
+    content: 'I went from idea to deployed MVP in 3 hours. The templates gallery gave me a full SaaS architecture, I just customized the nodes and hit generate.',
     rating: 5,
   },
   {
     name: 'William Benoit',
     role: 'Tech Lead at FinanceApp',
     avatar: 'WB',
-    content: 'The HIPAA and PCI modules alone saved us months of compliance work. Absolutely worth it.',
+    content: 'The 59 modules mean AI finally writes code the way WE want. No more "add error handling" or "fix the auth". It\'s just... correct the first time.',
     rating: 5,
   },
 ];
@@ -313,13 +269,13 @@ const pricingPlans = [
     period: '/month',
     description: 'For individual developers',
     features: [
-      'All 40 modules',
-      '1 API key',
+      'Visual Canvas Builder',
+      'All 59 modules',
+      'Templates gallery',
       'Unlimited projects',
       'Pattern updates',
-      'Email support',
     ],
-    cta: 'Get Started',
+    cta: 'Start Free Trial',
     popular: true,
   },
   {
@@ -330,22 +286,22 @@ const pricingPlans = [
     features: [
       'Everything in Pro',
       '5 team seats',
-      'Team API keys',
+      'Shared architectures',
       'Priority support',
       'Private Slack channel',
     ],
-    cta: 'Get Started',
+    cta: 'Start Free Trial',
     popular: false,
   },
   {
-    name: 'Agency',
+    name: 'Enterprise',
     price: '$349',
     period: '/month',
-    description: 'For agencies & consultancies',
+    description: 'For agencies & enterprises',
     features: [
       'Everything in Team',
       'Unlimited seats',
-      'Client sub-accounts',
+      'Custom modules',
       'White-label options',
       'Dedicated support',
     ],
@@ -356,33 +312,32 @@ const pricingPlans = [
 
 const faqs = [
   {
-    question: 'How does CodeBakers work?',
-    answer: 'CodeBakers provides pattern files that your AI assistant (Claude, Cursor, Copilot) reads before generating code. These patterns contain production-ready templates, best practices, and complete implementations that guide the AI to write better code on the first try.',
+    question: 'What is Canvas Mode and how is it different?',
+    answer: 'Canvas Mode is a visual architecture builder where you see your entire app as an interactive mind map. Unlike chat-only AI tools, you can see pages, components, APIs, and database tables as connected nodes. Click any node to generate code, see relationships, or add new features. It\'s the difference between describing a house versus looking at blueprints.',
   },
   {
-    question: 'What is the Smart Prompt Optimizer?',
-    answer: 'The Prompt Optimizer automatically expands your simple requests into comprehensive, production-ready prompts. When you type "add login form", it becomes a detailed prompt including validation, error handling, loading states, accessibility, and tests—all tailored to your specific project\'s components and patterns.',
+    question: 'How do the 59 modules improve AI code generation?',
+    answer: 'Each module contains production-ready patterns for specific features (auth, payments, APIs, etc.). When you ask AI to generate code, it doesn\'t hallucinate - it follows YOUR patterns. The result: Zod validation, proper error handling, TypeScript types, and tests are included automatically because they\'re in your patterns.',
   },
   {
-    question: 'What AI tools does it work with?',
-    answer: 'CodeBakers works with Cursor IDE and Claude Code CLI via MCP (Model Context Protocol) for secure, on-demand pattern access. No files stored locally—patterns are fetched when needed.',
+    question: 'What AI tools does CodeBakers work with?',
+    answer: 'CodeBakers is a VS Code extension that works with your existing AI (Cursor, Claude Code, Copilot). We don\'t replace your AI - we make it dramatically better by giving it the context and patterns it needs to generate production-ready code.',
   },
   {
-    question: 'What tech stack is covered?',
-    answer: 'The core patterns focus on Next.js, React, TypeScript, Drizzle ORM, Supabase, Stripe, Tailwind CSS, and related modern stack. Industry modules cover compliance (HIPAA, PCI) and business domains.',
+    question: 'What are the keyboard shortcuts?',
+    answer: 'Canvas Mode is designed for developers: N = new node, E = edit selected, D = delete selected, T = open templates, Escape = close panels, Ctrl+Enter = send message. Full keyboard-driven workflow for power users.',
   },
   {
-    question: 'Can I customize the patterns?',
-    answer: 'Yes! All patterns are plain markdown files in your project. You can modify them, add your own patterns, or request custom modules for your specific needs.',
+    question: 'How do templates work?',
+    answer: 'Press T or click the Templates button to open the gallery. Choose from SaaS, Dashboard, or Landing Page templates. Each template creates a complete architecture with pre-connected nodes. Then customize: delete nodes you don\'t need, add ones you do.',
   },
   {
-    question: 'Is there a free tier?',
-    answer: 'Yes! Install the VS Code extension and sign in with GitHub to start a 14-day free trial instantly. No credit card required. You get full access to all modules. Upgrade to Pro ($49/mo) for unlimited continued access.',
+    question: 'Is there a free trial?',
+    answer: 'Yes! Install the VS Code extension and sign in with GitHub for a 14-day free trial. No credit card required. You get full access to Canvas Mode, all 59 modules, and templates.',
   },
 ];
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState('auth');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -394,20 +349,26 @@ export default function HomePage() {
 
   return (
     <div className="overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-24 px-4">
-        {/* Grid Background Pattern - Light mode only */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none dark:hidden">
+      {/* Hero Section - Revolutionary Positioning */}
+      <section className="relative pt-16 pb-20 px-4">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
+          {/* Animated grid */}
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 opacity-20"
             style={{
-              backgroundImage: `linear-gradient(to right, #d1d5db 1px, transparent 1px), linear-gradient(to bottom, #d1d5db 1px, transparent 1px)`,
+              backgroundImage: `linear-gradient(to right, #475569 1px, transparent 1px), linear-gradient(to bottom, #475569 1px, transparent 1px)`,
               backgroundSize: '60px 60px'
             }}
           />
-          {/* Subtle fade at bottom only */}
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white to-transparent" />
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+          {/* Animated orbs */}
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-600/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
+
         <motion.div
           className="container mx-auto text-center relative z-10"
           initial="initial"
@@ -415,78 +376,80 @@ export default function HomePage() {
           variants={staggerContainer}
         >
           <motion.div variants={fadeInUp}>
-            <Badge className="mb-6 bg-red-50 text-red-600 border-red-200 hover:bg-red-100">
+            <Badge className="mb-6 bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30">
               <Sparkles className="h-3 w-3 mr-1" />
-              34 Modules • {totalLines.toLocaleString()}+ Lines of Production Code
+              Introducing Canvas Mode - The Visual AI App Builder
             </Badge>
           </motion.div>
 
           <motion.h1
-            className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight tracking-tight"
+            className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight tracking-tight"
             variants={fadeInUp}
           >
-            Stop fighting{' '}
-            <span className="text-red-600 whitespace-nowrap">
-              AI revision loops
+            The New Era of{' '}
+            <span className="bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 bg-clip-text text-transparent">
+              AI App Building
             </span>
           </motion.h1>
 
           <motion.p
-            className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed"
+            className="text-xl text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed"
             variants={fadeInUp}
           >
-            CodeBakers gives your AI assistant {totalLines.toLocaleString()}+ lines of battle-tested
-            patterns. Get production-ready code on your first prompt.
+            Stop typing prompts into a chat box. <strong className="text-white">See your entire app architecture</strong> as
+            an interactive canvas. Click nodes to build. Watch AI follow <strong className="text-white">your patterns</strong>,
+            not generic templates.
           </motion.p>
 
-          <motion.div className="flex justify-center gap-4 mb-16" variants={fadeInUp}>
+          <motion.div className="flex flex-col sm:flex-row justify-center gap-4 mb-12" variants={fadeInUp}>
             <Link href="/signup">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700 h-14 px-10 text-lg shadow-lg shadow-red-600/20">
-                Start Free
+              <Button size="lg" className="bg-red-600 hover:bg-red-700 h-14 px-10 text-lg shadow-lg shadow-red-600/30">
+                Try Canvas Mode Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="#demo">
+            <Link href="#how-it-works">
               <Button
                 size="lg"
                 variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 h-14 px-10 text-lg"
+                className="border-slate-600 text-white hover:bg-slate-800 h-14 px-10 text-lg"
               >
-                See Demo
+                <Play className="mr-2 h-5 w-5" />
+                Watch Demo
               </Button>
             </Link>
           </motion.div>
 
-          {/* Stats bar */}
+          {/* Key stats */}
           <motion.div
-            className="flex justify-center gap-12 md:gap-20"
+            className="flex justify-center gap-8 md:gap-16 flex-wrap"
             variants={fadeInUp}
           >
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-900">34</div>
-              <div className="text-sm text-gray-500 mt-1">Modules</div>
+              <div className="text-3xl md:text-4xl font-bold text-white">Visual</div>
+              <div className="text-sm text-slate-400 mt-1">Canvas Builder</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-900">{(totalLines / 1000).toFixed(0)}K+</div>
-              <div className="text-sm text-gray-500 mt-1">Lines of Code</div>
+              <div className="text-3xl md:text-4xl font-bold text-white">59</div>
+              <div className="text-sm text-slate-400 mt-1">Pattern Modules</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-900">5x</div>
-              <div className="text-sm text-gray-500 mt-1">Faster Development</div>
+              <div className="text-3xl md:text-4xl font-bold text-white">{(totalLines / 1000).toFixed(0)}K+</div>
+              <div className="text-sm text-slate-400 mt-1">Lines of Code</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-900">100%</div>
-              <div className="text-sm text-gray-500 mt-1">Production Ready</div>
+              <div className="text-3xl md:text-4xl font-bold text-white">1-Click</div>
+              <div className="text-sm text-slate-400 mt-1">Templates</div>
             </div>
           </motion.div>
         </motion.div>
       </section>
 
-      {/* Video Demo Section */}
-      <section className="py-16 px-4 -mt-8 relative z-20">
+      {/* Canvas Mode Hero Visual */}
+      <section className="py-8 px-4 -mt-8 relative z-20">
         <div className="container mx-auto">
           <motion.div
-            className="max-w-5xl mx-auto"
+            className="max-w-6xl mx-auto"
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -495,29 +458,31 @@ export default function HomePage() {
             {/* Browser Frame */}
             <div className="relative group">
               {/* Glow Effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-red-600 via-red-500 to-orange-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
+              <div className="absolute -inset-2 bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 rounded-2xl blur-xl opacity-30 group-hover:opacity-40 transition-opacity duration-500" />
 
               {/* Browser Chrome */}
-              <div className="relative rounded-2xl overflow-hidden bg-gray-900 shadow-2xl shadow-black/40 border border-gray-800">
+              <div className="relative rounded-2xl overflow-hidden bg-slate-900 shadow-2xl shadow-black/50 border border-slate-700/50">
                 {/* Browser Header */}
-                <div className="flex items-center gap-2 px-4 py-3 bg-gray-800/80 border-b border-gray-700/50">
+                <div className="flex items-center gap-2 px-4 py-3 bg-slate-800/80 border-b border-slate-700/50">
                   <div className="flex gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500" />
                     <div className="w-3 h-3 rounded-full bg-yellow-500" />
                     <div className="w-3 h-3 rounded-full bg-green-500" />
                   </div>
                   <div className="flex-1 flex justify-center">
-                    <div className="px-4 py-1.5 rounded-lg bg-gray-900/60 border border-gray-700/50 text-sm text-gray-400 flex items-center gap-2">
-                      <Lock className="w-3 h-3" />
-                      codebakers.dev
+                    <div className="px-4 py-1.5 rounded-lg bg-slate-900/60 border border-slate-700/50 text-sm text-slate-400 flex items-center gap-2">
+                      <Blocks className="w-4 h-4 text-red-500" />
+                      CodeBakers - Canvas Mode
                     </div>
                   </div>
-                  <div className="w-16" />
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700">v1.0.85</span>
+                  </div>
                 </div>
 
-                {/* Video Container */}
-                <div className="relative aspect-video bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-                  {/* Video element */}
+                {/* Canvas Mode Mockup */}
+                <div className="relative aspect-[16/9] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+                  {/* Video or Static Visual */}
                   <video
                     ref={videoRef}
                     className="absolute inset-0 w-full h-full object-cover"
@@ -542,16 +507,14 @@ export default function HomePage() {
                     <source src="/demo.mp4" type="video/mp4" />
                   </video>
 
-                  {/* Overlay with play button (shows when paused) */}
+                  {/* Overlay with play button */}
                   <div
                     className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
                       isPlaying ? 'opacity-0 pointer-events-none' : 'opacity-100'
                     }`}
                   >
-                    {/* Dark overlay */}
-                    <div className="absolute inset-0 bg-black/40" />
+                    <div className="absolute inset-0 bg-black/50" />
 
-                    {/* Play Button */}
                     <button
                       onClick={() => {
                         if (videoRef.current) {
@@ -562,22 +525,24 @@ export default function HomePage() {
                       className="relative z-10 group/play"
                     >
                       <div className="absolute inset-0 bg-red-600 rounded-full blur-xl opacity-40 group-hover/play:opacity-60 transition-opacity" />
-                      <div className="relative w-20 h-20 rounded-full bg-red-600 hover:bg-red-500 transition-colors flex items-center justify-center shadow-lg shadow-red-600/30">
-                        <Play className="w-8 h-8 text-white ml-1" />
+                      <div className="relative w-24 h-24 rounded-full bg-red-600 hover:bg-red-500 transition-colors flex items-center justify-center shadow-lg shadow-red-600/40">
+                        <Play className="w-10 h-10 text-white ml-1" />
                       </div>
                     </button>
 
-                    {/* Caption */}
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center">
-                      <p className="text-white/80 text-sm font-medium">
-                        Watch how CodeBakers transforms your AI workflow
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center">
+                      <p className="text-white font-medium text-lg mb-2">
+                        Watch Canvas Mode in Action
+                      </p>
+                      <p className="text-slate-400 text-sm">
+                        See how visual architecture building changes everything
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Floating badges */}
+              {/* Floating feature badges */}
               <motion.div
                 className="absolute -right-4 top-1/4 hidden lg:block"
                 initial={{ opacity: 0, x: 20 }}
@@ -585,32 +550,60 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.4 }}
               >
-                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-100 text-sm font-medium text-gray-700">
-                  <span className="text-green-500 mr-1">✓</span> No revisions needed
+                <div className="px-4 py-3 rounded-xl bg-white shadow-xl border border-gray-100 text-sm">
+                  <div className="flex items-center gap-2 text-gray-900 font-medium">
+                    <LayoutGrid className="w-4 h-4 text-red-500" />
+                    Visual Architecture
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">See your entire app</p>
                 </div>
               </motion.div>
 
               <motion.div
-                className="absolute -left-4 top-1/2 hidden lg:block"
+                className="absolute -left-4 top-1/3 hidden lg:block"
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.5 }}
               >
-                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-100 text-sm font-medium text-gray-700">
-                  <span className="text-red-500 mr-1">⚡</span> Production-ready
+                <div className="px-4 py-3 rounded-xl bg-white shadow-xl border border-gray-100 text-sm">
+                  <div className="flex items-center gap-2 text-gray-900 font-medium">
+                    <Keyboard className="w-4 h-4 text-amber-500" />
+                    Keyboard Shortcuts
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">N, E, D, T, Esc</p>
                 </div>
               </motion.div>
 
               <motion.div
-                className="absolute -right-2 bottom-1/4 hidden lg:block"
+                className="absolute -right-2 bottom-1/3 hidden lg:block"
                 initial={{ opacity: 0, x: 20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.6 }}
               >
-                <div className="px-4 py-2 rounded-lg bg-white shadow-lg border border-gray-100 text-sm font-medium text-gray-700">
-                  <span className="text-amber-500 mr-1">🔥</span> Ships in minutes
+                <div className="px-4 py-3 rounded-xl bg-white shadow-xl border border-gray-100 text-sm">
+                  <div className="flex items-center gap-2 text-gray-900 font-medium">
+                    <Gauge className="w-4 h-4 text-green-500" />
+                    Health Indicators
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Catch issues early</p>
+                </div>
+              </motion.div>
+
+              <motion.div
+                className="absolute -left-2 bottom-1/4 hidden lg:block"
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.7 }}
+              >
+                <div className="px-4 py-3 rounded-xl bg-white shadow-xl border border-gray-100 text-sm">
+                  <div className="flex items-center gap-2 text-gray-900 font-medium">
+                    <LayoutTemplate className="w-4 h-4 text-purple-500" />
+                    Templates Gallery
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">One-click scaffolds</p>
                 </div>
               </motion.div>
             </div>
@@ -618,8 +611,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Problem Section */}
-      <section className="py-20 px-4 bg-gray-50">
+      {/* The Problem with Current AI Tools */}
+      <section className="py-20 px-4 bg-slate-50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -631,15 +624,36 @@ export default function HomePage() {
               The Problem
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              AI coding is&nbsp;broken
+              Current AI tools are stuck in&nbsp;2023
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              You spend more time fixing AI output than writing code&nbsp;yourself.
+              Chat boxes and generic prompts. You type, you hope, you fix. That&apos;s not how apps should be built.
             </p>
           </motion.div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
-            {painPoints.map((point, i) => (
+            {[
+              {
+                icon: MessageSquare,
+                title: 'Chat-only interface',
+                description: 'Typing prompts into a box and hoping for the best.',
+              },
+              {
+                icon: RefreshCw,
+                title: 'Endless revision loops',
+                description: '"Add error handling... now validation... now loading states..."',
+              },
+              {
+                icon: AlertCircle,
+                title: 'Generic AI code',
+                description: 'Every response is different. No consistency. No standards.',
+              },
+              {
+                icon: Eye,
+                title: 'Invisible architecture',
+                description: 'No way to see what you\'re building until it\'s too late.',
+              },
+            ].map((point, i) => (
               <motion.div
                 key={point.title}
                 className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
@@ -657,7 +671,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Solution Section */}
+      {/* Revolutionary Solution */}
       <section className="py-20 px-4">
         <div className="container mx-auto">
           <motion.div
@@ -667,48 +681,32 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <Badge className="mb-4 bg-green-50 text-green-600 border-green-200">
-              The Solution
+              <Sparkles className="h-3 w-3 mr-1" />
+              The Revolution
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Production patterns for every&nbsp;feature
+              CodeBakers: Visual-first AI building
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              CodeBakers gives your AI the context it needs to write real code the first&nbsp;time.
+              A complete paradigm shift. See your architecture. Click to build. AI follows YOUR patterns.
             </p>
           </motion.div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
-            {[
-              {
-                icon: Zap,
-                title: '5x Faster',
-                description: 'Stop writing boilerplate. Get complete features instantly.',
-              },
-              {
-                icon: Shield,
-                title: 'Security Built-In',
-                description: 'Auth, validation, XSS, CSRF - all handled correctly.',
-              },
-              {
-                icon: TestTube2,
-                title: 'Tests Included',
-                description: 'Every pattern comes with Playwright test templates.',
-              },
-              {
-                icon: Code2,
-                title: 'Full Stack',
-                description: `${CODEBAKERS_STATS.moduleCount} modules covering every aspect of modern apps.`,
-              },
-            ].map((feature, i) => (
+            {revolutionaryFeatures.map((feature, i) => (
               <motion.div
                 key={feature.title}
-                className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                className={`p-6 rounded-2xl border shadow-sm hover:shadow-md transition-all ${
+                  feature.highlight
+                    ? 'bg-gradient-to-br from-red-50 to-orange-50 border-red-200 ring-2 ring-red-100'
+                    : 'bg-white border-gray-100'
+                }`}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
               >
-                <feature.icon className="h-10 w-10 text-green-500 mb-4" />
+                <feature.icon className={`h-10 w-10 mb-4 ${feature.highlight ? 'text-red-600' : 'text-green-500'}`} />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{feature.description}</p>
               </motion.div>
@@ -717,8 +715,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Prompt Optimizer Section */}
-      <section id="smart-prompts" className="py-20 px-4 bg-gray-50">
+      {/* Before vs After Comparison */}
+      <section className="py-20 px-4 bg-slate-900">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -726,96 +724,198 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Badge className="mb-4 bg-amber-50 text-amber-600 border-amber-200">
-              <Wand2 className="h-3 w-3 mr-1" />
-              Smart Prompts
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              AI-powered prompt&nbsp;optimization
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Before CodeBakers vs After
             </h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">
-              Type a simple request. CodeBakers automatically expands it into a production-ready prompt with all requirements&nbsp;included.
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              See the transformation in how AI-assisted development actually works.
             </p>
           </motion.div>
 
           <div className="max-w-4xl mx-auto">
-            {/* Before/After comparison */}
-            <motion.div
-              className="grid md:grid-cols-2 gap-6 mb-12"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              {/* Before */}
-              <div className="rounded-2xl bg-white border border-gray-200 p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-2 h-2 rounded-full bg-gray-400" />
-                  <span className="text-sm font-medium text-gray-500">What you type</span>
-                </div>
-                <p className="text-lg text-gray-700 font-mono">&ldquo;Add login form&rdquo;</p>
-              </div>
-
-              {/* After */}
-              <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <Wand2 className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm font-medium text-amber-600">What AI receives</span>
-                </div>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  Build a complete login form with <strong>React Hook Form + Zod validation</strong>, loading state on submit, inline error messages, toast notifications for failures, forgot password link, <strong>accessibility with ARIA labels</strong>, keyboard navigation, and <strong>Playwright tests</strong> for happy path and error states...
-                </p>
-              </div>
-            </motion.div>
-
-            {/* How it works steps */}
-            <motion.div
-              className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-            >
-              {promptOptimizerSteps.map((item, i) => (
-                <div key={item.step} className="flex items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                      i === 0 ? 'bg-gray-400' : i === 1 ? 'bg-amber-500' : 'bg-green-500'
-                    }`}>
-                      {item.step}
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-400 uppercase tracking-wide">{item.label}</div>
-                      <div className={`text-sm font-medium ${item.color}`}>{item.example}</div>
-                    </div>
+            <div className="grid gap-4">
+              {beforeAfterComparison.map((item, i) => (
+                <motion.div
+                  key={i}
+                  className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center"
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  {/* Before */}
+                  <div className="px-5 py-4 rounded-xl bg-slate-800/50 border border-slate-700/50 text-right">
+                    <span className="text-slate-400">{item.before}</span>
                   </div>
-                  {i < promptOptimizerSteps.length - 1 && (
-                    <ArrowRight className="hidden md:block h-5 w-5 text-gray-300" />
-                  )}
-                </div>
-              ))}
-            </motion.div>
 
-            {/* Context-aware callout */}
-            <motion.div
-              className="mt-10 rounded-xl bg-gray-900 p-6 text-center"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-            >
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Sparkles className="h-5 w-5 text-amber-400" />
-                <span className="text-white font-semibold">Context-Aware</span>
-              </div>
-              <p className="text-gray-400 text-sm max-w-xl mx-auto">
-                The optimizer knows your project structure—existing components, services, API routes, and database schema. Prompts are tailored to <em>your</em> codebase.
-              </p>
-            </motion.div>
+                  {/* Icon */}
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-red-600 to-orange-500 flex items-center justify-center shadow-lg shadow-red-600/20">
+                    <item.icon className="w-5 h-5 text-white" />
+                  </div>
+
+                  {/* After */}
+                  <div className="px-5 py-4 rounded-xl bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-700/50">
+                    <span className="text-green-400 font-medium">{item.after}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Code Quality Comparison Section */}
+      {/* How It Works - Visual Workflow */}
+      <section id="how-it-works" className="py-20 px-4">
+        <div className="container mx-auto">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Badge className="mb-4 bg-amber-50 text-amber-600 border-amber-200">
+              <Workflow className="h-3 w-3 mr-1" />
+              How It Works
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              From idea to production in 4 steps
+            </h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">
+              The visual-first workflow that makes AI app building intuitive.
+            </p>
+          </motion.div>
+
+          <div className="max-w-5xl mx-auto">
+            {workflowSteps.map((step, i) => (
+              <motion.div
+                key={step.step}
+                className={`flex items-start gap-8 mb-12 ${i % 2 === 1 ? 'flex-row-reverse' : ''}`}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                {/* Step number */}
+                <div className="hidden md:flex flex-col items-center">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-orange-500 text-white text-2xl font-bold flex items-center justify-center shadow-lg shadow-red-600/20">
+                    {step.step}
+                  </div>
+                  {i < workflowSteps.length - 1 && (
+                    <div className="w-0.5 h-24 bg-gradient-to-b from-red-600/50 to-transparent mt-4" />
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 p-6 rounded-2xl bg-white border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-3 mb-3">
+                    <step.icon className="w-6 h-6 text-red-600" />
+                    <h3 className="text-xl font-semibold text-gray-900">{step.title}</h3>
+                  </div>
+                  <p className="text-gray-500 mb-4">{step.description}</p>
+                  <div className="px-4 py-3 rounded-lg bg-slate-900 text-sm font-mono text-green-400">
+                    {step.visual}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Canvas Mode Features Deep Dive */}
+      <section className="py-20 px-4 bg-slate-50">
+        <div className="container mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Badge className="mb-4 bg-red-50 text-red-600 border-red-200">
+              <LayoutGrid className="h-3 w-3 mr-1" />
+              Canvas Mode
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              The visual architecture builder
+            </h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">
+              Your entire app as an interactive canvas. Click, connect, and build.
+            </p>
+          </motion.div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
+            {canvasModeFeatures.map((feature, i) => (
+              <motion.div
+                key={feature.title}
+                className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mb-4">
+                  <feature.icon className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Layout illustration */}
+          <motion.div
+            className="mt-16 max-w-4xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="rounded-2xl bg-white border border-gray-200 shadow-lg overflow-hidden">
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                <PanelLeft className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-600 font-medium">30/70 Split Layout</span>
+              </div>
+              <div className="grid grid-cols-[30%,70%] h-64">
+                {/* Chat Panel */}
+                <div className="border-r border-gray-200 p-4 bg-gray-50">
+                  <div className="text-xs text-gray-400 mb-3">CHAT PANEL</div>
+                  <div className="space-y-2">
+                    <div className="h-8 bg-gray-200 rounded-lg animate-pulse" />
+                    <div className="h-8 bg-red-100 rounded-lg" />
+                    <div className="h-20 bg-gray-200 rounded-lg animate-pulse" />
+                  </div>
+                </div>
+                {/* Canvas */}
+                <div className="p-4 relative">
+                  <div className="text-xs text-gray-400 mb-3">VISUAL CANVAS</div>
+                  <div className="absolute inset-4 top-10">
+                    {/* Node mockups */}
+                    <div className="absolute top-4 left-8 px-3 py-2 rounded-lg bg-blue-100 border border-blue-200 text-xs text-blue-700">
+                      Pages
+                    </div>
+                    <div className="absolute top-4 right-8 px-3 py-2 rounded-lg bg-green-100 border border-green-200 text-xs text-green-700">
+                      Components
+                    </div>
+                    <div className="absolute bottom-4 left-1/4 px-3 py-2 rounded-lg bg-purple-100 border border-purple-200 text-xs text-purple-700">
+                      API Routes
+                    </div>
+                    <div className="absolute bottom-4 right-1/4 px-3 py-2 rounded-lg bg-amber-100 border border-amber-200 text-xs text-amber-700">
+                      Database
+                    </div>
+                    {/* Connection lines (simplified) */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.3 }}>
+                      <path d="M 80 40 Q 150 80 220 40" stroke="#6B7280" strokeWidth="2" fill="none" strokeDasharray="4" />
+                      <path d="M 80 40 Q 80 100 100 140" stroke="#6B7280" strokeWidth="2" fill="none" strokeDasharray="4" />
+                      <path d="M 220 40 Q 220 100 200 140" stroke="#6B7280" strokeWidth="2" fill="none" strokeDasharray="4" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* 59 Modules Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto">
           <motion.div
@@ -825,221 +925,14 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <Badge className="mb-4 bg-purple-50 text-purple-600 border-purple-200">
-              <Code2 className="h-3 w-3 mr-1" />
-              Code Quality
+              <BookOpen className="h-3 w-3 mr-1" />
+              {CODEBAKERS_STATS.moduleCount} Production Modules
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              See the difference
+              AI that follows YOUR patterns
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              Same prompt. Drastically different&nbsp;results.
-            </p>
-          </motion.div>
-
-          <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-6">
-            {/* Without CodeBakers */}
-            <motion.div
-              className="rounded-2xl bg-white border-2 border-red-200 overflow-hidden shadow-sm"
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <div className="px-4 py-3 bg-red-50 border-b border-red-200 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-red-500" />
-                <span className="text-sm font-semibold text-red-700">Without CodeBakers</span>
-              </div>
-              <pre className="p-4 text-xs text-gray-700 font-mono overflow-x-auto bg-red-50/30 leading-relaxed">
-{`// "Add user signup endpoint"
-
-export async function POST(req) {
-  const data = await req.json();
-
-  // No validation ❌
-  const user = await db.insert(users).values({
-    email: data.email,
-    password: data.password, // Plain text! ❌
-  });
-
-  return Response.json(user);
-  // No error handling ❌
-  // No rate limiting ❌
-  // No type safety ❌
-}`}
-              </pre>
-              <div className="px-4 py-3 bg-red-50 border-t border-red-200">
-                <div className="flex flex-wrap gap-2">
-                  <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600">No validation</span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600">No error handling</span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600">Security risk</span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600">No types</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* With CodeBakers */}
-            <motion.div
-              className="rounded-2xl bg-white border-2 border-green-200 overflow-hidden shadow-sm"
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <div className="px-4 py-3 bg-green-50 border-b border-green-200 flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-semibold text-green-700">With CodeBakers</span>
-              </div>
-              <pre className="p-4 text-xs text-gray-700 font-mono overflow-x-auto bg-green-50/30 leading-relaxed">
-{`// "Add user signup endpoint"
-
-const signupSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
-
-export const POST = withRateLimit(async (req) => {
-  const input = signupSchema.parse(await req.json());
-
-  const hashedPassword = await hash(input.password);
-  const user = await db.insert(users).values({
-    email: input.email,
-    password: hashedPassword, // Hashed ✓
-  }).returning({ id: users.id });
-
-  return Response.json({
-    success: true,
-    userId: user[0].id
-  });
-}, { limit: 5, window: '1m' });`}
-              </pre>
-              <div className="px-4 py-3 bg-green-50 border-t border-green-200">
-                <div className="flex flex-wrap gap-2">
-                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">Zod validation</span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">Password hashing</span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">Rate limited</span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-600">Type safe</span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Interactive Demo Section */}
-      <section id="demo" className="py-20 px-4 bg-gray-50">
-        <div className="container mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <Badge className="mb-4 bg-red-50 text-red-600 border-red-200">
-              Live Demo
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              See what CodeBakers&nbsp;generates
-            </h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">
-              One prompt. Complete, production-ready&nbsp;code.
-            </p>
-          </motion.div>
-
-          <div className="max-w-4xl mx-auto">
-            {/* Tabs */}
-            <div className="flex gap-2 mb-6 justify-center">
-              {demoTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-medium text-sm ${
-                    activeTab === tab.id
-                      ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
-                      : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-                  }`}
-                >
-                  <tab.icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Code display */}
-            <motion.div
-              className="rounded-2xl bg-gray-900 border border-gray-800 overflow-hidden shadow-2xl"
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-            >
-              <div className="flex items-center gap-2 px-4 py-3 bg-gray-800 border-b border-gray-700">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="ml-4 text-sm text-gray-400">
-                  {demoTabs.find((t) => t.id === activeTab)?.label}.tsx
-                </span>
-              </div>
-              <pre className="p-6 text-sm text-gray-300 font-mono overflow-x-auto leading-relaxed">
-                {demoTabs.find((t) => t.id === activeTab)?.code}
-              </pre>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Get started in 60&nbsp;seconds
-            </h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">
-              Three commands. That&apos;s all it&nbsp;takes.
-            </p>
-          </motion.div>
-
-          <div className="grid gap-8 md:grid-cols-3 max-w-4xl mx-auto">
-            {steps.map((step, i) => (
-              <motion.div
-                key={step.step}
-                className="text-center"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-              >
-                <div className="w-14 h-14 rounded-full bg-red-600 text-white text-xl font-bold flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-600/20">
-                  {step.step}
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
-                <p className="text-gray-500 text-sm mb-4">{step.description}</p>
-                <code className="px-4 py-2.5 rounded-lg bg-gray-900 text-green-400 text-sm font-mono inline-block">
-                  {step.code}
-                </code>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Module Showcase */}
-      <section className="py-20 px-4 bg-gray-50">
-        <div className="container mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              34 Production&nbsp;Modules
-            </h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">
-              Everything you need to build modern SaaS&nbsp;applications.
+              {totalLines.toLocaleString()}+ lines of battle-tested code. When AI generates, it uses these patterns - not generic templates.
             </p>
           </motion.div>
 
@@ -1076,84 +969,8 @@ export const POST = withRateLimit(async (req) => {
         </div>
       </section>
 
-      {/* AI Compatibility */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Works with any AI coding&nbsp;assistant
-            </h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">
-              CodeBakers patterns work with all major AI&nbsp;tools.
-            </p>
-          </motion.div>
-
-          <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto">
-            {aiCompatibility.map((ai, i) => (
-              <motion.div
-                key={ai.name}
-                className="flex items-center gap-3 px-6 py-4 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <ai.icon className="h-6 w-6 text-red-500" />
-                <span className="text-gray-900 font-medium">{ai.name}</span>
-                <Check className="h-5 w-5 text-green-500" />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Industry Experts */}
-      <section className="py-20 px-4 bg-gray-50">
-        <div className="container mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <Badge className="mb-4 bg-emerald-50 text-emerald-600 border-emerald-200">
-              Industry Modules
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Domain expertise&nbsp;built-in
-            </h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">
-              Specialized patterns for regulated industries and compliance&nbsp;requirements.
-            </p>
-          </motion.div>
-
-          <div className="grid gap-6 md:grid-cols-3 max-w-4xl mx-auto">
-            {industryExperts.map((expert, i) => (
-              <motion.div
-                key={expert.title}
-                className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <expert.icon className="h-12 w-12 text-emerald-500 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{expert.title}</h3>
-                <p className="text-gray-500 text-sm mb-3 leading-relaxed">{expert.description}</p>
-                <code className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded">{expert.module}</code>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Testimonials */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-slate-50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -1162,10 +979,10 @@ export const POST = withRateLimit(async (req) => {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Loved by&nbsp;developers
+              Developers love the revolution
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              Join thousands of developers shipping faster with&nbsp;CodeBakers.
+              Join thousands who&apos;ve upgraded from chat-only AI to visual building.
             </p>
           </motion.div>
 
@@ -1201,7 +1018,7 @@ export const POST = withRateLimit(async (req) => {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 px-4 bg-gray-50">
+      <section className="py-20 px-4">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -1210,10 +1027,10 @@ export const POST = withRateLimit(async (req) => {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Simple, transparent&nbsp;pricing
+              Simple pricing for every team
             </h2>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              7-day free trial with GitHub login. No credit&nbsp;card&nbsp;required.
+              14-day free trial. No credit card required. Full access to Canvas Mode.
             </p>
           </motion.div>
 
@@ -1268,7 +1085,7 @@ export const POST = withRateLimit(async (req) => {
       </section>
 
       {/* FAQ */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-slate-50">
         <div className="container mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -1277,7 +1094,7 @@ export const POST = withRateLimit(async (req) => {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Frequently asked&nbsp;questions
+              Frequently asked questions
             </h2>
           </motion.div>
 
@@ -1315,38 +1132,50 @@ export const POST = withRateLimit(async (req) => {
       <section className="py-20 px-4">
         <div className="container mx-auto">
           <motion.div
-            className="rounded-3xl bg-gray-900 p-12 md:p-16 text-center"
+            className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-12 md:p-16 text-center relative overflow-hidden"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Ready to ship 5x&nbsp;faster?
-            </h2>
-            <p className="text-gray-300 mb-8 max-w-xl mx-auto text-lg">
-              Join developers building production apps in days, not&nbsp;weeks.
-              Start your 7-day free trial&nbsp;now.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link href="/signup">
-                <Button size="lg" className="bg-red-600 hover:bg-red-700 h-14 px-10 text-lg shadow-lg">
-                  Start Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link href="/pricing">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-gray-600 text-white hover:bg-gray-800 h-14 px-10 text-lg"
-                >
-                  View Pricing
-                </Button>
-              </Link>
+            {/* Background decoration */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-0 left-1/4 w-64 h-64 bg-red-600/20 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl" />
             </div>
-            <p className="text-sm text-gray-500 mt-6">
-              No credit card required. Install the VS Code extension to start.
-            </p>
+
+            <div className="relative z-10">
+              <Badge className="mb-6 bg-red-500/20 text-red-400 border-red-500/30">
+                <Sparkles className="h-3 w-3 mr-1" />
+                Join the Revolution
+              </Badge>
+              <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
+                Ready to see your apps before you build them?
+              </h2>
+              <p className="text-slate-300 mb-8 max-w-xl mx-auto text-lg">
+                Canvas Mode. 59 modules. Visual architecture building.
+                Start your 14-day free trial and experience the future of AI app development.
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
+                <Link href="/signup">
+                  <Button size="lg" className="bg-red-600 hover:bg-red-700 h-14 px-10 text-lg shadow-lg shadow-red-600/30">
+                    Try Canvas Mode Free
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="/pricing">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-slate-600 text-white hover:bg-slate-800 h-14 px-10 text-lg"
+                  >
+                    View Pricing
+                  </Button>
+                </Link>
+              </div>
+              <p className="text-sm text-slate-500 mt-6">
+                No credit card required. Install the VS Code extension to start.
+              </p>
+            </div>
           </motion.div>
         </div>
       </section>
