@@ -174,10 +174,10 @@ async function getApiKey(): Promise<string | null> {
 
   // Prompt user
   const input = await vscode.window.showInputBox({
-    prompt: 'Enter your CodeBakers API key',
-    placeHolder: 'cb_xxxxxxxxxxxxxxxx',
+    prompt: 'Enter your CodeBakers API key (press Escape to skip and use default patterns)',
+    placeHolder: 'cb_xxxxxxxxxxxxxxxx (optional)',
     password: true,
-    ignoreFocusOut: true
+    ignoreFocusOut: false
   });
 
   if (input) {
