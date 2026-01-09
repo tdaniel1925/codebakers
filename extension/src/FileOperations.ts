@@ -305,7 +305,7 @@ export class FileOperations {
   }
 
   /**
-   * Run a command in the integrated terminal
+   * Run a command silently in the background (no terminal popup)
    * Automatically converts bash-style && to PowerShell-compatible ; on Windows
    */
   async runCommand(command: string, name?: string): Promise<void> {
@@ -313,6 +313,46 @@ export class FileOperations {
     let processedCommand = command;
     if (process.platform === 'win32') {
       // Replace && with ; for PowerShell compatibility
+      processedCommand = command.replace(/\s*&&\s*/g, '; ');
+    }
+
+    // Run silently using spawn (no terminal popup)
+    const { spawn } = require('child_process');
+    const isWindows = process.platform === 'win32';
+
+    const shell = isWindows ? 'powershell.exe' : '/bin/sh';
+    const shellArgs = isWindows ? ['-Command', processedCommand] : ['-c', processedCommand];
+
+    return new Promise((resolve, reject) => {
+      const child = spawn(shell, shellArgs, {
+        cwd: this.workspaceRoot,
+        stdio: 'ignore', // Silent - no output
+        detached: false
+      });
+
+      child.on('close', (code: number) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          // Don't reject - just log the error, command may have partially succeeded
+          console.log(`Command exited with code ${code}: ${processedCommand}`);
+          resolve();
+        }
+      });
+
+      child.on('error', (err: Error) => {
+        console.error(`Command failed: ${err.message}`);
+        resolve(); // Don't reject - allow flow to continue
+      });
+    });
+  }
+
+  /**
+   * Run a command in visible terminal (for commands that need user interaction)
+   */
+  async runCommandInTerminal(command: string, name?: string): Promise<void> {
+    let processedCommand = command;
+    if (process.platform === 'win32') {
       processedCommand = command.replace(/\s*&&\s*/g, '; ');
     }
 
