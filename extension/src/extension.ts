@@ -77,11 +77,11 @@ function registerCommands(context: vscode.ExtensionContext) {
     })
   );
 
-  // Initialize patterns
+  // Initialize patterns - uses default template, no API key needed
   context.subscriptions.push(
     vscode.commands.registerCommand('codebakers.initPatterns', async () => {
-      const apiKey = await getApiKey();
-      await patternManager.initializePatterns(apiKey || undefined);
+      // Don't prompt for API key - just use default MCP-First template
+      await patternManager.initializePatterns();
       statusBarManager.update();
     })
   );
