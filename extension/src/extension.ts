@@ -129,6 +129,13 @@ function registerCommands(context: vscode.ExtensionContext) {
     })
   );
 
+  // Show pattern warnings
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codebakers.showWarnings', () => {
+      statusBarManager.showWarnings();
+    })
+  );
+
   // Legacy command - redirect to menu
   context.subscriptions.push(
     vscode.commands.registerCommand('codebakers.openChat', () => {

@@ -21,6 +21,22 @@ export interface PatternStatus {
   inSync: boolean;
 }
 
+export type WarningSeverity = 'critical' | 'high' | 'medium' | 'low';
+
+export interface PatternWarning {
+  severity: WarningSeverity;
+  title: string;
+  message: string;
+  action?: string;
+  actionCommand?: string;
+}
+
+export interface PatternHealth {
+  score: number; // 0-100
+  warnings: PatternWarning[];
+  enforceability: 'strong' | 'moderate' | 'weak' | 'none';
+}
+
 export class PatternManager {
   private workspaceRoot: string;
   private claudeMdPath: string;
@@ -237,36 +253,221 @@ export class PatternManager {
   }
 
   /**
-   * Get default CLAUDE.md content
+   * Get default CLAUDE.md content - MCP-First approach
+   * Short instructions = higher compliance
    */
   private getDefaultClaudeMd(): string {
-    return `# CodeBakers Patterns
+    return `# CodeBakers - MCP-First Development
 
-> Production-ready code patterns for AI assistants
+## MANDATORY: Two Gates (NON-NEGOTIABLE)
 
-## Instructions
+You MUST call these MCP tools. You are NOT ALLOWED to skip them.
 
-Before writing ANY code:
-1. Check for pattern files in \`.claude/\` directory
-2. Read and follow the patterns exactly
-3. Use existing code patterns from the codebase
-4. Write tests for any new functionality
+### Gate 1: BEFORE Writing ANY Code
 
-## Available Patterns
+\`\`\`
+discover_patterns({ task: "description of what you're building", keywords: ["relevant", "keywords"] })
+\`\`\`
 
-Check the \`.claude/\` folder for available pattern modules.
+This tool returns the patterns you MUST follow. Read them carefully.
 
-## Commands
+### Gate 2: BEFORE Saying "Done"
 
-- \`/build\` - Create entire project from idea
-- \`/feature\` - Add capability to existing project
-- \`/audit\` - Review code quality
-- \`/status\` - See project progress
+\`\`\`
+validate_complete({ feature: "feature name", files: ["path/to/files.ts"] })
+\`\`\`
+
+This tool checks:
+- Tests exist and pass
+- TypeScript compiles
+- Patterns were followed
+
+You are NOT ALLOWED to say "done" until this passes.
 
 ---
 
-For full patterns, sign in at https://codebakers.ai
+## Rules
+
+1. **NEVER** write code without calling \`discover_patterns\` first
+2. **NEVER** say "done" without calling \`validate_complete\` first
+3. **ALWAYS** follow the patterns returned by the tools exactly
+4. **ALWAYS** write tests for new functionality
+5. **NEVER** skip error handling or loading states
+
+## What The Tools Do
+
+| Tool | When | What It Does |
+|------|------|--------------|
+| \`discover_patterns\` | Before coding | Searches codebase, returns relevant patterns |
+| \`validate_complete\` | Before "done" | Runs tests, checks types, verifies compliance |
+
+## Quick Reference
+
+\`\`\`
+User asks for feature
+    ↓
+Call discover_patterns → Read the patterns
+    ↓
+Write code following patterns exactly
+    ↓
+Write tests
+    ↓
+Call validate_complete → Must pass
+    ↓
+ONLY THEN say "done"
+\`\`\`
+
+---
+
+That's it. The MCP tools handle everything else.
 `;
+  }
+
+  /**
+   * Check pattern health and return warnings
+   */
+  checkPatternHealth(): PatternHealth {
+    const status = this.getStatus();
+    const warnings: PatternWarning[] = [];
+    let score = 100;
+
+    // CRITICAL: No CLAUDE.md at all
+    if (!status.hasClaudeMd) {
+      warnings.push({
+        severity: 'critical',
+        title: 'No Pattern File',
+        message: 'CLAUDE.md not found. AI tools have no rules to follow.',
+        action: 'Initialize Patterns',
+        actionCommand: 'codebakers.initPatterns'
+      });
+      score -= 50;
+    } else {
+      // Check CLAUDE.md content
+      try {
+        const content = fs.readFileSync(this.claudeMdPath, 'utf-8');
+
+        // HIGH: Empty or minimal CLAUDE.md
+        if (content.trim().length < 100) {
+          warnings.push({
+            severity: 'high',
+            title: 'Minimal Patterns',
+            message: 'CLAUDE.md is nearly empty. AI has very few rules to follow.',
+            action: 'Update Patterns',
+            actionCommand: 'codebakers.updatePatterns'
+          });
+          score -= 30;
+        }
+
+        // MEDIUM: Missing enforcement keywords
+        const enforcementKeywords = [
+          'MUST', 'ALWAYS', 'NEVER', 'REQUIRED', 'MANDATORY',
+          'NOT ALLOWED', 'NON-NEGOTIABLE'
+        ];
+        const hasEnforcementLanguage = enforcementKeywords.some(kw =>
+          content.toUpperCase().includes(kw)
+        );
+
+        if (!hasEnforcementLanguage) {
+          warnings.push({
+            severity: 'medium',
+            title: 'Weak Enforcement Language',
+            message: 'CLAUDE.md lacks strong enforcement words (MUST, ALWAYS, NEVER). AI may ignore soft suggestions.',
+            action: 'Open CLAUDE.md',
+            actionCommand: 'codebakers.openClaudeMd'
+          });
+          score -= 15;
+        }
+
+        // Check for Gate enforcement (MCP tools)
+        const hasGateEnforcement = content.includes('discover_patterns') ||
+                                    content.includes('validate_complete');
+        if (!hasGateEnforcement) {
+          warnings.push({
+            severity: 'medium',
+            title: 'No Gate Enforcement',
+            message: 'No MCP tool gates found. Consider adding discover_patterns and validate_complete.',
+            action: 'Update Patterns',
+            actionCommand: 'codebakers.updatePatterns'
+          });
+          score -= 10;
+        }
+
+        // Check for pre-commit hook mention
+        const hasPreCommitHook = content.includes('pre-commit') ||
+                                  content.includes('validate-codebakers');
+        if (!hasPreCommitHook) {
+          warnings.push({
+            severity: 'low',
+            title: 'No Pre-Commit Validation',
+            message: 'No pre-commit hook configured. Non-compliant code can be committed.',
+            action: 'Open CLAUDE.md',
+            actionCommand: 'codebakers.openClaudeMd'
+          });
+          score -= 5;
+        }
+
+      } catch (e) {
+        console.error('Error reading CLAUDE.md:', e);
+      }
+    }
+
+    // HIGH: Files out of sync
+    if (!status.inSync && status.hasClaudeMd) {
+      warnings.push({
+        severity: 'high',
+        title: 'Files Out of Sync',
+        message: 'CLAUDE.md and .cursorrules differ. One AI tool may have different rules.',
+        action: 'Sync Now',
+        actionCommand: 'codebakers.syncPatterns'
+      });
+      score -= 20;
+    }
+
+    // MEDIUM: No pattern modules
+    if (!status.hasClaudeFolder || status.patternCount === 0) {
+      warnings.push({
+        severity: 'medium',
+        title: 'No Pattern Modules',
+        message: 'No .claude/ folder or modules. Full CodeBakers patterns not installed.',
+        action: 'Update Patterns',
+        actionCommand: 'codebakers.updatePatterns'
+      });
+      score -= 10;
+    }
+
+    // LOW: Patterns are old (30+ days)
+    if (status.lastUpdated) {
+      const lastUpdate = new Date(status.lastUpdated);
+      const daysSinceUpdate = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24);
+
+      if (daysSinceUpdate > 30) {
+        warnings.push({
+          severity: 'low',
+          title: 'Patterns May Be Outdated',
+          message: `Patterns last updated ${Math.floor(daysSinceUpdate)} days ago. Consider updating.`,
+          action: 'Update Patterns',
+          actionCommand: 'codebakers.updatePatterns'
+        });
+        score -= 5;
+      }
+    }
+
+    // Clamp score
+    score = Math.max(0, Math.min(100, score));
+
+    // Determine enforceability
+    let enforceability: PatternHealth['enforceability'];
+    if (score >= 80) {
+      enforceability = 'strong';
+    } else if (score >= 60) {
+      enforceability = 'moderate';
+    } else if (score >= 30) {
+      enforceability = 'weak';
+    } else {
+      enforceability = 'none';
+    }
+
+    return { score, warnings, enforceability };
   }
 
   /**
