@@ -3567,6 +3567,75 @@ This is STRUCTURAL enforcement - do not skip these steps.`
       background: linear-gradient(135deg, #2ea043 0%, #3fb950 100%);
     }
 
+    /* Getting Started Section */
+    .getting-started {
+      background: var(--vscode-editor-background);
+      border: 1px solid var(--vscode-widget-border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 16px;
+      max-width: 400px;
+      text-align: left;
+    }
+
+    .getting-started-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--vscode-foreground);
+    }
+
+    .getting-started-items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .getting-started-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .item-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .item-text {
+      font-size: 13px;
+      color: var(--vscode-descriptionForeground);
+      line-height: 1.4;
+    }
+
+    .getting-started-examples {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--vscode-widget-border);
+    }
+
+    .examples-label {
+      font-size: 12px;
+      color: var(--vscode-descriptionForeground);
+      margin-bottom: 10px;
+    }
+
+    .example-chip {
+      display: inline-block;
+      background: var(--vscode-button-secondaryBackground);
+      color: var(--vscode-button-secondaryForeground);
+      border-radius: 16px;
+      padding: 6px 12px;
+      font-size: 12px;
+      margin: 4px 4px 4px 0;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .example-chip:hover {
+      background: var(--vscode-button-secondaryHoverBackground);
+    }
+
     /* Persistent Action Bar (always visible) */
     .action-bar {
       display: flex;
@@ -4618,16 +4687,35 @@ This is STRUCTURAL enforcement - do not skip these steps.`
       <div class="messages" id="messages">
       <div class="welcome" id="welcome">
         <div class="welcome-icon">🍪</div>
-        <div class="welcome-title">CodeBakers AI</div>
-        <div class="welcome-text">Production-ready code with AI. Ask me to build features, edit files, or audit your code.</div>
-        <div class="quick-actions">
-          <button class="quick-action" data-action="/build">Build Project</button>
-          <button class="quick-action" data-action="/feature">Add Feature</button>
-          <button class="quick-action" data-action="/audit">🔍 Audit</button>
-          <button class="quick-action" data-action="/test">🧪 Test</button>
-          <button class="quick-action" data-action="/fix">🔧 Fix</button>
-          <button class="quick-action github" data-action="/git-push">📤 Push</button>
-          <button class="quick-action deploy" data-action="/deploy">🚀 Deploy</button>
+        <div class="welcome-title">Welcome to CodeBakers</div>
+        <div class="welcome-text">Your AI coding assistant with production-ready patterns.</div>
+
+        <div class="getting-started">
+          <div class="getting-started-title">Getting Started</div>
+          <div class="getting-started-items">
+            <div class="getting-started-item">
+              <span class="item-icon">💬</span>
+              <span class="item-text">Describe what you want to build in plain English</span>
+            </div>
+            <div class="getting-started-item">
+              <span class="item-icon">📁</span>
+              <span class="item-text">I can create files, edit code, and run commands</span>
+            </div>
+            <div class="getting-started-item">
+              <span class="item-icon">✨</span>
+              <span class="item-text">All code follows production-ready patterns</span>
+            </div>
+            <div class="getting-started-item">
+              <span class="item-icon">🧪</span>
+              <span class="item-text">Tests and type-checking included automatically</span>
+            </div>
+          </div>
+          <div class="getting-started-examples">
+            <div class="examples-label">Try saying:</div>
+            <div class="example-chip">"Add a login page"</div>
+            <div class="example-chip">"Create a user settings API"</div>
+            <div class="example-chip">"Fix the TypeScript errors"</div>
+          </div>
         </div>
       </div>
 
@@ -7559,6 +7647,19 @@ This is STRUCTURAL enforcement - do not skip these steps.`
         const action = this.getAttribute('data-action');
         console.log('CodeBakers: Quick action clicked:', action);
         quickAction(action);
+      });
+    });
+
+    // Example chips in getting started section
+    document.querySelectorAll('.example-chip').forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        const exampleText = this.textContent.replace(/^"|"$/g, '').trim();
+        console.log('CodeBakers: Example chip clicked:', exampleText);
+        if (inputEl) {
+          inputEl.value = exampleText;
+          inputEl.focus();
+          autoResize(inputEl);
+        }
       });
     });
 
