@@ -1831,9 +1831,10 @@ This is STRUCTURAL enforcement - do not skip these steps.`
 
   /**
    * Check if we need to block chat until onboarding is complete
+   * Option D: No blocking - users start with welcome screen and we detect preferences from conversation
    */
   private _shouldBlockChat(): boolean {
-    return !this._onboardingCompleted && this._stateManager !== null;
+    return false; // Option D: Welcome screen only, no blocking wizard
   }
 
   private _getHtmlForWebview(webview: vscode.Webview): string {
@@ -3882,6 +3883,151 @@ This is STRUCTURAL enforcement - do not skip these steps.`
       background: var(--vscode-button-secondaryHoverBackground);
     }
 
+    /* File Upload Zone */
+    .file-upload-zone {
+      border: 2px dashed var(--vscode-input-border);
+      border-radius: 12px;
+      padding: 24px 16px;
+      margin: 16px 0;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--vscode-input-background);
+      max-width: 400px;
+    }
+
+    .file-upload-zone:hover {
+      border-color: #dc2626;
+      background: rgba(220, 38, 38, 0.05);
+    }
+
+    .file-upload-zone.drag-over {
+      border-color: #dc2626;
+      background: rgba(220, 38, 38, 0.1);
+      transform: scale(1.02);
+    }
+
+    .file-upload-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .file-upload-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .file-upload-main {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--vscode-foreground);
+    }
+
+    .file-upload-sub {
+      font-size: 12px;
+      color: var(--vscode-descriptionForeground);
+    }
+
+    .file-browse-btn {
+      background: none;
+      border: none;
+      color: #dc2626;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 12px;
+      padding: 0;
+    }
+
+    .file-browse-btn:hover {
+      color: #b91c1c;
+    }
+
+    .file-upload-formats {
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      margin-top: 8px;
+      opacity: 0.7;
+    }
+
+    /* Uploaded Files List */
+    .uploaded-files {
+      max-width: 400px;
+      margin: 12px 0;
+      background: var(--vscode-input-background);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .uploaded-files-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .clear-uploads-btn {
+      background: none;
+      border: none;
+      color: var(--vscode-descriptionForeground);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 2px 6px;
+    }
+
+    .clear-uploads-btn:hover {
+      color: #dc2626;
+    }
+
+    .uploaded-files-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .uploaded-file-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--vscode-editor-background);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .uploaded-file-icon {
+      font-size: 14px;
+    }
+
+    .uploaded-file-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .uploaded-file-size {
+      font-size: 10px;
+      color: var(--vscode-descriptionForeground);
+    }
+
+    .remove-file-btn {
+      background: none;
+      border: none;
+      color: var(--vscode-descriptionForeground);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 4px;
+      opacity: 0.6;
+    }
+
+    .remove-file-btn:hover {
+      color: #dc2626;
+      opacity: 1;
+    }
+
     /* Persistent Action Bar (always visible) */
     .action-bar {
       display: flex;
@@ -3980,17 +4126,13 @@ This is STRUCTURAL enforcement - do not skip these steps.`
       background: var(--vscode-button-hoverBackground);
     }
 
-    /* Onboarding Container */
+    /* Onboarding Container - HIDDEN (Option D: Welcome screen only) */
     .onboarding-container {
-      display: none;
-      flex: 1;
-      flex-direction: column;
-      overflow-y: auto;
-      background: var(--vscode-editor-background);
+      display: none !important;
     }
 
     .onboarding-container.show {
-      display: flex;
+      display: none !important;
     }
 
     .onboarding-content {
@@ -5129,20 +5271,33 @@ This is STRUCTURAL enforcement - do not skip these steps.`
     <button class="login-btn" id="loginBtn">Sign in with GitHub</button>
   </div>
 
-  <!-- Onboarding Wizard Container -->
-  <div class="onboarding-container" id="onboardingContainer">
-    <div class="onboarding-content" id="onboardingContent">
-      <!-- Onboarding steps will be injected here -->
-    </div>
-  </div>
-
   <div class="split-container" id="splitContainer">
     <div class="main-content" id="mainContent">
       <div class="messages" id="messages">
       <div class="welcome" id="welcome">
         <div class="welcome-icon">🍪</div>
-        <div class="welcome-title">Ready to build!</div>
-        <div class="welcome-text">Just describe what you want in plain English.</div>
+        <div class="welcome-title">What would you like to build?</div>
+        <div class="welcome-text">Describe your idea in plain English, or drop files below to get started.</div>
+
+        <!-- File Upload Zone -->
+        <div class="file-upload-zone" id="fileUploadZone">
+          <div class="file-upload-icon">📄</div>
+          <div class="file-upload-text">
+            <span class="file-upload-main">Drop PRD, specs, or mockups here</span>
+            <span class="file-upload-sub">or <button class="file-browse-btn" id="fileBrowseBtn">browse files</button></span>
+          </div>
+          <div class="file-upload-formats">PDF, TXT, MD, PNG, JPG supported</div>
+          <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.doc,.docx" style="display: none;" />
+        </div>
+
+        <!-- Uploaded Files List -->
+        <div class="uploaded-files" id="uploadedFiles" style="display: none;">
+          <div class="uploaded-files-header">
+            <span>📎 Attached files</span>
+            <button class="clear-uploads-btn" id="clearUploadsBtn">Clear all</button>
+          </div>
+          <div class="uploaded-files-list" id="uploadedFilesList"></div>
+        </div>
 
         <div class="getting-started">
           <div class="getting-started-title">How it works</div>
@@ -5153,11 +5308,11 @@ This is STRUCTURAL enforcement - do not skip these steps.`
             </div>
             <div class="getting-started-item">
               <span class="item-icon">✨</span>
-              <span class="item-text">Changes apply automatically - no approve buttons!</span>
+              <span class="item-text">Changes apply automatically - undo anytime!</span>
             </div>
             <div class="getting-started-item">
-              <span class="item-icon">↩️</span>
-              <span class="item-text">Made a mistake? Say "undo that" anytime</span>
+              <span class="item-icon">📄</span>
+              <span class="item-text">Upload PRD or specs for better context</span>
             </div>
             <div class="getting-started-item">
               <span class="item-icon">🧪</span>
@@ -5166,9 +5321,9 @@ This is STRUCTURAL enforcement - do not skip these steps.`
           </div>
           <div class="getting-started-examples">
             <div class="examples-label">Try saying:</div>
-            <div class="example-chip">"Add a login page"</div>
-            <div class="example-chip">"Create a user settings API"</div>
-            <div class="example-chip">"Fix the TypeScript errors"</div>
+            <div class="example-chip">"Build me a SaaS dashboard"</div>
+            <div class="example-chip">"Add user authentication"</div>
+            <div class="example-chip">"Create an API for invoices"</div>
           </div>
         </div>
       </div>
@@ -5383,6 +5538,182 @@ This is STRUCTURAL enforcement - do not skip these steps.`
         clearInterval(tipInterval);
         tipInterval = null;
       }
+    }
+
+    // =========================================
+    // File Upload Handlers (PRD, specs, mockups)
+    // =========================================
+    const fileUploadZone = document.getElementById('fileUploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileBrowseBtn = document.getElementById('fileBrowseBtn');
+    const uploadedFilesEl = document.getElementById('uploadedFiles');
+    const uploadedFilesList = document.getElementById('uploadedFilesList');
+    const clearUploadsBtn = document.getElementById('clearUploadsBtn');
+
+    let uploadedContextFiles = []; // Store uploaded file data
+
+    // File type icons
+    function getFileIcon(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      const icons = {
+        'pdf': '📕',
+        'doc': '📘',
+        'docx': '📘',
+        'txt': '📄',
+        'md': '📝',
+        'png': '🖼️',
+        'jpg': '🖼️',
+        'jpeg': '🖼️'
+      };
+      return icons[ext] || '📄';
+    }
+
+    // Format file size
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    // Handle file selection
+    async function handleFiles(files) {
+      for (const file of files) {
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          console.warn('File too large:', file.name);
+          continue;
+        }
+
+        // Check if file already uploaded
+        if (uploadedContextFiles.find(f => f.name === file.name)) {
+          continue;
+        }
+
+        try {
+          const content = await readFileContent(file);
+          uploadedContextFiles.push({
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            content: content
+          });
+        } catch (err) {
+          console.error('Failed to read file:', file.name, err);
+        }
+      }
+      renderUploadedFiles();
+    }
+
+    // Read file content
+    function readFileContent(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (file.type.startsWith('image/')) {
+            // For images, store base64
+            resolve(reader.result);
+          } else {
+            // For text files, store text
+            resolve(reader.result);
+          }
+        };
+        reader.onerror = reject;
+
+        if (file.type.startsWith('image/')) {
+          reader.readAsDataURL(file);
+        } else {
+          reader.readAsText(file);
+        }
+      });
+    }
+
+    // Render uploaded files list
+    function renderUploadedFiles() {
+      if (!uploadedFilesList || !uploadedFilesEl) return;
+
+      if (uploadedContextFiles.length === 0) {
+        uploadedFilesEl.style.display = 'none';
+        return;
+      }
+
+      uploadedFilesEl.style.display = 'block';
+      uploadedFilesList.innerHTML = uploadedContextFiles.map((file, index) => \`
+        <div class="uploaded-file-item" data-index="\${index}">
+          <span class="uploaded-file-icon">\${getFileIcon(file.name)}</span>
+          <span class="uploaded-file-name">\${file.name}</span>
+          <span class="uploaded-file-size">\${formatFileSize(file.size)}</span>
+          <button class="remove-file-btn" onclick="removeUploadedFile(\${index})">×</button>
+        </div>
+      \`).join('');
+    }
+
+    // Remove uploaded file
+    window.removeUploadedFile = function(index) {
+      uploadedContextFiles.splice(index, 1);
+      renderUploadedFiles();
+    };
+
+    // Get uploaded files context for message
+    function getUploadedFilesContext() {
+      if (uploadedContextFiles.length === 0) return '';
+
+      let context = '\\n\\n--- ATTACHED FILES ---\\n';
+      for (const file of uploadedContextFiles) {
+        if (file.type.startsWith('image/')) {
+          context += \`\\n[Image: \${file.name}]\\n\`;
+          // Image will be sent separately
+        } else {
+          context += \`\\n### \${file.name}\\n\${file.content}\\n\`;
+        }
+      }
+      return context;
+    }
+
+    // Drag and drop handlers
+    if (fileUploadZone) {
+      fileUploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUploadZone.classList.add('drag-over');
+      });
+
+      fileUploadZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        fileUploadZone.classList.remove('drag-over');
+      });
+
+      fileUploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUploadZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) {
+          handleFiles(e.dataTransfer.files);
+        }
+      });
+
+      fileUploadZone.addEventListener('click', () => {
+        if (fileInput) fileInput.click();
+      });
+    }
+
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          handleFiles(e.target.files);
+        }
+      });
+    }
+
+    if (fileBrowseBtn) {
+      fileBrowseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (fileInput) fileInput.click();
+      });
+    }
+
+    if (clearUploadsBtn) {
+      clearUploadsBtn.addEventListener('click', () => {
+        uploadedContextFiles = [];
+        renderUploadedFiles();
+      });
     }
 
     // Live Preview state
@@ -5899,11 +6230,22 @@ This is STRUCTURAL enforcement - do not skip these steps.`
 
     function actualSendMessage(message) {
       console.log('CodeBakers: actualSendMessage() posting to extension');
-      vscode.postMessage({ type: 'sendMessage', message });
+
+      // Include uploaded files context in the message
+      const filesContext = getUploadedFilesContext();
+      const fullMessage = filesContext ? message + filesContext : message;
+
+      vscode.postMessage({ type: 'sendMessage', message: fullMessage });
       inputEl.value = '';
       inputEl.style.height = 'auto';
       setStreamingState(true);
       startBuildingAnimation();
+
+      // Clear uploaded files after sending (they're now part of the message)
+      if (uploadedContextFiles.length > 0) {
+        uploadedContextFiles = [];
+        renderUploadedFiles();
+      }
     }
 
     function cancelRequest() {
