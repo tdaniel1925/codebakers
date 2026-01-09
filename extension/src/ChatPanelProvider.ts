@@ -133,6 +133,9 @@ export class ChatPanelProvider {
         case 'undoFile':
           await this._undoFileOperation(data.id);
           break;
+        case 'undoAppliedFiles':
+          await this._undoAppliedFiles(data.files);
+          break;
         case 'cancelRequest':
           this._cancelCurrentRequest();
           break;
@@ -172,6 +175,9 @@ export class ChatPanelProvider {
           break;
         case 'analyzeImpact':
           this._analyzeImpact(data.message);
+          break;
+        case 'installPackages':
+          this._installPackages(data.packages);
           break;
       }
     });
@@ -560,6 +566,29 @@ export class ChatPanelProvider {
     }
   }
 
+  private async _undoAppliedFiles(files: string[]) {
+    if (!files || files.length === 0) return;
+
+    let undoneCount = 0;
+    for (const filePath of files) {
+      try {
+        const success = await this.fileOps.restoreFromBackup(filePath);
+        if (success) {
+          undoneCount++;
+          // Remove from pending changes tracking
+          this._pendingChanges = this._pendingChanges.filter(c => c.operation.path !== filePath);
+        }
+      } catch (error) {
+        console.error(`Failed to undo ${filePath}:`, error);
+      }
+    }
+
+    if (undoneCount > 0) {
+      vscode.window.showInformationMessage(`↩️ Undone ${undoneCount} file${undoneCount > 1 ? 's' : ''}`);
+      this._updatePendingChanges();
+    }
+  }
+
   private _cancelCurrentRequest() {
     if (this._abortController) {
       this._abortController.abort();
@@ -934,6 +963,61 @@ export class ChatPanelProvider {
   }
 
   /**
+   * Auto-install missing npm packages
+   */
+  private async _installPackages(packages: string[]) {
+    if (!packages || packages.length === 0) return;
+
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+      vscode.window.showErrorMessage('No workspace folder open');
+      return;
+    }
+
+    const rootPath = workspaceFolder.uri.fsPath;
+    const cp = require('child_process');
+    const packageList = packages.join(' ');
+
+    // Show installing message
+    this._panel?.webview.postMessage({
+      type: 'toast',
+      message: `📦 Installing: ${packageList}...`
+    });
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        cp.exec(
+          `npm install ${packageList}`,
+          { cwd: rootPath, timeout: 120000 }, // 2 minute timeout
+          (error: any, stdout: string, stderr: string) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve();
+            }
+          }
+        );
+      });
+
+      // Success toast
+      this._panel?.webview.postMessage({
+        type: 'toast',
+        message: `✅ Installed: ${packageList}`
+      });
+
+      vscode.window.showInformationMessage(`✅ Installed: ${packageList}`);
+
+    } catch (error: any) {
+      const errorMsg = error.message || 'Unknown error';
+      this._panel?.webview.postMessage({
+        type: 'toast',
+        message: `❌ Install failed: ${errorMsg}`
+      });
+      vscode.window.showErrorMessage(`Package install failed: ${errorMsg}`);
+    }
+  }
+
+  /**
    * Load team notes from .codebakers/team-notes.md
    */
   private _loadTeamNotes() {
@@ -1072,6 +1156,25 @@ export class ChatPanelProvider {
     });
   }
 
+  /**
+   * Show a toast notification for applied files with undo option
+   */
+  private _showAppliedToast(appliedFiles: string[]) {
+    const count = appliedFiles.length;
+    const fileNames = appliedFiles.map(f => f.split('/').pop()).join(', ');
+
+    // Send toast to webview
+    this._panel?.webview.postMessage({
+      type: 'toast',
+      message: `Applied ${count} file${count > 1 ? 's' : ''}: ${fileNames}`,
+      action: 'undo',
+      files: appliedFiles
+    });
+
+    // Also run TypeScript check after applying
+    this._runTscCheck();
+  }
+
   // Pinned files management (Cursor-style context files)
   private async _addPinnedFile() {
     const files = await vscode.window.showOpenDialog({
@@ -1140,6 +1243,45 @@ export class ChatPanelProvider {
       context += `### ${file.path}\n\`\`\`\n${file.content || '(empty)'}\n\`\`\`\n\n`;
     }
     return context;
+  }
+
+  // Filter stream content to remove code - code goes to files, not chat
+  private _filterStreamContent(content: string): string {
+    if (!content) return '';
+
+    let text = content;
+
+    // Remove file_operation XML blocks (these contain code being written to files)
+    while (text.includes('<file_operation>')) {
+      const start = text.indexOf('<file_operation>');
+      const end = text.indexOf('</file_operation>', start);
+      if (end === -1) break;
+      text = text.substring(0, start) + text.substring(end + 17);
+    }
+
+    // Remove markdown code blocks (triple backticks) - the code is going to files
+    while (text.includes('```')) {
+      const start = text.indexOf('```');
+      const end = text.indexOf('```', start + 3);
+      if (end === -1) break;
+      text = text.substring(0, start) + text.substring(end + 3);
+    }
+
+    // Remove other internal XML tags
+    const tagsToRemove = ['content', 'action', 'path', 'thinking', 'result'];
+    for (const tag of tagsToRemove) {
+      text = text.split(`<${tag}>`).join('').split(`</${tag}>`).join('');
+    }
+
+    // Clean up excessive whitespace
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
+
+    // If after filtering there's very little content, show a status message
+    if (text.length < 20) {
+      return '✨ Generating code...';
+    }
+
+    return text;
   }
 
   // Throttled streaming update
@@ -1219,7 +1361,8 @@ export class ChatPanelProvider {
           this._throttledStreamUpdate();
         },
         onContent: (content) => {
-          this._streamBuffer = content;
+          // Filter out code/file operations from stream - they go to files, not chat
+          this._streamBuffer = this._filterStreamContent(content);
           this._throttledStreamUpdate();
         },
         onDone: () => {
@@ -1250,14 +1393,33 @@ export class ChatPanelProvider {
         });
       }
 
-      // Add file operations to pending changes panel
+      // Auto-apply file operations immediately (no popup)
       if (response.fileOperations && response.fileOperations.length > 0) {
+        const appliedFiles: string[] = [];
         for (const op of response.fileOperations) {
-          this._pendingChanges.push({
-            id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            operation: op,
-            status: 'pending'
-          });
+          try {
+            const result = await this.fileOps.applyChange({
+              path: op.path,
+              action: op.action,
+              content: op.content,
+              description: op.description
+            });
+            if (result) {
+              appliedFiles.push(op.path);
+              // Track for potential undo
+              this._pendingChanges.push({
+                id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                operation: op,
+                status: 'applied'
+              });
+            }
+          } catch (error) {
+            console.error(`Failed to apply ${op.path}:`, error);
+          }
+        }
+        // Show toast notification
+        if (appliedFiles.length > 0) {
+          this._showAppliedToast(appliedFiles);
         }
       }
 
@@ -1306,6 +1468,27 @@ export class ChatPanelProvider {
   private async _buildContextualizedMessages(userMessage: string, projectState: any): Promise<any[]> {
     const messages: any[] = [];
 
+    // Pattern enforcement for code requests
+    if (this._isCodeRequest(userMessage)) {
+      messages.push({
+        role: 'system',
+        content: `CODEBAKERS PATTERN ENFORCEMENT:
+
+Before writing ANY code, you MUST:
+1. Check for pattern files in .claude/ directory
+2. Read and follow the patterns exactly
+3. Use existing code patterns from the codebase
+4. Write tests for any new functionality
+
+After writing code, you MUST:
+1. Run TypeScript check (tsc --noEmit)
+2. Run tests (npm test)
+3. Show the CodeBakers footer: "CodeBakers | Snippets: X | TSC: ✅ | Tests: ✅"
+
+This is STRUCTURAL enforcement - do not skip these steps.`
+      });
+    }
+
     if (this._conversationSummary) {
       messages.push({
         role: 'system',
@@ -1349,6 +1532,20 @@ export class ChatPanelProvider {
     }
 
     return messages;
+  }
+
+  private _isCodeRequest(message: string): boolean {
+    if (!message) return false;
+
+    const codeKeywords = [
+      'add', 'create', 'build', 'implement', 'fix', 'update', 'change',
+      'modify', 'write', 'edit', 'refactor', 'delete', 'remove',
+      'feature', 'component', 'page', 'api', 'route', 'function',
+      'button', 'form', 'modal', 'table', 'chart', 'endpoint'
+    ];
+
+    const messageLower = message.toLowerCase();
+    return codeKeywords.some(keyword => messageLower.includes(keyword));
   }
 
   private async _summarizeConversation() {
@@ -1503,6 +1700,26 @@ export class ChatPanelProvider {
 
     /* Preview panel - HIDDEN (Canvas Mode removed) */
     .preview-panel {
+      display: none !important;
+    }
+
+    /* Team Notes - HIDDEN (UI cleanup) */
+    .team-notes {
+      display: none !important;
+    }
+
+    /* Action Bar - HIDDEN (UI cleanup - actions in welcome screen) */
+    .action-bar {
+      display: none !important;
+    }
+
+    /* Add Files Hint - HIDDEN (context files in pinned section) */
+    .add-files-hint {
+      display: none !important;
+    }
+
+    /* Session Stats - HIDDEN (cleaner UI like Cursor) */
+    .session-stats {
       display: none !important;
     }
 
@@ -2333,8 +2550,7 @@ export class ChatPanelProvider {
     }
 
     .code-block-wrapper.collapsed .code-block-content {
-      max-height: 0;
-      overflow: hidden;
+      display: none;
     }
 
     .code-block-content pre {
@@ -2537,6 +2753,68 @@ export class ChatPanelProvider {
       color: #ef4444;
     }
 
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #1e1e1e;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      animation: toastSlideIn 0.3s ease;
+      pointer-events: auto;
+    }
+
+    @keyframes toastSlideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .toast.hiding {
+      animation: toastSlideOut 0.3s ease forwards;
+    }
+
+    @keyframes toastSlideOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(20px); }
+    }
+
+    .toast-icon {
+      color: #22c55e;
+    }
+
+    .toast-message {
+      flex: 1;
+      font-size: 13px;
+      color: var(--vscode-foreground);
+    }
+
+    .toast-undo {
+      padding: 4px 10px;
+      background: transparent;
+      border: 1px solid var(--vscode-button-border, #3c3c3c);
+      border-radius: 4px;
+      color: var(--vscode-foreground);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .toast-undo:hover {
+      background: var(--vscode-button-hoverBackground);
+    }
+
     /* Main content area */
     .main-content {
       flex: 1;
@@ -2688,10 +2966,23 @@ export class ChatPanelProvider {
 
     .streaming-indicator.show { display: block; }
 
+    .thinking-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      color: var(--vscode-foreground);
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    .thinking-label span {
+      font-weight: 500;
+    }
+
     .typing-dots {
       display: flex;
       gap: 4px;
-      padding: 8px 0;
     }
 
     .typing-dot {
@@ -4283,31 +4574,15 @@ export class ChatPanelProvider {
   </style>
 </head>
 <body>
+  <!-- Toast Container for auto-applied files -->
+  <div class="toast-container" id="toastContainer"></div>
+
   <div class="header">
     <svg class="header-icon" viewBox="0 0 24 24" fill="currentColor">
       <path d="M4 4 L10 12 L4 20 L8 20 L12 14 L16 20 L20 20 L14 12 L20 4 L16 4 L12 10 L8 4 Z"/>
     </svg>
     <span class="header-title">CodeBakers</span>
     <span class="plan-badge" id="planBadge">Pro</span>
-
-    <!-- View Mode Toggle -->
-    <div class="view-mode-toggle">
-      <button class="view-mode-btn active" id="canvasModeBtn" title="Architecture Map - Visual view of nodes and connections">
-        <span class="mode-icon">🗺️</span>
-        <span>Map</span>
-      </button>
-      <button class="view-mode-btn" id="classicModeBtn" title="Chat Mode - Build and interact with AI">
-        <span class="mode-icon">💬</span>
-        <span>Chat</span>
-      </button>
-    </div>
-
-    <!-- Pending Changes Badge -->
-    <div class="pending-badge" id="pendingBadge" title="Click to review pending changes">
-      <span class="badge-icon">📋</span>
-      <span class="badge-count" id="pendingBadgeCount">0</span>
-    </div>
-
     <button class="header-btn" id="clearBtn">Clear</button>
   </div>
 
@@ -4329,28 +4604,6 @@ export class ChatPanelProvider {
       <span class="stat-value" id="statTime">0m</span>
     </div>
     <button class="reset-btn" id="resetStatsBtn" title="Reset session stats">↺ Reset</button>
-  </div>
-
-  <!-- Pending Changes Slide-out Overlay -->
-  <div class="pending-overlay" id="pendingOverlay"></div>
-
-  <!-- Pending Changes Slide-out Panel -->
-  <div class="pending-slideout" id="pendingSlideout">
-    <div class="pending-slideout-header">
-      <div class="pending-slideout-title">
-        <span>📋</span>
-        <span>Pending Changes</span>
-        <span class="pending-slideout-count" id="pendingSlideoutCount">0</span>
-      </div>
-      <button class="pending-slideout-close" id="pendingSlideoutClose">×</button>
-    </div>
-    <div class="pending-slideout-content" id="pendingSlideoutContent">
-      <!-- Pending files will be rendered here -->
-    </div>
-    <div class="pending-slideout-actions">
-      <button class="pending-slideout-btn reject" id="slideoutRejectAll">Reject All</button>
-      <button class="pending-slideout-btn accept" id="slideoutAcceptAll">Accept All</button>
-    </div>
   </div>
 
   <div class="login-prompt" id="loginPrompt">
@@ -4379,170 +4632,19 @@ export class ChatPanelProvider {
       </div>
 
       <div class="streaming-indicator" id="streaming">
-        <div class="typing-dots">
-          <div class="typing-dot"></div>
-          <div class="typing-dot"></div>
-          <div class="typing-dot"></div>
-        </div>
-        <div id="streamingContent" style="margin-top: 8px; display: none;"></div>
-      </div>
-
-      <!-- Pre-Flight Impact Check Panel -->
-      <div class="preflight-panel" id="preflightPanel">
-        <div class="preflight-header">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zM7 4h2v5H7V4zm0 6h2v2H7v-2z"/>
-          </svg>
-          <span>Pre-Flight Impact Check</span>
-        </div>
-        <div class="preflight-section">
-          <div class="preflight-section-title">Files that may be affected</div>
-          <div class="preflight-files" id="preflightFiles"></div>
-        </div>
-        <div class="preflight-section" id="preflightWarnings" style="display: none;">
-          <div class="preflight-warning">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 1L1 14h14L8 1zm0 4v4h.01V5H8zm0 6v1h.01v-1H8z"/>
-            </svg>
-            <span id="preflightWarningText"></span>
+        <div class="thinking-label">
+          <span>Thinking</span>
+          <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
           </div>
         </div>
-        <div class="preflight-actions">
-          <button class="preflight-btn primary" id="preflightProceed">Proceed</button>
-          <button class="preflight-btn secondary" id="preflightCancel">Cancel</button>
-        </div>
+        <div id="streamingContent" style="display: none;"></div>
       </div>
-    </div>
 
-    <!-- Claude Code Style Pending Changes Panel -->
-    <div class="pending-panel" id="pendingPanel">
-      <div class="pending-header">
-        <div class="pending-title">
-          <span>Pending Changes</span>
-          <span class="pending-count" id="pendingCount">0</span>
-        </div>
-        <div class="pending-actions">
-          <button class="reject-all-btn" id="rejectAllBtn">Reject All</button>
-          <button class="accept-all-btn" id="acceptAllBtn">Accept All</button>
-          <button class="pending-close-btn" id="pendingCloseBtn" title="Close">×</button>
-        </div>
-      </div>
-      <div class="pending-list" id="pendingList"></div>
-    </div>
-
-    <div class="status-indicator" id="statusIndicator">
-      <div class="status-spinner"></div>
-      <span id="statusText">Processing...</span>
     </div>
     </div>
-
-    <!-- Live Preview Panel -->
-    <div class="preview-panel" id="previewPanel">
-      <div class="preview-header">
-        <span class="preview-title">🗺️ Your App Architecture</span>
-        <span class="preview-hint">Watch your app take shape</span>
-      </div>
-      <div class="preview-canvas" id="previewCanvas">
-        <!-- Building Animation -->
-        <div class="building-overlay" id="buildingOverlay">
-          <div class="building-animation">
-            <div class="blueprint-grid"></div>
-            <div class="building-text">Building your app...</div>
-            <div class="building-dots">
-              <span></span><span></span><span></span>
-            </div>
-          </div>
-        </div>
-        <!-- Nodes will be rendered here -->
-        <svg class="preview-edges" id="previewEdges"></svg>
-        <div class="preview-nodes" id="previewNodes"></div>
-        <!-- Empty state -->
-        <div class="preview-empty" id="previewEmpty">
-          <div class="empty-icon">🏗️</div>
-          <div class="empty-text">Start chatting to see your app architecture appear here</div>
-        </div>
-        <!-- Connection legend (shown when edges exist) -->
-        <div class="connection-legend" id="connectionLegend">
-          <span class="legend-item"><span class="legend-line renders"></span>Renders</span>
-          <span class="legend-item"><span class="legend-line calls"></span>Calls</span>
-          <span class="legend-item"><span class="legend-line uses"></span>Uses</span>
-        </div>
-        <!-- AI Suggestions Panel -->
-        <div class="suggestions-panel" id="suggestionsPanel">
-          <div class="suggestions-header">
-            <span class="suggestions-title">💡 Suggestions</span>
-            <button class="suggestions-close" id="suggestionsClose">×</button>
-          </div>
-          <div class="suggestions-list" id="suggestionsList"></div>
-        </div>
-        <!-- Templates Gallery -->
-        <div class="templates-gallery" id="templatesGallery">
-          <div class="templates-header">
-            <span class="templates-title">📦 Start from Template</span>
-            <button class="templates-close" id="templatesClose">×</button>
-          </div>
-          <div class="templates-grid" id="templatesGrid"></div>
-        </div>
-        <!-- Canvas Stats -->
-        <div class="canvas-stats" id="canvasStats">
-          <div class="canvas-stat">📄 <span class="canvas-stat-value" id="statPages">0</span> pages</div>
-          <div class="canvas-stat">🧩 <span class="canvas-stat-value" id="statComponents">0</span> components</div>
-          <div class="canvas-stat">🔌 <span class="canvas-stat-value" id="statApis">0</span> APIs</div>
-        </div>
-        <!-- Keyboard Hints -->
-        <div class="keyboard-hints" id="keyboardHints">
-          <span><span class="kbd">C</span>Chat Mode</span>
-          <span>Click nodes to see details</span>
-        </div>
-      </div>
-
-      <!-- AI Response Bar (Canvas Mode) -->
-      <div class="ai-response-bar" id="aiResponseBar">
-        <div class="ai-response-header" id="aiResponseHeader">
-          <div class="ai-response-indicator">
-            <span class="ai-dot"></span>
-            <span class="ai-response-status" id="aiResponseStatus">Ready</span>
-          </div>
-          <span class="ai-response-summary" id="aiResponseSummary">Click to expand details</span>
-          <button class="ai-response-toggle" id="aiResponseToggle">▲</button>
-        </div>
-        <div class="ai-response-content" id="aiResponseContent">
-          <div class="ai-response-text" id="aiResponseText"></div>
-        </div>
-      </div>
-
-      <!-- Canvas Mode Chat Input -->
-      <div class="canvas-chat-input" id="canvasChatInput">
-        <div class="canvas-input-context" id="canvasInputContext">
-          <!-- Shows selected node context as chips -->
-        </div>
-        <div class="canvas-input-row">
-          <textarea class="canvas-input-field" id="canvasInput" placeholder="Ask CodeBakers about your architecture..." rows="1"></textarea>
-          <button class="canvas-voice-btn" id="canvasVoiceBtn" title="Voice input">🎤</button>
-          <button class="canvas-send-btn" id="canvasSendBtn">Send</button>
-        </div>
-        <div class="canvas-quick-actions">
-          <button class="canvas-action" data-action="explain">
-            <span>💡</span> Explain
-          </button>
-          <button class="canvas-action" data-action="add-feature">
-            <span>➕</span> Add Feature
-          </button>
-          <button class="canvas-action" data-action="connect">
-            <span>🔗</span> Connect
-          </button>
-          <button class="canvas-action" data-action="generate">
-            <span>⚡</span> Generate Code
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tooltip for node descriptions -->
-  <div class="preview-tooltip" id="previewTooltip">
-    <div class="preview-tooltip-title"></div>
-    <div class="preview-tooltip-desc"></div>
   </div>
 
   <!-- Pinned Files Section (Cursor-style context) -->
@@ -5184,19 +5286,8 @@ export class ChatPanelProvider {
         return;
       }
 
-      // Pre-Flight Impact Check for code-related requests
-      if (isCodeRelatedRequest(message)) {
-        console.log('CodeBakers: Code-related request detected, showing pre-flight check');
-        pendingPreflightMessage = message;
-        inputEl.value = '';
-        inputEl.style.height = 'auto';
-        showPreflightPanel(message, null);
-        // Request impact analysis from extension
-        vscode.postMessage({ type: 'analyzeImpact', message });
-        return;
-      }
-
-      // Non-code requests proceed directly
+      // Send all messages directly (pre-flight check removed)
+      console.log('CodeBakers: sendMessage() proceeding with message');
       actualSendMessage(message);
     }
 
@@ -5216,15 +5307,23 @@ export class ChatPanelProvider {
     let buildingAnimationActive = false;
 
     function setStreamingState(streaming) {
+      // CRITICAL: Set the state variable FIRST before any UI code that might throw
       isStreaming = streaming;
-      sendBtn.style.display = streaming ? 'none' : 'block';
-      cancelBtn.classList.toggle('show', streaming);
-      inputEl.disabled = streaming;
-      streamingEl.classList.toggle('show', streaming);
+      console.log('CodeBakers: setStreamingState called with', streaming, '- isStreaming now:', isStreaming);
 
-      if (streaming) {
-        streamingContentEl.style.display = 'none';
-        streamingContentEl.innerHTML = '';
+      // UI updates with null checks - these must not block state change
+      try {
+        if (sendBtn) sendBtn.style.display = streaming ? 'none' : 'block';
+        if (cancelBtn) cancelBtn.classList.toggle('show', streaming);
+        if (inputEl) inputEl.disabled = streaming;
+        if (streamingEl) streamingEl.classList.toggle('show', streaming);
+
+        if (streaming && streamingContentEl) {
+          streamingContentEl.style.display = 'none';
+          streamingContentEl.innerHTML = '';
+        }
+      } catch (e) {
+        console.error('CodeBakers: Error in setStreamingState UI update:', e);
       }
       // Note: Building animation is now controlled separately, not by streaming state
     }
@@ -5654,18 +5753,18 @@ export class ChatPanelProvider {
         .trim();
     }
 
-    // Tooltip element
+    // Tooltip element (with null checks)
     const previewTooltip = document.getElementById('previewTooltip');
-    const tooltipTitle = previewTooltip.querySelector('.preview-tooltip-title');
-    const tooltipDesc = previewTooltip.querySelector('.preview-tooltip-desc');
+    const tooltipTitle = previewTooltip ? previewTooltip.querySelector('.preview-tooltip-title') : null;
+    const tooltipDesc = previewTooltip ? previewTooltip.querySelector('.preview-tooltip-desc') : null;
 
     function showTooltip(nodeEl, nodeType, nodeName) {
+      if (!previewTooltip || !tooltipTitle || !tooltipDesc) return;
       const info = NODE_INFO[nodeType] || NODE_INFO.component;
       tooltipTitle.textContent = info.label + ': ' + humanize(nodeName);
       tooltipDesc.textContent = info.description;
 
       const rect = nodeEl.getBoundingClientRect();
-      const tooltipRect = previewTooltip.getBoundingClientRect();
 
       // Position tooltip above the node, or below if not enough space
       let top = rect.top - 10;
@@ -5685,7 +5784,7 @@ export class ChatPanelProvider {
     }
 
     function hideTooltip() {
-      previewTooltip.classList.remove('visible');
+      if (previewTooltip) previewTooltip.classList.remove('visible');
     }
 
     // Health status analyzer for nodes
@@ -6338,6 +6437,37 @@ export class ChatPanelProvider {
       return div.innerHTML;
     }
 
+    // Show toast notification for auto-applied files
+    function showToast(message, action, files) {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = \`
+        <span class="toast-icon">✅</span>
+        <span class="toast-message">\${escapeHtml(message)}</span>
+        \${action === 'undo' ? '<button class="toast-undo-btn">Undo</button>' : ''}
+      \`;
+
+      // Handle undo click
+      const undoBtn = toast.querySelector('.toast-undo-btn');
+      if (undoBtn && files) {
+        undoBtn.addEventListener('click', () => {
+          vscode.postMessage({ type: 'undoAppliedFiles', files: files });
+          toast.remove();
+        });
+      }
+
+      container.appendChild(toast);
+
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        toast.style.animation = 'toastSlideOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 5000);
+    }
+
     // Parse AI response for architecture suggestions
     function parseArchitectureFromResponse(content) {
       console.log('CodeBakers: parseArchitectureFromResponse called, content length:', content?.length);
@@ -6666,6 +6796,95 @@ export class ChatPanelProvider {
       return div.innerHTML;
     }
 
+    // Clean up raw AI output - hide code generation, show summaries
+    function cleanStreamContent(content) {
+      if (!content) return '';
+      let text = content;
+      const nl = String.fromCharCode(10);
+
+      // Detect if content is mostly code/JSX (should be hidden)
+      function isMostlyCode(str) {
+        // Count JSX-like tags (capitalized component names)
+        const jsxTags = ['<Card', '<Button', '<Input', '<Form', '<Modal', '<Table', '<div', '<span', '<p>', '<h1', '<h2', '<h3', 'className=', 'onClick=', 'onChange=', 'import ', 'export ', 'function ', 'const ', 'return ('];
+        let codeIndicators = 0;
+        for (let i = 0; i < jsxTags.length; i++) {
+          if (str.indexOf(jsxTags[i]) !== -1) codeIndicators++;
+        }
+        // If 3+ code indicators, it's mostly code
+        return codeIndicators >= 3;
+      }
+
+      // Simple tag removal using indexOf/substring
+      function removeTagBlock(str, openTag, closeTag) {
+        let result = str;
+        let safety = 0;
+        while (result.indexOf(openTag) !== -1 && safety < 100) {
+          const start = result.indexOf(openTag);
+          const end = result.indexOf(closeTag, start);
+          if (end === -1) break;
+          result = result.substring(0, start) + result.substring(end + closeTag.length);
+          safety++;
+        }
+        return result;
+      }
+
+      function removeTag(str, tag) {
+        return str.split('<' + tag + '>').join('').split('</' + tag + '>').join('');
+      }
+
+      // Extract file operations for summary before removing
+      const fileOps = [];
+      let searchStart = 0;
+      while (text.indexOf('<file_operation>', searchStart) !== -1) {
+        const opStart = text.indexOf('<file_operation>', searchStart);
+        const opEnd = text.indexOf('</file_operation>', opStart);
+        if (opEnd === -1) break;
+        const block = text.substring(opStart, opEnd);
+        const actionStart = block.indexOf('<action>');
+        const actionEnd = block.indexOf('</action>');
+        const pathStart = block.indexOf('<path>');
+        const pathEnd = block.indexOf('</path>');
+        if (actionStart !== -1 && actionEnd !== -1 && pathStart !== -1 && pathEnd !== -1) {
+          fileOps.push({
+            action: block.substring(actionStart + 8, actionEnd),
+            path: block.substring(pathStart + 6, pathEnd)
+          });
+        }
+        searchStart = opEnd + 1;
+      }
+
+      // Remove file_operation blocks
+      text = removeTagBlock(text, '<file_operation>', '</file_operation>');
+
+      // Remove other internal tags
+      text = removeTag(text, 'content');
+      text = removeTag(text, 'action');
+      text = removeTag(text, 'path');
+      text = removeTag(text, 'thinking');
+      text = removeTag(text, 'result');
+
+      // If content is mostly code, replace with simple message
+      if (isMostlyCode(text)) {
+        let summary = '✨ Generating code...';
+        if (fileOps.length > 0) {
+          summary = fileOps.map(function(op) {
+            return '📄 ' + op.action + ': ' + op.path;
+          }).join(nl);
+        }
+        return summary;
+      }
+
+      // Add file operation summary at top if any were found
+      if (fileOps.length > 0) {
+        const summary = fileOps.map(function(op) {
+          return '📄 ' + op.action + ': ' + op.path;
+        }).join(nl);
+        text = summary + nl + nl + text;
+      }
+
+      return text.trim();
+    }
+
     function formatContent(content) {
       if (!content) return '';
 
@@ -6823,16 +7042,136 @@ export class ChatPanelProvider {
       return paragraphs.join('') || '<p></p>';
     }
 
+    // Filter thinking content to remove code/XML, keeping only explanations
+    function filterThinkingContent(text) {
+      if (!text) return '';
+      let result = text;
+
+      // Remove file_operation blocks entirely
+      while (result.includes('<file_operation>')) {
+        const start = result.indexOf('<file_operation>');
+        const end = result.indexOf('</file_operation>', start);
+        if (end === -1) {
+          result = result.substring(0, start);
+          break;
+        }
+        result = result.substring(0, start) + result.substring(end + 17);
+      }
+
+      // Remove content blocks (contain code)
+      while (result.includes('<content>')) {
+        const start = result.indexOf('<content>');
+        const end = result.indexOf('</content>', start);
+        if (end === -1) {
+          result = result.substring(0, start);
+          break;
+        }
+        result = result.substring(0, start) + result.substring(end + 10);
+      }
+
+      // Remove markdown code blocks
+      while (result.includes('\`\`\`')) {
+        const start = result.indexOf('\`\`\`');
+        const end = result.indexOf('\`\`\`', start + 3);
+        if (end === -1) {
+          result = result.substring(0, start);
+          break;
+        }
+        result = result.substring(0, start) + result.substring(end + 3);
+      }
+
+      // Remove other XML tags but keep their text content for simple tags
+      const tagsToStrip = ['action', 'path', 'description', 'thinking', 'result'];
+      for (const tag of tagsToStrip) {
+        result = result.split('<' + tag + '>').join('');
+        result = result.split('</' + tag + '>').join('');
+      }
+
+      // Remove import statements and code-like lines
+      const lines = result.split('\\n');
+      const cleanLines = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        // Skip code-like lines
+        if (trimmed.startsWith('import ') ||
+            trimmed.startsWith('const ') ||
+            trimmed.startsWith('export ') ||
+            trimmed.startsWith('function ') ||
+            trimmed.startsWith('class ') ||
+            trimmed.startsWith('<') ||
+            trimmed.includes('className=') ||
+            trimmed.includes('=>') ||
+            trimmed.match(/^[{}();]$/)) {
+          continue;
+        }
+        if (trimmed) cleanLines.push(trimmed);
+      }
+
+      result = cleanLines.join(' ').replace(/\\s+/g, ' ').trim();
+
+      // If nothing left after filtering, return a generic message
+      if (result.length < 20) {
+        return 'Processing your request...';
+      }
+
+      // Truncate if too long
+      if (result.length > 500) {
+        result = result.substring(0, 500) + '...';
+      }
+
+      return result;
+    }
+
+    // Detect missing packages from AI response content
+    function detectMissingPackages(content) {
+      if (!content) return [];
+      const packages = [];
+
+      // Pattern 1: "Missing Packages:" followed by package names
+      const missingMatch = content.match(/Missing Packages?:?\\s*([\\s\\S]*?)(?:\\n\\n|$)/i);
+      if (missingMatch) {
+        // Extract package names - look for npm package patterns
+        const section = missingMatch[1];
+        const pkgMatches = section.match(/@?[a-z0-9][-a-z0-9._]*(?:\\/@?[a-z0-9][-a-z0-9._]*)?/gi);
+        if (pkgMatches) {
+          pkgMatches.forEach(pkg => {
+            // Filter out common false positives
+            if (pkg && !pkg.match(/^(the|a|an|to|for|and|or|with|from|npm|install|run|bash)$/i)) {
+              packages.push(pkg);
+            }
+          });
+        }
+      }
+
+      // Pattern 2: "npm install <packages>" in code blocks
+      const npmInstallMatches = content.matchAll(/npm install\\s+([^\\n\`]+)/gi);
+      for (const match of npmInstallMatches) {
+        const pkgs = match[1].trim().split(/\\s+/);
+        pkgs.forEach(pkg => {
+          // Filter flags and invalid names
+          if (pkg && !pkg.startsWith('-') && pkg.match(/^@?[a-z0-9]/i)) {
+            packages.push(pkg);
+          }
+        });
+      }
+
+      // Deduplicate
+      return [...new Set(packages)];
+    }
+
     function renderMessage(msg, index) {
       const div = document.createElement('div');
       div.className = 'message ' + msg.role;
 
       let html = '';
 
-      // Thinking toggle
+      // Thinking toggle - filter out code from thinking content
       if (msg.role === 'assistant' && msg.thinking) {
-        html += '<div class="thinking-toggle" data-action="toggle-thinking">▶ Show reasoning</div>';
-        html += '<div class="thinking-content">' + escapeHtml(msg.thinking) + '</div>';
+        const filteredThinking = filterThinkingContent(msg.thinking);
+        if (filteredThinking && filteredThinking !== 'Processing your request...') {
+          html += '<div class="thinking-toggle" data-action="toggle-thinking">▶ Show reasoning</div>';
+          html += '<div class="thinking-content">' + escapeHtml(filteredThinking) + '</div>';
+        }
       }
 
       html += formatContent(msg.content);
@@ -6853,9 +7192,14 @@ export class ChatPanelProvider {
       const applied = currentChanges.filter(c => c.status === 'applied');
       const total = pending.length + pendingCmds.length;
 
-      pendingCount.textContent = total;
-      // Show panel when there are pending OR recently applied items (applied items auto-clear after delay)
-      pendingPanel.classList.toggle('show', currentChanges.length > 0 || currentCommands.length > 0);
+      // Null checks for removed elements
+      if (pendingCount) {
+        pendingCount.textContent = total;
+      }
+      // Show panel when there are pending OR recently applied items (auto-apply mode - panel removed)
+      if (pendingPanel) {
+        pendingPanel.classList.toggle('show', currentChanges.length > 0 || currentCommands.length > 0);
+      }
 
       let html = '';
 
@@ -6917,22 +7261,29 @@ export class ChatPanelProvider {
         html += '</div>';
       }
 
-      pendingList.innerHTML = html;
+      if (pendingList) {
+        pendingList.innerHTML = html;
+      }
     }
 
     function renderPinnedFiles() {
-      pinnedCountEl.textContent = currentPinnedFiles.length;
+      if (pinnedCountEl) {
+        pinnedCountEl.textContent = currentPinnedFiles.length;
+      }
 
       // Show/hide sections based on whether files are pinned
       const hasFiles = currentPinnedFiles.length > 0;
-      if (hasFiles) {
-        pinnedFilesEl.classList.add('show');
-        pinnedFilesEl.classList.add('has-files');
-        addFilesHint.style.display = 'none';
-      } else {
-        pinnedFilesEl.classList.remove('show');
-        pinnedFilesEl.classList.remove('has-files');
-        addFilesHint.style.display = 'block';
+      if (pinnedFilesEl) {
+        if (hasFiles) {
+          pinnedFilesEl.classList.add('show');
+          pinnedFilesEl.classList.add('has-files');
+        } else {
+          pinnedFilesEl.classList.remove('show');
+          pinnedFilesEl.classList.remove('has-files');
+        }
+      }
+      if (addFilesHint) {
+        addFilesHint.style.display = hasFiles ? 'none' : 'block';
       }
 
       let html = '';
@@ -6942,7 +7293,9 @@ export class ChatPanelProvider {
         html += '<button class="pinned-file-remove" data-action="remove-pinned" data-path="' + escapeHtml(file.path) + '" title="Remove from context">×</button>';
         html += '</div>';
       }
-      pinnedListEl.innerHTML = html;
+      if (pinnedListEl) {
+        pinnedListEl.innerHTML = html;
+      }
     }
 
     function addPinnedFile() {
@@ -6995,6 +7348,13 @@ export class ChatPanelProvider {
                 // No nodes found, just stop the animation
                 stopBuildingAnimation();
               }
+
+              // Auto-detect and install missing packages
+              const missingPackages = detectMissingPackages(lastMsg.content);
+              if (missingPackages.length > 0) {
+                console.log('CodeBakers: Auto-installing missing packages:', missingPackages);
+                vscode.postMessage({ type: 'installPackages', packages: missingPackages });
+              }
             }
             // If last message is from user, keep animation running - AI is still processing
             console.log('CodeBakers: updateMessages - lastMsg.role:', lastMsg.role);
@@ -7013,16 +7373,25 @@ export class ChatPanelProvider {
           renderPinnedFiles();
           break;
 
+        case 'toast':
+          showToast(data.message, data.action, data.files);
+          break;
+
         case 'typing':
+          // CRITICAL: Reset streaming state FIRST when typing stops
+          // This must happen before any other code that could throw
+          if (!data.isTyping) {
+            setStreamingState(false);
+          }
+          // Now do the rest with null checks
           if (data.isTyping) {
-            welcomeEl.style.display = 'none';
+            if (welcomeEl) welcomeEl.style.display = 'none';
             updateAIResponseBar('Processing...', 'Working on your request...', '');
           } else {
-            setStreamingState(false);
             updateAIResponseBar('Ready', 'Click to see last response', '');
           }
-          streamingEl.classList.toggle('show', data.isTyping);
-          messagesEl.scrollTop = messagesEl.scrollHeight;
+          if (streamingEl) streamingEl.classList.toggle('show', data.isTyping);
+          if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
           break;
 
         case 'setInputValue':
@@ -7035,41 +7404,34 @@ export class ChatPanelProvider {
           break;
 
         case 'streamThinking':
-          // Could show thinking indicator if desired
+          // Just keep "Thinking..." showing - no content display needed
           break;
 
         case 'streamContent':
-          streamingContentEl.style.display = 'block';
-          streamingContentEl.innerHTML = formatContent(data.content);
-          messagesEl.scrollTop = messagesEl.scrollHeight;
-          // Update AI response bar with brief summary
-          var contentPreview = data.content.substring(0, 100).replace(/[#*]/g, '').replace(/\x60/g, '').trim();
-          updateAIResponseBar('Generating...', contentPreview + (data.content.length > 100 ? '...' : ''), formatContent(data.content));
+          // Don't show streaming content - code goes to files, not chat
+          // Just keep the "Thinking..." animation running
+          // The final response will be shown when done
           break;
 
         case 'validating':
-          statusText.textContent = 'Validating TypeScript...';
-          statusIndicator.classList.add('show');
+          // Removed - was confusing "pre-flight check" message
           break;
 
         case 'streamError':
-          statusIndicator.classList.remove('show');
+          if (statusIndicator) statusIndicator.classList.remove('show');
           setStreamingState(false);
           stopBuildingAnimation();
           alert('Error: ' + (data.error || 'Unknown error'));
           break;
 
         case 'requestCancelled':
-          statusIndicator.classList.remove('show');
+          if (statusIndicator) statusIndicator.classList.remove('show');
           setStreamingState(false);
           stopBuildingAnimation();
           break;
 
         case 'impactAnalysis':
-          // Update pre-flight panel with actual impact data
-          if (data.files && preflightPanel.classList.contains('show')) {
-            showPreflightPanel(pendingPreflightMessage, data);
-          }
+          // Removed - pre-flight panel no longer exists
           break;
 
         case 'rippleCheck':
@@ -7079,8 +7441,10 @@ export class ChatPanelProvider {
 
         case 'updatePlan':
           const badge = document.getElementById('planBadge');
-          badge.textContent = data.plan.charAt(0).toUpperCase() + data.plan.slice(1);
-          badge.className = 'plan-badge' + (data.plan === 'trial' ? ' trial' : '');
+          if (badge) {
+            badge.textContent = data.plan.charAt(0).toUpperCase() + data.plan.slice(1);
+            badge.className = 'plan-badge' + (data.plan === 'trial' ? ' trial' : '');
+          }
           break;
 
         case 'updateSessionStats':
@@ -7088,26 +7452,15 @@ export class ChatPanelProvider {
           break;
 
         case 'updateTeamNotes':
-          teamNotesInput.value = data.notes || '';
+          if (teamNotesInput) teamNotesInput.value = data.notes || '';
           break;
 
         case 'showStatus':
-          if (data.show) {
-            statusText.textContent = data.text || 'Processing...';
-            statusIndicator.classList.add('show');
-          } else {
-            statusIndicator.classList.remove('show');
-          }
+          // Removed - status indicator no longer exists
           break;
 
         case 'showProgress':
-          if (data.show) {
-            const pct = data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
-            statusText.innerHTML = data.text + '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>';
-            statusIndicator.classList.add('show');
-          } else {
-            statusIndicator.classList.remove('show');
-          }
+          // Removed - status indicator no longer exists
           break;
 
         case 'showLogin':
@@ -7126,12 +7479,7 @@ export class ChatPanelProvider {
       }
     });
 
-    // Hide status after a delay
-    setInterval(() => {
-      if (!isStreaming) {
-        statusIndicator.classList.remove('show');
-      }
-    }, 3000);
+    // Status indicator removed - this interval is no longer needed
 
     // ============================================
     // Event Listeners (CSP-compliant, no inline handlers)

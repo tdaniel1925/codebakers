@@ -164,7 +164,7 @@ async function ensureInitialized(): Promise<boolean> {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('CodeBakers: activate() called - v1.0.66');
+  console.log('CodeBakers: activate() called - v1.0.106');
   extensionContext = context;
 
   // IMMEDIATELY register commands - nothing can fail before this
@@ -457,7 +457,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   }, 500);
 
-  console.log('CodeBakers: activate() completed - v1.0.66');
+  console.log('CodeBakers: activate() completed - v1.0.106');
 }
 
 function updateStatusBar() {
