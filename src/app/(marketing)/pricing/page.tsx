@@ -13,7 +13,7 @@ const plans: Array<{
 }> = [
   {
     name: 'Pro',
-    price: 99,
+    price: 49,
     plan: 'pro',
     description: 'Save 20+ hours per project',
     features: [
@@ -30,7 +30,7 @@ const plans: Array<{
   },
   {
     name: 'Team',
-    price: 249,
+    price: 149,
     plan: 'team',
     description: 'For growing teams',
     features: [

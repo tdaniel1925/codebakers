@@ -42,7 +42,7 @@ const fallbackPlans: PlanData[] = [
     priceYearly: null,
     seats: 1,
     features: [
-      '40 production modules',
+      '59 production modules',
       '50,000+ lines of patterns',
       'Auto-testing included',
       'Full stack coverage',

@@ -14,13 +14,13 @@
 
 export const PRICING = {
   PRO: {
-    MONTHLY: 99,
-    YEARLY: 990, // ~2 months free
+    MONTHLY: 49,
+    YEARLY: 490, // ~2 months free
     SEATS: 1,
   },
   TEAM: {
-    MONTHLY: 249,
-    YEARLY: 2490,
+    MONTHLY: 149,
+    YEARLY: 1490,
     SEATS: 5,
   },
   ENTERPRISE: {
@@ -59,8 +59,8 @@ export const TRIAL_STAGES = {
 // =============================================================================
 
 export const MODULES = {
-  COUNT: 40,
-  RANGE: { START: 0, END: 39 },
+  COUNT: 59,
+  RANGE: { START: 0, END: 58 },
 } as const;
 
 // Module names for reference
@@ -155,8 +155,8 @@ export const MESSAGES = {
     UPGRADE_CTA: `Subscribe to Pro ($${PRICING.PRO.MONTHLY}/mo) for unlimited access`,
   },
   SUBSCRIPTION: {
-    ACTIVE: 'Unlimited projects & all 40 modules',
-    INACTIVE: 'No active subscription - upgrade to access all 40 modules',
+    ACTIVE: 'Unlimited projects & all 59 modules',
+    INACTIVE: 'No active subscription - upgrade to access all 59 modules',
     BETA: 'Admin-granted beta access',
   },
   ERRORS: {

@@ -9,18 +9,68 @@ export default function GettingStartedPage() {
       <h1>Getting Started</h1>
 
       <p className="text-lg text-neutral-300">
-        This guide will help you set up CodeBakers with your AI coding tool in just a few minutes.
+        Get CodeBakers running in under 2 minutes. Choose your preferred setup method below.
       </p>
 
-      <h2>Prerequisites</h2>
+      <div className="p-4 rounded-lg bg-green-900/20 border border-green-800/50 my-6">
+        <p className="text-green-400 font-medium">
+          🎉 14-day free trial — No credit card required
+        </p>
+      </div>
+
+      <h2>Option A: VS Code Extension (Recommended)</h2>
+
+      <p>
+        The easiest way to get started. Our VS Code extension includes built-in Claude AI
+        with unlimited usage during your trial.
+      </p>
+
+      <h3>Step 1: Install the Extension</h3>
+
+      <ol>
+        <li>Open VS Code</li>
+        <li>Go to Extensions (Ctrl+Shift+X / Cmd+Shift+X)</li>
+        <li>Search for <strong>"CodeBakers"</strong></li>
+        <li>Click Install</li>
+      </ol>
+
+      <h3>Step 2: Sign In</h3>
+
+      <ol>
+        <li>Click the CodeBakers icon in the sidebar (or press Ctrl+Alt+C / Cmd+Alt+C)</li>
+        <li>Click "Login with GitHub"</li>
+        <li>Authorize the app — your 14-day trial starts immediately</li>
+      </ol>
+
+      <h3>Step 3: Start Building</h3>
+
+      <p>
+        Open the CodeBakers chat panel and ask it to build something:
+      </p>
+
+      <pre><code className="language-text">{`Build me a todo app with authentication`}</code></pre>
+
+      <p>
+        That's it! The AI will follow production patterns automatically.
+      </p>
+
+      <hr className="my-8 border-neutral-800" />
+
+      <h2>Option B: CLI + Cursor/Claude Code</h2>
+
+      <p>
+        If you prefer to use Cursor IDE or Claude Code CLI, use our MCP integration.
+      </p>
+
+      <h3>Prerequisites</h3>
 
       <ul>
         <li>Node.js 18 or later</li>
-        <li>Claude Code (VS Code extension or CLI) or Cursor</li>
+        <li>Cursor or Claude Code CLI installed</li>
         <li>A CodeBakers account (<a href="/signup">sign up free</a>)</li>
       </ul>
 
-      <h2>Step 1: Get Your API Key</h2>
+      <h3>Step 1: Get Your API Key</h3>
 
       <ol>
         <li>Go to the <a href="/dashboard">CodeBakers Dashboard</a></li>
@@ -28,7 +78,7 @@ export default function GettingStartedPage() {
         <li>Copy the key (it starts with <code>cb_</code>)</li>
       </ol>
 
-      <h2>Step 2: Install the CLI</h2>
+      <h3>Step 2: Install the CLI</h3>
 
       <p>Run the setup command in your project directory:</p>
 
@@ -42,22 +92,22 @@ export default function GettingStartedPage() {
         <li>Install the CLAUDE.md router file</li>
       </ul>
 
-      <h2>Step 3: Configure Your AI Tool</h2>
+      <h3>Step 3: Configure Your AI Tool</h3>
 
-      <h3>For Claude Code</h3>
+      <h4>For Claude Code CLI</h4>
 
       <p>Add the MCP server to Claude Code:</p>
 
       <pre><code className="language-bash">{`/mcp add codebakers npx -y @codebakers/cli serve`}</code></pre>
 
-      <h3>For Cursor</h3>
+      <h4>For Cursor</h4>
 
       <p>
         The setup command automatically configures <code>.cursor/mcp.json</code>.
         Restart Cursor to activate the MCP server.
       </p>
 
-      <h2>Step 4: Verify Installation</h2>
+      <h3>Step 4: Verify Installation</h3>
 
       <p>
         In your AI tool, try asking:
@@ -75,7 +125,9 @@ export default function GettingStartedPage() {
         <li>Include tests for all features</li>
       </ol>
 
-      <h2>Existing Project?</h2>
+      <hr className="my-8 border-neutral-800" />
+
+      <h2>Adding to an Existing Project</h2>
 
       <p>
         If you're adding CodeBakers to an existing project, we recommend starting with an audit:
@@ -96,7 +148,18 @@ export default function GettingStartedPage() {
 
       <h2>Troubleshooting</h2>
 
-      <h3>API Key Not Working</h3>
+      <h3>VS Code Extension Issues</h3>
+
+      <p>
+        If the extension isn't working:
+      </p>
+      <ol>
+        <li>Make sure you're signed in (check the CodeBakers panel)</li>
+        <li>Reload VS Code (Ctrl+Shift+P → "Reload Window")</li>
+        <li>Check the Output panel (Ctrl+Shift+U) for errors</li>
+      </ol>
+
+      <h3>API Key Not Working (CLI)</h3>
 
       <p>
         If you see "Invalid API key", try regenerating your key in the dashboard and running
@@ -118,14 +181,6 @@ export default function GettingStartedPage() {
       </p>
 
       <pre><code className="language-bash">{`/mcp add codebakers npx -y @codebakers/cli serve`}</code></pre>
-
-      <h3>Patterns Not Loading</h3>
-
-      <p>
-        Ensure your <code>CLAUDE.md</code> file exists in the project root. If not, run:
-      </p>
-
-      <pre><code className="language-bash">{`npx @codebakers/cli setup`}</code></pre>
 
       <h2>Next Steps</h2>
 

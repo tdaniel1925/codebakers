@@ -141,14 +141,14 @@ function GetStartedSection() {
                 2
               </div>
               <div>
-                <h3 className="font-bold text-white text-lg mb-2">Open Your Project</h3>
+                <h3 className="font-bold text-white text-lg mb-2">Install the Extension</h3>
                 <p className="text-gray-400 text-sm">
-                  Open your project folder in your favorite AI code editor:
+                  Install CodeBakers from the VS Code marketplace:
                 </p>
                 <ul className="mt-3 space-y-1 text-sm text-gray-300">
-                  <li>• <span className="text-white font-medium">Cursor</span></li>
-                  <li>• <span className="text-white font-medium">VS Code</span> with Claude Code extension</li>
-                  <li>• <span className="text-white font-medium">Claude Code</span> CLI</li>
+                  <li>• <span className="text-white font-medium">VS Code</span> → Search "CodeBakers" in Extensions</li>
+                  <li>• <span className="text-white font-medium">Cursor</span> → Also uses MCP integration</li>
+                  <li>• <span className="text-white font-medium">CLI</span> → Works with Claude Code too</li>
                 </ul>
               </div>
             </div>
@@ -231,7 +231,7 @@ function GetStartedSection() {
 
         {/* Bottom note */}
         <p className="text-center mt-8 text-gray-500 text-sm">
-          7-day free trial • No signup required • Cancel anytime
+          14-day free trial • No signup required • Cancel anytime
         </p>
       </div>
     </section>
@@ -409,11 +409,13 @@ export default function HomePage() {
 
           {/* Works with */}
           <div className="flex flex-wrap justify-center items-center gap-4 mb-8">
-            <span className="text-sm text-gray-400">Works inside:</span>
+            <span className="text-sm text-gray-400">Works with:</span>
             <div className="flex items-center gap-4">
+              <span className="font-semibold text-white">VS Code</span>
+              <span className="text-gray-500">•</span>
               <span className="font-semibold text-white">Cursor</span>
               <span className="text-gray-500">•</span>
-              <span className="font-semibold text-white">Claude Code</span>
+              <span className="font-semibold text-white">Claude Code CLI</span>
             </div>
           </div>
 
@@ -465,7 +467,7 @@ export default function HomePage() {
           <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 text-sm text-gray-400">
             <div className="flex items-center gap-2">
               <SecurityCheckIcon className="h-4 w-4 text-green-500" />
-              <span>7-day free trial</span>
+              <span>14-day free trial</span>
             </div>
             <div className="flex items-center gap-2">
               <FlashIcon className="h-4 w-4 text-yellow-500" />
@@ -826,7 +828,7 @@ export default function HomePage() {
           </Badge>
           <h2 className="text-4xl font-bold mb-4">Start free. Scale when ready.</h2>
           <p className="text-xl text-muted-foreground mb-12">
-            7-day free trial. No credit card required.
+            14-day free trial. No credit card required.
           </p>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -834,7 +836,7 @@ export default function HomePage() {
             <div className="p-6 rounded-2xl bg-card border border-border">
               <h3 className="text-xl font-bold mb-2">Trial</h3>
               <div className="text-3xl font-bold mb-4">$0</div>
-              <p className="text-muted-foreground text-sm mb-6">7 days free, no credit card</p>
+              <p className="text-muted-foreground text-sm mb-6">14 days free, no credit card</p>
               <Link href="/quickstart">
                 <Button variant="outline" className="w-full">Start Free Trial</Button>
               </Link>

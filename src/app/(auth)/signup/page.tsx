@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, Download } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,12 +40,7 @@ function GitHubIcon({ className }: { className?: string }) {
 export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGitHubLoading, setIsGitHubLoading] = useState(false);
-  const [isWindows, setIsWindows] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    setIsWindows(navigator.platform.toLowerCase().includes('win'));
-  }, []);
 
   const form = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
@@ -220,21 +215,13 @@ export default function SignupPage() {
           </Link>
         </div>
 
-        {/* CLI Trial Option */}
+        {/* Trial Info */}
         <div className="mt-6 pt-6 border-t border-neutral-800">
           <p className="text-center text-xs text-neutral-400 mb-3">
-            Want to try first? No signup needed:
+            After signup, install the CodeBakers VS Code extension to get started.
           </p>
-          <a
-            href={isWindows ? '/install-codebakers.bat' : '/install-codebakers.command'}
-            download
-            className="flex items-center justify-center gap-2 w-full text-sm bg-neutral-800/50 border border-neutral-700 rounded-lg px-4 py-2.5 text-red-400 hover:bg-neutral-700 hover:text-red-300 transition-colors"
-          >
-            <Download className="h-4 w-4" />
-            Download Installer
-          </a>
-          <p className="text-center text-xs text-neutral-400 mt-2">
-            7-day free trial, instant access
+          <p className="text-center text-xs text-neutral-500">
+            14-day free trial • No credit card required
           </p>
         </div>
       </CardContent>
