@@ -17,16 +17,16 @@ export default function MarketingLayout({
             </Link>
             <div className="flex items-center space-x-6">
               <Link
-                href="/#smart-prompts"
+                href="/install"
                 className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
               >
-                Smart Prompts
+                Install
               </Link>
               <Link
-                href="/#demo"
+                href="/#how-it-works"
                 className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
               >
-                Demo
+                How It Works
               </Link>
               <Link
                 href="/pricing"
@@ -45,7 +45,7 @@ export default function MarketingLayout({
                   Sign In
                 </Button>
               </Link>
-              <Link href="/signup">
+              <Link href="/install">
                 <Button className="bg-red-600 hover:bg-red-700 text-white shadow-sm">
                   Get Started
                 </Button>
@@ -72,13 +72,13 @@ export default function MarketingLayout({
               <h4 className="font-medium text-gray-900 mb-4">Product</h4>
               <ul className="space-y-3 text-sm text-gray-500">
                 <li>
-                  <Link href="/#smart-prompts" className="hover:text-gray-900 transition-colors">
-                    Smart Prompts
+                  <Link href="/install" className="hover:text-gray-900 transition-colors">
+                    Install
                   </Link>
                 </li>
                 <li>
-                  <Link href="/#demo" className="hover:text-gray-900 transition-colors">
-                    Demo
+                  <Link href="/#how-it-works" className="hover:text-gray-900 transition-colors">
+                    How It Works
                   </Link>
                 </li>
                 <li>

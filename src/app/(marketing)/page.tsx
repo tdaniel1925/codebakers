@@ -402,9 +402,9 @@ export default function HomePage() {
           </motion.p>
 
           <motion.div className="flex flex-col sm:flex-row justify-center gap-4 mb-12" variants={fadeInUp}>
-            <Link href="/signup">
+            <Link href="/install">
               <Button size="lg" className="bg-red-600 hover:bg-red-700 h-14 px-10 text-lg shadow-lg shadow-red-600/30">
-                Try Canvas Mode Free
+                Install CodeBakers
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -415,7 +415,7 @@ export default function HomePage() {
                 className="border-slate-600 text-white hover:bg-slate-800 h-14 px-10 text-lg"
               >
                 <Play className="mr-2 h-5 w-5" />
-                Watch Demo
+                See How It Works
               </Button>
             </Link>
           </motion.div>
@@ -1067,7 +1067,7 @@ export default function HomePage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/signup">
+                <Link href="/install">
                   <Button
                     className={`w-full h-12 ${
                       plan.popular
@@ -1156,9 +1156,9 @@ export default function HomePage() {
                 Start your 14-day free trial and experience the future of AI app development.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <Link href="/signup">
+                <Link href="/install">
                   <Button size="lg" className="bg-red-600 hover:bg-red-700 h-14 px-10 text-lg shadow-lg shadow-red-600/30">
-                    Try Canvas Mode Free
+                    Install CodeBakers
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
@@ -1173,7 +1173,7 @@ export default function HomePage() {
                 </Link>
               </div>
               <p className="text-sm text-slate-500 mt-6">
-                No credit card required. Install the VS Code extension to start.
+                14-day free trial. CLI or VS Code extension - your choice.
               </p>
             </div>
           </motion.div>
