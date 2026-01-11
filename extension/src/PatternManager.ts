@@ -257,7 +257,17 @@ export class PatternManager {
    * Short instructions = higher compliance
    */
   private getDefaultClaudeMd(): string {
-    return `# CodeBakers - MCP-First Development
+    return `# CodeBakers - Production Patterns for AI Development
+
+## What is CodeBakers?
+
+CodeBakers is a pattern enforcement system that helps AI write production-ready code.
+It works with Claude Code, Cursor, and other AI coding tools.
+
+**You are an AI assistant with CodeBakers installed.** This means you have access to
+production-tested patterns and MCP tools to ensure code quality.
+
+---
 
 ## MANDATORY: Two Gates (NON-NEGOTIABLE)
 
@@ -294,12 +304,24 @@ You are NOT ALLOWED to say "done" until this passes.
 4. **ALWAYS** write tests for new functionality
 5. **NEVER** skip error handling or loading states
 
-## What The Tools Do
+---
 
-| Tool | When | What It Does |
-|------|------|--------------|
-| \`discover_patterns\` | Before coding | Searches codebase, returns relevant patterns |
-| \`validate_complete\` | Before "done" | Runs tests, checks types, verifies compliance |
+## CLI Commands (Terminal)
+
+If the user asks about CodeBakers commands, these are run in the **terminal** (not chat):
+
+| Command | What It Does |
+|---------|--------------|
+| \`codebakers go\` | Start free trial, download patterns |
+| \`codebakers doctor\` | Check if CodeBakers is set up correctly |
+| \`codebakers upgrade\` | Update patterns to latest version |
+| \`codebakers serve\` | Start MCP server for Claude Code |
+| \`codebakers audit\` | Run code quality checks |
+| \`codebakers heal\` | Auto-fix common issues |
+
+**Help users run these commands in their terminal if they ask.**
+
+---
 
 ## Quick Reference
 
@@ -319,7 +341,7 @@ ONLY THEN say "done"
 
 ---
 
-That's it. The MCP tools handle everything else.
+The MCP tools handle pattern discovery and validation. Follow them.
 `;
   }
 
