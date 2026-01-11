@@ -310,14 +310,44 @@ You are NOT ALLOWED to say "done" until this passes.
 
 If the user asks about CodeBakers commands, these are run in the **terminal** (not chat):
 
+### Getting Started
 | Command | What It Does |
 |---------|--------------|
 | \`codebakers go\` | Start free trial, download patterns |
+| \`codebakers setup\` | One-time setup: login + configure Claude Code |
+| \`codebakers init\` | Interactive project setup wizard |
+| \`codebakers install\` | Install patterns in current project |
+| \`codebakers login\` | Login with your API key |
+
+### Development
+| Command | What It Does |
+|---------|--------------|
+| \`codebakers build [description]\` | AI generates actual files from description |
+| \`codebakers generate [type] [name]\` | Generate component, api, service, hook, page, schema, form |
+| \`codebakers scaffold\` | Create new project with full stack scaffolding |
+
+### Maintenance
+| Command | What It Does |
+|---------|--------------|
 | \`codebakers doctor\` | Check if CodeBakers is set up correctly |
 | \`codebakers upgrade\` | Update patterns to latest version |
-| \`codebakers serve\` | Start MCP server for Claude Code |
-| \`codebakers audit\` | Run code quality checks |
-| \`codebakers heal\` | Auto-fix common issues |
+| \`codebakers status\` | Check installation status |
+| \`codebakers audit\` | Run code quality and security checks |
+| \`codebakers heal\` | Auto-detect and fix common issues |
+
+### MCP Server (for Claude Code)
+| Command | What It Does |
+|---------|--------------|
+| \`codebakers serve\` | Start the MCP server |
+| \`codebakers mcp-config\` | Show or install MCP configuration |
+| \`codebakers install-hook\` | Install CodeBakers hook into Claude Code |
+
+### Account
+| Command | What It Does |
+|---------|--------------|
+| \`codebakers billing\` | Manage subscription or upgrade |
+| \`codebakers extend\` | Extend your free trial with GitHub |
+| \`codebakers config\` | View or modify CLI configuration |
 
 **Help users run these commands in their terminal if they ask.**
 
