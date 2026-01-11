@@ -1093,11 +1093,19 @@ function showSuccessMessage(projectName: string, isExisting: boolean, prdCreated
     console.log(chalk.gray('    ✓ AI updates tracking files as you work\n'));
   }
 
-  console.log(chalk.white('  Getting started:\n'));
-  console.log(chalk.gray('    For Cursor: Just open the project and start chatting'));
-  console.log(chalk.gray('    For Claude Code: Run ') + chalk.cyan('codebakers install-hook') + chalk.gray(' first\n'));
+  console.log(chalk.yellow.bold('  ⚠️  RELOAD YOUR EDITOR FIRST:\n'));
 
-  console.log(chalk.blue('  Ready to build! 🚀\n'));
+  console.log(chalk.white('  For Cursor:'));
+  console.log(chalk.gray('    1. Press ') + chalk.cyan('Cmd+Shift+P') + chalk.gray(' (Mac) or ') + chalk.cyan('Ctrl+Shift+P') + chalk.gray(' (Windows)'));
+  console.log(chalk.gray('    2. Type ') + chalk.cyan('"Reload Window"') + chalk.gray(' and press Enter'));
+  console.log(chalk.gray('    3. Press ') + chalk.cyan('Cmd+L') + chalk.gray(' / ') + chalk.cyan('Ctrl+L') + chalk.gray(' to open chat\n'));
+
+  console.log(chalk.white('  For VS Code + Claude Code:'));
+  console.log(chalk.gray('    1. Press ') + chalk.cyan('Cmd+Shift+P') + chalk.gray(' (Mac) or ') + chalk.cyan('Ctrl+Shift+P') + chalk.gray(' (Windows)'));
+  console.log(chalk.gray('    2. Type ') + chalk.cyan('"Reload Window"') + chalk.gray(' and press Enter'));
+  console.log(chalk.gray('    3. Click the Claude icon in the sidebar to chat\n'));
+
+  console.log(chalk.green('  After reloading, CodeBakers patterns will be active! 🚀\n'));
 }
 
 // ============================================================================
