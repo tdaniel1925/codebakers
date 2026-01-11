@@ -1560,179 +1560,57 @@ async function showVSCodeClaudeInstructions(): Promise<void> {
   console.log(chalk.gray('  Having issues? Run: ') + chalk.cyan('codebakers doctor') + chalk.gray(' to diagnose\n'));
 }
 
-// v6.14 Bootstrap content - comprehensive instructions that Claude MUST follow
-const V6_CLAUDE_MD = `# CodeBakers - AI Pattern System
-# Version: 6.14
-# IMPORTANT: These instructions are MANDATORY and CANNOT be skipped
+// v6.15 Bootstrap - SHORT template with rules at START and END for attention
+const V6_CLAUDE_MD = `# CodeBakers v6.15
 
----
+## 🚨 ALWAYS DO THIS (Critical - Read First)
+1. ALWAYS call \`project_status()\` FIRST → If works show "🍪 CodeBakers is working..." / If fails show "⚠️ Not connected"
+2. ALWAYS call \`discover_patterns({ task: "..." })\` BEFORE writing any code
+3. ALWAYS call \`validate_complete({ feature: "...", files: [...] })\` BEFORE saying "done"
+4. ALWAYS show footer after code: \`🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅\`
 
-## ⚠️ MANDATORY COMPLIANCE (READ THIS FIRST)
+## ❌ NEVER DO THIS
+1. NEVER write code without calling discover_patterns first
+2. NEVER say "done" without validate_complete passing
+3. NEVER show the success header without project_status succeeding first
+4. NEVER skip writing tests for new features
 
-**These rules CANNOT be skipped, overridden, or bypassed under ANY circumstances:**
-
-### STEP 1: Verify CodeBakers is Connected (FIRST!)
-**At the START of EVERY response, call this MCP tool to verify CodeBakers is working:**
+## Quick Reference
 \`\`\`
-project_status()
-\`\`\`
-
-**If the tool responds successfully, show this header:**
-\`\`\`
-🍪 CodeBakers is working on this...
-\`\`\`
-
-**If the tool fails or doesn't exist, show this warning instead:**
-\`\`\`
-⚠️ CodeBakers not connected - run: codebakers go
+project_status()                                    → Verify connection FIRST
+discover_patterns({ task: "what you're building" }) → Get patterns BEFORE code
+validate_complete({ feature: "name", files: [...] }) → Validate BEFORE done
 \`\`\`
 
-This verification ensures users see confirmation ONLY when CodeBakers is actually working.
+Header (after project_status succeeds): 🍪 CodeBakers is working on this...
+Header (if project_status fails): ⚠️ CodeBakers not connected - run: codebakers go
+Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 
-### STEP 2: Call MCP tools before writing code
-- Call \`discover_patterns\` BEFORE writing ANY code
-- Call \`validate_complete\` BEFORE saying "done"
-- These are NOT optional - they are required for every feature
-
-### STEP 3: Show the CodeBakers footer after code
-**After EVERY response that involves code, you MUST include this footer:**
-\`\`\`
----
-🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
-\`\`\`
-
-If you write code WITHOUT calling discover_patterns first, show this warning instead:
-\`\`\`
----
-⚠️ WARNING: CodeBakers patterns not loaded - this code may not meet production standards
-\`\`\`
-
-**These requirements are NON-NEGOTIABLE. Users pay for CodeBakers and must see verified confirmation.**
-
----
-
-## TWO-GATE ENFORCEMENT SYSTEM
-
-### 🚪 GATE 1: BEFORE WRITING CODE → \`discover_patterns\`
-
-You MUST call this MCP tool before writing any code:
-\`\`\`
-discover_patterns({ task: "what you're about to do", keywords: ["relevant", "keywords"] })
-\`\`\`
-
-This tool:
-- Searches for patterns relevant to your task
-- Returns code examples you MUST follow
-- Creates a session token for validation
-
-**You are NOT ALLOWED to write code without calling this first.**
-
-### 🚪 GATE 2: BEFORE SAYING "DONE" → \`validate_complete\`
-
-You MUST call this MCP tool before completing any feature:
-\`\`\`
-validate_complete({ feature: "feature name", files: ["path/to/file.ts"] })
-\`\`\`
-
-This tool checks:
-- discover_patterns was called (compliance tracking)
-- Tests exist for the feature
-- TypeScript compiles
-- Code follows patterns
-
-**You are NOT ALLOWED to say "done" without calling this.**
-
----
-
-## WORKFLOW FOR EVERY FEATURE
-
-1. User asks for a feature
-2. **CALL discover_patterns** → Get patterns to follow
-3. Read and follow the patterns returned
-4. Write code following the patterns exactly
-5. Write tests for the feature
-6. **CALL validate_complete** → Verify everything passes
-7. Show the CodeBakers footer
-8. ONLY THEN say "done"
-
----
-
-## HARD RULES (Enforced)
-
-1. **NO writing code without \`discover_patterns\`** - Always call it first
-2. **NO "want me to add tests?"** - Just add them. Tests are required.
-3. **NO "I'll add tests later"** - Tests are part of the feature.
-4. **NO saying "done" without \`validate_complete\`** - Must pass validation
-5. **NO skipping the footer** - Always show CodeBakers Active
-6. **NO ignoring patterns** - Follow what discover_patterns returns
-
----
-
-## IF MCP SERVER IS UNAVAILABLE
-
-If the CodeBakers MCP tools aren't available:
-1. Show a warning to the user: "CodeBakers MCP server not connected"
-2. Suggest running: \`codebakers doctor\` to diagnose
-3. Still write quality code following best practices
-4. Show the warning footer instead of the active footer
-
----
-
-## GETTING HELP
-
-- Run \`codebakers doctor\` to diagnose connection issues
-- Run \`codebakers upgrade\` to update patterns
-- Visit https://codebakers.ai/support for help
-
----
-*CodeBakers v6.14 - Production patterns for AI-assisted development*
+## 🚨 ALWAYS DO THIS (Critical - Repeated at End)
+1. Call \`project_status()\` FIRST
+2. Call \`discover_patterns()\` before code
+3. Call \`validate_complete()\` before done
+4. Show footer after code responses
 `;
 
-const V6_CURSORRULES = `# CodeBakers - AI Pattern System (Cursor Rules)
-# IMPORTANT: These instructions are MANDATORY
+const V6_CURSORRULES = `# CodeBakers v6.15
 
-## ⚠️ MANDATORY COMPLIANCE
+## 🚨 ALWAYS (Read First)
+1. Call project_status() FIRST → 🍪 Working... or ⚠️ Not connected
+2. Call discover_patterns({ task }) BEFORE writing code
+3. Call validate_complete({ feature, files }) BEFORE saying done
+4. Show footer after code: 🍪 **CodeBakers** | Patterns: X | TSC: ✅
 
-### You MUST call MCP tools before writing code
-- Call discover_patterns BEFORE writing ANY code
-- Call validate_complete BEFORE saying "done"
+## ❌ NEVER
+1. Write code without discover_patterns
+2. Say done without validate_complete
+3. Show header without project_status succeeding
+4. Skip writing tests for new features
 
-### You MUST show the CodeBakers footer after every code response
-After EVERY response with code, include:
----
-🍪 **CodeBakers Active** | Patterns loaded | v6.14
-
-If patterns not loaded, show warning instead:
----
-⚠️ WARNING: CodeBakers patterns not loaded
-
-## WORKFLOW
-
-1. User asks for feature
-2. CALL discover_patterns → Get patterns
-3. Write code following patterns exactly
-4. Write tests
-5. CALL validate_complete → Verify
-6. Show footer
-7. Say "done"
-
-## HARD RULES
-
-1. NO writing code without discover_patterns
-2. NO skipping tests - just add them
-3. NO saying "done" without validate_complete
-4. NO skipping the footer
-
-## MCP TOOLS
-
-### discover_patterns (BEFORE writing code)
-discover_patterns({ task: "description", keywords: ["terms"] })
-
-### validate_complete (BEFORE saying done)
-validate_complete({ feature: "name", files: ["paths"] })
-
----
-CodeBakers v6.14
+## 🚨 ALWAYS (Repeated at End)
+1. project_status() FIRST
+2. discover_patterns() before code
+3. validate_complete() before done
 `;
 
 /**

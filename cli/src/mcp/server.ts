@@ -2808,83 +2808,82 @@ Or if user declines, call without fullDeploy:
       // Use default
     }
 
-    results.push(`# 🎨 Adding CodeBakers v6.14 to: ${projectName}\n`);
+    results.push(`# 🎨 Adding CodeBakers v6.15 to: ${projectName}\n`);
 
-    // v6.14 bootstrap content - minimal files, patterns from server
-    const V6_CLAUDE_MD = `# CodeBakers v6.14
+    // v6.15 bootstrap content - SHORT template with rules at START and END
+    const V6_CLAUDE_MD = `# CodeBakers v6.15
 
-## STEP 1: Verify CodeBakers is Connected (FIRST!)
+## 🚨 ALWAYS DO THIS (Critical - Read First)
+1. ALWAYS call \`project_status()\` FIRST → If works show "🍪 CodeBakers is working..." / If fails show "⚠️ Not connected"
+2. ALWAYS call \`discover_patterns({ task: "..." })\` BEFORE writing any code
+3. ALWAYS call \`validate_complete({ feature: "...", files: [...] })\` BEFORE saying "done"
+4. ALWAYS show footer after code: \`🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅\`
 
-**At the START of EVERY response, call this MCP tool:**
+## ❌ NEVER DO THIS
+1. NEVER write code without calling discover_patterns first
+2. NEVER say "done" without validate_complete passing
+3. NEVER show the success header without project_status succeeding first
+4. NEVER skip writing tests for new features
+
+## Quick Reference
 \`\`\`
-project_status()
-\`\`\`
-
-**If successful, show:** 🍪 CodeBakers is working on this...
-**If failed, show:** ⚠️ CodeBakers not connected - run: codebakers go
-
-## STEP 2: Call MCP Tools Before Code
-
-**Before writing ANY code:**
-\`\`\`
-discover_patterns({ task: "description of what you're building" })
-\`\`\`
-
-**Before saying "done":**
-\`\`\`
-validate_complete({ feature: "feature name", files: ["path/to/file.ts"] })
+project_status()                                    → Verify connection FIRST
+discover_patterns({ task: "what you're building" }) → Get patterns BEFORE code
+validate_complete({ feature: "name", files: [...] }) → Validate BEFORE done
 \`\`\`
 
-## STEP 3: Show Footer After Code
+Header (after project_status succeeds): 🍪 CodeBakers is working on this...
+Header (if project_status fails): ⚠️ CodeBakers not connected - run: codebakers go
+Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 
-**After ANY response with code, show:**
-\`\`\`
----
-🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
-\`\`\`
-
----
-*CodeBakers v6.14 - Server-Enforced*
+## 🚨 ALWAYS DO THIS (Critical - Repeated at End)
+1. Call \`project_status()\` FIRST
+2. Call \`discover_patterns()\` before code
+3. Call \`validate_complete()\` before done
+4. Show footer after code responses
 `;
 
-    const V6_CURSORRULES = `# CodeBakers v6.14
+    const V6_CURSORRULES = `# CodeBakers v6.15
 
-## Verify First
-Call project_status() at START of every response.
-If success: show 🍪 CodeBakers is working on this...
-If fail: show ⚠️ CodeBakers not connected
+## 🚨 ALWAYS (Read First)
+1. Call project_status() FIRST → 🍪 Working... or ⚠️ Not connected
+2. Call discover_patterns({ task }) BEFORE writing code
+3. Call validate_complete({ feature, files }) BEFORE saying done
+4. Show footer after code: 🍪 **CodeBakers** | Patterns: X | TSC: ✅
 
-## Before Writing Code
-Call: discover_patterns({ task: "description" })
+## ❌ NEVER
+1. Write code without discover_patterns
+2. Say done without validate_complete
+3. Show header without project_status succeeding
+4. Skip writing tests for new features
 
-## Before Saying Done
-Call: validate_complete({ feature: "name", files: ["path.ts"] })
-
-## After Code Responses
-Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
+## 🚨 ALWAYS (Repeated at End)
+1. project_status() FIRST
+2. discover_patterns() before code
+3. validate_complete() before done
 `;
 
-    // Check if already v6.14
+    // Check if already v6.15
     const claudeMdPath = path.join(cwd, 'CLAUDE.md');
     if (fs.existsSync(claudeMdPath)) {
       const content = fs.readFileSync(claudeMdPath, 'utf-8');
-      if (content.includes('v6.14') && content.includes('discover_patterns')) {
-        results.push('✓ CodeBakers v6.14 already installed\n');
+      if (content.includes('v6.15') && content.includes('discover_patterns')) {
+        results.push('✓ CodeBakers v6.15 already installed\n');
         results.push('Patterns are server-enforced. Just call `discover_patterns` before coding!');
         return {
           content: [{ type: 'text' as const, text: results.join('\n') }],
         };
       }
-      results.push('⚠️ Upgrading to v6.14 (server-enforced patterns)...\n');
+      results.push('⚠️ Upgrading to v6.15 (server-enforced patterns)...\n');
     }
 
     try {
-      // Write v6.14 bootstrap files
+      // Write v6.15 bootstrap files
       fs.writeFileSync(claudeMdPath, V6_CLAUDE_MD);
-      results.push('✓ Created CLAUDE.md (v6.14 bootstrap)');
+      results.push('✓ Created CLAUDE.md (v6.15 bootstrap)');
 
       fs.writeFileSync(path.join(cwd, '.cursorrules'), V6_CURSORRULES);
-      results.push('✓ Created .cursorrules (v6.14 bootstrap)');
+      results.push('✓ Created .cursorrules (v6.15 bootstrap)');
 
       // Remove old .claude folder if it exists (v5 → v6 migration)
       const claudeDir = path.join(cwd, '.claude');
@@ -2931,7 +2930,7 @@ Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
       fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
 
       results.push('\n---\n');
-      results.push('## ✅ CodeBakers v6.14 Installed!\n');
+      results.push('## ✅ CodeBakers v6.15 Installed!\n');
       results.push('**How it works now:**');
       results.push('1. Call `discover_patterns` before writing code');
       results.push('2. Server returns all patterns and rules');
@@ -7486,60 +7485,59 @@ ${handlers.join('\n')}
     const claudeDir = path.join(cwd, '.claude');
     const codebakersJson = path.join(cwd, '.codebakers.json');
 
-    let response = `# 🔄 CodeBakers v6.14 Update\n\n`;
+    let response = `# 🔄 CodeBakers v6.15 Update\n\n`;
 
-    // v6.14 bootstrap content
-    const V6_CLAUDE_MD = `# CodeBakers v6.14
+    // v6.15 bootstrap content - SHORT template with rules at START and END
+    const V6_CLAUDE_MD = `# CodeBakers v6.15
 
-## STEP 1: Verify CodeBakers is Connected (FIRST!)
+## 🚨 ALWAYS DO THIS (Critical - Read First)
+1. ALWAYS call \`project_status()\` FIRST → If works show "🍪 CodeBakers is working..." / If fails show "⚠️ Not connected"
+2. ALWAYS call \`discover_patterns({ task: "..." })\` BEFORE writing any code
+3. ALWAYS call \`validate_complete({ feature: "...", files: [...] })\` BEFORE saying "done"
+4. ALWAYS show footer after code: \`🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅\`
 
-**At the START of EVERY response, call this MCP tool:**
+## ❌ NEVER DO THIS
+1. NEVER write code without calling discover_patterns first
+2. NEVER say "done" without validate_complete passing
+3. NEVER show the success header without project_status succeeding first
+4. NEVER skip writing tests for new features
+
+## Quick Reference
 \`\`\`
-project_status()
-\`\`\`
-
-**If successful, show:** 🍪 CodeBakers is working on this...
-**If failed, show:** ⚠️ CodeBakers not connected - run: codebakers go
-
-## STEP 2: Call MCP Tools Before Code
-
-**Before writing ANY code:**
-\`\`\`
-discover_patterns({ task: "description of what you're building" })
-\`\`\`
-
-**Before saying "done":**
-\`\`\`
-validate_complete({ feature: "feature name", files: ["path/to/file.ts"] })
+project_status()                                    → Verify connection FIRST
+discover_patterns({ task: "what you're building" }) → Get patterns BEFORE code
+validate_complete({ feature: "name", files: [...] }) → Validate BEFORE done
 \`\`\`
 
-## STEP 3: Show Footer After Code
+Header (after project_status succeeds): 🍪 CodeBakers is working on this...
+Header (if project_status fails): ⚠️ CodeBakers not connected - run: codebakers go
+Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 
-**After ANY response with code, show:**
-\`\`\`
----
-🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
-\`\`\`
-
----
-*CodeBakers v6.14 - Server-Enforced*
+## 🚨 ALWAYS DO THIS (Critical - Repeated at End)
+1. Call \`project_status()\` FIRST
+2. Call \`discover_patterns()\` before code
+3. Call \`validate_complete()\` before done
+4. Show footer after code responses
 `;
 
-    const V6_CURSORRULES = `# CodeBakers v6.14
+    const V6_CURSORRULES = `# CodeBakers v6.15
 
-## Verify First
-Call project_status() at START of every response.
-If success: show 🍪 CodeBakers is working on this...
-If fail: show ⚠️ CodeBakers not connected
+## 🚨 ALWAYS (Read First)
+1. Call project_status() FIRST → 🍪 Working... or ⚠️ Not connected
+2. Call discover_patterns({ task }) BEFORE writing code
+3. Call validate_complete({ feature, files }) BEFORE saying done
+4. Show footer after code: 🍪 **CodeBakers** | Patterns: X | TSC: ✅
 
-## Before Writing Code
-Call: discover_patterns({ task: "description" })
+## ❌ NEVER
+1. Write code without discover_patterns
+2. Say done without validate_complete
+3. Show header without project_status succeeding
+4. Skip writing tests for new features
 
-## Before Saying Done
-Call: validate_complete({ feature: "name", files: ["path.ts"] })
-
-## After Code Responses
-Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
+## 🚨 ALWAYS (Repeated at End)
+1. project_status() FIRST
+2. discover_patterns() before code
+3. validate_complete() before done
 `;
 
     try {
@@ -7549,7 +7547,7 @@ Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
 
       if (fs.existsSync(claudeMdPath)) {
         const content = fs.readFileSync(claudeMdPath, 'utf-8');
-        isV6 = content.includes('v6.14') && content.includes('discover_patterns');
+        isV6 = content.includes('v6.15') && content.includes('discover_patterns');
       }
 
       if (fs.existsSync(codebakersJson)) {
@@ -7563,11 +7561,11 @@ Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
 
       response += `## Current Status\n`;
       response += `- Version: ${currentVersion || 'Unknown'}\n`;
-      response += `- v6.14 (Server-Enforced): ${isV6 ? 'Yes ✓' : 'No'}\n\n`;
+      response += `- v6.15 (Server-Enforced): ${isV6 ? 'Yes ✓' : 'No'}\n\n`;
 
       // Check if already on v6
       if (isV6 && !force) {
-        response += `✅ **Already on v6.14!**\n\n`;
+        response += `✅ **Already on v6.15!**\n\n`;
         response += `Your patterns are server-enforced. Just use \`discover_patterns\` before coding.\n`;
         response += `Use \`force: true\` to reinstall bootstrap files.\n`;
         response += this.getUpdateNotice();
@@ -7580,14 +7578,14 @@ Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
         };
       }
 
-      response += `## Upgrading to v6.14...\n\n`;
+      response += `## Upgrading to v6.15...\n\n`;
 
-      // Write v6.14 bootstrap files
+      // Write v6.15 bootstrap files
       fs.writeFileSync(claudeMdPath, V6_CLAUDE_MD);
-      response += `✓ Updated CLAUDE.md (v6.14 bootstrap)\n`;
+      response += `✓ Updated CLAUDE.md (v6.15 bootstrap)\n`;
 
       fs.writeFileSync(path.join(cwd, '.cursorrules'), V6_CURSORRULES);
-      response += `✓ Updated .cursorrules (v6.14 bootstrap)\n`;
+      response += `✓ Updated .cursorrules (v6.15 bootstrap)\n`;
 
       // Remove old .claude folder (v5 → v6 migration)
       if (fs.existsSync(claudeDir)) {

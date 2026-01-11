@@ -253,151 +253,40 @@ export class PatternManager {
   }
 
   /**
-   * Get default CLAUDE.md content - MCP-First approach
-   * Short instructions = higher compliance
+   * Get default CLAUDE.md content - v6.15 Short template
+   * Rules at START and END for better AI attention
    */
   private getDefaultClaudeMd(): string {
-    return `# CodeBakers - Production Patterns for AI Development
+    return `# CodeBakers v6.15
 
-## What is CodeBakers?
+## 🚨 ALWAYS DO THIS (Critical - Read First)
+1. ALWAYS call \`project_status()\` FIRST → If works show "🍪 CodeBakers is working..." / If fails show "⚠️ Not connected"
+2. ALWAYS call \`discover_patterns({ task: "..." })\` BEFORE writing any code
+3. ALWAYS call \`validate_complete({ feature: "...", files: [...] })\` BEFORE saying "done"
+4. ALWAYS show footer after code: \`🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅\`
 
-CodeBakers is a pattern enforcement system that helps AI write production-ready code.
-It works with Claude Code, Cursor, and other AI coding tools.
-
-**You are an AI assistant with CodeBakers installed.** This means you have access to
-production-tested patterns and MCP tools to ensure code quality.
-
----
-
-## STEP 1: Verify CodeBakers is Connected (FIRST!)
-
-**At the START of EVERY response, call this MCP tool:**
-\`\`\`
-project_status()
-\`\`\`
-
-**If successful, show:** 🍪 CodeBakers is working on this...
-**If failed, show:** ⚠️ CodeBakers not connected - run: codebakers go
-
-This ensures the confirmation only appears when CodeBakers is actually working.
-
----
-
-## STEP 2: Two Gates Before Code (NON-NEGOTIABLE)
-
-You MUST call these MCP tools. You are NOT ALLOWED to skip them.
-
-### Gate 1: BEFORE Writing ANY Code
-
-\`\`\`
-discover_patterns({ task: "description of what you're building", keywords: ["relevant", "keywords"] })
-\`\`\`
-
-This tool returns the patterns you MUST follow. Read them carefully.
-
-### Gate 2: BEFORE Saying "Done"
-
-\`\`\`
-validate_complete({ feature: "feature name", files: ["path/to/files.ts"] })
-\`\`\`
-
-This tool checks:
-- Tests exist and pass
-- TypeScript compiles
-- Patterns were followed
-
-You are NOT ALLOWED to say "done" until this passes.
-
----
-
-## STEP 3: Show Footer After Code
-
-After ANY response with code, show this footer:
-\`\`\`
----
-🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
-\`\`\`
-
----
-
-## Rules
-
-1. **ALWAYS** verify with project_status() first, then show appropriate header
-2. **NEVER** write code without calling \`discover_patterns\` first
-3. **NEVER** say "done" without calling \`validate_complete\` first
-4. **ALWAYS** follow the patterns returned by the tools exactly
-5. **ALWAYS** write tests for new functionality
-6. **NEVER** skip error handling or loading states
-7. **ALWAYS** show the CodeBakers footer after code responses
-
----
-
-## CLI Commands (Terminal)
-
-If the user asks about CodeBakers commands, these are run in the **terminal** (not chat):
-
-### Getting Started
-| Command | What It Does |
-|---------|--------------|
-| \`codebakers go\` | Start free trial, download patterns |
-| \`codebakers setup\` | One-time setup: login + configure Claude Code |
-| \`codebakers init\` | Interactive project setup wizard |
-| \`codebakers install\` | Install patterns in current project |
-| \`codebakers login\` | Login with your API key |
-
-### Development
-| Command | What It Does |
-|---------|--------------|
-| \`codebakers build [description]\` | AI generates actual files from description |
-| \`codebakers generate [type] [name]\` | Generate component, api, service, hook, page, schema, form |
-| \`codebakers scaffold\` | Create new project with full stack scaffolding |
-
-### Maintenance
-| Command | What It Does |
-|---------|--------------|
-| \`codebakers doctor\` | Check if CodeBakers is set up correctly |
-| \`codebakers upgrade\` | Update patterns to latest version |
-| \`codebakers status\` | Check installation status |
-| \`codebakers audit\` | Run code quality and security checks |
-| \`codebakers heal\` | Auto-detect and fix common issues |
-
-### MCP Server (for Claude Code)
-| Command | What It Does |
-|---------|--------------|
-| \`codebakers serve\` | Start the MCP server |
-| \`codebakers mcp-config\` | Show or install MCP configuration |
-| \`codebakers install-hook\` | Install CodeBakers hook into Claude Code |
-
-### Account
-| Command | What It Does |
-|---------|--------------|
-| \`codebakers billing\` | Manage subscription or upgrade |
-| \`codebakers extend\` | Extend your free trial with GitHub |
-| \`codebakers config\` | View or modify CLI configuration |
-
-**Help users run these commands in their terminal if they ask.**
-
----
+## ❌ NEVER DO THIS
+1. NEVER write code without calling discover_patterns first
+2. NEVER say "done" without validate_complete passing
+3. NEVER show the success header without project_status succeeding first
+4. NEVER skip writing tests for new features
 
 ## Quick Reference
-
 \`\`\`
-User asks for feature
-    ↓
-Call discover_patterns → Read the patterns
-    ↓
-Write code following patterns exactly
-    ↓
-Write tests
-    ↓
-Call validate_complete → Must pass
-    ↓
-ONLY THEN say "done"
+project_status()                                    → Verify connection FIRST
+discover_patterns({ task: "what you're building" }) → Get patterns BEFORE code
+validate_complete({ feature: "name", files: [...] }) → Validate BEFORE done
 \`\`\`
 
----
+Header (after project_status succeeds): 🍪 CodeBakers is working on this...
+Header (if project_status fails): ⚠️ CodeBakers not connected - run: codebakers go
+Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 
-The MCP tools handle pattern discovery and validation. Follow them.
+## 🚨 ALWAYS DO THIS (Critical - Repeated at End)
+1. Call \`project_status()\` FIRST
+2. Call \`discover_patterns()\` before code
+3. Call \`validate_complete()\` before done
+4. Show footer after code responses
 `;
   }
 
