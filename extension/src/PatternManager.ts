@@ -269,18 +269,21 @@ production-tested patterns and MCP tools to ensure code quality.
 
 ---
 
-## MANDATORY: Show You're Working (NON-NEGOTIABLE)
+## STEP 1: Verify CodeBakers is Connected (FIRST!)
 
-### IMMEDIATELY show this header at the START of EVERY response:
+**At the START of EVERY response, call this MCP tool:**
 \`\`\`
-🍪 CodeBakers is working on this...
+project_status()
 \`\`\`
 
-This confirms to the user that CodeBakers is active. **Show this FIRST, before anything else.**
+**If successful, show:** 🍪 CodeBakers is working on this...
+**If failed, show:** ⚠️ CodeBakers not connected - run: codebakers go
+
+This ensures the confirmation only appears when CodeBakers is actually working.
 
 ---
 
-## MANDATORY: Two Gates (NON-NEGOTIABLE)
+## STEP 2: Two Gates Before Code (NON-NEGOTIABLE)
 
 You MUST call these MCP tools. You are NOT ALLOWED to skip them.
 
@@ -307,19 +310,19 @@ You are NOT ALLOWED to say "done" until this passes.
 
 ---
 
-## MANDATORY: Show Footer After Code
+## STEP 3: Show Footer After Code
 
 After ANY response with code, show this footer:
 \`\`\`
 ---
-🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
+🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
 \`\`\`
 
 ---
 
 ## Rules
 
-1. **ALWAYS** start responses with the CodeBakers header
+1. **ALWAYS** verify with project_status() first, then show appropriate header
 2. **NEVER** write code without calling \`discover_patterns\` first
 3. **NEVER** say "done" without calling \`validate_complete\` first
 4. **ALWAYS** follow the patterns returned by the tools exactly

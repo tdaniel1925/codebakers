@@ -69,7 +69,7 @@ class CodeBakersServer {
   private pendingUpdate: { current: string; latest: string } | null = null;
   private lastUpdateCheck = 0;
   private updateCheckInterval = 60 * 60 * 1000; // Check every hour
-  private currentSessionToken: string | null = null; // v6.13: Server-side enforcement session
+  private currentSessionToken: string | null = null; // v6.14: Server-side enforcement session
 
   constructor() {
     this.apiKey = getApiKey();
@@ -1191,13 +1191,13 @@ class CodeBakersServer {
         {
           name: 'update_patterns',
           description:
-            'Update to CodeBakers v6.13 server-enforced patterns. Use when user says "upgrade codebakers", "update patterns", or "sync codebakers". In v6.13, patterns are server-side - this tool installs minimal bootstrap files (CLAUDE.md and .cursorrules) and removes old .claude/ folder if present.',
+            'Update to CodeBakers v6.14 server-enforced patterns. Use when user says "upgrade codebakers", "update patterns", or "sync codebakers". In v6.14, patterns are server-side - this tool installs minimal bootstrap files (CLAUDE.md and .cursorrules) and removes old .claude/ folder if present.',
           inputSchema: {
             type: 'object' as const,
             properties: {
               force: {
                 type: 'boolean',
-                description: 'Force reinstall even if already on v6.13 (default: false)',
+                description: 'Force reinstall even if already on v6.14 (default: false)',
               },
             },
           },
@@ -2808,46 +2808,51 @@ Or if user declines, call without fullDeploy:
       // Use default
     }
 
-    results.push(`# 🎨 Adding CodeBakers v6.13 to: ${projectName}\n`);
+    results.push(`# 🎨 Adding CodeBakers v6.14 to: ${projectName}\n`);
 
-    // v6.13 bootstrap content - minimal files, patterns from server
-    const V6_CLAUDE_MD = `# CodeBakers v6.13
+    // v6.14 bootstrap content - minimal files, patterns from server
+    const V6_CLAUDE_MD = `# CodeBakers v6.14
 
-## MANDATORY: Show You're Working
+## STEP 1: Verify CodeBakers is Connected (FIRST!)
 
-**At the START of EVERY response, show this header:**
+**At the START of EVERY response, call this MCP tool:**
 \`\`\`
-🍪 CodeBakers is working on this...
+project_status()
 \`\`\`
 
-## MANDATORY: Call MCP Tools
+**If successful, show:** 🍪 CodeBakers is working on this...
+**If failed, show:** ⚠️ CodeBakers not connected - run: codebakers go
 
-**Before writing ANY code, call the \`discover_patterns\` MCP tool:**
+## STEP 2: Call MCP Tools Before Code
+
+**Before writing ANY code:**
 \`\`\`
 discover_patterns({ task: "description of what you're building" })
 \`\`\`
 
-**Before saying "done", call \`validate_complete\`:**
+**Before saying "done":**
 \`\`\`
 validate_complete({ feature: "feature name", files: ["path/to/file.ts"] })
 \`\`\`
 
-## MANDATORY: Show Footer After Code
+## STEP 3: Show Footer After Code
 
 **After ANY response with code, show:**
 \`\`\`
 ---
-🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
+🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
 \`\`\`
 
 ---
-*CodeBakers v6.13 - Server-Enforced*
+*CodeBakers v6.14 - Server-Enforced*
 `;
 
-    const V6_CURSORRULES = `# CodeBakers v6.13
+    const V6_CURSORRULES = `# CodeBakers v6.14
 
-## Show You're Working
-At the START of EVERY response, show: 🍪 CodeBakers is working on this...
+## Verify First
+Call project_status() at START of every response.
+If success: show 🍪 CodeBakers is working on this...
+If fail: show ⚠️ CodeBakers not connected
 
 ## Before Writing Code
 Call: discover_patterns({ task: "description" })
@@ -2856,30 +2861,30 @@ Call: discover_patterns({ task: "description" })
 Call: validate_complete({ feature: "name", files: ["path.ts"] })
 
 ## After Code Responses
-Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
+Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
 `;
 
-    // Check if already v6.13
+    // Check if already v6.14
     const claudeMdPath = path.join(cwd, 'CLAUDE.md');
     if (fs.existsSync(claudeMdPath)) {
       const content = fs.readFileSync(claudeMdPath, 'utf-8');
-      if (content.includes('v6.13') && content.includes('discover_patterns')) {
-        results.push('✓ CodeBakers v6.13 already installed\n');
+      if (content.includes('v6.14') && content.includes('discover_patterns')) {
+        results.push('✓ CodeBakers v6.14 already installed\n');
         results.push('Patterns are server-enforced. Just call `discover_patterns` before coding!');
         return {
           content: [{ type: 'text' as const, text: results.join('\n') }],
         };
       }
-      results.push('⚠️ Upgrading to v6.13 (server-enforced patterns)...\n');
+      results.push('⚠️ Upgrading to v6.14 (server-enforced patterns)...\n');
     }
 
     try {
-      // Write v6.13 bootstrap files
+      // Write v6.14 bootstrap files
       fs.writeFileSync(claudeMdPath, V6_CLAUDE_MD);
-      results.push('✓ Created CLAUDE.md (v6.13 bootstrap)');
+      results.push('✓ Created CLAUDE.md (v6.14 bootstrap)');
 
       fs.writeFileSync(path.join(cwd, '.cursorrules'), V6_CURSORRULES);
-      results.push('✓ Created .cursorrules (v6.13 bootstrap)');
+      results.push('✓ Created .cursorrules (v6.14 bootstrap)');
 
       // Remove old .claude folder if it exists (v5 → v6 migration)
       const claudeDir = path.join(cwd, '.claude');
@@ -2926,7 +2931,7 @@ Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
       fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
 
       results.push('\n---\n');
-      results.push('## ✅ CodeBakers v6.13 Installed!\n');
+      results.push('## ✅ CodeBakers v6.14 Installed!\n');
       results.push('**How it works now:**');
       results.push('1. Call `discover_patterns` before writing code');
       results.push('2. Server returns all patterns and rules');
@@ -4696,7 +4701,7 @@ If you want AI features and prefer Claude over GPT (or want both as fallback).`,
   }
 
   /**
-   * MANDATORY: Validate that a feature is complete before AI can say "done" (v6.13 Server-Side)
+   * MANDATORY: Validate that a feature is complete before AI can say "done" (v6.14 Server-Side)
    * Runs local checks (tests, TypeScript), then validates with server
    */
   private async handleValidateComplete(args: { feature: string; files?: string[]; envVarsAdded?: string[]; schemaModified?: boolean }) {
@@ -5087,7 +5092,7 @@ If you want AI features and prefer Claude over GPT (or want both as fallback).`,
   }
 
   /**
-   * discover_patterns - START gate for pattern compliance (v6.13 Server-Side)
+   * discover_patterns - START gate for pattern compliance (v6.14 Server-Side)
    * MUST be called before writing any code
    * Calls server API to get patterns and creates enforcement session
    */
@@ -7471,7 +7476,7 @@ ${handlers.join('\n')}
   }
 
   /**
-   * Update to CodeBakers v6.13 - server-enforced patterns
+   * Update to CodeBakers v6.14 - server-enforced patterns
    * This is the MCP equivalent of the `codebakers upgrade` CLI command
    */
   private async handleUpdatePatterns(args: { force?: boolean }) {
@@ -7481,46 +7486,51 @@ ${handlers.join('\n')}
     const claudeDir = path.join(cwd, '.claude');
     const codebakersJson = path.join(cwd, '.codebakers.json');
 
-    let response = `# 🔄 CodeBakers v6.13 Update\n\n`;
+    let response = `# 🔄 CodeBakers v6.14 Update\n\n`;
 
-    // v6.13 bootstrap content
-    const V6_CLAUDE_MD = `# CodeBakers v6.13
+    // v6.14 bootstrap content
+    const V6_CLAUDE_MD = `# CodeBakers v6.14
 
-## MANDATORY: Show You're Working
+## STEP 1: Verify CodeBakers is Connected (FIRST!)
 
-**At the START of EVERY response, show this header:**
+**At the START of EVERY response, call this MCP tool:**
 \`\`\`
-🍪 CodeBakers is working on this...
+project_status()
 \`\`\`
 
-## MANDATORY: Call MCP Tools
+**If successful, show:** 🍪 CodeBakers is working on this...
+**If failed, show:** ⚠️ CodeBakers not connected - run: codebakers go
 
-**Before writing ANY code, call the \`discover_patterns\` MCP tool:**
+## STEP 2: Call MCP Tools Before Code
+
+**Before writing ANY code:**
 \`\`\`
 discover_patterns({ task: "description of what you're building" })
 \`\`\`
 
-**Before saying "done", call \`validate_complete\`:**
+**Before saying "done":**
 \`\`\`
 validate_complete({ feature: "feature name", files: ["path/to/file.ts"] })
 \`\`\`
 
-## MANDATORY: Show Footer After Code
+## STEP 3: Show Footer After Code
 
 **After ANY response with code, show:**
 \`\`\`
 ---
-🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
+🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
 \`\`\`
 
 ---
-*CodeBakers v6.13 - Server-Enforced*
+*CodeBakers v6.14 - Server-Enforced*
 `;
 
-    const V6_CURSORRULES = `# CodeBakers v6.13
+    const V6_CURSORRULES = `# CodeBakers v6.14
 
-## Show You're Working
-At the START of EVERY response, show: 🍪 CodeBakers is working on this...
+## Verify First
+Call project_status() at START of every response.
+If success: show 🍪 CodeBakers is working on this...
+If fail: show ⚠️ CodeBakers not connected
 
 ## Before Writing Code
 Call: discover_patterns({ task: "description" })
@@ -7529,7 +7539,7 @@ Call: discover_patterns({ task: "description" })
 Call: validate_complete({ feature: "name", files: ["path.ts"] })
 
 ## After Code Responses
-Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
+Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.14
 `;
 
     try {
@@ -7539,7 +7549,7 @@ Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
 
       if (fs.existsSync(claudeMdPath)) {
         const content = fs.readFileSync(claudeMdPath, 'utf-8');
-        isV6 = content.includes('v6.13') && content.includes('discover_patterns');
+        isV6 = content.includes('v6.14') && content.includes('discover_patterns');
       }
 
       if (fs.existsSync(codebakersJson)) {
@@ -7553,11 +7563,11 @@ Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
 
       response += `## Current Status\n`;
       response += `- Version: ${currentVersion || 'Unknown'}\n`;
-      response += `- v6.13 (Server-Enforced): ${isV6 ? 'Yes ✓' : 'No'}\n\n`;
+      response += `- v6.14 (Server-Enforced): ${isV6 ? 'Yes ✓' : 'No'}\n\n`;
 
       // Check if already on v6
       if (isV6 && !force) {
-        response += `✅ **Already on v6.13!**\n\n`;
+        response += `✅ **Already on v6.14!**\n\n`;
         response += `Your patterns are server-enforced. Just use \`discover_patterns\` before coding.\n`;
         response += `Use \`force: true\` to reinstall bootstrap files.\n`;
         response += this.getUpdateNotice();
@@ -7570,14 +7580,14 @@ Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
         };
       }
 
-      response += `## Upgrading to v6.13...\n\n`;
+      response += `## Upgrading to v6.14...\n\n`;
 
-      // Write v6.13 bootstrap files
+      // Write v6.14 bootstrap files
       fs.writeFileSync(claudeMdPath, V6_CLAUDE_MD);
-      response += `✓ Updated CLAUDE.md (v6.13 bootstrap)\n`;
+      response += `✓ Updated CLAUDE.md (v6.14 bootstrap)\n`;
 
       fs.writeFileSync(path.join(cwd, '.cursorrules'), V6_CURSORRULES);
-      response += `✓ Updated .cursorrules (v6.13 bootstrap)\n`;
+      response += `✓ Updated .cursorrules (v6.14 bootstrap)\n`;
 
       // Remove old .claude folder (v5 → v6 migration)
       if (fs.existsSync(claudeDir)) {
@@ -7608,7 +7618,7 @@ Show: 🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
       this.confirmDownload('6.0', 0).catch(() => {});
 
       response += `\n## ✅ Upgrade Complete!\n\n`;
-      response += `**What changed in v6.13:**\n`;
+      response += `**What changed in v6.14:**\n`;
       response += `- No local pattern files (.claude/ folder removed)\n`;
       response += `- All patterns fetched from server in real-time\n`;
       response += `- Server tracks compliance via discover_patterns/validate_complete\n\n`;
