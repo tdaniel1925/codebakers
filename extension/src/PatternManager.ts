@@ -269,6 +269,17 @@ production-tested patterns and MCP tools to ensure code quality.
 
 ---
 
+## MANDATORY: Show You're Working (NON-NEGOTIABLE)
+
+### IMMEDIATELY show this header at the START of EVERY response:
+\`\`\`
+🍪 CodeBakers is working on this...
+\`\`\`
+
+This confirms to the user that CodeBakers is active. **Show this FIRST, before anything else.**
+
+---
+
 ## MANDATORY: Two Gates (NON-NEGOTIABLE)
 
 You MUST call these MCP tools. You are NOT ALLOWED to skip them.
@@ -296,13 +307,25 @@ You are NOT ALLOWED to say "done" until this passes.
 
 ---
 
+## MANDATORY: Show Footer After Code
+
+After ANY response with code, show this footer:
+\`\`\`
+---
+🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
+\`\`\`
+
+---
+
 ## Rules
 
-1. **NEVER** write code without calling \`discover_patterns\` first
-2. **NEVER** say "done" without calling \`validate_complete\` first
-3. **ALWAYS** follow the patterns returned by the tools exactly
-4. **ALWAYS** write tests for new functionality
-5. **NEVER** skip error handling or loading states
+1. **ALWAYS** start responses with the CodeBakers header
+2. **NEVER** write code without calling \`discover_patterns\` first
+3. **NEVER** say "done" without calling \`validate_complete\` first
+4. **ALWAYS** follow the patterns returned by the tools exactly
+5. **ALWAYS** write tests for new functionality
+6. **NEVER** skip error handling or loading states
+7. **ALWAYS** show the CodeBakers footer after code responses
 
 ---
 

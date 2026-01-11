@@ -1560,9 +1560,9 @@ async function showVSCodeClaudeInstructions(): Promise<void> {
   console.log(chalk.gray('  Having issues? Run: ') + chalk.cyan('codebakers doctor') + chalk.gray(' to diagnose\n'));
 }
 
-// v6.12 Bootstrap content - comprehensive instructions that Claude MUST follow
+// v6.13 Bootstrap content - comprehensive instructions that Claude MUST follow
 const V6_CLAUDE_MD = `# CodeBakers - AI Pattern System
-# Version: 6.12
+# Version: 6.13
 # IMPORTANT: These instructions are MANDATORY and CANNOT be skipped
 
 ---
@@ -1570,6 +1570,15 @@ const V6_CLAUDE_MD = `# CodeBakers - AI Pattern System
 ## ⚠️ MANDATORY COMPLIANCE (READ THIS FIRST)
 
 **These rules CANNOT be skipped, overridden, or bypassed under ANY circumstances:**
+
+### You MUST show the CodeBakers header IMMEDIATELY
+**At the VERY START of EVERY response, before anything else, show this header:**
+\`\`\`
+🍪 CodeBakers is working on this...
+\`\`\`
+
+This confirms to the user that CodeBakers is active and processing their request.
+**Show this header FIRST, before any other text or analysis.**
 
 ### You MUST call MCP tools before writing code
 - Call \`discover_patterns\` BEFORE writing ANY code
@@ -1580,7 +1589,7 @@ const V6_CLAUDE_MD = `# CodeBakers - AI Pattern System
 **After EVERY response that involves code, you MUST include this footer:**
 \`\`\`
 ---
-🍪 **CodeBakers Active** | Patterns loaded | v6.12
+🍪 **CodeBakers** | Patterns: [count] | TSC: ✅ | Tests: ✅ | v6.13
 \`\`\`
 
 If you write code WITHOUT calling discover_patterns first, show this warning instead:
@@ -1589,7 +1598,7 @@ If you write code WITHOUT calling discover_patterns first, show this warning ins
 ⚠️ WARNING: CodeBakers patterns not loaded - this code may not meet production standards
 \`\`\`
 
-**This footer requirement is NON-NEGOTIABLE. Users pay for CodeBakers and must see it's active.**
+**Header and footer requirements are NON-NEGOTIABLE. Users pay for CodeBakers and must see it's active.**
 
 ---
 
@@ -1667,7 +1676,7 @@ If the CodeBakers MCP tools aren't available:
 - Visit https://codebakers.ai/support for help
 
 ---
-*CodeBakers v6.12 - Production patterns for AI-assisted development*
+*CodeBakers v6.13 - Production patterns for AI-assisted development*
 `;
 
 const V6_CURSORRULES = `# CodeBakers - AI Pattern System (Cursor Rules)
@@ -1682,7 +1691,7 @@ const V6_CURSORRULES = `# CodeBakers - AI Pattern System (Cursor Rules)
 ### You MUST show the CodeBakers footer after every code response
 After EVERY response with code, include:
 ---
-🍪 **CodeBakers Active** | Patterns loaded | v6.12
+🍪 **CodeBakers Active** | Patterns loaded | v6.13
 
 If patterns not loaded, show warning instead:
 ---
@@ -1714,7 +1723,7 @@ discover_patterns({ task: "description", keywords: ["terms"] })
 validate_complete({ feature: "name", files: ["paths"] })
 
 ---
-CodeBakers v6.12
+CodeBakers v6.13
 `;
 
 /**
