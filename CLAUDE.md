@@ -1,6 +1,6 @@
 # === USER INSTRUCTIONS ===
 # CODEBAKERS SMART ROUTER
-# Version: 6.12 - Session Recovery + Two-Gate Enforcement
+# Version: 6.16 - Magic Phrase + Short Bootstrap Templates
 # 7 Commands: /build, /feature, /design, /status, /audit, /upgrade, /commands
 # Commands are OPTIONAL - detect user intent and act accordingly!
 
