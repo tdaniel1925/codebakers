@@ -2808,10 +2808,18 @@ Or if user declines, call without fullDeploy:
       // Use default
     }
 
-    results.push(`# 🎨 Adding CodeBakers v6.15 to: ${projectName}\n`);
+    results.push(`# 🎨 Adding CodeBakers v6.16 to: ${projectName}\n`);
 
-    // v6.15 bootstrap content - SHORT template with rules at START and END
-    const V6_CLAUDE_MD = `# CodeBakers v6.15
+    // v6.16 bootstrap content - magic phrase + rules at START and END
+    const V6_CLAUDE_MD = `# CodeBakers v6.16
+
+## 🪄 MAGIC PHRASE: "codebakers go"
+When user says "codebakers go" in chat, start the onboarding conversation:
+1. Ask: "Is this an existing project or are you starting fresh?" (1=existing, 2=new)
+2. If existing: "Great! What would you like to work on?"
+3. If new: "What do you want to build? Describe your project."
+4. Then call \`init_project()\` to set up CodeBakers files
+5. Continue helping them build
 
 ## 🚨 ALWAYS DO THIS (Critical - Read First)
 1. ALWAYS call \`project_status()\` FIRST → If works show "🍪 CodeBakers is working..." / If fails show "⚠️ Not connected"
@@ -2833,7 +2841,7 @@ validate_complete({ feature: "name", files: [...] }) → Validate BEFORE done
 \`\`\`
 
 Header (after project_status succeeds): 🍪 CodeBakers is working on this...
-Header (if project_status fails): ⚠️ CodeBakers not connected - run: codebakers go
+Header (if project_status fails): ⚠️ CodeBakers not connected
 Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 
 ## 🚨 ALWAYS DO THIS (Critical - Repeated at End)
@@ -2843,7 +2851,10 @@ Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 4. Show footer after code responses
 `;
 
-    const V6_CURSORRULES = `# CodeBakers v6.15
+    const V6_CURSORRULES = `# CodeBakers v6.16
+
+## 🪄 "codebakers go" = Start onboarding conversation
+Ask existing/new → Ask what to build → Call init_project() → Help them build
 
 ## 🚨 ALWAYS (Read First)
 1. Call project_status() FIRST → 🍪 Working... or ⚠️ Not connected
@@ -2863,27 +2874,27 @@ Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 3. validate_complete() before done
 `;
 
-    // Check if already v6.15
+    // Check if already v6.16
     const claudeMdPath = path.join(cwd, 'CLAUDE.md');
     if (fs.existsSync(claudeMdPath)) {
       const content = fs.readFileSync(claudeMdPath, 'utf-8');
-      if (content.includes('v6.15') && content.includes('discover_patterns')) {
-        results.push('✓ CodeBakers v6.15 already installed\n');
+      if (content.includes('v6.16') && content.includes('discover_patterns')) {
+        results.push('✓ CodeBakers v6.16 already installed\n');
         results.push('Patterns are server-enforced. Just call `discover_patterns` before coding!');
         return {
           content: [{ type: 'text' as const, text: results.join('\n') }],
         };
       }
-      results.push('⚠️ Upgrading to v6.15 (server-enforced patterns)...\n');
+      results.push('⚠️ Upgrading to v6.16 (server-enforced patterns)...\n');
     }
 
     try {
-      // Write v6.15 bootstrap files
+      // Write v6.16 bootstrap files
       fs.writeFileSync(claudeMdPath, V6_CLAUDE_MD);
-      results.push('✓ Created CLAUDE.md (v6.15 bootstrap)');
+      results.push('✓ Created CLAUDE.md (v6.16 bootstrap)');
 
       fs.writeFileSync(path.join(cwd, '.cursorrules'), V6_CURSORRULES);
-      results.push('✓ Created .cursorrules (v6.15 bootstrap)');
+      results.push('✓ Created .cursorrules (v6.16 bootstrap)');
 
       // Remove old .claude folder if it exists (v5 → v6 migration)
       const claudeDir = path.join(cwd, '.claude');
@@ -2930,7 +2941,7 @@ Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
       fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
 
       results.push('\n---\n');
-      results.push('## ✅ CodeBakers v6.15 Installed!\n');
+      results.push('## ✅ CodeBakers v6.16 Installed!\n');
       results.push('**How it works now:**');
       results.push('1. Call `discover_patterns` before writing code');
       results.push('2. Server returns all patterns and rules');
@@ -7475,7 +7486,7 @@ ${handlers.join('\n')}
   }
 
   /**
-   * Update to CodeBakers v6.14 - server-enforced patterns
+   * Update to CodeBakers v6.16 - server-enforced patterns with magic phrase
    * This is the MCP equivalent of the `codebakers upgrade` CLI command
    */
   private async handleUpdatePatterns(args: { force?: boolean }) {
@@ -7485,10 +7496,18 @@ ${handlers.join('\n')}
     const claudeDir = path.join(cwd, '.claude');
     const codebakersJson = path.join(cwd, '.codebakers.json');
 
-    let response = `# 🔄 CodeBakers v6.15 Update\n\n`;
+    let response = `# 🔄 CodeBakers v6.16 Update\n\n`;
 
-    // v6.15 bootstrap content - SHORT template with rules at START and END
-    const V6_CLAUDE_MD = `# CodeBakers v6.15
+    // v6.16 bootstrap content - magic phrase + rules at START and END
+    const V6_CLAUDE_MD = `# CodeBakers v6.16
+
+## 🪄 MAGIC PHRASE: "codebakers go"
+When user says "codebakers go" in chat, start the onboarding conversation:
+1. Ask: "Is this an existing project or are you starting fresh?" (1=existing, 2=new)
+2. If existing: "Great! What would you like to work on?"
+3. If new: "What do you want to build? Describe your project."
+4. Then call \`init_project()\` to set up CodeBakers files
+5. Continue helping them build
 
 ## 🚨 ALWAYS DO THIS (Critical - Read First)
 1. ALWAYS call \`project_status()\` FIRST → If works show "🍪 CodeBakers is working..." / If fails show "⚠️ Not connected"
@@ -7510,7 +7529,7 @@ validate_complete({ feature: "name", files: [...] }) → Validate BEFORE done
 \`\`\`
 
 Header (after project_status succeeds): 🍪 CodeBakers is working on this...
-Header (if project_status fails): ⚠️ CodeBakers not connected - run: codebakers go
+Header (if project_status fails): ⚠️ CodeBakers not connected
 Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 
 ## 🚨 ALWAYS DO THIS (Critical - Repeated at End)
@@ -7520,7 +7539,10 @@ Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 4. Show footer after code responses
 `;
 
-    const V6_CURSORRULES = `# CodeBakers v6.15
+    const V6_CURSORRULES = `# CodeBakers v6.16
+
+## 🪄 "codebakers go" = Start onboarding conversation
+Ask existing/new → Ask what to build → Call init_project() → Help them build
 
 ## 🚨 ALWAYS (Read First)
 1. Call project_status() FIRST → 🍪 Working... or ⚠️ Not connected
@@ -7547,7 +7569,7 @@ Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 
       if (fs.existsSync(claudeMdPath)) {
         const content = fs.readFileSync(claudeMdPath, 'utf-8');
-        isV6 = content.includes('v6.15') && content.includes('discover_patterns');
+        isV6 = content.includes('v6.16') && content.includes('discover_patterns');
       }
 
       if (fs.existsSync(codebakersJson)) {
@@ -7561,11 +7583,11 @@ Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 
       response += `## Current Status\n`;
       response += `- Version: ${currentVersion || 'Unknown'}\n`;
-      response += `- v6.15 (Server-Enforced): ${isV6 ? 'Yes ✓' : 'No'}\n\n`;
+      response += `- v6.16 (Server-Enforced): ${isV6 ? 'Yes ✓' : 'No'}\n\n`;
 
       // Check if already on v6
       if (isV6 && !force) {
-        response += `✅ **Already on v6.15!**\n\n`;
+        response += `✅ **Already on v6.16!**\n\n`;
         response += `Your patterns are server-enforced. Just use \`discover_patterns\` before coding.\n`;
         response += `Use \`force: true\` to reinstall bootstrap files.\n`;
         response += this.getUpdateNotice();
@@ -7578,14 +7600,14 @@ Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
         };
       }
 
-      response += `## Upgrading to v6.15...\n\n`;
+      response += `## Upgrading to v6.16...\n\n`;
 
-      // Write v6.15 bootstrap files
+      // Write v6.16 bootstrap files
       fs.writeFileSync(claudeMdPath, V6_CLAUDE_MD);
-      response += `✓ Updated CLAUDE.md (v6.15 bootstrap)\n`;
+      response += `✓ Updated CLAUDE.md (v6.16 bootstrap)\n`;
 
       fs.writeFileSync(path.join(cwd, '.cursorrules'), V6_CURSORRULES);
-      response += `✓ Updated .cursorrules (v6.15 bootstrap)\n`;
+      response += `✓ Updated .cursorrules (v6.16 bootstrap)\n`;
 
       // Remove old .claude folder (v5 → v6 migration)
       if (fs.existsSync(claudeDir)) {

@@ -476,7 +476,7 @@ async function handleUpdatePatterns() {
   // Would trigger pattern update
   return {
     updated: true,
-    version: '6.15',
+    version: '6.16',
     message: 'Patterns updated successfully',
   };
 }

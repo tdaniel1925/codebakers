@@ -253,11 +253,19 @@ export class PatternManager {
   }
 
   /**
-   * Get default CLAUDE.md content - v6.15 Short template
+   * Get default CLAUDE.md content - v6.16 with magic phrase
    * Rules at START and END for better AI attention
    */
   private getDefaultClaudeMd(): string {
-    return `# CodeBakers v6.15
+    return `# CodeBakers v6.16
+
+## 🪄 MAGIC PHRASE: "codebakers go"
+When user says "codebakers go" in chat, start the onboarding conversation:
+1. Ask: "Is this an existing project or are you starting fresh?" (1=existing, 2=new)
+2. If existing: "Great! What would you like to work on?"
+3. If new: "What do you want to build? Describe your project."
+4. Then call \`init_project()\` to set up CodeBakers files
+5. Continue helping them build
 
 ## 🚨 ALWAYS DO THIS (Critical - Read First)
 1. ALWAYS call \`project_status()\` FIRST → If works show "🍪 CodeBakers is working..." / If fails show "⚠️ Not connected"
@@ -279,7 +287,7 @@ validate_complete({ feature: "name", files: [...] }) → Validate BEFORE done
 \`\`\`
 
 Header (after project_status succeeds): 🍪 CodeBakers is working on this...
-Header (if project_status fails): ⚠️ CodeBakers not connected - run: codebakers go
+Header (if project_status fails): ⚠️ CodeBakers not connected
 Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 
 ## 🚨 ALWAYS DO THIS (Critical - Repeated at End)
