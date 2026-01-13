@@ -1544,15 +1544,17 @@ async function showVSCodeClaudeInstructions(): Promise<void> {
   console.log(chalk.gray('    Click it to open the Claude Code chat panel\n'));
   console.log(chalk.gray('    Or press ') + chalk.cyan('Cmd+Shift+P') + chalk.gray(' → type ') + chalk.cyan('"Claude Code: Open Chat"') + chalk.gray('\n'));
 
-  console.log(chalk.yellow('  STEP 3: Start building!\n'));
-  console.log(chalk.gray('    Type your request in the Claude chat. For example:\n'));
-  console.log(chalk.white('      "Build me a todo app with authentication"'));
-  console.log(chalk.white('      "Add a login page to my project"'));
-  console.log(chalk.white('      "Review my code and make it production-ready"\n'));
+  console.log(chalk.yellow('  STEP 3: Type the magic phrase!\n'));
+  console.log(chalk.gray('    In the chat, type:\n'));
+  console.log(chalk.cyan.bold('      codebakers go\n'));
+  console.log(chalk.gray('    This magic phrase unlocks the full CodeBakers feature set:'));
+  console.log(chalk.gray('    • Guided onboarding conversation'));
+  console.log(chalk.gray('    • Production-ready code patterns'));
+  console.log(chalk.gray('    • Automatic testing & validation\n'));
 
   console.log(chalk.green('  ✅ You are now done with the terminal!\n'));
-  console.log(chalk.gray('     From now on, use the ') + chalk.cyan('Claude Code Chat') + chalk.gray(' panel to talk to AI.'));
-  console.log(chalk.gray('     The terminal is only needed for running commands like npm.\n'));
+  console.log(chalk.gray('     Just type ') + chalk.cyan('codebakers go') + chalk.gray(' in chat to get started.'));
+  console.log(chalk.gray('     The AI will guide you from there.\n'));
 
   console.log(chalk.gray('  ─────────────────────────────────────────────────────────\n'));
   console.log(chalk.gray('  Tip: ') + chalk.white('Make sure you have the Claude Code extension installed.'));
