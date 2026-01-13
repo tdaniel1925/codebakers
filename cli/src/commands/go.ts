@@ -1615,7 +1615,7 @@ const V6_CURSORRULES = `# CodeBakers v6.15
 
 /**
  * Complete project setup - handles everything:
- * - Detect new vs existing project
+ * - Ask user if existing or new project
  * - Set up all tracking files
  * - Configure Cursor and Claude Code MCP
  * - Run guided questions for new projects
@@ -1624,11 +1624,40 @@ const V6_CURSORRULES = `# CodeBakers v6.15
 async function setupProject(options: GoOptions = {}, auth?: AuthInfo): Promise<void> {
   const cwd = process.cwd();
 
-  // Detect if this is an existing project
+  // Auto-detect non-interactive mode (e.g., running from Claude Code)
+  const isNonInteractive = !process.stdin.isTTY;
+
+  // Detect if this looks like an existing project
   const projectInfo = detectExistingProject(cwd);
 
-  if (projectInfo.exists) {
-    // Existing project detected
+  let isExistingProject: boolean;
+
+  if (isNonInteractive) {
+    // Non-interactive: use auto-detection
+    isExistingProject = projectInfo.exists;
+  } else {
+    // Interactive: ASK the user
+    console.log(chalk.cyan('\n  ━━━ CodeBakers Setup ━━━\n'));
+
+    if (projectInfo.exists) {
+      // We detected existing code, but still ask
+      console.log(chalk.gray(`  Detected: ${projectInfo.files} files, ${projectInfo.stack.framework || 'unknown framework'}\n`));
+    }
+
+    console.log(chalk.white('  Is this an existing project or are you starting fresh?\n'));
+    console.log(chalk.gray('    1. ') + chalk.cyan('EXISTING PROJECT') + chalk.gray(' - I already have code here'));
+    console.log(chalk.gray('    2. ') + chalk.cyan('NEW PROJECT') + chalk.gray('      - Starting from scratch\n'));
+
+    let projectChoice = '';
+    while (!['1', '2'].includes(projectChoice)) {
+      projectChoice = await prompt('  Enter 1 or 2: ');
+    }
+
+    isExistingProject = projectChoice === '1';
+  }
+
+  if (isExistingProject) {
+    // Existing project
     await setupExistingProject(cwd, projectInfo, options, auth);
   } else {
     // New project
@@ -1637,15 +1666,19 @@ async function setupProject(options: GoOptions = {}, auth?: AuthInfo): Promise<v
 }
 
 async function setupNewProject(cwd: string, options: GoOptions = {}, auth?: AuthInfo): Promise<void> {
-  console.log(chalk.cyan('\n  ━━━ New Project Setup ━━━\n'));
-
   // Auto-detect non-interactive mode (e.g., running from Claude Code)
   const isNonInteractive = !process.stdin.isTTY;
-  if (isNonInteractive && !options.type) {
-    console.log(chalk.yellow('  ⚡ Non-interactive mode detected - using defaults\n'));
-    options.type = 'personal';
-    options.describe = options.describe || 'chat';
-    options.skipReview = true;
+
+  if (isNonInteractive) {
+    console.log(chalk.cyan('\n  ━━━ New Project Setup ━━━\n'));
+    if (!options.type) {
+      console.log(chalk.yellow('  ⚡ Non-interactive mode detected - using defaults\n'));
+      options.type = 'personal';
+      options.describe = options.describe || 'chat';
+      options.skipReview = true;
+    }
+  } else {
+    console.log(chalk.green('\n  ✓ Setting up as NEW PROJECT\n'));
   }
 
   let projectType: string;
