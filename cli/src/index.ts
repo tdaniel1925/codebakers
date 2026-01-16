@@ -18,6 +18,7 @@ import { generate } from './commands/generate.js';
 import { upgrade } from './commands/upgrade.js';
 import { config } from './commands/config.js';
 import { audit } from './commands/audit.js';
+import { coherence } from './commands/coherence.js';
 import { heal, healWatch } from './commands/heal.js';
 import { pushPatterns, pushPatternsInteractive } from './commands/push-patterns.js';
 import { go } from './commands/go.js';
@@ -34,7 +35,8 @@ import { join } from 'path';
 // Automatic Update Notification
 // ============================================
 
-const CURRENT_VERSION = '3.9.14';
+// Get version dynamically from package.json via getCliVersion()
+const CURRENT_VERSION = getCliVersion();
 
 // Simple semver comparison: returns true if v1 > v2
 function isNewerVersion(v1: string, v2: string): boolean {
@@ -214,12 +216,13 @@ function showWelcome(): void {
 
   console.log(chalk.white('  Quality:\n'));
   console.log(chalk.cyan('    codebakers audit') + chalk.gray('      Run automated code quality checks'));
+  console.log(chalk.cyan('    codebakers coherence') + chalk.gray('  Check wiring, imports, and dependencies'));
   console.log(chalk.cyan('    codebakers heal') + chalk.gray('       Auto-detect and fix common issues'));
   console.log(chalk.cyan('    codebakers doctor') + chalk.gray('     Check CodeBakers setup\n'));
 
   console.log(chalk.white('  All Commands:\n'));
   console.log(chalk.gray('    go, extend, billing, build, build-status, setup, scaffold, init'));
-  console.log(chalk.gray('    generate, upgrade, status, audit, heal, doctor, config, login'));
+  console.log(chalk.gray('    generate, upgrade, status, audit, coherence, heal, doctor, config, login'));
   console.log(chalk.gray('    serve, mcp-config, mcp-uninstall\n'));
 
   console.log(chalk.gray('  Run ') + chalk.cyan('codebakers <command> --help') + chalk.gray(' for more info\n'));
@@ -356,6 +359,21 @@ program
   .command('audit')
   .description('Run automated code quality and security checks')
   .action(async () => { await audit(); });
+
+program
+  .command('coherence')
+  .alias('wiring')
+  .description('Check codebase wiring, imports, exports, and dependencies')
+  .option('-f, --focus <area>', 'Focus area: all, imports, circular, env (default: all)')
+  .option('--fix', 'Automatically fix issues that can be auto-fixed')
+  .option('-v, --verbose', 'Show all issues (not just first 5 per category)')
+  .action(async (options) => {
+    await coherence({
+      focus: options.focus,
+      fix: options.fix,
+      verbose: options.verbose,
+    });
+  });
 
 program
   .command('heal')

@@ -1562,8 +1562,8 @@ async function showVSCodeClaudeInstructions(): Promise<void> {
   console.log(chalk.gray('  Having issues? Run: ') + chalk.cyan('codebakers doctor') + chalk.gray(' to diagnose\n'));
 }
 
-// v6.16 Bootstrap - SHORT template with magic phrase + rules at START and END
-const V6_CLAUDE_MD = `# CodeBakers v6.16
+// v6.19 Bootstrap - SHORT template with magic phrase + rules at START and END
+const V6_CLAUDE_MD = `# CodeBakers v6.19
 
 ## 🪄 MAGIC PHRASE: "codebakers go"
 When user says "codebakers go" in chat, start the onboarding conversation:
@@ -1590,7 +1590,10 @@ When user says "codebakers go" in chat, start the onboarding conversation:
 project_status()                                    → Verify connection FIRST
 discover_patterns({ task: "what you're building" }) → Get patterns BEFORE code
 validate_complete({ feature: "name", files: [...] }) → Validate BEFORE done
+coherence_audit()                                   → Check wiring & dependencies
 \`\`\`
+
+Commands: /build, /feature, /design, /status, /audit, /coherence, /upgrade
 
 Header (after project_status succeeds): 🍪 CodeBakers is working on this...
 Header (if project_status fails): ⚠️ CodeBakers not connected
@@ -1603,7 +1606,7 @@ Footer (after code): 🍪 **CodeBakers** | Patterns: X | TSC: ✅ | Tests: ✅
 4. Show footer after code responses
 `;
 
-const V6_CURSORRULES = `# CodeBakers v6.16
+const V6_CURSORRULES = `# CodeBakers v6.19
 
 ## 🪄 "codebakers go" = Start onboarding conversation
 Ask existing/new → Ask what to build → Call init_project() → Help them build
@@ -1619,6 +1622,9 @@ Ask existing/new → Ask what to build → Call init_project() → Help them bui
 2. Say done without validate_complete
 3. Show header without project_status succeeding
 4. Skip writing tests for new features
+
+Commands: /build, /feature, /design, /status, /audit, /coherence, /upgrade
+Use coherence_audit() to check wiring & dependencies
 
 ## 🚨 ALWAYS (Repeated at End)
 1. project_status() FIRST
@@ -1830,7 +1836,7 @@ ${content}
   if (auth) {
     const apiUrl = getApiUrl();
     confirmDownload(apiUrl, auth, {
-      version: '6.12',
+      version: '6.19',
       moduleCount: 0,
       cliVersion: getCliVersion(),
       command: 'go',
@@ -1946,7 +1952,7 @@ async function setupExistingProject(cwd: string, projectInfo: ProjectInfo, optio
   if (auth) {
     const apiUrl = getApiUrl();
     confirmDownload(apiUrl, auth, {
-      version: '6.12',
+      version: '6.19',
       moduleCount: 0,
       cliVersion: getCliVersion(),
       command: 'go',

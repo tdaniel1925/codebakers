@@ -542,7 +542,16 @@ export function setCachedUpdateInfo(latestVersion: string): void {
  * Get the current CLI version from package.json
  */
 export function getCliVersion(): string {
-  return '3.3.5'; // Keep in sync with package.json
+  try {
+    // Read version from package.json at runtime using path relative to this file
+    const path = require('path');
+    const packageJsonPath = path.join(__dirname, '..', 'package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    return packageJson.version || '0.0.0';
+  } catch {
+    // Fallback if package.json can't be read
+    return '3.9.35';
+  }
 }
 
 // ============================================
