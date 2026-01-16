@@ -3,20 +3,21 @@ import { existsSync, mkdirSync, writeFileSync, chmodSync, readFileSync } from 'f
 import { join } from 'path';
 
 const PRE_COMMIT_SCRIPT = `#!/bin/sh
-# CodeBakers Pre-Commit Hook - Session Enforcement
-# Blocks commits unless AI called discover_patterns and validate_complete
+# CodeBakers Pre-Commit Hook - Real Code Validation
+# Actually scans code for pattern violations
 
 # Run the validation script
-node "$(dirname "$0")/validate-session.js"
+node "$(dirname "$0")/validate-code.js"
 exit $?
 `;
 
-const VALIDATE_SESSION_SCRIPT = `#!/usr/bin/env node
+const VALIDATE_CODE_SCRIPT = `#!/usr/bin/env node
 /**
- * CodeBakers Pre-Commit Validation
- * Blocks commits unless a valid session exists
+ * CodeBakers Pre-Commit Code Validator
+ * Actually validates code against patterns - not just honor system
  */
 
+const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -24,122 +25,365 @@ const RED = '\\x1b[31m';
 const GREEN = '\\x1b[32m';
 const YELLOW = '\\x1b[33m';
 const CYAN = '\\x1b[36m';
+const DIM = '\\x1b[2m';
 const RESET = '\\x1b[0m';
 
 function log(color, message) {
   console.log(color + message + RESET);
 }
 
-async function validateSession() {
-  const cwd = process.cwd();
-  const stateFile = path.join(cwd, '.codebakers.json');
-
-  // Check if this is a CodeBakers project
-  if (!fs.existsSync(stateFile)) {
-    return { valid: true, reason: 'not-codebakers-project' };
-  }
-
-  let state;
+// Get staged files
+function getStagedFiles() {
   try {
-    state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
-  } catch (error) {
-    return { valid: false, reason: 'invalid-state-file' };
+    const output = execSync('git diff --cached --name-only --diff-filter=ACM', { encoding: 'utf-8' });
+    return output.split('\\n').filter(f => f.trim() && (f.endsWith('.ts') || f.endsWith('.tsx') || f.endsWith('.js') || f.endsWith('.jsx')));
+  } catch {
+    return [];
+  }
+}
+
+// Pattern violations to check
+const CHECKS = [
+  {
+    name: 'API Error Handling',
+    test: (content, file) => {
+      if (!file.includes('/api/') && !file.includes('route.ts')) return null;
+      if (!content.includes('try {') && !content.includes('try{')) {
+        return 'API route missing try/catch error handling';
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Zod Validation',
+    test: (content, file) => {
+      if (!file.includes('/api/') && !file.includes('route.ts')) return null;
+      // Check if it's a POST/PUT/PATCH that should have validation
+      if ((content.includes('POST') || content.includes('PUT') || content.includes('PATCH')) &&
+          content.includes('req.json()') &&
+          !content.includes('z.object') &&
+          !content.includes('schema.parse') &&
+          !content.includes('Schema.parse')) {
+        return 'API route accepts body but missing Zod validation';
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Console Statements',
+    test: (content, file) => {
+      // Allow in test files and scripts
+      if (file.includes('.test.') || file.includes('/tests/') || file.includes('/scripts/')) return null;
+      const lines = content.split('\\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        // Skip commented lines
+        if (line.trim().startsWith('//') || line.trim().startsWith('*')) continue;
+        if (line.includes('console.log(') || line.includes('console.error(') || line.includes('console.warn(')) {
+          return \`Console statement found at line \${i + 1} - use proper logging\`;
+        }
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Hardcoded Secrets',
+    test: (content, file) => {
+      // Skip env files and configs
+      if (file.includes('.env') || file.includes('config')) return null;
+      const patterns = [
+        /api[_-]?key\\s*[:=]\\s*['"][a-zA-Z0-9]{20,}['"]/i,
+        /secret\\s*[:=]\\s*['"][a-zA-Z0-9]{20,}['"]/i,
+        /password\\s*[:=]\\s*['"][^'"]{8,}['"]/i,
+        /sk_live_[a-zA-Z0-9]+/,
+        /sk_test_[a-zA-Z0-9]+/,
+      ];
+      for (const pattern of patterns) {
+        if (pattern.test(content)) {
+          return 'Possible hardcoded secret detected - use environment variables';
+        }
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Hardcoded URLs',
+    test: (content, file) => {
+      // Skip test files
+      if (file.includes('.test.') || file.includes('/tests/')) return null;
+      if (content.includes('localhost:') && !content.includes('process.env') && !content.includes('|| \\'http://localhost')) {
+        return 'Hardcoded localhost URL - use environment variable with fallback';
+      }
+      return null;
+    }
+  },
+  {
+    name: 'SQL Injection Risk',
+    test: (content, file) => {
+      // Check for string concatenation in SQL
+      const sqlPatterns = [
+        /\\$\\{.*\\}.*(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE)/i,
+        /['"]\\s*\\+\\s*.*\\+\\s*['"].*(?:SELECT|INSERT|UPDATE|DELETE)/i,
+        /sql\\s*\\(\\s*\`[^\\)]*\\$\\{/,
+      ];
+      for (const pattern of sqlPatterns) {
+        if (pattern.test(content)) {
+          return 'Possible SQL injection - use parameterized queries';
+        }
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Untyped Function Parameters',
+    test: (content, file) => {
+      if (!file.endsWith('.ts') && !file.endsWith('.tsx')) return null;
+      // Check for functions with 'any' type
+      if (content.includes(': any)') || content.includes(': any,') || content.includes(': any =')) {
+        return 'Using "any" type - provide proper TypeScript types';
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Missing Async Error Handling',
+    test: (content, file) => {
+      // Check for await without try/catch in the same function scope
+      const asyncFunctions = content.match(/async\\s+(?:function\\s+)?\\w*\\s*\\([^)]*\\)\\s*(?::\\s*[^{]+)?\\s*\\{[^}]+\\}/g) || [];
+      for (const func of asyncFunctions) {
+        if (func.includes('await') && !func.includes('try') && !func.includes('catch')) {
+          // Check if it's wrapped in a try/catch at a higher level
+          if (!content.includes('.catch(') && !content.includes('try {')) {
+            return 'Async function with await but no error handling';
+          }
+        }
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Empty Catch Block',
+    test: (content, file) => {
+      if (/catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}/.test(content)) {
+        return 'Empty catch block - handle or rethrow errors';
+      }
+      if (/catch\\s*\\([^)]*\\)\\s*\\{\\s*\\/\\//.test(content)) {
+        return 'Catch block with only comment - properly handle errors';
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Direct DOM Manipulation in React',
+    test: (content, file) => {
+      if (!file.endsWith('.tsx') && !file.endsWith('.jsx')) return null;
+      if (content.includes('document.getElementById') ||
+          content.includes('document.querySelector') ||
+          content.includes('document.createElement')) {
+        return 'Direct DOM manipulation in React - use refs or state instead';
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Missing Return Type',
+    test: (content, file) => {
+      if (!file.endsWith('.ts') && !file.endsWith('.tsx')) return null;
+      // Check exported functions without return types
+      const exportedFunctions = content.match(/export\\s+(?:async\\s+)?function\\s+\\w+\\s*\\([^)]*\\)\\s*\\{/g) || [];
+      for (const func of exportedFunctions) {
+        if (!func.includes(':') || func.match(/\\)\\s*\\{$/)) {
+          return 'Exported function missing return type annotation';
+        }
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Unsafe JSON Parse',
+    test: (content, file) => {
+      if (content.includes('JSON.parse(') && !content.includes('try') && !content.includes('catch')) {
+        return 'JSON.parse without try/catch - can throw on invalid JSON';
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Missing Auth Check',
+    test: (content, file) => {
+      if (!file.includes('/api/') && !file.includes('route.ts')) return null;
+      // Skip public routes
+      if (file.includes('/public/') || file.includes('/auth/') || file.includes('/webhook')) return null;
+      // Check if it's accessing user data without auth
+      if ((content.includes('userId') || content.includes('user.id') || content.includes('session')) &&
+          !content.includes('getServerSession') &&
+          !content.includes('auth(') &&
+          !content.includes('requireAuth') &&
+          !content.includes('verifyToken') &&
+          !content.includes('validateSession')) {
+        return 'Route accesses user data but may be missing auth check';
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Unhandled Promise',
+    test: (content, file) => {
+      // Check for promises without await or .then/.catch
+      const lines = content.split('\\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        // Skip if line ends with await, .then, .catch, or is assigned
+        if (line.match(/(?:fetch|axios|db\\.|prisma\\.).*\\(/) &&
+            !line.includes('await') &&
+            !line.includes('.then') &&
+            !line.includes('.catch') &&
+            !line.includes('return') &&
+            !line.includes('=')) {
+          return \`Unhandled promise at line \${i + 1}\`;
+        }
+      }
+      return null;
+    }
+  },
+  {
+    name: 'Sensitive Data in Logs',
+    test: (content, file) => {
+      const sensitivePatterns = [
+        /console\\.log.*password/i,
+        /console\\.log.*token/i,
+        /console\\.log.*secret/i,
+        /console\\.log.*apiKey/i,
+        /console\\.log.*creditCard/i,
+        /console\\.log.*ssn/i,
+      ];
+      for (const pattern of sensitivePatterns) {
+        if (pattern.test(content)) {
+          return 'Possible sensitive data being logged';
+        }
+      }
+      return null;
+    }
+  }
+];
+
+async function validateCode() {
+  const cwd = process.cwd();
+  const violations = [];
+  const warnings = [];
+
+  // Get staged files
+  const stagedFiles = getStagedFiles();
+
+  if (stagedFiles.length === 0) {
+    return { valid: true, message: 'No code files staged' };
   }
 
-  // Check if v6.0 server-enforced mode
-  if (!state.serverEnforced) {
-    return { valid: true, reason: 'legacy-project' };
-  }
+  log(CYAN, '\\n🍪 CodeBakers Pre-Commit Checks');
+  log(CYAN, '================================\\n');
 
-  // Check for session token (means discover_patterns was called)
-  const sessionToken = state.currentSessionToken;
-  if (!sessionToken) {
-    // Check if there's a recent passed validation
-    const lastValidation = state.lastValidation;
-    if (!lastValidation || !lastValidation.passed) {
-      return {
-        valid: false,
-        reason: 'no-session',
-        message: 'No active CodeBakers session.\\nAI must call discover_patterns before writing code.'
-      };
+  log(DIM, \`📋 Step 1/2: Checking pattern compliance...\\n\`);
+  log(DIM, \`🔍 Validating CodeBakers pattern compliance...\\n\`);
+
+  let filesChecked = 0;
+
+  for (const file of stagedFiles) {
+    const filePath = path.join(cwd, file);
+    if (!fs.existsSync(filePath)) continue;
+
+    let content;
+    try {
+      content = fs.readFileSync(filePath, 'utf-8');
+    } catch {
+      continue;
+    }
+
+    filesChecked++;
+    const fileViolations = [];
+
+    for (const check of CHECKS) {
+      const result = check.test(content, file);
+      if (result) {
+        fileViolations.push({
+          check: check.name,
+          message: result,
+          file: file
+        });
+      }
+    }
+
+    if (fileViolations.length > 0) {
+      violations.push(...fileViolations);
     }
   }
 
-  // Check session expiry
-  const sessionExpiry = state.sessionExpiresAt;
-  if (sessionExpiry && new Date(sessionExpiry) < new Date()) {
-    return {
-      valid: false,
-      reason: 'session-expired',
-      message: 'CodeBakers session has expired.\\nAI must call discover_patterns again.'
-    };
+  if (filesChecked === 0) {
+    log(DIM, 'No files to validate.\\n');
   }
 
-  // Check if validation was completed
-  const lastValidation = state.lastValidation;
-  if (!lastValidation) {
-    return {
-      valid: false,
-      reason: 'no-validation',
-      message: 'No validation completed.\\nAI must call validate_complete before committing.'
-    };
+  // Report results
+  if (violations.length > 0) {
+    log(RED, \`\\n❌ Found \${violations.length} violation(s):\\n\`);
+
+    const byFile = {};
+    for (const v of violations) {
+      if (!byFile[v.file]) byFile[v.file] = [];
+      byFile[v.file].push(v);
+    }
+
+    for (const [file, fileViolations] of Object.entries(byFile)) {
+      log(YELLOW, \`  \${file}:\`);
+      for (const v of fileViolations) {
+        log(RED, \`    ✗ [\${v.check}] \${v.message}\`);
+      }
+      console.log('');
+    }
+
+    log(CYAN, '\\nHow to fix:');
+    log(RESET, '  1. Address each violation listed above');
+    log(RESET, '  2. Re-stage your changes: git add <files>');
+    log(RESET, '  3. Try committing again\\n');
+    log(YELLOW, 'To bypass (not recommended): git commit --no-verify\\n');
+
+    return { valid: false, violations };
   }
 
-  // Check if validation passed
-  if (!lastValidation.passed) {
-    const issues = lastValidation.issues?.map(i => i.message || i).join(', ') || 'Unknown issues';
-    return {
-      valid: false,
-      reason: 'validation-failed',
-      message: 'Validation failed: ' + issues + '\\nAI must fix issues and call validate_complete again.'
-    };
+  log(GREEN, '✅ Pattern compliance passed!\\n');
+
+  // Step 2: Run tests if available
+  log(DIM, '🧪 Step 2/2: Running tests...\\n');
+
+  try {
+    // Check if there's a test script
+    const pkgPath = path.join(cwd, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+      if (pkg.scripts && pkg.scripts.test) {
+        execSync('npm test', { stdio: 'inherit', cwd });
+        log(GREEN, '✅ Tests passed!\\n');
+      } else {
+        log(DIM, 'No test script found, skipping...\\n');
+      }
+    }
+  } catch (error) {
+    log(RED, '❌ Tests failed!\\n');
+    log(YELLOW, 'Fix failing tests before committing.\\n');
+    return { valid: false, reason: 'tests-failed' };
   }
 
-  // Check if validation is recent (within last 30 minutes)
-  const validationTime = new Date(lastValidation.timestamp);
-  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-  if (validationTime < thirtyMinutesAgo) {
-    return {
-      valid: false,
-      reason: 'validation-stale',
-      message: 'Validation is stale (older than 30 minutes).\\nAI must call validate_complete again.'
-    };
-  }
+  log(GREEN, '================================');
+  log(GREEN, '✅ All pre-commit checks passed!');
+  log(GREEN, '================================\\n');
 
-  return { valid: true, reason: 'session-valid' };
+  return { valid: true };
 }
 
 async function main() {
-  console.log('');
-  log(CYAN, '  🍪 CodeBakers Pre-Commit Validation');
-  console.log('');
-
-  const result = await validateSession();
+  const result = await validateCode();
 
   if (result.valid) {
-    if (result.reason === 'not-codebakers-project') {
-      log(GREEN, '  ✓ Not a CodeBakers project - commit allowed');
-    } else if (result.reason === 'legacy-project') {
-      log(GREEN, '  ✓ Legacy project (pre-6.0) - commit allowed');
-    } else {
-      log(GREEN, '  ✓ Valid CodeBakers session - commit allowed');
-    }
-    console.log('');
     process.exit(0);
   } else {
-    log(RED, '  ✗ Commit blocked: ' + result.reason);
-    console.log('');
-    if (result.message) {
-      log(YELLOW, '  ' + result.message.split('\\n').join('\\n  '));
-    }
-    console.log('');
-    log(CYAN, '  How to fix:');
-    log(RESET, '  1. AI must call discover_patterns before writing code');
-    log(RESET, '  2. AI must call validate_complete before saying "done"');
-    log(RESET, '  3. Both tools must pass for commits to be allowed');
-    console.log('');
-    log(YELLOW, '  To bypass (not recommended): git commit --no-verify');
-    console.log('');
     process.exit(1);
   }
 }
@@ -163,13 +407,6 @@ export async function installPrecommit(): Promise<void> {
     process.exit(1);
   }
 
-  // Check if this is a CodeBakers project
-  const stateFile = join(cwd, '.codebakers.json');
-  if (!existsSync(stateFile)) {
-    console.log(chalk.yellow('  ⚠️  No .codebakers.json found'));
-    console.log(chalk.gray('  Run codebakers upgrade first to enable server enforcement\n'));
-  }
-
   // Create hooks directory if it doesn't exist
   const hooksDir = join(gitDir, 'hooks');
   if (!existsSync(hooksDir)) {
@@ -190,10 +427,10 @@ export async function installPrecommit(): Promise<void> {
   console.log(chalk.green('  ✓ Created pre-commit hook'));
 
   // Write the validation script
-  const validatePath = join(hooksDir, 'validate-session.js');
-  writeFileSync(validatePath, VALIDATE_SESSION_SCRIPT);
+  const validatePath = join(hooksDir, 'validate-code.js');
+  writeFileSync(validatePath, VALIDATE_CODE_SCRIPT);
 
-  console.log(chalk.green('  ✓ Created validation script'));
+  console.log(chalk.green('  ✓ Created code validation script'));
 
   // Check if husky is being used
   const huskyDir = join(cwd, '.husky');
@@ -204,15 +441,15 @@ export async function installPrecommit(): Promise<void> {
 
     if (existsSync(huskyPreCommit)) {
       huskyContent = readFileSync(huskyPreCommit, 'utf-8');
-      if (!huskyContent.includes('validate-session')) {
-        huskyContent += '\n# CodeBakers session enforcement\nnode .git/hooks/validate-session.js\n';
+      if (!huskyContent.includes('validate-code')) {
+        huskyContent += '\n# CodeBakers code validation\nnode .git/hooks/validate-code.js\n';
         writeFileSync(huskyPreCommit, huskyContent);
         console.log(chalk.green('  ✓ Added to existing husky pre-commit'));
       } else {
         console.log(chalk.gray('  ✓ Husky hook already configured'));
       }
     } else {
-      huskyContent = '#!/usr/bin/env sh\n. "$(dirname -- "$0")/_/husky.sh"\n\n# CodeBakers session enforcement\nnode .git/hooks/validate-session.js\n';
+      huskyContent = '#!/usr/bin/env sh\n. "$(dirname -- "$0")/_/husky.sh"\n\n# CodeBakers code validation\nnode .git/hooks/validate-code.js\n';
       writeFileSync(huskyPreCommit, huskyContent);
       try {
         chmodSync(huskyPreCommit, '755');
@@ -224,11 +461,17 @@ export async function installPrecommit(): Promise<void> {
   }
 
   console.log(chalk.green('\n  ✅ Pre-commit hook installed!\n'));
-  console.log(chalk.cyan('  What this does:'));
-  console.log(chalk.gray('  - Blocks commits unless AI called discover_patterns'));
-  console.log(chalk.gray('  - Blocks commits unless AI called validate_complete'));
-  console.log(chalk.gray('  - Requires validation to pass before committing'));
-  console.log(chalk.gray('  - Validation expires after 30 minutes\n'));
+  console.log(chalk.cyan('  What this validates:'));
+  console.log(chalk.gray('  - API routes have error handling'));
+  console.log(chalk.gray('  - Request bodies are validated with Zod'));
+  console.log(chalk.gray('  - No console.log statements in production code'));
+  console.log(chalk.gray('  - No hardcoded secrets or URLs'));
+  console.log(chalk.gray('  - No SQL injection vulnerabilities'));
+  console.log(chalk.gray('  - Proper TypeScript types (no "any")'));
+  console.log(chalk.gray('  - Async functions have error handling'));
+  console.log(chalk.gray('  - No empty catch blocks'));
+  console.log(chalk.gray('  - Auth checks on protected routes'));
+  console.log(chalk.gray('  - Runs tests before commit\n'));
   console.log(chalk.yellow('  To bypass (not recommended):'));
   console.log(chalk.gray('  git commit --no-verify\n'));
 }
